@@ -3,54 +3,8 @@
 </div>
 <div class="modal-body">
 
-	<div class='row'>
-		<div class='height3 pad1 dark-blue-bg font-white margin1'>
-			Formation
-		</div>
-		<div class='height3 pad1 dark-green-bg font-white margin1'>
-			Assignments
-		</div>
-	</div>
-
-	<div class='marginTop2'>
-		<h4>New formation</h4>
-		<input type='text' ng-model='formationName'
-			placeholder='Formation name' />
-
-		<h5>In playbook:</h5>
-		<select>
-			<optgroup 
-				ng-repeat='(type, model) in playbooks'
-				label='{{playbookTypes[type]}}'>
-				<option ng-value=''
-					ng-repeat='(key, playbook) in playbooks[type].items'>
-					{{playbook.name}}
-				</option>
-			</optgroup>
-		</select>
-	</div>
-
-	<div class='marginTop2'>
-		<h4>Existing Formation</h4>
-		<select>
-			<option value=''>---</option>
-		</select>
-	</div>
-
-	<div class='marginTop2'>
-		<h4>Start from scratch</h4>
-	</div>
-
-    <!-- <label for=''>
-    	<div class='row marginBottom1'>
-	    	<div class='width1 marginRight1'>
-	    		<input type='radio' 
-	    			ng-model=''
-	    			value='' />
-	    	</div>
-	    	<span></span>
-    	</div>
-    </label> -->
+	<p class='font-white'>To-do!</p>
+	This dialog appears when clicking the '+' icon inside the editor tab well
 
 </div>
 <div class="modal-footer">

@@ -28,7 +28,9 @@ impakt.playbook.constant('PLAYBOOK', {
 
     // Plays
     CREATE_PLAY: '/createPlay',
+    UPDATE_PLAY: '/updatePlay',
     GET_PLAY: '/getPlay',
-    GET_PLAYS: '/getPlays'
+    GET_PLAYS: '/getPlays',
+    DELETE_PLAY: '/deletePlay'
 
 });

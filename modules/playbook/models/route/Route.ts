@@ -3,31 +3,36 @@
 module Playbook.Models {
 
 	export class Route
-		extends Common.Models.Modifiable
-		implements Playbook.Interfaces.IFieldContext {
+		extends Common.Models.Modifiable {
 
-		public context: Playbook.Models.Player;
-		public grid: Playbook.Models.Grid;
-		public field: Playbook.Models.Field;
-		public paper: Playbook.Models.Paper;
+		public player: Playbook.Interfaces.IPlayer;
+		public paper: Playbook.Interfaces.IPaper;
+		public grid: Playbook.Interfaces.IGrid;
+		public field: Playbook.Interfaces.IField;
+		
 		public path: Playbook.Models.FieldElement;
 		public set: Playbook.Models.FieldElementSet;
 		public nodes: Common.Models.ModifiableLinkedList<Playbook.Models.RouteNode>;
+		public color: string;
 		public dragInitialized: boolean;
 
-		constructor(context: Playbook.Models.Player, dragInitialized?: boolean) {
-			super(this);
-			if(context) {
-				this.context = context;
-				this.grid = this.context.grid;
-				this.field = this.context.field;
-				this.paper = this.context.paper;
+		constructor(
+			player: Playbook.Interfaces.IPlayer, 
+			dragInitialized?: boolean
+		) {
+			this.player = player;
+			this.paper = this.player.paper;
+			this.grid = this.paper.grid;
+			
+			super(this);			
+
+			if(player) {
 			
 				this.nodes = new Common.Models.ModifiableLinkedList<Playbook.Models.RouteNode>();
 
 				// add root node
 				let root = this.addNode(
-					this.context.placement.getCoordinates(),
+					this.player.placement.getCoordinates(),
 					Playbook.Models.RouteNodeType.Root,
 					false
 				);
@@ -36,14 +41,15 @@ module Playbook.Models {
 
 			this.dragInitialized = dragInitialized === true;
 			this.path = new Playbook.Models.FieldElement(this);
+			this.color = 'black';
 		}
 
-		public setContext(context: Playbook.Models.Player) {
-			if (context) {
-				this.context = context;
-				this.grid = this.context.grid;
-				this.field = this.context.field;
-				this.paper = this.context.paper;
+		public setContext(player: Playbook.Interfaces.IPlayer) {
+			if (player) {
+				this.player = player;
+				this.grid = this.player.grid;
+				this.field = this.player.field;
+				this.paper = this.player.paper;
 
 				let self = this;
 				this.nodes.forEach(function(node, index) {
@@ -52,8 +58,8 @@ module Playbook.Models {
 					// Pushing this onto the fieldElementSet maintained
 					// by 'self.context', which is a Player. This fieldElementSet
 					// is a Raphael set, which allows bulk transformations.
-					if(!self.context.set.getByGuid(node.data.guid)) {
-						self.context.set.push(node.data);
+					if(!self.player.set.getByGuid(node.data.guid)) {
+						self.player.set.push(node.data);
 					}
 				});
 				this.draw();
@@ -80,7 +86,7 @@ module Playbook.Models {
 
 		public toJson(): any {
 			return {
-				nodes: this.nodes.toJsonArray(),
+				nodes: this.nodes.toJson(),
 				guid: this.guid,
 				dragInitialized: this.dragInitialized
 			};
@@ -94,8 +100,8 @@ module Playbook.Models {
 		}
 
 		public draw() {
-			if (!this.context) {
-				throw new Error('Route context is not set');
+			if (!this.player) {
+				throw new Error('Route player is not set');
 			}
 			let pathStr = this.getMixedStringFromNodes(this.nodes.toArray());
 			console.log(pathStr);
@@ -103,17 +109,25 @@ module Playbook.Models {
 			this.paper.remove(this.path.raphael);
 
 			this.path.raphael = this.paper.path(pathStr).attr({
-				'stroke': 'green',
+				'stroke': this.color,
 				'stroke-width': 2
 			});
 			this.path.raphael.node.setAttribute('class', 'painted-fill');
-			this.context.set.exclude(this.path);
-			this.context.set.push(this.path);
+			this.player.set.exclude(this.path);
+			this.player.set.push(this.path);
+		}
+
+		public clear(): void {
+			this.paper.remove(this.path.raphael);
+			// this.nodes.forEach(function(node, index) {
+			// 	if(node && node.data)
+			// 		node.data.clear();
+			// });
 		}
 
 		public drawCurve(node: Playbook.Models.RouteNode) {
-			if (!this.context) {
-				throw new Error('Route context is not set');
+			if (!this.player) {
+				throw new Error('Route player is not set');
 			}
 			if (node) {
 				//node.drawControlPaths();
@@ -127,17 +141,17 @@ module Playbook.Models {
 			this.paper.remove(this.path.raphael);
 
 			this.path.raphael = this.paper.path(pathStr).attr({
-				'stroke': '#22CFA7',
+				'stroke': this.color,
 				'stroke-width': 2
 			});
 			this.path.raphael.node.setAttribute('class', 'painted-fill');
-			this.context.set.exclude(this.path);
-			this.context.set.push(this.path);
+			this.player.set.exclude(this.path);
+			this.player.set.push(this.path);
 		}
 
 		public drawLine() {
-			if (!this.context) {
-				throw new Error('Route context is not set');
+			if (!this.player) {
+				throw new Error('Route player is not set');
 			}
 			let pathStr = this.paper.getPathStringFromNodes(
 				true,
@@ -147,16 +161,16 @@ module Playbook.Models {
 			this.paper.remove(this.path.raphael);
 
 			this.path.raphael = this.paper.path(pathStr).attr({
-				'stroke': '#B82500',
+				'stroke': this.color,
 				'stroke-width': 2
 			});
 			this.path.raphael.node.setAttribute('class', 'painted-fill');
-			this.context.set.exclude(this.path);
-			this.context.set.push(this.path);
+			this.player.set.exclude(this.path);
+			this.player.set.push(this.path);
 		}
 
 		public initializeCurve(coords: Playbook.Models.Coordinate, flip: boolean) {
-			// if(coords.x != this.context.x && coords.y != this.context.y) {
+			// if(coords.x != this.player.x && coords.y != this.player.y) {
 			// 	console.log('draw curve');
 			// }
 
@@ -266,12 +280,18 @@ module Playbook.Models {
 
 		public addNode(
 			coords: Playbook.Models.Coordinate,
-			type: Playbook.Models.RouteNodeType,
+			type?: Playbook.Models.RouteNodeType,
 			render?: boolean)
 			: Common.Models.LinkedListNode<Playbook.Models.RouteNode> {
 			//let fromNode = this.getLastNode();
+			
+			let routeNodeType = type || (
+				this.nodes.hasElements() ? 
+				Playbook.Models.RouteNodeType.Normal : 
+				Playbook.Models.RouteNodeType.Root
+			);
 			let routeNode = new Playbook.Models.RouteNode(
-				this, coords, type
+				this, coords, routeNodeType
 			);
 			// let self = this;
 			// routeNode.onModified(function(data: any) {
@@ -284,10 +304,10 @@ module Playbook.Models {
 
 			this.nodes.add(node);
 			
-			//this.player.set.push(path, node);
+			this.player.set.push(node.data);
 			if (render !== false) {
 				node.data.draw();
-				this.context.set.push(node.data);
+				//this.player.set.push(node.data);
 				this.draw();
 			}
 			return node;

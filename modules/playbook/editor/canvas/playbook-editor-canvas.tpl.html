@@ -2,26 +2,86 @@
 
 <div ng-controller='playbook.editor.canvas.ctrl' 
 	class='playbook-editor-canvas-container col'>
-	
-	<!-- 
-		NOTE: `canvases` are located in playbook.editor.ctrl 
-		and inherited by playbook.editor.canvas.ctrl
 
-		TODO: this is convoluted...?
-	-->
-	<div class='col' 
-		ng-repeat='(key, canvas) in canvases'
-		ng-show='canvas.active'>
+	<div class='col font-white pad'
+		ng-if='!hasOpenTabs'>
+		<div class='center'>
+			<div class='height6 textCenter'>
+				<div class='marginBottom1'>
+					Open a file to begin editing.
+				</div>
+				<h4 class='actionable' ng-click='toBrowser()'>
+					<span class='glyphicon glyphicon-folder-open'></span>
+					Browse files...
+				</h4>
+			</div>
+		</div>
+	</div>
+	
+	<div class='col' ng-if='hasOpenTabs'>
 	
 		<div class='playbook-editor-play-info row 
-			height3 font-white dark-blue-bg overflowVisible'>
+			gray-bg-3
+			height3 font-white overflowVisible {{getEditorTypeClass(tab.playPrimary.editorType)}}'>
 
-			<div class='dark-blue-bg dark-blue-bg-hover pointer positionRelative'
-				ng-init='formationDropdownVisible = false'>
+			<!-- Unit type -->
+			<div class='pad'>
+				<div>
+					Unit type:
+					<type-formatter
+						value='{{tab.playPrimary.unitType}}'
+						type='Playbook.Editor.UnitTypes'>
+					</type-formatter>
+				</div>	
+			</div>
+
+			<!-- Editor type message -->
+			<div class='pad'>
+				<div>
+					Mode:
+					<type-formatter 
+						value='{{tab.playPrimary.editorType}}'
+						type='Playbook.Editor.EditorTypes'>
+					</type-formatter>
+					<!-- <span class='marginLeft1 actionable' ng-click='switchToPlayMode()'>
+						Switch to play mode
+					</span> -->
+				</div>
+			</div>
+
+			<!-- <popout 
+				open='down' 
+				data='tab.play.formation'
+				label='tab.play.formation.name'
+				ng-show='isFormationVisible(tab.play.editorType)'>
+				<popout-toggle >
+					
+				</popout-toggle>
+
+				<popout-contents class='gray-bg-5'>
+					
+					<p>Formations</p>
+					<div ng-repeat='formation in formations.toArray()'
+						class='pointer gray-bg-5-hover'>
+						{{formation.name}}
+					</div>
+				</popout-contents>
+
+			</popout> -->
+
+			<!-- Formation dropdown -->
+			<div class='pointer positionRelative'
+				ng-init='formationDropdownVisible = false'
+				ng-show='isFormationVisible(tab.playPrimary.editorType)'>
 				<div class='row height3 pad'
 					ng-click='formationDropdownVisible = !formationDropdownVisible'>
 					<div class='marginRight1'>
-						Formation:  <strong>{{canvas.editorData.name}}</strong>
+						Formation:  
+						<strong>
+							{{tab.playPrimary.formation.name}}
+							<span ng-show='tab.playPrimary.formation.modified'>*</span>
+						</strong>
+						
 					</div>
 					<div class='glyphicon glyphicon-chevron-down'>
 					</div>
@@ -31,20 +91,23 @@
 					<!-- list of formations -->
 					<ul>
 						<li ng-repeat='(key, formation) in formations.getAll()'
-							class='pad pointer light-blue-bg light-blue-bg-hover'
+							class='pad pointer gray-bg-4-hover'
 							ng-click='applyFormation(formation)'>
 							{{formation.name}}
+							<span ng-show='formation.modified'>*</span>
 						</li>
 					</ul>
 				</div>
 			</div>
 
-			<div class='dark-blue-bg dark-blue-bg-hover pointer positionRelative'
-				ng-init='setDropdownVisible = false'>
+			<!-- Personnel dropdown -->
+			<div class='pointer positionRelative'
+				ng-init='setDropdownVisible = false'
+				ng-show='isPersonnelVisible(tab.playPrimary.editorType)'>
 				<div class='row height3 pad'
 					ng-click='setDropdownVisible = !setDropdownVisible'>
 					<div class='marginRight1'>
-						Personnel:  <strong>{{canvas.editorData.personnel.name}}</strong>
+						Personnel:  <strong>{{tab.playPrimary.personnel.name}}</strong>
 					</div>
 					<div class='glyphicon glyphicon-chevron-down'>
 					</div>
@@ -54,22 +117,24 @@
 					<!-- list of personnel -->
 					<ul>
 						<li ng-repeat='(guid, personnel) in personnelCollection.getAll()'
-							class='pad pointer light-blue-bg light-blue-bg-hover'
-							ng-click='applySet(personnel)'>
+							class='pad pointer gray-bg-4-hover'
+							ng-click='applyPersonnel(personnel)'>
 							{{personnel.name}}
 						</li>
 					</ul>
 				</div>
 			</div>
 
-			<div class='dark-blue-bg dark-blue-bg-hover pointer positionRelative'
-				ng-init='playDropdownVisible = false'>
+			<!-- Assignments dropdown -->
+			<div class='pointer positionRelative'
+				ng-init='playDropdownVisible = false'
+				ng-show='isAssignmentsVisible(tab.playPrimary.editorType)'>
 				<div class='row height3 pad'
 					ng-click='playDropdownVisible = !playDropdownVisible'>
 					<div class='marginRight1'>
 						Assignments:  
 						<strong>
-							{{canvas.editorData.play.name}}
+							{{tab.playPrimary.assignments.name}}
 						</strong>
 					</div>
 					<div class='glyphicon glyphicon-chevron-down'>
@@ -79,24 +144,43 @@
 					ng-show='playDropdownVisible'>
 					<!-- list of plays -->
 					<ul>
-						<li ng-repeat='(key, play) in plays.getAll()'
-							class='pad pointer light-blue-bg light-blue-bg-hover'
-							ng-click='applyPlay(play)'>
-							{{play.name}}
+						<li ng-repeat='(key, assignment) in assignments.getAll()'
+							class='pad pointer gray-bg-4-hover'
+							ng-click='applyAssignment(assignment)'>
+							{{assignment.name}}
 						</li>
 					</ul>
 				</div>
 			</div>
+
 		</div>
 
-		<playbook-editor-canvas
-			editortype='{{editorTypes["formation"]}}'
-			key='{{key}}'
-			scrollable
-			class='col playbook-editor-canvas marginBottom1 marginRight1'
-			oncontextmenu='return false;'>
-			
-		</playbook-editor-canvas>
+		<div class='row gray-bg-4'>
+
+			<!-- tools -->
+			<div class='shrink'>
+				<ng-include class='col shrink'
+					ng-attr-src='templates.tools'>
+				</ng-include>
+			</div>
+
+			<div class='col'>
+				<playbook-editor-canvas
+					editortype='{{tab.playPrimary.editorType}}'
+					key='{{key}}'
+					scrollable
+					class='col playbook-editor-canvas'
+					oncontextmenu='return false;'>
+					
+				</playbook-editor-canvas>
+
+				<!-- canvas info -->
+				<ng-include class='height3'
+					ng-attr-src='templates.mode'>
+				</ng-include>
+			</div>			
+
+		</div>
 	
 	</div>
 

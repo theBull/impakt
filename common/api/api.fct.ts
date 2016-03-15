@@ -1,17 +1,27 @@
 /// <reference path='./api.mdl.ts' />
 
 impakt.common.api.factory('__api', [
-	'API', 'AUTH', '$http', '$q',
-	function(API: any, AUTH: any, $http: any, $q: any) {
+'API', 
+'AUTH', 
+'$http', 
+'$q',
+'__localStorage',
+function(
+	API: any, 
+	AUTH: any, 
+	$http: any, 
+	$q: any,
+	__localStorage: any
+) {
 
-	var self = {
+	let self = {
 		post: post,
 		get: get,
 		path: path
 	}
 
 	function post(endpointUrl, data) {
-		var d = $q.defer();
+		let d = $q.defer();
 		$http.post(
 			path(API.HOST_URL, API.ENDPOINT, endpointUrl),
 			JSON.stringify(data)
@@ -27,10 +37,17 @@ impakt.common.api.factory('__api', [
 	}
 
 	function get(endpointUrl) {
-		var d = $q.defer();
-		$http.get(
-			path(API.HOST_URL, API.ENDPOINT, endpointUrl)
-		).then(function(data) {
+		let d = $q.defer();
+		$http({
+			method: 'GET',
+			url: path(API.HOST_URL, API.ENDPOINT, endpointUrl),
+			headers: {
+			   'X-HTTP-Method-Override': 'POST'
+			},
+			data: { 
+				"OrganizationKey": __localStorage.getOrganizationKey()
+			}
+		}).then(function(data) {
 			// TODO: handle statuses manually
 			//console.log(data);
 			d.resolve(data);

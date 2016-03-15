@@ -15,10 +15,16 @@
 /// <reference path='./ModifiableLinkedList.ts' />
 /// <reference path='./ModifiableLinkedListNode.ts' />
 
+/// <reference path='./AssociationArray.ts' />
 /// <reference path='./Association.ts' />
 /// <reference path='./Notification.ts' />
 /// <reference path='./NotificationCollection.ts' />
 
+/// <reference path='./Template.ts' />
+/// <reference path='./TemplateCollection.ts' />
+
 /// <reference path='./input/keyboard/KeyboardInput.ts' />
+
+/// <referencer path='./Organization.ts' />
 
 module Common.Models {}

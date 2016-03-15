@@ -18,18 +18,23 @@ impakt.app = angular.module('impakt.app', [
         //$urlRouterProvider.otherwise('/');
         // impakt module states - should these be module-specific?
         $stateProvider
-            .state('film', {
-            url: '/film',
-            templateUrl: 'modules/film/film.tpl.html'
-        })
             .state('team', {
             url: '/team',
             templateUrl: 'modules/team/team.tpl.html'
         })
-            .state('stats', {
-            url: '/stats',
-            templateUrl: 'modules/stats/stats.tpl.html'
+            .state('profile', {
+            url: '/profile',
+            templateUrl: 'modules/user/user.tpl.html'
         });
+        // TODO @theBull - implement
+        // .state('film', {
+        // 	url: '/film',
+        // 	templateUrl: 'modules/film/film.tpl.html'
+        // })
+        // .state('stats', {
+        // 	url: '/stats',
+        // 	templateUrl: 'modules/stats/stats.tpl.html'
+        // });
         console.debug('impakt - config');
     }])
     .run([
@@ -37,8 +42,9 @@ impakt.app = angular.module('impakt.app', [
     function ($http, $window, __auth, __localStorage, __context) {
         console.debug('impakt - running');
         // TODO: Change to application/json?
-        $http.defaults.headers.common =
-            { 'Content-Type': 'application/json' };
+        $http.defaults.headers.common = {
+            'Content-Type': 'application/json'
+        };
         var accessToken = __localStorage.getAccessToken();
         if (accessToken) {
             $http.defaults.headers.common.Authorization = 'Bearer ' + accessToken;
@@ -79,8 +85,31 @@ impakt.signin = angular.module('impakt.signin', [
 /// <reference path='../js/impakt.ts' />
 var Common;
 (function (Common) {
+    var API;
+    (function (API) {
+        (function (Actions) {
+            Actions[Actions["Nothing"] = 0] = "Nothing";
+            Actions[Actions["Create"] = 1] = "Create";
+            Actions[Actions["Overwrite"] = 2] = "Overwrite";
+            Actions[Actions["Copy"] = 3] = "Copy";
+        })(API.Actions || (API.Actions = {}));
+        var Actions = API.Actions;
+    })(API = Common.API || (Common.API = {}));
     var Base;
     (function (Base) {
+        /**
+         * The Common.Base.Component class allows you to dynamically
+         * track when angular controllers, services, factories, etc. are
+         * being loaded as dependencies of one another.
+         *
+         * TODO: Investigate this further; I implemented this early on
+         * during development and may not have had a firm grasp on
+         * the loading order of various angular components. I didn't
+         * really take clear note of why I implemented this in the first place;
+         * I believe it was necessary. I just need to validate my initial
+         * assumptions.
+         *
+         */
         var Component = (function () {
             function Component(name, type, waitingOn) {
                 this.name = name;
@@ -169,6 +198,84 @@ var Common;
     var Utilities = (function () {
         function Utilities() {
         }
+        Utilities.exportToPng = function (canvas, svgElement) {
+            if (!svgElement)
+                throw new Error('play-preview: Corresponding SVG element not found');
+            // Serialize the SVG XML into a string
+            var svgString = Common.Utilities.serializeXMLToString(svgElement);
+            // canvg javascript library takes the canvas HTML element and the SVG
+            // in string form
+            canvg(canvas.exportCanvas, svgString);
+            // the exportCanvas is a <canvas/> element, which possesses a method
+            // to export its data as a PNG data URL
+            var pngDataURI = canvas.exportCanvas.toDataURL("image/png");
+            return pngDataURI;
+        };
+        /**
+         * Compresses the given SVG element into a compressed string
+         * @param  {HTMLElement} svg SVG element to handle
+         * @return {string}          the compressed SVG string
+         */
+        Utilities.compressSVG = function (svg) {
+            var serialized = Common.Utilities.serializeXMLToString(svg);
+            var encoded = Common.Utilities.toBase64(serialized);
+            // TODO: NEED TO FIX COMPRESSION ISSUE. USING THIS METHOD CAUSES 
+            // THE COMPRESSED CHARACTERS (NON UTF-8) TO BE CONVERTED TO '?'
+            // WHICH BREAKS PARSING
+            //return Common.Utilities.compress(encoded);
+            return encoded;
+        };
+        /**
+         * Compresses the given string
+         * @param  {string} svg String to compress
+         * @return {any}        a compressed svg string
+         */
+        Utilities.compress = function (str) {
+            return LZString.compress(str);
+        };
+        /**
+         * Takes a compressed SVG data and decompresses it
+         * @param  {string} compressed The compressed SVG data to decompress
+         * @return {string}            The decompressed string of SVG
+         */
+        Utilities.decompressSVG = function (compressed) {
+            // TO-DO: COMPRESSION BROKEN; SEE COMPRESSSVG ABOVE FOR NOTES
+            //let decompressed = Common.Utilities.decompress(compressed);
+            //return Common.Utilities.fromBase64(decompressed); 
+            return Common.Utilities.fromBase64(compressed);
+        };
+        /**
+         * Decompresses the given string
+         * @param  {string} compressed The (compressed) string to decompress
+         * @return {string}            the decompressed string
+         */
+        Utilities.decompress = function (compressed) {
+            return LZString.decompress(compressed);
+        };
+        /**
+         * Encodes the given string of SVG into base64
+         * @param  {string} svgString svg string
+         * @return {string}           base64 encoded svg string
+         */
+        Utilities.toBase64 = function (str) {
+            return window.btoa(str);
+        };
+        /**
+         * Decodes the given base64 encoded svg string
+         * @param  {string} base64Svg base64 encoded svg string
+         * @return {string}           decoded svg string
+         */
+        Utilities.fromBase64 = function (str) {
+            return window.atob(str);
+        };
+        /**
+         * Converts the given SVG HTML element into a string
+         * @param  {HTMLElement} svg Element to convert to string
+         * @return {string}          returns the stringified SVG element
+         */
+        Utilities.serializeXMLToString = function (xml) {
+            return (new XMLSerializer()).serializeToString(xml);
+        };
         Utilities.parseData = function (data) {
             for (var i = 0; i < data.length; i++) {
                 try {
@@ -196,14 +303,17 @@ var Common;
             var result = string.replace(/([A-Z])/g, " $1");
             // capitalize the first letter - as an example.
             if (capitalizeFirst)
-                result = (result.charAt(0).toUpperCase() + result.slice(1)).trim();
+                result = Common.Utilities.sentenceCase(result);
             return result;
+        };
+        Utilities.sentenceCase = function (str) {
+            return (str.charAt(0).toUpperCase() + str.slice(1)).trim();
         };
         Utilities.convertEnumToList = function (obj) {
             var list = {};
             for (var key in obj) {
                 if (!isNaN(key)) {
-                    list[key] = Common.Utilities.camelCaseToSpace(obj[key], true);
+                    list[parseInt(key)] = Common.Utilities.camelCaseToSpace(obj[key], true);
                 }
             }
             return list;
@@ -299,11 +409,39 @@ var Common;
          * @param {any} json The object to be hashed
          */
         Utilities.generateChecksum = function (json) {
-            return sjcl.hash.sha256.hash(JSON.stringify(json));
+            return objectHash(json, {});
+        };
+        Utilities.prepareObjectForEncoding = function (obj) {
+            var output = null;
+            if (Array.isArray(obj)) {
+                var arr = obj;
+                for (var i_1 = 0; i_1 < arr.length; i_1++) {
+                    var arrItem = arr[i_1];
+                    output = Common.Utilities.prepareObjectForEncoding(arrItem);
+                }
+            }
+            else {
+                var keys = Object.keys(obj).sort();
+                output = [];
+                var prop;
+                for (var i = 0; i < keys.length; i++) {
+                    prop = keys[i];
+                    output.push(prop);
+                    output.push(obj[prop]);
+                }
+            }
+            return output;
         };
         return Utilities;
     })();
     Common.Utilities = Utilities;
+})(Common || (Common = {}));
+var Common;
+(function (Common) {
+    var UI;
+    (function (UI) {
+        UI.SCROLL_BAR_SIZE = 12;
+    })(UI = Common.UI || (Common.UI = {}));
 })(Common || (Common = {}));
 /// <reference path='../js/impakt.ts' />
 /// <reference path='./common.ts' />
@@ -318,6 +456,7 @@ impakt.common = angular.module('impakt.common', [
     'impakt.common.localStorage',
     'impakt.common.parser',
     'impakt.common.signin',
+    'impakt.common.locale',
     'impakt.common.ui',
     'impakt.common.notifications'
 ])
@@ -337,13 +476,19 @@ impakt.common.api = angular.module('impakt.common.api', [])
     }]);
 /// <reference path='./api.mdl.ts' />
 impakt.common.api.constant('API', {
-    'HOST_URL': 'http://test.impaktathletics.com',
+    'VERSION': 0.01,
+    //'HOST_URL': 'http://test.impaktathletics.com',
+    'HOST_URL': 'https://test-impakt.azurewebsites.net',
     'ENDPOINT': '/api',
 });
 /// <reference path='./api.mdl.ts' />
 impakt.common.api.factory('__api', [
-    'API', 'AUTH', '$http', '$q',
-    function (API, AUTH, $http, $q) {
+    'API',
+    'AUTH',
+    '$http',
+    '$q',
+    '__localStorage',
+    function (API, AUTH, $http, $q, __localStorage) {
         var self = {
             post: post,
             get: get,
@@ -363,7 +508,16 @@ impakt.common.api.factory('__api', [
         }
         function get(endpointUrl) {
             var d = $q.defer();
-            $http.get(path(API.HOST_URL, API.ENDPOINT, endpointUrl)).then(function (data) {
+            $http({
+                method: 'GET',
+                url: path(API.HOST_URL, API.ENDPOINT, endpointUrl),
+                headers: {
+                    'X-HTTP-Method-Override': 'POST'
+                },
+                data: {
+                    "OrganizationKey": __localStorage.getOrganizationKey()
+                }
+            }).then(function (data) {
                 // TODO: handle statuses manually
                 //console.log(data);
                 d.resolve(data);
@@ -387,7 +541,8 @@ impakt.common.auth = angular.module('impakt.common.auth', []);
 /// <reference path='./auth.mdl.ts' />
 impakt.common.auth.constant('AUTH', {
     'TOKEN_ENDPOINT': '/token',
-    'HANDSHAKE_DUMMY': 'grant_type=password&username=fredf@imanufacture.com&Password=Abc123'
+    'HANDSHAKE_DUMMY': 'grant_type=password&username=fredf@imanufacture.com&Password=Abc123',
+    'CREATE_ORGANIZATION': '/configuration/createOrganization',
 });
 /// <reference path='./auth.mdl.ts' />
 (function () {
@@ -403,7 +558,8 @@ impakt.common.auth.constant('AUTH', {
                 var data = [
                     'grant_type=password',
                     '&username=', encodeURIComponent(username),
-                    '&Password=', password].join('');
+                    '&Password=', password
+                ].join('');
                 $http.post(__api.path(API.HOST_URL, AUTH.TOKEN_ENDPOINT), data, { 'Content-Type': 'application/x-www-form-urlencoded' }).then(function (data) {
                     // TODO: handle statuses manually
                     console.log(data);
@@ -413,6 +569,9 @@ impakt.common.auth.constant('AUTH', {
                     d.reject(err);
                 });
                 return d.promise;
+            }
+            function createOrganization(organization) {
+                var orgData = organization.toJson();
             }
             return self;
         }]);
@@ -480,26 +639,61 @@ impakt.common.context.factory('__context', ['$q',
     '__api',
     '__localStorage',
     '__notifications',
-    'PLAYBOOK',
-    function ($q, __api, __localStorage, __notifications, PLAYBOOK) {
+    '_playbook',
+    function ($q, __api, __localStorage, __notifications, _playbook) {
+        var isReady = false;
+        var readyCallbacks = [];
+        function onReady(callback) {
+            readyCallbacks.push(callback);
+            if (isReady)
+                ready();
+        }
+        function ready() {
+            isReady = true;
+            for (var i = 0; i < readyCallbacks.length; i++) {
+                readyCallbacks[i]();
+            }
+        }
         var self = {
-            initialize: initialize
+            initialize: initialize,
+            onReady: onReady,
         };
         function initialize(context) {
             var d = $q.defer();
             console.log('Making application context initialization requests');
             if (!context.Playbook)
                 context.Playbook = {};
+            /**
+             * Application-wide context data
+             */
+            context.Playbook.playbooks = new Playbook.Models.PlaybookModelCollection();
+            context.Playbook.formations = new Playbook.Models.FormationCollection();
+            context.Playbook.personnel = new Playbook.Models.PersonnelCollection();
+            context.Playbook.assignments = new Playbook.Models.AssignmentCollection();
+            context.Playbook.plays = new Playbook.Models.PlayCollection();
             context.Playbook.positionDefaults = new Playbook.Models.PositionDefault();
-            context.Playbook.unitTypes = getUnitTypes();
-            context.Playbook.unitTypesEnum = getUnitTypesEnum();
+            context.Playbook.unitTypes = _playbook.getUnitTypes();
+            context.Playbook.unitTypesEnum = _playbook.getUnitTypesEnum();
+            /**
+             * Module-specific context data; plays currently open in the editor
+             */
+            context.Playbook.editor = {
+                plays: new Playbook.Models.PlayCollection(),
+                tabs: new Playbook.Models.TabCollection()
+            };
+            /**
+             * A creation context for new plays and formations.
+             */
+            context.Playbook.creation = {
+                plays: new Playbook.Models.PlayCollection()
+            };
             async.parallel([
                 // Retrieve playbooks
                 // Retrieve playbooks
                 function (callback) {
-                    getPlaybooks().then(function (playbooks) {
+                    _playbook.getPlaybooks().then(function (playbooks) {
                         context.Playbook.playbooks = playbooks;
-                        __notifications.notify('Playbooks successfully loaded', Common.Models.NotificationType.Success);
+                        __notifications.success('Playbooks successfully loaded');
                         callback(null, playbooks);
                     }, function (err) {
                         callback(err);
@@ -508,9 +702,9 @@ impakt.common.context.factory('__context', ['$q',
                 // Retrieve formations
                 // Retrieve formations
                 function (callback) {
-                    getFormations().then(function (formations) {
+                    _playbook.getFormations().then(function (formations) {
                         context.Playbook.formations = formations;
-                        __notifications.notify('Formations successfully loaded', Common.Models.NotificationType.Success);
+                        __notifications.success('Formations successfully loaded');
                         callback(null, formations);
                     }, function (err) {
                         callback(err);
@@ -519,12 +713,35 @@ impakt.common.context.factory('__context', ['$q',
                 // Retrieve personnel sets
                 // Retrieve personnel sets
                 function (callback) {
-                    getPlaybookDataSets().then(function (personnel, assignments) {
-                        context.Playbook.personnel = personnel;
-                        context.Playbook.assignments = assignments;
-                        __notifications.notify('Personnel successfully loaded', Common.Models.NotificationType.Success);
-                        __notifications.notify('Assignments successfully loaded', Common.Models.NotificationType.Success);
-                        callback(null, personnel, assignments);
+                    _playbook.getSets().then(function (results) {
+                        if (results.personnel)
+                            context.Playbook.personnel = results.personnel;
+                        if (results.assignments)
+                            context.Playbook.assignments = results.assignments;
+                        __notifications.success('Personnel successfully loaded');
+                        __notifications.success('Assignments successfully loaded');
+                        callback(null, results.personnel, results.assignments);
+                    }, function (err) {
+                        callback(err);
+                    });
+                },
+                // Retrieve plays
+                // Retrieve plays
+                function (callback) {
+                    _playbook.getPlays().then(function (plays) {
+                        context.Playbook.plays = plays;
+                        context.Playbook.plays.forEach(function (play, index) {
+                            var primaryAssociatedFormation = play.associated.formations.primary();
+                            if (primaryAssociatedFormation) {
+                                play.formation = context.Playbook.formations.get(primaryAssociatedFormation);
+                            }
+                            var primaryAssociatedPersonnel = play.associated.personnel.primary();
+                            if (primaryAssociatedPersonnel) {
+                                play.personnel = context.Playbook.personnel.get(primaryAssociatedPersonnel);
+                            }
+                        });
+                        __notifications.success('Plays successfully loaded');
+                        callback(null, plays);
                     }, function (err) {
                         callback(err);
                     });
@@ -536,127 +753,10 @@ impakt.common.context.factory('__context', ['$q',
                     d.reject(err);
                 }
                 else {
-                    __notifications.notify('Initial data loaded successfully', Common.Models.NotificationType.Success);
+                    __notifications.success('Initial data loaded successfully');
+                    ready();
                     d.resolve(context);
                 }
-            });
-            return d.promise;
-        }
-        function getUnitTypes() {
-            return new Playbook.Models.UnitTypeCollection();
-        }
-        function getUnitTypesEnum() {
-            var typeEnums = {};
-            for (var unitType in Playbook.Editor.UnitTypes) {
-                if (unitType >= 0)
-                    typeEnums[parseInt(unitType)]
-                        = Common.Utilities.camelCaseToSpace(Playbook.Editor.UnitTypes[unitType], true);
-            }
-            return typeEnums;
-        }
-        function getPlaybooks() {
-            var d = $q.defer();
-            __api.get(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.GET_PLAYBOOKS))
-                .then(function (response) {
-                if (response && response.data && response.data.results) {
-                    var playbookResults = Common.Utilities.parseData(response.data.results);
-                    for (var i = 0; i < playbookResults.length; i++) {
-                        var playbookResult = playbookResults[i];
-                        if (playbookResult && playbookResult.data && playbookResult.data.model) {
-                            var playbookModel = new Playbook.Models.PlaybookModel();
-                            playbookResult.data.model.key = playbookResult.key;
-                            playbookModel.fromJson(playbookResult.data.model);
-                            var contextUnitType = impakt.context.Playbook.unitTypes.getByUnitType(playbookModel.unitType);
-                            if (contextUnitType && contextUnitType.playbooks) {
-                                contextUnitType.playbooks.add(playbookModel.guid, playbookModel);
-                            }
-                        }
-                    }
-                }
-                var playbookCollection = impakt.context.Playbook.unitTypes.getAllPlaybooks();
-                // High fiv3
-                d.resolve(playbookCollection);
-            }, function (error) {
-                d.reject(error);
-            });
-            return d.promise;
-        }
-        /**
-         * Retrieve all formations for use throughout the application
-         */
-        function getFormations() {
-            var playbookKey = __localStorage.getDefaultPlaybookKey();
-            var playbookUnitType = __localStorage.getDefaultPlaybookUnitType();
-            var d = $q.defer();
-            __api.get(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.GET_FORMATIONS, '?$filter=ParentRK gt 0'))
-                .then(function (response) {
-                var results = Common.Utilities.parseData(response.data.results);
-                var formations = [];
-                for (var i = 0; i < results.length; i++) {
-                    var result = results[i];
-                    if (result && result.data && result.data.formation) {
-                        var formation = result.data.formation;
-                        formation.key = result.key;
-                        formations.push(formation);
-                    }
-                    else {
-                        throw new Error('An invalid formation was retrieved');
-                    }
-                }
-                var collection = new Playbook.Models.FormationCollection();
-                collection.fromJson(formations);
-                collection.forEach(function (formation, index) {
-                });
-                d.resolve(collection);
-            }, function (error) {
-                d.reject(error);
-            });
-            return d.promise;
-        }
-        /**
-         * Retrieve all personnel sets for use throughout the application
-         */
-        function getPlaybookDataSets() {
-            var d = $q.defer();
-            __api.get(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.GET_SETS))
-                .then(function (response) {
-                var results = Common.Utilities.parseData(response.data.results);
-                var personnelResults = [];
-                var assignmentResults = [];
-                // get personnel & assignments from `sets`
-                for (var i = 0; i < results.length; i++) {
-                    var result = results[i];
-                    if (result && result.data) {
-                        var data = result.data;
-                        switch (data.setType) {
-                            case Playbook.Editor.PlaybookSetTypes.Personnel:
-                                data.personnel.key = result.key;
-                                personnelResults.push(data.personnel);
-                                break;
-                            case Playbook.Editor.PlaybookSetTypes.Assignment:
-                                data.assignment.key = result.key;
-                                assignmentResults.push(data.assignment);
-                                break;
-                        }
-                    }
-                }
-                var personnelCollection = new Playbook.Models.PersonnelCollection();
-                var assignmentCollection = new Playbook.Models.AssignmentCollection();
-                for (var i_1 = 0; i_1 < personnelResults.length; i_1++) {
-                    var personnel = personnelResults[i_1];
-                    var personnelModel = new Playbook.Models.Personnel();
-                    personnelModel.fromJson(personnel);
-                    personnelCollection.add(personnelModel.guid, personnelModel);
-                }
-                for (var i_2 = 0; i_2 < assignmentResults.length; i_2++) {
-                    var assignment = assignmentResults[i_2];
-                    var assignmentModel = new Playbook.Models.Assignment();
-                    assignmentModel.fromJson(assignment);
-                    assignmentCollection.add(assignmentModel.guid, assignmentModel);
-                }
-                d.resolve(personnelCollection, assignmentCollection);
-            }, function (error) {
-                d.reject(error);
             });
             return d.promise;
         }
@@ -781,6 +881,7 @@ impakt.common.contextmenu.factory('__contextmenu', function () {
 /// <reference path='./ILinkedListItem.ts' />
 /// <reference path='./IModifiable.ts' />
 /// <reference path='./IStorable.ts' />
+/// <reference path='./IScrollable.ts' />
 /// <reference path='../common.mdl.ts' />
 impakt.common.localStorage = angular.module('impakt.common.localStorage', [])
     .config(function () {
@@ -814,6 +915,7 @@ impakt.common.localStorage.factory('__localStorage', [
             getAccessTokenExpiration: getAccessTokenExpiration,
             getUserName: getUserName,
             getOrganizationKey: getOrganizationKey,
+            setOrganizationKey: setOrganizationKey,
             isDefaultEditorInfoSet: isDefaultEditorInfoSet,
             getDefaultEditorInfo: getDefaultEditorInfo,
             setDefaultEditorInfo: setDefaultEditorInfo,
@@ -859,11 +961,38 @@ impakt.common.localStorage.factory('__localStorage', [
         function getAccessTokenExpiration() {
             return localStorage.getItem(LOCAL_STORAGE.ACCESS_TOKEN_EXPIRES);
         }
+        /**
+         * Returns the username stored in localStorage, if it exists, otherwise throws
+         * an exception.
+         *
+         * @return {string} the username (email) stored in local storage
+         */
         function getUserName() {
-            return localStorage.getItem(LOCAL_STORAGE.USER_NAME);
+            var userName = localStorage.getItem(LOCAL_STORAGE.USER_NAME);
+            if (!userName)
+                throw new Error('__localStorage getUserName(): user name could not be found!');
+            return userName;
         }
+        /**
+         * Retrieves the current logged in user's organization key from local storage,
+         * throws an exception if it doesn't exist.
+         *
+         * @return {number} The organization key
+         */
         function getOrganizationKey() {
-            return localStorage.getItem(LOCAL_STORAGE.ORGANIZATION_KEY);
+            var orgKey = localStorage.getItem(LOCAL_STORAGE.ORGANIZATION_KEY);
+            if (!orgKey)
+                throw new Error('__localStorage getOrganizationKey(): organization key could not be found!');
+            return parseInt(orgKey);
+        }
+        /**
+         * Sets the current organization key
+         * @param {number} organizationKey the organization key
+         */
+        function setOrganizationKey(organizationKey) {
+            if (isNaN(organizationKey))
+                throw new Error('__localStorage setOrganizationKey(): Failed to set organization key ' + organizationKey);
+            localStorage.setItem(LOCAL_STORAGE.ORGANIZATION_KEY, organizationKey.toString());
         }
         function setAccessToken(data) {
             self.setItem(LOCAL_STORAGE.ACCESS_TOKEN, data['access_token']);
@@ -954,6 +1083,262 @@ impakt.common.localStorage.factory('__localStorage', [
         return self;
     }]);
 /// <reference path='../common.mdl.ts' />
+impakt.common.locale = angular.module('impakt.common.locale', [])
+    .config([function () {
+        console.debug('impakt.common.locale - config');
+    }])
+    .run([function () {
+        console.debug('impakt.common.locale - run');
+    }]);
+/// <reference path='./locale.mdl.ts' />
+impakt.common.locale.factory('__locale', [
+    function () {
+        var self = {
+            states: states()
+        };
+        function states() {
+            return [
+                {
+                    "name": "Alabama",
+                    "abbreviation": "AL"
+                },
+                {
+                    "name": "Alaska",
+                    "abbreviation": "AK"
+                },
+                {
+                    "name": "American Samoa",
+                    "abbreviation": "AS"
+                },
+                {
+                    "name": "Arizona",
+                    "abbreviation": "AZ"
+                },
+                {
+                    "name": "Arkansas",
+                    "abbreviation": "AR"
+                },
+                {
+                    "name": "California",
+                    "abbreviation": "CA"
+                },
+                {
+                    "name": "Colorado",
+                    "abbreviation": "CO"
+                },
+                {
+                    "name": "Connecticut",
+                    "abbreviation": "CT"
+                },
+                {
+                    "name": "Delaware",
+                    "abbreviation": "DE"
+                },
+                {
+                    "name": "District Of Columbia",
+                    "abbreviation": "DC"
+                },
+                {
+                    "name": "Federated States Of Micronesia",
+                    "abbreviation": "FM"
+                },
+                {
+                    "name": "Florida",
+                    "abbreviation": "FL"
+                },
+                {
+                    "name": "Georgia",
+                    "abbreviation": "GA"
+                },
+                {
+                    "name": "Guam",
+                    "abbreviation": "GU"
+                },
+                {
+                    "name": "Hawaii",
+                    "abbreviation": "HI"
+                },
+                {
+                    "name": "Idaho",
+                    "abbreviation": "ID"
+                },
+                {
+                    "name": "Illinois",
+                    "abbreviation": "IL"
+                },
+                {
+                    "name": "Indiana",
+                    "abbreviation": "IN"
+                },
+                {
+                    "name": "Iowa",
+                    "abbreviation": "IA"
+                },
+                {
+                    "name": "Kansas",
+                    "abbreviation": "KS"
+                },
+                {
+                    "name": "Kentucky",
+                    "abbreviation": "KY"
+                },
+                {
+                    "name": "Louisiana",
+                    "abbreviation": "LA"
+                },
+                {
+                    "name": "Maine",
+                    "abbreviation": "ME"
+                },
+                {
+                    "name": "Marshall Islands",
+                    "abbreviation": "MH"
+                },
+                {
+                    "name": "Maryland",
+                    "abbreviation": "MD"
+                },
+                {
+                    "name": "Massachusetts",
+                    "abbreviation": "MA"
+                },
+                {
+                    "name": "Michigan",
+                    "abbreviation": "MI"
+                },
+                {
+                    "name": "Minnesota",
+                    "abbreviation": "MN"
+                },
+                {
+                    "name": "Mississippi",
+                    "abbreviation": "MS"
+                },
+                {
+                    "name": "Missouri",
+                    "abbreviation": "MO"
+                },
+                {
+                    "name": "Montana",
+                    "abbreviation": "MT"
+                },
+                {
+                    "name": "Nebraska",
+                    "abbreviation": "NE"
+                },
+                {
+                    "name": "Nevada",
+                    "abbreviation": "NV"
+                },
+                {
+                    "name": "New Hampshire",
+                    "abbreviation": "NH"
+                },
+                {
+                    "name": "New Jersey",
+                    "abbreviation": "NJ"
+                },
+                {
+                    "name": "New Mexico",
+                    "abbreviation": "NM"
+                },
+                {
+                    "name": "New York",
+                    "abbreviation": "NY"
+                },
+                {
+                    "name": "North Carolina",
+                    "abbreviation": "NC"
+                },
+                {
+                    "name": "North Dakota",
+                    "abbreviation": "ND"
+                },
+                {
+                    "name": "Northern Mariana Islands",
+                    "abbreviation": "MP"
+                },
+                {
+                    "name": "Ohio",
+                    "abbreviation": "OH"
+                },
+                {
+                    "name": "Oklahoma",
+                    "abbreviation": "OK"
+                },
+                {
+                    "name": "Oregon",
+                    "abbreviation": "OR"
+                },
+                {
+                    "name": "Palau",
+                    "abbreviation": "PW"
+                },
+                {
+                    "name": "Pennsylvania",
+                    "abbreviation": "PA"
+                },
+                {
+                    "name": "Puerto Rico",
+                    "abbreviation": "PR"
+                },
+                {
+                    "name": "Rhode Island",
+                    "abbreviation": "RI"
+                },
+                {
+                    "name": "South Carolina",
+                    "abbreviation": "SC"
+                },
+                {
+                    "name": "South Dakota",
+                    "abbreviation": "SD"
+                },
+                {
+                    "name": "Tennessee",
+                    "abbreviation": "TN"
+                },
+                {
+                    "name": "Texas",
+                    "abbreviation": "TX"
+                },
+                {
+                    "name": "Utah",
+                    "abbreviation": "UT"
+                },
+                {
+                    "name": "Vermont",
+                    "abbreviation": "VT"
+                },
+                {
+                    "name": "Virgin Islands",
+                    "abbreviation": "VI"
+                },
+                {
+                    "name": "Virginia",
+                    "abbreviation": "VA"
+                },
+                {
+                    "name": "Washington",
+                    "abbreviation": "WA"
+                },
+                {
+                    "name": "West Virginia",
+                    "abbreviation": "WV"
+                },
+                {
+                    "name": "Wisconsin",
+                    "abbreviation": "WI"
+                },
+                {
+                    "name": "Wyoming",
+                    "abbreviation": "WY"
+                }
+            ];
+        }
+        return self;
+    }]);
+/// <reference path='../common.mdl.ts' />
 impakt.common.modals = angular.module('impakt.common.modals', [])
     .config([function () {
         console.debug('impakt.common.modals - config');
@@ -982,6 +1367,7 @@ impakt.common.modals.factory('__modals', [
             }
             return $uibModal.open({
                 animation: true,
+                backdrop: true,
                 size: size,
                 templateUrl: templateUrl,
                 controller: controllerName,
@@ -1020,37 +1406,81 @@ var Common;
             function Modifiable(context) {
                 _super.call(this);
                 this.context = context;
-                this.callbacks = [];
-                this.lastModified = null;
+                this.lastModified = Date.now();
                 this.modified = false;
+                this.checksum = null;
+                this.original = null;
+                // always listening. To prevent re-hashing from occurring when initializing
+                // an object, insert the .listen(false) method into the method chain prior
+                // to calling a method that will trigger a modification.
+                this.listening = true;
+                this.callbacks = [];
             }
-            Modifiable.prototype.onModified = function (callback) {
-                this.callbacks.push(callback);
+            /**
+             * Allows for switching the listening mechanism on or off
+             * within a method chain. listen(false) would prevent
+             * any mutation from triggering a rehash.
+             *
+             * @param {boolean} startListening true or false
+             */
+            Modifiable.prototype.listen = function (startListening) {
+                this.listening = startListening;
+                return this;
             };
-            Modifiable.prototype.isModified = function () {
-                for (var i = 0; i < this.callbacks.length; i++) {
-                    var callback = this.callbacks[i];
-                    callback(this);
-                }
+            Modifiable.prototype._clearListeners = function () {
+                // empty all callbacks
+                this.callbacks = [];
             };
             /**
-             * alias for generateChecksum()
-             * @return {string} the updated checksum
+             * Register listeners to be fired when this object is modified.
+             * NOTE: the modifier will only keep the listener passed in if
+             * listening == true; otherwise, listeners will be ignored.
+             *
+             * @param {Function} callback function to invoke when a modification
+             * occurs to this object.
              */
-            Modifiable.prototype.setModified = function () {
-                var cs = this._generateChecksum();
-                if (cs !== this.checksum) {
+            Modifiable.prototype.onModified = function (callback) {
+                if (this.listening) {
+                    this.callbacks.push(callback);
+                }
+            };
+            Modifiable.prototype.isModified = function () {
+                if (this.listening) {
                     // current checksum and stored checksum mismatch; modified
                     this.modified = true;
                     // track the modification date/time
                     this.lastModified = Date.now();
-                    // trigger all callbacks listening for changes
-                    this.isModified();
+                    // invoke each of the modifiable's callbacks
+                    for (var i = 0; i < this.callbacks.length; i++) {
+                        var callback = this.callbacks[i];
+                        callback(this);
+                    }
+                }
+            };
+            /**
+             * Determines whether there are any changes to the object,
+             * or allows for explicitly committing a modification to the
+             * object to trigger its modification listeners to fire.
+             *
+             * @param  {boolean} isModified (optional) true forces modification
+             * @return {boolean}            returns whether the object is modified
+             */
+            Modifiable.prototype.setModified = function (forciblyModify) {
+                if (!this.listening) {
+                    this.modified = false;
+                    return false;
                 }
                 else {
-                    this.modified = false;
+                    var cs = this._generateChecksum();
+                    if (forciblyModify || cs !== this.checksum) {
+                        // trigger all callbacks listening for changes
+                        this.isModified();
+                    }
+                    else {
+                        this.modified = false;
+                    }
+                    this.checksum = cs;
                 }
-                this.checksum = cs;
                 return this.modified;
             };
             /**
@@ -1059,17 +1489,28 @@ var Common;
              */
             Modifiable.prototype._generateChecksum = function () {
                 // determine current checksum
-                return Common.Utilities.generateChecksum(this.context.toJson());
+                var json = this.context.toJson();
+                return Common.Utilities.generateChecksum(json);
+            };
+            Modifiable.prototype.copy = function (newElement, context) {
+                var copiedJson = context.toJson();
+                newElement.fromJson(copiedJson);
+                newElement.setModified(true);
+                return newElement;
             };
             Modifiable.prototype.toJson = function () {
                 return {
-                    modified: this.modified,
-                    guid: this.guid
+                    lastModified: this.lastModified,
+                    guid: this.guid,
+                    checksum: this.checksum
                 };
             };
             Modifiable.prototype.fromJson = function (json) {
                 this.modified = json.modified;
-                this.guid = json.guid;
+                this.lastModified = json.lastModified;
+                this.guid = json.guid || this.guid;
+                this.original = json.checksum;
+                this.checksum = Common.Utilities.generateChecksum(this.toJson());
             };
             return Modifiable;
         })(Common.Models.Storable);
@@ -1088,6 +1529,15 @@ var Common;
                 this._count = 0;
                 this._keys = [];
             }
+            Collection.prototype._getKey = function (data) {
+                if (data && data.guid) {
+                    return data.guid;
+                }
+                else {
+                    //throw new Error('Object does not have a guid');
+                    console.error('Object does not have a guid');
+                }
+            };
             Collection.prototype._ensureKeyType = function (key) {
                 if (typeof key == 'string') {
                     // could be valid string 'foo' or number hidden as string '2'
@@ -1104,9 +1554,18 @@ var Common;
             Collection.prototype.isEmpty = function () {
                 return this.size() == 0;
             };
+            Collection.prototype.hasElements = function () {
+                return this.size() > 0;
+            };
             Collection.prototype.get = function (key) {
                 key = this._ensureKeyType(key);
                 return this[key];
+            };
+            Collection.prototype.exists = function (key) {
+                return this.contains(key);
+            };
+            Collection.prototype.first = function () {
+                return this.getOne();
             };
             Collection.prototype.getOne = function () {
                 return this[this._keys[0]];
@@ -1114,20 +1573,38 @@ var Common;
             Collection.prototype.getIndex = function (index) {
                 return this.get(this._keys[index]);
             };
+            Collection.prototype.getAll = function () {
+                var obj = {};
+                for (var i = 0; i < this._keys.length; i++) {
+                    var key = this._keys[i];
+                    // shitty way of hiding private properties
+                    obj[key] = this.get(key);
+                }
+                return obj;
+            };
+            /**
+             * Retrieves the last element in the collection
+             * @return {T} [description]
+             */
+            Collection.prototype.getLast = function () {
+                var key = this._keys[this._keys.length - 1];
+                return this.get(key);
+            };
             Collection.prototype.set = function (key, data) {
                 if (!this.hasOwnProperty(key.toString()))
                     throw Error('Object does not have key ' + key + '. Use the add(key) method.');
                 this[key] = data;
-                this._keys.push(key);
             };
-            Collection.prototype.replace = function (replaceKey, key, data) {
+            Collection.prototype.replace = function (replaceKey, data) {
+                var key = this._getKey(data);
                 this._keys[this._keys.indexOf(replaceKey)] = key;
                 this[key] = data;
                 delete this[replaceKey];
             };
             Collection.prototype.setAtIndex = function (index, data) {
             };
-            Collection.prototype.add = function (key, data) {
+            Collection.prototype.add = function (data) {
+                var key = this._getKey(data);
                 if (this[key] && this._keys.indexOf(key) > -1) {
                     this.set(key, data);
                 }
@@ -1137,7 +1614,8 @@ var Common;
                     this._count++;
                 }
             };
-            Collection.prototype.addAtIndex = function (key, data, index) {
+            Collection.prototype.addAtIndex = function (data, index) {
+                var key = this._getKey(data);
                 var exists = this._keys.indexOf(key) > -1;
                 if (!exists || this._keys.indexOf(key) == index) {
                     // element exists at that index, update	
@@ -1168,7 +1646,7 @@ var Common;
                 var self = this;
                 collection.forEach(function (item, index) {
                     if (item && item.guid) {
-                        self.add(item.guid, item);
+                        self.add(item);
                     }
                     else {
                         throw new Error('item is null or does not have guid');
@@ -1182,6 +1660,9 @@ var Common;
                     var key = this._keys[i];
                     iterator(this[key], i);
                 }
+            };
+            Collection.prototype.hasElementWhich = function (predicate) {
+                return this.filterFirst(predicate) != null;
             };
             Collection.prototype.filter = function (predicate) {
                 var results = [];
@@ -1209,7 +1690,6 @@ var Common;
                 while (this._count > 0) {
                     var key = this._keys[0];
                     this.remove(key);
-                    console.log('removing key', key);
                 }
             };
             /**
@@ -1227,19 +1707,6 @@ var Common;
             Collection.prototype.contains = function (key) {
                 return this[key] != null && this[key] != undefined;
             };
-            Collection.prototype.getAll = function () {
-                var obj = {};
-                for (var i = 0; i < this._keys.length; i++) {
-                    var key = this._keys[i];
-                    // shitty way of hiding private properties
-                    obj[key] = this.get(key);
-                }
-                return obj;
-            };
-            Collection.prototype.getLast = function () {
-                var key = this._keys[this._keys.length - 1];
-                return this.get(key);
-            };
             Collection.prototype.toArray = function () {
                 var arr = [];
                 for (var i = 0; i < this._keys.length; i++) {
@@ -1247,20 +1714,12 @@ var Common;
                 }
                 return arr;
             };
-            Collection.prototype.toJsonArray = function () {
+            Collection.prototype.toJson = function () {
                 var results = [];
                 this.forEach(function (element, index) {
-                    results.push(Common.Utilities.toJson(element));
+                    results.push(element.toJson());
                 });
                 return results;
-            };
-            /**
-             * Alias for toJsonArray, since the collection should be
-             * represented as an array
-             * @return {any} returns an array of objects
-             */
-            Collection.prototype.toJson = function () {
-                return this.toJsonArray();
             };
             return Collection;
         })(Common.Models.Storable);
@@ -1325,7 +1784,7 @@ var Common;
                     iterator(temp, index);
                 }
             };
-            LinkedList.prototype.toJsonArray = function () {
+            LinkedList.prototype.toJson = function () {
                 var arr = [];
                 this.forEach(function (node, i) {
                     if (node && node.toJson) {
@@ -1361,6 +1820,9 @@ var Common;
             LinkedList.prototype.size = function () {
                 return this._length;
             };
+            LinkedList.prototype.hasElements = function () {
+                return this.size() > 0;
+            };
             return LinkedList;
         })(Common.Models.Storable);
         Models.LinkedList = LinkedList;
@@ -1393,77 +1855,112 @@ var Common;
 (function (Common) {
     var Models;
     (function (Models) {
-        var ModifiableCollection = (function (_super) {
-            __extends(ModifiableCollection, _super);
+        var ModifiableCollection = (function () {
             function ModifiableCollection() {
-                _super.call(this);
                 this._modifiable = new Common.Models.Modifiable(this);
+                this._collection = new Common.Models.Collection();
+                this.guid = this._modifiable.guid;
             }
-            ModifiableCollection.prototype.setModified = function () {
-                return this._modifiable.setModified();
+            ModifiableCollection.prototype.setModified = function (forciblyModify) {
+                return this._modifiable.setModified(forciblyModify === true);
             };
             ModifiableCollection.prototype.onModified = function (callback) {
+                var self = this;
                 this._modifiable.onModified(callback);
+                this._collection.forEach(function (modifiableItem, index) {
+                    modifiableItem.onModified(function () {
+                        // child elements modified, 
+                        // propegate changes up to the parent
+                        self.isModified();
+                    });
+                });
             };
             ModifiableCollection.prototype.isModified = function () {
                 this._modifiable.isModified();
             };
+            /**
+             * When commanding the collection whether to listen,
+             * apply the true/false argument to all of its contents as well
+             * @param {boolean} startListening true to start listening, false to stop
+             */
+            ModifiableCollection.prototype.listen = function (startListening) {
+                this._modifiable.listening = startListening;
+                return this;
+            };
             ModifiableCollection.prototype.size = function () {
-                return _super.prototype.size.call(this);
+                return this._collection.size();
             };
             ModifiableCollection.prototype.isEmpty = function () {
-                return _super.prototype.isEmpty.call(this);
+                return this._collection.isEmpty();
+            };
+            ModifiableCollection.prototype.hasElements = function () {
+                return this._collection.hasElements();
             };
             ModifiableCollection.prototype.get = function (key) {
-                return _super.prototype.get.call(this, key);
+                return this._collection.get(key);
+            };
+            ModifiableCollection.prototype.first = function () {
+                return this._collection.first();
             };
             ModifiableCollection.prototype.getOne = function () {
-                return _super.prototype.getOne.call(this);
+                return this._collection.getOne();
             };
             ModifiableCollection.prototype.getIndex = function (index) {
-                return _super.prototype.getIndex.call(this, index);
+                return this._collection.getIndex(index);
             };
             ModifiableCollection.prototype.set = function (key, data) {
-                _super.prototype.set.call(this, key, data);
+                this._collection.set(key, data);
                 this._modifiable.setModified();
+                return this;
             };
-            ModifiableCollection.prototype.replace = function (replaceKey, key, data) {
-                _super.prototype.replace.call(this, replaceKey, key, data);
+            ModifiableCollection.prototype.replace = function (replaceKey, data) {
+                this._collection.replace(replaceKey, data);
                 this._modifiable.setModified();
+                return this;
             };
             ModifiableCollection.prototype.setAtIndex = function (index, data) {
-                _super.prototype.setAtIndex.call(this, index, data);
+                this._collection.setAtIndex(index, data);
                 this._modifiable.setModified();
+                return this;
             };
-            ModifiableCollection.prototype.add = function (key, data) {
-                _super.prototype.add.call(this, key, data);
+            ModifiableCollection.prototype.add = function (data) {
+                this._collection.add(data);
                 this._modifiable.setModified();
+                return this;
             };
-            ModifiableCollection.prototype.addAtIndex = function (key, data, index) {
-                _super.prototype.addAtIndex.call(this, key, data, index);
+            ModifiableCollection.prototype.addAtIndex = function (data, index) {
+                this._collection.addAtIndex(data, index);
                 this._modifiable.setModified();
+                return this;
             };
             ModifiableCollection.prototype.append = function (collection) {
-                _super.prototype.append.call(this, collection);
+                this._collection.append(collection);
                 this._modifiable.setModified();
+                return this;
             };
             ModifiableCollection.prototype.forEach = function (iterator) {
-                _super.prototype.forEach.call(this, iterator);
+                this._collection.forEach(iterator);
+            };
+            ModifiableCollection.prototype.hasElementWhich = function (predicate) {
+                return this._collection.hasElementWhich(predicate);
             };
             ModifiableCollection.prototype.filter = function (predicate) {
-                return _super.prototype.filter.call(this, predicate);
+                return this._collection.filter(predicate);
             };
             ModifiableCollection.prototype.filterFirst = function (predicate) {
-                return _super.prototype.filterFirst.call(this, predicate);
+                return this._collection.filterFirst(predicate);
             };
             ModifiableCollection.prototype.remove = function (key) {
-                var results = _super.prototype.remove.call(this, key);
+                var results = this._collection.remove(key);
                 this._modifiable.setModified();
                 return results;
             };
             ModifiableCollection.prototype.removeAll = function () {
-                _super.prototype.removeAll.call(this);
+                this._collection.removeAll();
                 this._modifiable.setModified();
+            };
+            ModifiableCollection.prototype.empty = function () {
+                this.removeAll();
             };
             /**
              * Allows you to run an iterator method over each item
@@ -1471,29 +1968,30 @@ var Common;
              * emptied.
              */
             ModifiableCollection.prototype.removeEach = function (iterator) {
-                _super.prototype.removeEach.call(this, iterator);
+                this._collection.removeEach(iterator);
                 this._modifiable.setModified();
             };
             ModifiableCollection.prototype.contains = function (key) {
-                return _super.prototype.contains.call(this, key);
+                return this._collection.contains(key);
             };
             ModifiableCollection.prototype.getAll = function () {
-                return _super.prototype.getAll.call(this);
+                return this._collection.getAll();
             };
             ModifiableCollection.prototype.getLast = function () {
-                return _super.prototype.getLast.call(this);
+                return this._collection.getLast();
             };
             ModifiableCollection.prototype.toArray = function () {
-                return _super.prototype.toArray.call(this);
-            };
-            ModifiableCollection.prototype.toJsonArray = function () {
-                return _super.prototype.toJsonArray.call(this);
+                return this._collection.toArray();
             };
             ModifiableCollection.prototype.toJson = function () {
-                return _super.prototype.toJson.call(this);
+                return this._collection.toJson();
+            };
+            ModifiableCollection.prototype.copy = function (newElement, context) {
+                console.error('ModifiableCollection copy() not implemented');
+                return null;
             };
             return ModifiableCollection;
-        })(Common.Models.Collection);
+        })();
         Models.ModifiableCollection = ModifiableCollection;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -1518,8 +2016,8 @@ var Common;
             ModifiableLinkedList.prototype.forEach = function (iterator) {
                 _super.prototype.forEach.call(this, iterator);
             };
-            ModifiableLinkedList.prototype.toJsonArray = function () {
-                return _super.prototype.toJsonArray.call(this);
+            ModifiableLinkedList.prototype.toJson = function () {
+                return _super.prototype.toJson.call(this);
             };
             ModifiableLinkedList.prototype.toDataArray = function () {
                 return _super.prototype.toDataArray.call(this);
@@ -1537,6 +2035,9 @@ var Common;
             };
             ModifiableLinkedList.prototype.size = function () {
                 return _super.prototype.size.call(this);
+            };
+            ModifiableLinkedList.prototype.hasElements = function () {
+                return _super.prototype.hasElements.call(this);
             };
             return ModifiableLinkedList;
         })(Common.Models.LinkedList);
@@ -1561,19 +2062,191 @@ var Common;
         Models.ModifiableLinkedListNode = ModifiableLinkedListNode;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
+var Common;
+(function (Common) {
+    var Models;
+    (function (Models) {
+        var AssociationArray = (function (_super) {
+            __extends(AssociationArray, _super);
+            function AssociationArray() {
+                _super.call(this, this);
+                this._array = [];
+            }
+            AssociationArray.prototype.size = function () {
+                return this._array.length;
+            };
+            AssociationArray.prototype.add = function (guid) {
+                this._array.push(guid);
+            };
+            AssociationArray.prototype.addAll = function (guids) {
+                this._array.concat(guids);
+            };
+            AssociationArray.prototype.addAtIndex = function (guid, index) {
+                this._array[index] = guid;
+            };
+            AssociationArray.prototype.primary = function () {
+                return this.getAtIndex(0);
+            };
+            AssociationArray.prototype.getAtIndex = function (index) {
+                return this._array[index];
+            };
+            AssociationArray.prototype.first = function (guid) {
+                this.addAtIndex(guid, 0);
+            };
+            AssociationArray.prototype.only = function (guid) {
+                this._array = [];
+                this.add(guid);
+            };
+            AssociationArray.prototype.empty = function () {
+                this._array = [];
+            };
+            AssociationArray.prototype.remove = function (guid) {
+                if (this.exists(guid)) {
+                    this._array.splice(this._array.indexOf(guid), 1);
+                    return guid;
+                }
+                else {
+                    throw new Error(['Association does not exist: ', guid].join(''));
+                    return null;
+                }
+            };
+            /**
+             * Returns whether the given guid exists
+             * @param  {string}  guid the guid to check
+             * @return {boolean}      true if it exists, otherwise false
+             */
+            AssociationArray.prototype.exists = function (guid) {
+                return this.hasElements() && this._array.indexOf(guid) > -1;
+            };
+            /**
+             * Returns whether the array has elements
+             * @return {boolean} true or false
+             */
+            AssociationArray.prototype.hasElements = function () {
+                return this.size() > 0;
+            };
+            /**
+             * Replaces guid1, if found, with guid2
+             * @param  {string} guid1 guid to be replaced
+             * @param  {string} guid2 guid to replace with
+             */
+            AssociationArray.prototype.replace = function (guid1, guid2) {
+                if (this.exists(guid1)) {
+                    this._array[this._array.indexOf(guid1)] = guid2;
+                }
+            };
+            /**
+             * Iterates over each element in the array
+             * @param {Function} iterator the iterator function to call per element
+             */
+            AssociationArray.prototype.forEach = function (iterator) {
+                for (var i = 0; i < this._array.length; i++) {
+                    var guid = this._array[i];
+                    iterator(guid, i);
+                }
+            };
+            AssociationArray.prototype.toArray = function () {
+                return this._array;
+            };
+            AssociationArray.prototype.toJson = function () {
+                return this.toArray();
+            };
+            AssociationArray.prototype.fromJson = function (json) {
+                this._array = json;
+            };
+            return AssociationArray;
+        })(Common.Models.Modifiable);
+        Models.AssociationArray = AssociationArray;
+    })(Models = Common.Models || (Common.Models = {}));
+})(Common || (Common = {}));
 /// <reference path='./models.ts' />
 var Common;
 (function (Common) {
     var Models;
     (function (Models) {
-        var Notification = (function () {
+        var Notification = (function (_super) {
+            __extends(Notification, _super);
             function Notification(message, type) {
-                this.guid = Common.Utilities.guid();
+                _super.call(this);
                 this.message = message;
                 this.type = type;
             }
+            /**
+             * Updates this notification with the given message and type
+             * @param  {string}                         updatedMessage New message to display
+             * @param  {Common.Models.NotificationType} updatedType    New type to display as
+             * @return {Common.Models.Notification}                    This updated notification
+             */
+            Notification.prototype.update = function (updatedMessage, updatedType) {
+                this.message = updatedMessage;
+                this.type = updatedType;
+                return this;
+            };
+            /**
+             * Shorthand to update this notification as successful
+             * @param  {string}                     message The updated message to display
+             * @return {Common.Models.Notification}         This updated success notification
+             */
+            Notification.prototype.success = function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i - 0] = arguments[_i];
+                }
+                return this.update(this._concat(args), Common.Models.NotificationType.Success);
+            };
+            /**
+             * Shorthand to update this notification as an error
+             * @param  {string}                     message The updated error message to display
+             * @return {Common.Models.Notification}         This updated error notification
+             */
+            Notification.prototype.error = function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i - 0] = arguments[_i];
+                }
+                return this.update(this._concat(args), Common.Models.NotificationType.Error);
+            };
+            /**
+             * Shorthand to update this notification as a warning
+             * @param  {string}                     message The updated warning message to display
+             * @return {Common.Models.Notification}         This updated warning notification
+             */
+            Notification.prototype.warning = function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i - 0] = arguments[_i];
+                }
+                return this.update(this._concat(args), Common.Models.NotificationType.Warning);
+            };
+            /**
+             * Shorthand to update this notification as an info notification
+             * @param  {string}                     message The updated info message to display
+             * @return {Common.Models.Notification}         This updated info notification
+             */
+            Notification.prototype.info = function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i - 0] = arguments[_i];
+                }
+                return this.update(this._concat(args), Common.Models.NotificationType.Info);
+            };
+            /**
+             * Shorthand to update this notification as pending
+             * @param  {string}                     message The updated pending message to display
+             * @return {Common.Models.Notification}         This updated pending notification
+             */
+            Notification.prototype.pending = function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i - 0] = arguments[_i];
+                }
+                return this.update(this._concat(args), Common.Models.NotificationType.Pending);
+            };
+            Notification.prototype._concat = function (args) {
+                return !args || !args.length || args.length <= 0 ? '' : args.join('');
+            };
             return Notification;
-        })();
+        })(Common.Models.Storable);
         Models.Notification = Notification;
         (function (NotificationType) {
             NotificationType[NotificationType["None"] = 0] = "None";
@@ -1599,6 +2272,40 @@ var Common;
             return NotificationCollection;
         })(Common.Models.Collection);
         Models.NotificationCollection = NotificationCollection;
+    })(Models = Common.Models || (Common.Models = {}));
+})(Common || (Common = {}));
+/// <reference path='./models.ts' />
+var Common;
+(function (Common) {
+    var Models;
+    (function (Models) {
+        var Template = (function (_super) {
+            __extends(Template, _super);
+            function Template(name, url) {
+                _super.call(this);
+                this.name = name;
+                this.url = url;
+                this.data = {};
+            }
+            return Template;
+        })(Common.Models.Storable);
+        Models.Template = Template;
+    })(Models = Common.Models || (Common.Models = {}));
+})(Common || (Common = {}));
+/// <reference path='./models.ts' />
+var Common;
+(function (Common) {
+    var Models;
+    (function (Models) {
+        var TemplateCollection = (function (_super) {
+            __extends(TemplateCollection, _super);
+            function TemplateCollection(name) {
+                _super.call(this);
+                this.name = name;
+            }
+            return TemplateCollection;
+        })(Common.Models.Collection);
+        Models.TemplateCollection = TemplateCollection;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
 var Common;
@@ -1635,9 +2342,12 @@ var Common;
 /// <reference path='./ModifiableCollection.ts' />
 /// <reference path='./ModifiableLinkedList.ts' />
 /// <reference path='./ModifiableLinkedListNode.ts' />
+/// <reference path='./AssociationArray.ts' />
 /// <reference path='./Association.ts' />
 /// <reference path='./Notification.ts' />
 /// <reference path='./NotificationCollection.ts' />
+/// <reference path='./Template.ts' />
+/// <reference path='./TemplateCollection.ts' />
 /// <reference path='./input/keyboard/KeyboardInput.ts' />
 /// <reference path='./models.ts' />
 var Common;
@@ -1652,33 +2362,31 @@ var Common;
             __extends(Association, _super);
             function Association() {
                 _super.call(this, this);
-                this.unitTypes = [];
-                this.playbooks = [];
-                this.formations = [];
-                this.personnel = [];
-                this.assignments = [];
-                this.plays = [];
+                this.playbooks = new Common.Models.AssociationArray();
+                this.formations = new Common.Models.AssociationArray();
+                this.personnel = new Common.Models.AssociationArray();
+                this.assignments = new Common.Models.AssociationArray();
+                this.plays = new Common.Models.AssociationArray();
             }
             Association.prototype.toJson = function () {
+                var self = this;
                 return {
-                    unitTypes: this.unitTypes,
-                    playbooks: this.playbooks,
-                    formations: this.formations,
-                    personnel: this.personnel,
-                    assignments: this.assignments,
-                    plays: this.plays,
-                    guid: this.guid
+                    playbooks: self.playbooks.toJson(),
+                    formations: self.formations.toJson(),
+                    personnel: self.personnel.toJson(),
+                    assignments: self.assignments.toJson(),
+                    plays: self.plays.toJson(),
+                    guid: self.guid
                 };
             };
             Association.prototype.fromJson = function (json) {
                 if (!json)
                     return;
-                this.unitTypes = json.unitTypes || this.unitTypes;
-                this.playbooks = json.playbooks || this.playbooks;
-                this.formations = json.formations || this.formations;
-                this.personnel = json.personnel || this.personnel;
-                this.assignments = json.assignments || this.assignments;
-                this.plays = json.plays || this.plays;
+                this.playbooks.addAll(json.playbooks);
+                this.formations.addAll(json.formations);
+                this.personnel.addAll(json.personnel);
+                this.assignments.addAll(json.assignments);
+                this.plays.addAll(json.plays);
                 this.guid = json.guid || this.guid;
             };
             return Association;
@@ -1740,36 +2448,95 @@ impakt.common.notifications.service('__notifications', [
     function () {
         this.notifications = new Common.Models.NotificationCollection();
         this.notificationTypes = Common.Utilities.getEnumerationsAsArray(Common.Models.NotificationType);
+        /**
+         * Removes ("Clears") all notifications
+         */
         this.removeAll = function () {
             this.notifications.removeAll();
         };
+        /**
+         * Removes the given notification by guid
+         * @param  {string}                     guid Guid of notification to remove
+         * @return {Common.Models.Notification}      The removed notification
+         */
         this.remove = function (guid) {
-            this.notifications.remove(guid);
+            return this.notifications.remove(guid);
         };
+        /**
+         * Creates a new notification with the given message and type
+         * @param  {string}                         message The message to notify
+         * @param  {Common.Models.NotificationType} type    The type of notification to display
+         * @return {Common.Models.Notification}             The created notification
+         */
         this.notify = function (message, type) {
             var notificationModel = new Common.Models.Notification(message, type);
-            this.notifications.add(notificationModel.guid, notificationModel);
+            this.notifications.add(notificationModel);
+            return notificationModel;
         };
-        this.update = function (notification, message, type) {
-            var notificationModel = this.notifications.get(notification.guid);
-            notificationModel.message = message;
-            notificationModel.type = type;
+        /**
+         * Shorthand for creating a success notification
+         * @param  {string}                     ...args Message strings to be concatenated
+         * @return {Common.Models.Notification}         New notification created
+         */
+        this.success = function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i - 0] = arguments[_i];
+            }
+            return this.notify(_concat(args), Common.Models.NotificationType.Success);
         };
-        this.success = function (notification, message) {
-            this.update(notification, message, Common.Models.NotificationType.Success);
+        /**
+         * Shorthand for creating an error notification
+         * @param  {string}                     ...args Message strings to be concatenated
+         * @return {Common.Models.Notification}         New notification created
+         */
+        this.error = function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i - 0] = arguments[_i];
+            }
+            return this.notify(_concat(args), Common.Models.NotificationType.Error);
         };
-        this.error = function (notification, message) {
-            this.update(notification, message, Common.Models.NotificationType.Error);
+        /**
+         * Shorthand for creating a warning notification
+         * @param  {string}                     ...args Message strings to be concatenated
+         * @return {Common.Models.Notification}         New notification created
+         */
+        this.warning = function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i - 0] = arguments[_i];
+            }
+            return this.notify(_concat(args), Common.Models.NotificationType.Warning);
         };
-        this.warning = function (notification, message) {
-            this.update(notification, message, Common.Models.NotificationType.Warning);
+        /**
+         * Shorthand for creating an info notification
+         * @param  {string}                     ...args Message strings to be concatenated
+         * @return {Common.Models.Notification}         New notification created
+         */
+        this.info = function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i - 0] = arguments[_i];
+            }
+            return this.notify(_concat(args), Common.Models.NotificationType.Info);
         };
-        this.info = function (notification, message) {
-            this.update(notification, message, Common.Models.NotificationType.Info);
+        /**
+         * Shorthand for creating a pending notification; this will display a spinner
+         * graphic to indicate that it is in progress (TO-DO).
+         * @param  {string}                     ...args Message strings to be concatenated
+         * @return {Common.Models.Notification}         New notification created
+         */
+        this.pending = function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i - 0] = arguments[_i];
+            }
+            return this.notify(_concat(args), Common.Models.NotificationType.Pending);
         };
-        this.pending = function (notification, message) {
-            this.update(notification, message, Common.Models.NotificationType.Pending);
-        };
+        function _concat(args) {
+            return !args || !args.length || args.length <= 0 ? '' : args.join('');
+        }
     }
 ]);
 /// <reference path='../common.mdl.ts' />
@@ -1870,7 +2637,7 @@ impakt.common.scrollable.service('_scrollable', ['$rootScope', function ($rootSc
             this.$container = $container;
             this.height = $container.height();
             this.content = content;
-            this.contentHeight = content.height;
+            this.contentHeight = content.getHeight();
             this.HEIGHT_RATIO = this.height / this.contentHeight;
             // console.log(
             // 	'container height: ', this.height, 
@@ -1992,42 +2759,159 @@ impakt.common.signin = angular.module('impakt.common.signin', [])
         console.debug('impakt.common.signin - run');
     }]);
 /// <reference path='./signin.mdl.ts' />
-impakt.common.signin.constant('SIGNIN', {});
+impakt.common.signin.constant('SIGNIN', {
+    'ORG_ENDPOINT': '/configuration',
+    'INVITE_ENDPOINT': '/invitations',
+    'REGISTER_USER': '/registerUser',
+    'CREATE_ORGANIZATION': '/createOrganization'
+});
 /// <reference path='./signin.mdl.ts' />
-impakt.common.signin.controller('signin.ctrl', ['$scope', '__signin',
-    function ($scope, __signin) {
-        $scope.data = {
-            username: 'fredf@imanufacture.com',
-            password: 'Abc123'
+impakt.common.signin.controller('signin.ctrl', ['$scope', '__signin', '__locale',
+    function ($scope, __signin, __locale) {
+        $scope.showSignin = true;
+        $scope.showRegister = false;
+        $scope.states = __locale.states;
+        $scope.signinData = {
+            username: 'admin@impaktathletics.com',
+            password: 'Abc123!!'
+        };
+        $scope.user = new User.Models.UserModel();
+        $scope.user.firstName = 'Danny';
+        $scope.user.lastName = 'Bullis';
+        $scope.user.email = 'daniel.p.bullis@gmail.com';
+        $scope.user.organizationName = 'Test organization';
+        $scope.signinMessage = '';
+        $scope.organization = new User.Models.Organization();
+        $scope.account = new User.Models.Account();
+        $scope.toggleSignin = function (show) {
+            $scope.showSignin = show === true ? show : !$scope.showSignin;
+            $scope.showRegister = !$scope.showSignin;
+        };
+        $scope.toggleRegister = function (show) {
+            $scope.showRegister = show === true ? show : !$scope.showRegister;
+            $scope.showSignin = !$scope.showRegister;
+        };
+        $scope.createUser = function (next) {
+            console.log('creating user');
+            __signin.registerUser($scope.user)
+                .then(function (results) {
+                console.log('user created', results);
+            }, function (err) {
+                console.error(err);
+            });
+        };
+        $scope.createOrganization = function (next) {
+            console.log('creating organization');
+            __signin.createOrganization($scope.organization)
+                .then(function (results) {
+                console.log('organization created', results);
+            }, function (err) {
+                console.error(err);
+            });
+            next();
+        };
+        $scope.createAccount = function (next) {
+            console.log('creating account');
+            next();
         };
         $scope.signin = function () {
-            __signin.signin($scope.data.username, $scope.data.password);
+            __signin.signin($scope.signinData.username, $scope.signinData.password).then(function (results) {
+                $scope.signinMessage = 'signin successful.';
+            }, function (err) {
+                $scope.signinMessage = err;
+            });
+        };
+        $scope.register = function () {
         };
     }]);
 /// <reference path='./signin.mdl.ts' />
 impakt.common.signin.factory('__signin', [
+    '$q',
     '$window',
+    '__api',
     '__auth',
     '__localStorage',
     'SIGNIN',
-    function ($window, __auth, __localStorage, SIGNIN) {
+    function ($q, $window, __api, __auth, __localStorage, SIGNIN) {
         var self = {
             signin: signin,
-            logout: logout
+            logout: logout,
+            registerUser: registerUser,
+            createOrganization: createOrganization
         };
         function signin(username, password) {
+            var d = $q.defer();
             // send a handshake
             __auth.getToken(username, password).then(function (data) {
                 console.log(data);
                 __localStorage.setAccessToken(data.data);
                 $window.location.href = 'index.html';
+                d.resolve(data);
             }, function (err) {
                 console.error(err);
+                d.reject(err);
             });
+            return d.promise;
         }
         function logout() {
             __localStorage.signout();
             $window.location.href = 'signin.html';
+        }
+        /**
+         * Takes the given user information (first, last, email, org name)
+         * and sends an registration confirmation email (invite) to the user
+         * @param {User.Models.UserModel} userModel user to register
+         */
+        function registerUser(userModel) {
+            var d = $q.defer();
+            var userModelJson = userModel.toJson();
+            __api.post(__api.path(SIGNIN.INVITE_ENDPOINT, SIGNIN.REGISTER_USER), {
+                version: 1,
+                FirstName: userModel.firstName,
+                LastName: userModel.lastName,
+                OrganizationKey: 0,
+                OrganizationName: userModel.organizationName,
+                Email: userModel.email,
+                data: {
+                    version: 1,
+                    FirstName: userModel.firstName,
+                    LastName: userModel.lastName,
+                    OrganizationKey: 0,
+                    OrganizationName: userModel.organizationName,
+                    Email: userModel.email,
+                    user: userModelJson
+                }
+            }).then(function (results) {
+                // TODO - @theBull handle register user results
+                d.resolve(results);
+            }, function (error) {
+                d.reject(error);
+            });
+            return d.promise;
+        }
+        function createOrganization(organization) {
+            var d = $q.defer();
+            var organizationJson = organization.toJson();
+            __api.post(__api.path(SIGNIN.ORG_ENDPOINT, SIGNIN.CREATE_ORGANIZATION), {
+                version: 1,
+                data: {
+                    version: 1,
+                    organization: organizationJson
+                }
+            }).then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var createdOrganization = new User.Models.Organization();
+                if (results) {
+                    createdOrganization.fromJson(results);
+                }
+                else {
+                    d.reject(null);
+                }
+                d.resolve(createdOrganization);
+            }, function (err) {
+                d.reject(err);
+            });
+            return d.promise;
         }
         return self;
     }]);
@@ -2044,29 +2928,46 @@ impakt.common.ui.controller('expandable.ctrl', [
     '$scope', function ($scope) {
         console.log('expandable.ctrl - loaded');
         var directions = ['left', 'right', 'up', 'down'];
-        $scope.direction = '';
+        $scope.direction = 'left';
         $scope.min = 3; // in em's
-        $scope.max = 34; // in em's
+        $scope.max = 32; // in em's
         $scope.$element = null;
         $scope.em = parseInt($('body').css('font-size'));
-        $scope.collapsed = false;
+        $scope.collapsed = true;
+        $scope.ready = false;
         $scope.toggle = function () {
             $scope.collapsed = !$scope.collapsed;
-            var toWidth = 0;
             if ($scope.collapsed) {
-                toWidth = $scope.getWidth($scope.min);
-                $scope.$element.width(toWidth);
-                console.log('collapse panel', toWidth);
+                $scope.$element.removeClass($scope.getMaxClass()).addClass($scope.getMinClass());
+                console.log('collapse panel');
             }
             else {
-                toWidth = $scope.getWidth($scope.max);
-                $scope.$element.width(toWidth);
-                console.log('expand panel', toWidth);
+                $scope.$element.removeClass($scope.getMinClass()).addClass($scope.getMaxClass());
+                console.log('expand panel');
             }
         };
+        $scope.getMinClass = function () {
+            return 'width' + $scope.min;
+        };
+        $scope.getMaxClass = function () {
+            return 'width' + $scope.max;
+        };
+        $scope.getInitialClass = function () {
+            return $scope.collapsed ? $scope.getMinClass() : $scope.getMaxClass();
+        };
+        $scope.setInitialClass = function () {
+            $scope.$element.addClass($scope.getInitialClass());
+        };
+        /**
+         * Deprecated
+         * @param {[type]} value [description]
+         */
         $scope.getWidth = function (value) {
             return $scope.em * parseInt(value);
         };
+        /**
+         * Deprecated
+         */
         $scope.getInitialWidth = function () {
             return $scope.collapsed ?
                 $scope.getWidth($scope.min) :
@@ -2078,21 +2979,58 @@ impakt.common.ui.controller('expandable.ctrl', [
         return {
             restrict: 'E',
             controller: 'expandable.ctrl',
-            scope: {
-                direction: '@direction',
-                min: '@min',
-                max: '@max'
-            },
             compile: function ($element, attrs) {
                 return {
                     pre: function ($scope, $element, attrs, controller, transcludeFn) {
                     },
                     post: function ($scope, $element, attrs, controller, transcludeFn) {
+                        $element.hide();
                         $scope.$element = $element;
+                        $scope.direction = attrs.direction || $scope.direction;
+                        $scope.collapsed = attrs.collapsed == 'true' ||
+                            attrs.collapsed == 'false' ?
+                            attrs.collapsed == 'true' : $scope.collapsed;
+                        var multiplier = $scope.direction == 'left' ||
+                            $scope.direction == 'bottom' ?
+                            -1 : 1;
+                        var position = '';
+                        var collapseHandle = '';
+                        var expandHandle = '';
+                        switch ($scope.direction) {
+                            case 'left':
+                                position = 'top0 left0';
+                                collapseHandle = 'glyphicon-chevron-right';
+                                expandHandle = 'glyphicon-chevron-left';
+                                break;
+                            case 'right':
+                                position = 'top0 right0';
+                                collapseHandle = 'glyphicon-chevron-left';
+                                expandHandle = 'glyphicon-chevron-right';
+                                break;
+                            case 'top':
+                                position = 'top0 left0';
+                                collapseHandle = 'glyphicon-chevron-up';
+                                expandHandle = 'glyphicon-chevron-down';
+                                break;
+                            case 'bottom':
+                                position = 'bottom0 left0';
+                                collapseHandle = 'glyphicon-chevron-down';
+                                expandHandle = 'glyphicon-chevron-up';
+                                break;
+                        }
                         var init = function () {
-                            $element.width($scope.getInitialWidth());
+                            /**
+                             * Set initial class on the element for proper sizing
+                             */
+                            $scope.setInitialClass();
                             var $handle = $('<div />', {
-                                'class': 'expandable-handle expandable-handle-vertical'
+                                'ng-show': '!collapsed',
+                                'class': [
+                                    'expandable-handle ',
+                                    'expandable-handle-vertical ',
+                                    'expandable-', $scope.direction, ' ',
+                                    position
+                                ].join('')
                             });
                             var dragging = false;
                             var startX = 0;
@@ -2103,7 +3041,7 @@ impakt.common.ui.controller('expandable.ctrl', [
                                 var elementWidth = $element.width();
                                 $('body').on('mousemove', function (e) {
                                     var deltaX = e.pageX - startX;
-                                    var toWidth = elementWidth + deltaX;
+                                    var toWidth = elementWidth + (multiplier * deltaX);
                                     if (dragging && toWidth > $scope.min) {
                                         $element.width(toWidth);
                                     }
@@ -2118,100 +3056,533 @@ impakt.common.ui.controller('expandable.ctrl', [
                                 elementWidth = $element.width();
                                 $('body').off('mousemove').off('mouseup');
                             });
-                            $element.append($handle);
+                            $element.append($compile($handle[0])($scope));
                         };
                         $timeout(init, 0);
                         var toggleIcon = $compile([
-                            "<div class='pad top0 right0 dark-bg-hover pointer font-white zIndexTop' ",
+                            "<div class='pad ",
+                            position,
+                            " dark-bg-hover pointer font-white zIndexTop' ",
                             'ng-click="toggle()">',
                             '<div class="glyphicon"',
                             'ng-class="{',
-                            "'glyphicon-chevron-left': !collapsed,",
-                            "'glyphicon-chevron-right': collapsed",
+                            "'", collapseHandle, "': !collapsed,",
+                            "'", expandHandle, "': collapsed",
                             '}">',
                             '</div>',
                             '</div>'
                         ].join(''))($scope);
                         $element.prepend(toggleIcon);
+                        $scope.ready = true;
+                        $element.show();
                     }
                 };
             }
         };
     }]);
 /// <reference path='../ui.mdl.ts' />
-impakt.common.ui
-    .controller('impakt.common.ui.slidingPanel.ctrl', [
-    '$scope',
-    function ($scope) {
-        $scope.layers = [];
-        $scope.index = 0;
-        $scope.isVisibleLayer = function (i) {
-            return i == $scope.index;
-        };
-        $scope.next = function () {
-            var oldIndex = $scope.index;
-            if ($scope.hasLayers()) {
-                $scope.index = $scope.hasNextLayer() ? $scope.index + 1 : 0;
+/**
+ * DESCRIPTION:
+ * will take the enumerated "value" and the
+ * fully-namespaced path to the enumeration object aka "type"
+ * and will format the enumerated value as a string label
+ * mapped to that enumerated value.
+ *
+ * I.e.
+ * type: Playbook.Editor.UnitTypes
+ * value: 3
+ * result: "Offense"
+ *
+ * REQUIRED:
+ * type: Namespaced location of enum "Playbook.Editor.EditorTypes"
+ * value: Actual enumerated value
+ */
+impakt.common.ui.controller('typeFormatter.ctrl', [
+    '$scope', function ($scope) {
+    }]).directive('typeFormatter', [function () {
+        return {
+            restrict: 'E',
+            controller: 'typeFormatter.ctrl',
+            link: function ($scope, $element, attrs) {
+                if (!attrs.type) {
+                    throw new Error('type-formatter directive: \
+					A valid "type" attribute must be present on the element, \
+					which is the fully namespaced type of the enum to evaluate.');
+                }
+                if (!attrs.value) {
+                    throw new Error('type-formatter directive: \
+					A valid "value" attribute must be present on the element, \
+					which is the enum value to retrieve the string for.');
+                }
+                var enumValue = parseInt(attrs.value);
+                // i.e. "Playbook.Editor.EditorTypes"
+                var enumType = attrs.type;
+                // i.e. "['Playbook', 'Editor', 'EditorTypes']"
+                var namespaceComponents = enumType.split('.');
+                // Drill down into namespace -> window['Playbook']['Editor']['EditorTypes']
+                // returns enum object
+                var namespaceRoot = window;
+                for (var i = 0; i < namespaceComponents.length; i++) {
+                    if (namespaceComponents[i]) {
+                        // Follow the namespace path down to the node object
+                        // window['Playbook']...
+                        // window['Playbook']['Editor']...
+                        // window['Playbook']['Editor']['EditorTypes']
+                        // node reached, namespaceRoot will finally point to the node object
+                        namespaceRoot = namespaceRoot[namespaceComponents[i]];
+                    }
+                }
+                // Get the enumeration list {enum: "Label"} || {number: string}
+                var enumList = Common.Utilities.convertEnumToList(namespaceRoot);
+                if (enumList) {
+                    // if it has values, get the Label string for the enum
+                    // and append it inside of the directive element
+                    var enumLabel = enumList[enumValue];
+                    if (enumLabel) {
+                        $element.html(enumLabel);
+                    }
+                    else {
+                        throw new Error('type-formatter directive: \
+						Something went wrong when trying to find the label for the given enum \
+						"' + enumValue + '" => "' + enumLabel + '"');
+                    }
+                }
             }
-            console.log('next layer:', oldIndex, '->', $scope.index, $scope.layers);
         };
-        $scope.prev = function () {
-            if ($scope.hasLayers()) {
-                $scope.index = $scope.hasPrevLayer() ? $scope.index - 1 : $scope.layers.length - 1;
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('playPreview.ctrl', [
+    '$scope', function ($scope) {
+        $scope.previewCanvas;
+        $scope.play;
+        $scope.showRefresh = false;
+        $scope.guid = '';
+        $scope.$element;
+        $scope.refresh = function () {
+            if (!$scope.play)
+                throw new Error('play-preview refresh(): Play is null or undefined');
+            if (!$scope.previewCanvas)
+                throw new Error('play-preview refresh(): PreviewCanvas is null or undefined');
+            if (!$scope.$element)
+                throw new Error('play-preview refresh(): $element is null or undefined');
+            $scope.$element.find('svg').show();
+            $scope.previewCanvas.refresh();
+            $scope.play.png = $scope.previewCanvas.exportToPng();
+            $scope.$element.find('svg').hide();
+        };
+    }]).directive('playPreview', [
+    '$compile',
+    '$timeout',
+    '_playPreview',
+    function ($compile, $timeout, _playPreview) {
+        return {
+            restrict: 'E',
+            controller: 'playPreview.ctrl',
+            /**
+             * play-preview directive renders a PNG with the given
+             * play or formation* data.
+             *
+             * TODO @theBull - *handle formations as well
+             *
+             * @param {[type]} $scope   [description]
+             * @param {[type]} $element [description]
+             * @param {[type]} attrs    [description]
+             */
+            template: "<div class='positionRelative'>\
+					<div class='right0 top1 height2 width2'\
+						ng-show='showRefresh'>\
+						<span class='glyphicon glyphicon-refresh \
+							pointer font-white-hover' \
+							title='Refresh preview'\
+							ng-click='refresh()'>\
+						</span>\
+					</div>\
+					<img ng-src='{{play.png}}' />\
+				</div>",
+            transclude: true,
+            replace: true,
+            link: function ($scope, $element, attrs) {
+                $timeout(function () {
+                    $scope.$element = $element;
+                    // retrieve play data
+                    $scope.guid = attrs.guid;
+                    $scope.showRefresh = $element.hasClass('play-preview-refresh');
+                    // play MAY be only a temporary play used for editing a formation;
+                    // in which case, the temporary play should have been added to
+                    // the editor context...so check there...
+                    // ...if it's not there, check the creation context to see if
+                    // it's a play that's currently being created
+                    $scope.play = impakt.context.Playbook.plays.get($scope.guid) ||
+                        impakt.context.Playbook.editor.plays.get($scope.guid) ||
+                        impakt.context.Playbook.creation.plays.get($scope.guid);
+                    // if there's no play at this point, there's a problem
+                    if (!$scope.play) {
+                        throw new Error('play-preview link(): Unable to find play');
+                    }
+                    // create a previewCanvas to handle preview creation. Creating
+                    // a previewCanvas will insert a SVG into the <play-preview/> element
+                    // after the intialization phase.
+                    $scope.previewCanvas = new Playbook.Models.PreviewCanvas($scope.play, null);
+                    $scope.previewCanvas.initialize($element);
+                    if (!$scope.previewCanvas)
+                        throw new Error('play-preview link(): Creation of previewCanvas failed');
+                    // if the play has an existing png, skip the previewCanvas creation
+                    // step.
+                    if ($scope.play.png == null) {
+                        $scope.refresh();
+                    }
+                    $scope.$element.find('svg').hide();
+                    $scope.play.onModified(function () {
+                        console.log('play-preview play.onModified(): refreshing preview');
+                        $scope.refresh();
+                    });
+                });
             }
         };
-        $scope.to = function (index) {
-            if ($scope.hasLayers() && index >= 0 && index < $scope.layers.length - 1) {
-                $scope.index = index;
-            }
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.service('_playPreview', [function () {
+        var self = this;
+        this.viewBox = '';
+        this.setViewBox = function (x, y, width, height) {
+            this.viewBox = [
+                x, ' ',
+                y, ' ',
+                width, ' ',
+                height
+            ].join('');
         };
-        $scope.hasLayers = function () {
-            return $scope.layers && $scope.layers.length > 0;
+        /**
+         * Compresses a SVG element into a string for storage.
+         * The SVG element is encoded into a base64 string before
+         * compression.
+         * @param {HTMLElement} svg The element to compress
+         */
+        this.compress = function (svg) {
+            return Common.Utilities.compressSVG(svg);
         };
-        $scope.hasNextLayer = function () {
-            return $scope.index < $scope.layers.length - 1;
+        /**
+         * Decompresses a compressed SVG element string; assumes
+         * the decompressed string is base64 encoded, so it decodes
+         * the decompressed string before returning the stringified SVG element.
+         * @param  {string} compressed The string to decmopress
+         * @return {string}            a stringified SVG element
+         */
+        this.decompress = function (compressed) {
+            return Common.Utilities.decompressSVG(compressed);
         };
-        $scope.hasPrevLayer = function () {
-            return $scope.index > 0;
-        };
-    }
-])
-    .directive('slidingPanel', ['$compile',
+        function serialize(svg) {
+            // take SVG HTML and convert into string
+            return Common.Utilities.serializeXMLToString(svg);
+        }
+        function toBase64(svgString) {
+            return Common.Utilities.toBase64(svgString);
+        }
+        function fromBase64(base64Svg) {
+            return Common.Utilities.fromBase64(base64Svg);
+        }
+        function compress(svg) {
+            return Common.Utilities.compress(svg);
+        }
+        function decompress(compressed) {
+            return Common.Utilities.decompress(compressed);
+        }
+        /**
+         * TO-DO: store in local db
+         */
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.directive('popout', [
+    '$compile',
     function ($compile) {
-        console.debug('directive: impakt.common.ui.slidingPanel - register');
+        // button to open with label
+        // open / close icon
+        // open direction (up / down / left / right)
         return {
             restrict: 'E',
-            controller: 'impakt.common.ui.slidingPanel.ctrl',
+            controller: function ($scope) {
+                console.debug('controller: popout.ctrl');
+                $scope.collapsed = true;
+                $scope.data = {};
+                $scope.label = 'label';
+                $scope.open = 'down';
+                $scope.classes = {
+                    expand: '',
+                    collapse: ''
+                };
+                $scope.toggleIconClass = 'glyphicon-chevron-down';
+                function init() {
+                    $scope.toggleIconClass = $scope.setToggleIconClass();
+                    $scope.collapsed = true;
+                }
+                $scope.getCollapsed = function () {
+                    return $scope.collapsed;
+                };
+                $scope.getData = function () {
+                    return $scope.data;
+                };
+                $scope.getLabel = function () {
+                    return $scope.label;
+                };
+                $scope.getToggleIconClass = function () {
+                    return $scope.toggleIconClass;
+                };
+                $scope.toggle = function (close) {
+                    $scope.collapsed = close === true ? true : !$scope.collapsed;
+                    $scope.toggleIconClass = $scope.setToggleIconClass();
+                    removeClickeater();
+                    if (!$scope.collapsed) {
+                        // add clikeater element when toggling
+                        var $clickeater = angular.element($('<popout-clickeater></popout-clickeater>'));
+                        $compile($clickeater)($scope);
+                        $('body').append($clickeater);
+                    }
+                    console.log($scope.collapsed ? 'close' : 'open', 'popout');
+                };
+                $scope.setToggleIconClass = function () {
+                    switch ($scope.open) {
+                        case 'down':
+                            $scope.classes.expand = 'glyphicon-chevron-down';
+                            $scope.classes.collapse = 'glyphicon-chevron-up';
+                            break;
+                        case 'up':
+                            $scope.classes.expand = 'glyphicon-chevron-up';
+                            $scope.classes.collapse = 'glyphicon-chevron-down';
+                            break;
+                        case 'left':
+                            $scope.classes.expand = 'glyphicon-chevron-left';
+                            $scope.classes.collapse = 'glyphicon-chevron-right';
+                            break;
+                        case 'right':
+                            $scope.classes.expand = 'glyphicon-chevron-right';
+                            $scope.classes.collapse = 'glyphicon-chevron-left';
+                            break;
+                    }
+                    return $scope.collapsed ? $scope.classes.expand : $scope.classes.collapse;
+                };
+                $scope.close = function () {
+                    $scope.toggle(true);
+                };
+                function removeClickeater() {
+                    // remove in case it already exists
+                    console.log('remove popout clickeater');
+                    $('.popout-clickeater').remove();
+                }
+                init();
+            },
+            // scope: {
+            // 	data: '=',
+            // 	open: '=',
+            // 	collapsed: '=?',
+            // 	label: '=',
+            // },
+            scope: true,
             link: function ($scope, $element, attrs) {
-                var layers = [];
-                // get all child slidingPanelLayers
-                var layer = $element.find('sliding-panel-layer');
-                console.log('sliding panel layer', layer);
-                console.log('sliding panel layers', layers);
-                // panel template
-                // content template
+            }
+        };
+    }]).directive('popoutToggle', [
+    function () {
+        return {
+            restrict: 'E',
+            require: '^popout',
+            replace: true,
+            transclude: true,
+            scope: true,
+            template: '<div class="popout-toggle" ng-click="toggle()">\
+			<span class="marginRight1">{{label}}</span>\
+			<span class="glyphicon {{toggleIconClass}}"></span>\
+		</div>',
+            link: function ($scope, $element, attrs) {
+                console.log($scope);
             }
         };
     }])
-    .directive('slidingPanelLayer', ['$compile', function ($compile) {
+    .directive('popoutContents', [function () {
         return {
             restrict: 'E',
+            require: '^popout',
+            scope: true,
+            replace: true,
+            transclude: true,
+            template: '<div class="popout-contents" ng-show="!collapsed"></div>',
             link: function ($scope, $element, attrs) {
-                console.log('slidingPanelLayer', attrs, $scope);
-                var guid = Common.Utilities.guid();
-                $element.attr('guid', guid);
-                $scope.layers.push(guid);
-                console.log(guid, $scope.layers);
             }
         };
     }])
-    .directive('slidingPanelNav', [function () {
+    .directive('popoutClickeater', [function () {
         return {
-            restrict: 'A',
+            restrict: 'E',
+            scope: true,
+            replace: true,
+            transclude: true,
+            template: '<div class="popout-clickeater" ng-click="close()"></div>',
             link: function ($scope, $element, attrs) {
             }
         };
     }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.factory('__router', [function () {
+        var self = {
+            templates: {},
+            size: 0,
+            index: 0,
+            current: function () {
+                return self.hasTemplates() ? self.templates[self.index] : null;
+            },
+            get: function (parent, templateName) {
+                return self.templates[parent].filterFirst(function (template, index) {
+                    return templateName == template.name;
+                });
+            },
+            add: function (parent, template) {
+                if (!self.templates[parent]) {
+                    self.templates[parent] = new Common.Models.TemplateCollection(parent);
+                    self.size++;
+                }
+                self.templates[parent].add(template);
+            },
+            push: function (parent, templates) {
+                for (var i = 0; i < templates.length; i++) {
+                    self.add(parent, templates[i]);
+                }
+            },
+            next: function () {
+                var oldIndex = self.index;
+                if (self.hasTemplates()) {
+                    self.index = self.hasNextTemplate() ? self.index + 1 : 0;
+                }
+                console.log('next layer:', oldIndex, '->', self.index, self.templates);
+            },
+            prev: function () {
+                if (self.hasTemplates()) {
+                    self.index = self.hasPrevTemplate() ? self.index - 1 : self.size - 1;
+                }
+            },
+            to: function (index) {
+                if (self.hasTemplates() && index >= 0 && index < self.size - 1) {
+                    self.index = index;
+                }
+            },
+            hasTemplates: function () {
+                return self.templates && self.size > 0;
+            },
+            hasNextTemplate: function () {
+                return self.index < self.size - 1;
+            },
+            hasPrevTemplate: function () {
+                return self.index > 0;
+            }
+        };
+        return self;
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('stepper.ctrl', [
+    '$scope',
+    function ($scope) {
+        console.info('stepper directive controller');
+        $scope.index = 0;
+        $scope.steps = [];
+        $scope.$element = null;
+        $scope.to = function (index) {
+            $($scope.$element.find('step')[index]).show();
+            $($scope.$element.find('step')[$scope.index]).hide();
+            $scope.index = index;
+        };
+        $scope.prev = function () {
+            if ($scope.index - 1 >= 0)
+                $scope.to($scope.index - 1);
+        };
+        $scope.next = function () {
+            if ($scope.index + 1 < $scope.steps.length)
+                $scope.to($scope.index + 1);
+        };
+        $scope.isVisible = function () {
+            return true;
+        };
+    }]).directive('stepper', [
+    '$compile',
+    function ($compile) {
+        return {
+            restrict: 'E',
+            controller: 'stepper.ctrl',
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) {
+                    },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        var mode = attrs.mode;
+                        var HTML = '<step-nav>\
+									<step-nav-item ng-repeat="step in steps track by $index" \
+										class="gray-bg-7-hover"\
+										ng-click="to($index)">\
+										{{$index + 1}}\
+									</step-nav-item>\
+								</step-nav>';
+                        var el = angular.element($compile(HTML)($scope));
+                        //$element.append(el);
+                        $scope.$element = $element;
+                    }
+                };
+            }
+        };
+    }]).directive('step', [
+    '$compile',
+    function ($compile) {
+        return {
+            restrict: 'E',
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) {
+                        var guid = Common.Utilities.guid();
+                        $element.attr('guid', guid);
+                        var index = $scope.steps.length;
+                        var step = {
+                            guid: guid,
+                            visible: false,
+                            index: index
+                        };
+                        $scope.steps.push(step);
+                        if (index != 0) {
+                            $element.hide();
+                        }
+                        //console.log($scope.steps);
+                    },
+                    post: function postLink($scope, $element, attrs, controller) {
+                    }
+                };
+            }
+        };
+    }])
+    .directive('stepNav', [
+    function () {
+        return {
+            restrict: 'E',
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) {
+                    },
+                    post: function postLink($scope, $element, attrs, controller) {
+                    }
+                };
+            }
+        };
+    }
+])
+    .directive('stepNavItem', [
+    function () {
+        return {
+            restrict: 'E',
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) {
+                    },
+                    post: function postLink($scope, $element, attrs, controller) {
+                    }
+                };
+            }
+        };
+    }
+]);
 /// <reference path='../js/impakt.ts' />
 impakt.modules = angular.module('impakt.modules', [
     'impakt.playbook',
@@ -2227,6 +3598,39 @@ impakt.modules = angular.module('impakt.modules', [
     .run(function () {
     console.debug('impakt.modules - run');
 });
+/// <reference path='./models.ts' />
+var Navigation;
+(function (Navigation) {
+    var NavigationItemCollection = (function (_super) {
+        __extends(NavigationItemCollection, _super);
+        function NavigationItemCollection() {
+            _super.call(this);
+        }
+        return NavigationItemCollection;
+    })(Common.Models.Collection);
+    Navigation.NavigationItemCollection = NavigationItemCollection;
+})(Navigation || (Navigation = {}));
+/// <reference path='./navigation.ts' />
+/// <reference path='../../../common/models/models.ts' />
+/// <reference path='./NavigationItem.ts' />
+/// <reference path='./NavigationItemCollection.ts' /> 
+/// <reference path='./models.ts' />
+var Navigation;
+(function (Navigation) {
+    var NavigationItem = (function (_super) {
+        __extends(NavigationItem, _super);
+        function NavigationItem(name, label, glyphicon, path, isActive) {
+            _super.call(this);
+            this.name = name;
+            this.label = label;
+            this.glyphicon = glyphicon;
+            this.path = path;
+            this.isActive = isActive === true;
+        }
+        return NavigationItem;
+    })(Common.Models.Storable);
+    Navigation.NavigationItem = NavigationItem;
+})(Navigation || (Navigation = {}));
 /// <reference path='../modules.mdl.ts' />
 impakt.nav = angular.module('impakt.nav', [
     'impakt.user',
@@ -2241,68 +3645,40 @@ impakt.nav = angular.module('impakt.nav', [
 /// <reference path='./nav.mdl.ts' />
 impakt.nav.controller('nav.ctrl', [
     '$scope',
-    '$window',
     '$location',
+    '__nav',
     '__notifications',
-    function ($scope, $window, $location, __notifications) {
-        $scope.isOnline = navigator.onLine;
-        $window.addEventListener("offline", function (e) {
-            console.log('offline');
-            $scope.isOnline = false;
-        });
-        $window.addEventListener("online", function (e) {
-            console.log('online');
-            $scope.isOnline = true;
-        });
+    function ($scope, $location, __nav, __notifications) {
         // Default menu visiblity
         $scope.isMenuCollapsed = true;
         $scope.notifications = __notifications.notifications;
-        $scope.menuItems = [
-            {
-                label: 'Playbook',
-                glyphicon: 'book',
-                path: '/playbook',
-                isActive: true
-            },
-            {
-                label: 'Team Management',
-                glyphicon: 'list-alt',
-                path: '/team',
-                isActive: false
-            },
-            {
-                label: 'Film',
-                glyphicon: 'film',
-                path: '/film',
-                isActive: false
-            },
-            {
-                label: 'Stats',
-                glyphicon: 'signal',
-                path: '/stats',
-                isActive: false
-            }
-        ];
+        $scope.menuItems = __nav.menuItems;
+        $scope.notificationsMenuItem = __nav.notificationsMenuItem;
         // set default view
         $location.path('/playbook');
         $scope.navigatorNavSelection = getActiveNavItemLabel();
-        $scope.menuVisibilityToggle = function () {
-            $scope.isMenuCollapsed = !$scope.isMenuCollapsed;
+        $scope.notificationItemClick = function () {
+            $scope.notificationsMenuItem.isActive = !$scope.notificationsMenuItem.isActive;
+            $scope.menuVisibilityToggle($scope.notificationsMenuItem, false);
         };
-        $scope.menuItemClick = function (item) {
+        $scope.menuVisibilityToggle = function (navigationItem, propagate) {
+            $scope.isMenuCollapsed = !$scope.isMenuCollapsed;
+            propagate && $scope.menuItemClick(navigationItem);
+        };
+        $scope.menuItemClick = function (navigationItem) {
             var activeNavItem = getActiveNavItem();
             if (activeNavItem)
                 activeNavItem.isActive = false;
-            item.isActive = true;
-            $location.path(item.path);
-            $scope.navigatorNavSelection = item.label;
+            navigationItem.isActive = true;
+            if (navigationItem)
+                $location.path(navigationItem.path);
+            $scope.navigatorNavSelection = navigationItem.label;
         };
         function getActiveNavItem() {
             // pre-assumption, we can only have 1 active menu item
-            var activeItem = $scope.menuItems.filter(function (item) {
-                return item.isActive === true;
+            return $scope.menuItems.filterFirst(function (menuItem) {
+                return menuItem.isActive === true;
             });
-            return activeItem.length > 0 ? activeItem[0] : null;
         }
         function getActiveNavItemLabel() {
             var activeNavItem = getActiveNavItem();
@@ -2313,11 +3689,30 @@ impakt.nav.controller('nav.ctrl', [
 // Nav factory
 impakt.nav.factory('__nav', ['$http', '$q', function ($http, $q) {
         console.log('nav factory');
-        return {};
+        var menuItems = new Navigation.NavigationItemCollection();
+        menuItems.add(new Navigation.NavigationItem('playbook', 'Playbook', 'book', '/playbook/browser', true));
+        menuItems.add(new Navigation.NavigationItem('team', 'Team Management', 'list-alt', '/team', false));
+        menuItems.add(new Navigation.NavigationItem('profile', 'Profile', 'user', '/profile', false));
+        var notificationsMenuItem = new Navigation.NavigationItem('notifications', 'Notifications', 'bell', null, false);
+        // TODO @theBull - implement
+        // ,
+        // film: {
+        // 	label: 'Film',
+        // 	glyphicon: 'film',
+        // 	path: '/film',
+        // 	isActive: false
+        // },
+        // stats: {
+        // 	label: 'Stats',
+        // 	glyphicon: 'signal',
+        // 	path: '/stats',
+        // 	isActive: false
+        // }
+        return {
+            menuItems: menuItems,
+            notificationsMenuItem: notificationsMenuItem
+        };
     }]);
-/// <reference path='./interfaces.ts' />
-/// <reference path='./interfaces.ts' />
-/// <reference path='./interfaces.ts' />
 /// <reference path='../models.ts' />
 var Playbook;
 (function (Playbook) {
@@ -2329,8 +3724,13 @@ var Playbook;
                 _super.call(this, this);
                 this.routes = new Playbook.Models.RouteCollection();
                 this.positionIndex = -1;
-                this.setType = Playbook.Editor.PlaybookSetTypes.Assignment;
+                this.setType = Playbook.Editor.SetTypes.Assignment;
             }
+            Assignment.prototype.clear = function () {
+                this.routes.forEach(function (route, index) {
+                    route.clear();
+                });
+            };
             Assignment.prototype.erase = function () {
                 this.routes.forEach(function (route, index) {
                     route.erase();
@@ -2350,7 +3750,7 @@ var Playbook;
             };
             Assignment.prototype.toJson = function () {
                 return {
-                    routes: this.routes.toJsonArray(),
+                    routes: this.routes.toJson(),
                     positionIndex: this.positionIndex,
                     guid: this.guid
                 };
@@ -2376,21 +3776,24 @@ var Playbook;
                     for (var i = 0; i < count; i++) {
                         var assignment = new Playbook.Models.Assignment();
                         assignment.positionIndex = i;
-                        this.add(assignment.guid, assignment);
+                        this.add(assignment);
                     }
                 }
-                this.setType = Playbook.Editor.PlaybookSetTypes.Assignment;
+                this.setType = Playbook.Editor.SetTypes.Assignment;
                 this.unitType = Playbook.Editor.UnitTypes.Other;
                 this.name = 'Untitled';
+                this.key = -1;
             }
-            AssignmentCollection.prototype.hasAssignments = function () {
-                return this.size() > 0;
+            AssignmentCollection.prototype.copy = function () {
+                console.error('copy Playbook AssignmentCollection not implemented');
+                return null;
             };
             AssignmentCollection.prototype.toJson = function () {
                 return {
                     unitType: this.unitType,
                     setType: this.setType,
                     guid: this.guid,
+                    key: this.key,
                     assignments: _super.prototype.toJson.call(this)
                 };
             };
@@ -2398,6 +3801,7 @@ var Playbook;
                 if (!json)
                     return;
                 this.guid = json.guid;
+                this.key = json.key;
                 this.unitType = json.unitType;
                 this.setType = json.setType;
                 var assignments = json.assignments || [];
@@ -2405,12 +3809,12 @@ var Playbook;
                     var rawAssignment = assignments[i];
                     var assignmentModel = new Playbook.Models.Assignment();
                     assignmentModel.fromJson(rawAssignment);
-                    this.add(assignmentModel.guid, assignmentModel);
+                    this.add(assignmentModel);
                 }
             };
             AssignmentCollection.prototype.getAssignmentByPositionIndex = function (index) {
                 var result = null;
-                if (this.hasAssignments()) {
+                if (this.hasElements()) {
                     result = this.filterFirst(function (assignment) {
                         return assignment.positionIndex == index;
                     });
@@ -2429,13 +3833,13 @@ var Playbook;
     (function (Models) {
         var FieldElement = (function (_super) {
             __extends(FieldElement, _super);
-            function FieldElement(context, canvas) {
+            function FieldElement(context) {
                 _super.call(this, this);
                 this.context = context;
-                this.canvas = canvas || this.context.canvas;
-                this.field = this.context.field;
                 this.paper = this.context.paper;
-                this.grid = this.context.grid;
+                this.canvas = this.paper.canvas;
+                this.field = this.paper.field;
+                this.grid = this.paper.grid;
                 this.raphael = null;
                 this.dx = 0;
                 this.dy = 0;
@@ -2493,17 +3897,17 @@ var Playbook;
                 return this.raphael.glow();
             };
             FieldElement.prototype.getSaveData = function () {
-                console.log('getSaveData() not implemented');
+                //console.log('getSaveData() not implemented');
             };
             FieldElement.prototype.draw = function () {
                 var args = [];
                 for (var _i = 0; _i < arguments.length; _i++) {
                     args[_i - 0] = arguments[_i];
                 }
-                console.log('draw() not implemented');
+                //console.log('draw() not implemented');
             };
             FieldElement.prototype.getBBoxCoordinates = function () {
-                console.log('getBBoxCoordinates() not implemented');
+                //console.log('getBBoxCoordinates() not implemented');
             };
             FieldElement.prototype.mouseDown = function (fn, context) {
                 this.raphael.mousedown(function (e) {
@@ -2518,10 +3922,10 @@ var Playbook;
                 });
             };
             FieldElement.prototype.hoverIn = function (e, context) {
-                console.log('hoverIn() not implemented');
+                //console.log('hoverIn() not implemented');
             };
             FieldElement.prototype.hoverOut = function (e, context) {
-                console.log('hoverOut() not implemented');
+                //console.log('hoverOut() not implemented');
             };
             FieldElement.prototype.click = function (fn, context) {
                 //console.log('fieldElement click');
@@ -2547,16 +3951,16 @@ var Playbook;
             };
             FieldElement.prototype.dragMove = function (dx, dy, posx, posy, e) {
                 var currentCoords = new Playbook.Models.Coordinate(this.x, this.y);
-                console.log(this.x, this.y);
+                //console.log(this.x, this.y);
             };
             FieldElement.prototype.dragStart = function (x, y, e) {
-                console.log('dragStart() not implemented');
+                //console.log('dragStart() not implemented');
             };
             FieldElement.prototype.dragEnd = function (e) {
-                console.log('dragEnd() not implemented');
+                //console.log('dragEnd() not implemented');
             };
             FieldElement.prototype.drop = function () {
-                console.log('drop element: ', this.ax, this.ay, this.dx, this.dy);
+                //console.log('drop element: ', this.ax, this.ay, this.dx, this.dy);
                 this.ax += this.dx;
                 this.ay += this.dy;
                 this.ox = this.ax;
@@ -2569,7 +3973,7 @@ var Playbook;
                     var coords = new Playbook.Models.Coordinate(this.ax, this.ay);
                     this.setCoordinates();
                     var attrs;
-                    console.log(this.raphael);
+                    //console.log(this.raphael);
                     if (this.raphael.type != 'circle') {
                         attrs = {
                             x: this.ax,
@@ -2689,7 +4093,7 @@ var Playbook;
                 item.raphael.transform(['t', dx, ', ', dy].join(''));
             };
             FieldElementSet.prototype.dragAll = function (dx, dy) {
-                console.log('dragging ' + this.length + ' items');
+                //console.log('dragging ' + this.length + ' items');
                 // for each item in the set, update its drag position
                 for (var i = 0; i < this.items.length; i++) {
                     var item = this.items[i];
@@ -2729,15 +4133,15 @@ var Playbook;
             function Ball(context) {
                 _super.call(this, context);
                 this.color = 'brown';
-                this.x = this.grid.getCenter().x;
-                this.y = this.grid.getCenter().y;
+                this.x = 26;
+                this.y = 60;
                 var absCoords = this.grid.getPixelsFromCoordinates(new Playbook.Models.Coordinate(this.x, this.y));
                 this.ax = absCoords.x;
                 this.ay = absCoords.y;
                 this.bx = 0;
                 this.by = 0;
-                this.width = this.grid.GRIDSIZE * 0.15;
-                this.height = this.grid.GRIDSIZE * 0.25;
+                this.width = this.grid.getSize() * 0.15;
+                this.height = this.grid.getSize() * 0.25;
                 this.offset = this.grid.getCenter().x;
             }
             Ball.prototype.draw = function () {
@@ -2748,7 +4152,6 @@ var Playbook;
                 _super.prototype.click.call(this, this.click, this);
                 _super.prototype.mousedown.call(this, this.mousedown, this);
                 this.drag(this.dragMove, this.dragStart, this.dragEnd, this, this, this);
-                console.log(this.raphael);
                 // constrain x/y directions
                 // move LOS and all players with ball
             };
@@ -2813,176 +4216,9 @@ var Playbook;
             Ball.prototype.isBelow = function (y) {
                 return this.y <= y;
             };
-            Ball.prototype.getSaveData = function () {
-                // todo: attach additional data
-                var data = {
-                    coordinates: new Playbook.Models.Coordinate(this.x, this.y)
-                };
-                return data;
-            };
             return Ball;
         })(Playbook.Models.FieldElement);
         Models.Ball = Ball;
-    })(Models = Playbook.Models || (Playbook.Models = {}));
-})(Playbook || (Playbook = {}));
-/// <reference path='../models.ts' />
-var Playbook;
-(function (Playbook) {
-    var Models;
-    (function (Models) {
-        var Canvas = (function () {
-            function Canvas(play, gridsize, width, height, cols, rows) {
-                this.play = play;
-                this.type = this.play.type;
-                this.editorType = this.play.editorType;
-                // todo - right now, can only set this explicitly 
-                // and not through initialization. Enable as initialization setting?
-                this.editorMode = Playbook.Editor.EditorModes.Select;
-                this.active = true;
-                // need to set tab explicitly if it's within an editor
-                this.tab = null;
-                this.key = Common.Utilities.guid();
-                this.gridsize = gridsize || 16;
-                this.rows = rows || 120;
-                this.cols = cols || 52;
-                this.width = width || 0;
-                this.height = height || 0;
-                this.minWidth = 500;
-                this.minHeight = 500;
-                this.listener = new Playbook.Models.CanvasListener(this);
-                this.OFFSET = 50;
-            }
-            Canvas.prototype.initialize = function ($container) {
-                var self = this;
-                this.container = $container[0]; // jquery lite converted to raw html
-                this.$container = $container; // jquery lite object
-                this.width = this.width || this.$container.width();
-                this.height = this.height || this.$container.height();
-                // +2 for sidelines
-                // take the lowest number to allow for spacing around the field
-                this.gridsize = Math.floor(this.width / this.cols);
-                // allows for an extra grid units of spacing around the field
-                var paperWidth = this.cols * this.gridsize;
-                var paperHeight = this.rows * this.gridsize;
-                this.paper = new Playbook.Models.Paper(this, paperWidth, paperHeight);
-                // console.log('paper dimensions: ', this.paper.width, this.paper.height);
-                this.grid = new Playbook.Models.Grid(this, this.cols, this.rows, this.gridsize);
-                // $(window).resize(function() {
-                // 	self.resize();
-                // });
-                var i = setInterval(function () {
-                    if (self.width != self.$container.width()) {
-                        self.width = self.$container.width();
-                        self.height = self.$container.height();
-                        console.log('container size changed', self.$container.width(), ' -> ', self.width, self.$container.height(), ' -> ', self.height);
-                        //self.paper.resize(self.width);
-                        //self.paper.setViewBox();
-                        self.resize();
-                    }
-                }, 1);
-                // clear any existing contents 
-                this.paper.clear();
-                this.paper.setViewBox();
-                // @todo - abstract this. not every canvas will implement
-                this.field = new Playbook.Models.Field(this, this.play);
-                this.field.draw();
-                this.grid.draw();
-            };
-            Canvas.prototype.resize = function () {
-                var self = this;
-                this.width = this.$container.width();
-                this.height = this.$container.height();
-                // +2 for sidelines
-                // take the lowest number to allow for spacing around the field
-                this.gridsize = Math.floor(this.width / this.cols);
-                // remove the svg element from the DOM
-                this.paper.Raphael.remove();
-                // allows for an extra grid units of spacing around the field
-                var paperWidth = this.cols * this.gridsize;
-                var paperHeight = this.rows * this.gridsize;
-                this.paper = new Playbook.Models.Paper(this, paperWidth, paperHeight);
-                // console.log('paper dimensions: ', this.paper.width, this.paper.height);
-                this.grid = new Playbook.Models.Grid(this, this.cols, this.rows, this.gridsize);
-                // clear any existing contents 
-                this.paper.clear();
-                this.paper.setViewBox();
-                // @todo - abstract this. not every canvas will implement
-                this.field = new Playbook.Models.Field(this, this.play);
-                this.field.draw();
-                this.grid.draw();
-                if (this._scrollable) {
-                    this._scrollable.initialize(this.$container, this.paper);
-                    this._scrollable.onready(function (content) {
-                        self._scrollable.scrollToPercentY(0.5);
-                    });
-                }
-            };
-            Canvas.prototype.setScrollable = function (_scrollable) {
-                this._scrollable = _scrollable;
-            };
-            Canvas.prototype.resetHeight = function () {
-                //this.height = this.$container.height(this.$container.height());
-            };
-            Canvas.prototype.listen = function (actionId, fn) {
-                this.listener.listen(actionId, fn);
-            };
-            Canvas.prototype.invoke = function (actionId, data, context) {
-                console.log('invoking action: ', actionId);
-                this.listener.invoke(actionId, data, context);
-            };
-            Canvas.prototype.zoomIn = function () {
-                if (this.grid.GRIDSIZE < 25) {
-                    this.grid.GRIDSIZE += 2;
-                }
-            };
-            Canvas.prototype.zoomOut = function () {
-                if (this.grid.GRIDSIZE > 12) {
-                    this.grid.GRIDSIZE -= 2;
-                }
-            };
-            Canvas.prototype.getEditorMode = function () {
-                return Playbook.Editor.EditorModes[this.editorMode];
-            };
-            Canvas.prototype.getPaperWidth = function () {
-                var width = Math.max(this.$container.width(), this.minWidth);
-                var paperWidth = (Math.ceil(width / this.gridsize) * this.gridsize) - (4 * this.gridsize);
-                return paperWidth;
-            };
-            Canvas.prototype.getPaperHeight = function () {
-                var height = Math.max(this.$container.height(), this.minHeight);
-                var paperHeight = (Math.ceil(height / this.gridsize) * this.gridsize) - (4 * this.gridsize);
-                return paperHeight;
-            };
-            return Canvas;
-        })();
-        Models.Canvas = Canvas;
-    })(Models = Playbook.Models || (Playbook.Models = {}));
-})(Playbook || (Playbook = {}));
-/// <reference path='../models.ts' />
-var Playbook;
-(function (Playbook) {
-    var Models;
-    (function (Models) {
-        var CanvasListener = (function () {
-            function CanvasListener(context) {
-                //super(context);
-                this.actions = {};
-            }
-            CanvasListener.prototype.listen = function (actionId, fn) {
-                if (!this.actions.hasOwnProperty[actionId])
-                    this.actions[actionId] = [];
-                this.actions[actionId].push(fn);
-            };
-            CanvasListener.prototype.invoke = function (actionId, data, context) {
-                if (!this.actions[actionId])
-                    return;
-                for (var i = 0; i < this.actions[actionId].length; i++) {
-                    this.actions[actionId][i](data, context);
-                }
-            };
-            return CanvasListener;
-        })();
-        Models.CanvasListener = CanvasListener;
     })(Models = Playbook.Models || (Playbook.Models = {}));
 })(Playbook || (Playbook = {}));
 /// <reference path='../models.ts' />
@@ -3010,15 +4246,13 @@ var Playbook;
             function Endzone(context, gridOffset) {
                 _super.call(this, context);
                 this.context = context;
-                this.canvas = this.context.canvas;
-                this.paper = this.context.paper;
-                this.grid = this.context.grid;
                 this.color = 'black';
                 this.opacity = 0.25;
                 this.x = 1;
                 this.y = gridOffset || 0;
-                this.width = this.paper.width - (2 * this.grid.GRIDSIZE);
-                this.height = 10 * this.grid.GRIDSIZE;
+                this.width = this.paper.getWidth() -
+                    (2 * this.grid.getSize());
+                this.height = 10 * this.grid.getSize();
             }
             Endzone.prototype.draw = function () {
                 var rect = this.paper.rect(this.x, this.y, this.width, this.height).attr({
@@ -3036,126 +4270,109 @@ var Playbook;
 (function (Playbook) {
     var Models;
     (function (Models) {
-        var Field = (function (_super) {
-            __extends(Field, _super);
-            function Field(context, play) {
-                console.log('creating field');
-                _super.call(this, context, context);
-                this.canvas = context;
-                this.play = play;
-                this.type = this.play.type;
-                this.editorType = this.play.editorType;
-                this.paper = this.canvas.paper;
-                this.grid = this.canvas.grid;
-                this.ground = new Playbook.Models.FieldElement(this);
+        var Field = (function () {
+            function Field(paper, playPrimary, playOpponent) {
+                this.paper = paper;
+                this.grid = this.paper.grid;
+                this.playPrimary = playPrimary;
+                this.playOpponent = playOpponent;
+                this.type = this.playPrimary.unitType;
+                this.editorType = this.playPrimary.editorType;
+                this.zoom = 1;
+                this.id = Common.Utilities.randomId();
+                this.players = new Playbook.Models.PlayerCollection();
+                this.selectedPlayers = new Playbook.Models.PlayerCollection();
+                /**
+                 * Ensure intialization of the field is complete before attempting
+                 * to initialize any field elements.
+                 */
+                /**
+                 * TODO @theBull - refactor all of these drawing commands to a layers
+                 * collection.
+                 */
                 this.ball = new Playbook.Models.Ball(this);
+                this.ground = new Playbook.Models.Ground(this);
                 this.los = new Playbook.Models.LineOfScrimmage(this);
                 this.endzone_top = new Playbook.Models.Endzone(this, 0);
                 this.endzone_bottom = new Playbook.Models.Endzone(this, 110);
                 this.sideline_left = new Playbook.Models.Sideline(this, -25);
                 this.sideline_right = new Playbook.Models.Sideline(this, 25);
-                this.hashmark_left = new Playbook.Models.Hashmark(this, -8);
-                this.hashmark_right = new Playbook.Models.Hashmark(this, 8);
-                this.zoom = 1;
-                this.playData = {};
-                this.id = Common.Utilities.randomId();
-                this.players = new Playbook.Models.PlayerCollection();
-                this.selectedPlayers = new Playbook.Models.PlayerCollection();
-                this.offset = new Playbook.Models.Coordinate(0, 0);
-                this.opacity = 0.1;
-                this.clickDisabled = false;
+                this.hashmark_left = new Playbook.Models.Hashmark(this, -3);
+                this.hashmark_right = new Playbook.Models.Hashmark(this, 3);
+                this.hashmark_sideline_left = new Playbook.Models.Hashmark(this, -25);
+                this.hashmark_sideline_right = new Playbook.Models.Hashmark(this, 25);
             }
             Field.prototype.draw = function () {
                 var self = this;
+                this.ground.draw();
+                this.grid.draw();
                 this.endzone_top.draw();
                 this.endzone_bottom.draw();
                 this.sideline_left.draw();
                 this.sideline_right.draw();
                 this.hashmark_left.draw();
                 this.hashmark_right.draw();
-                // draws a border around the field
-                this.ground.raphael = this.paper.rect(0, 0, 
-                // subtract spacing for sidelines
-                this.grid.GRIDSIZE * this.canvas.cols, this.paper.height).attr({
-                    'fill': '#113311',
-                    'opacity': self.opacity
-                });
-                this.ground.click(this.click, this);
-                this.ground.drag(this.dragMove, this.dragStart, this.dragEnd, this, this, this);
+                this.hashmark_sideline_left.draw();
+                this.hashmark_sideline_right.draw();
                 this.los.draw();
-                //this.ball.draw();
-                // debugging
-                // this.paper.circle(25, 60, 3).attr({ 'fill': 'red' });
-                //this.paper.centerView(this.grid);
-                // draw the editor data onto the field
-                this.play.draw(this);
+                this.ball.draw();
+                this.drawPlay();
+            };
+            Field.prototype.clearPlay = function () {
+                this.players.forEach(function (player, index) {
+                    player.clear();
+                });
+                this.players.removeAll();
+                this.playPrimary = null;
+                this.playOpponent = null;
+            };
+            Field.prototype.drawPlay = function () {
+                // draw the play data onto the field
+                if (this.playPrimary)
+                    this.playPrimary.draw(this);
+                // draw the opponent play data onto the field
+                if (this.playOpponent)
+                    this.playOpponent.draw(this);
+            };
+            Field.prototype.updatePlay = function (playPrimary, playOpponent) {
+                this.clearPlay();
+                this.playPrimary = playPrimary;
+                this.playOpponent = playOpponent;
+                this.drawPlay();
+            };
+            Field.prototype.useAssignmentTool = function (coords) {
+                if (this.selectedPlayers.size() == 1) {
+                    var player = this.selectedPlayers.getOne();
+                    // initialize a new route, ensures a route is available
+                    // for the following logic.
+                    if (player.assignment.routes &&
+                        player.assignment.routes.size() == 0) {
+                        var route = new Playbook.Models.Route(player);
+                        player.assignment.routes.add(route);
+                    }
+                    // TODO: this will only get the first route, implement
+                    // route switching
+                    var playerRoute = player.assignment.routes.getOne();
+                    if (playerRoute.dragInitialized)
+                        return;
+                    // route exists, append the node
+                    playerRoute.addNode(coords);
+                    console.log('set player route', player.label, playerRoute);
+                    this.playPrimary.assignments.addAtIndex(player.assignment, player.position.index);
+                }
+                else if (this.selectedPlayers.size() <= 0) {
+                    console.log('select a player first');
+                }
+                else {
+                    console.log('apply routes in bulk...?');
+                }
+            };
+            Field.prototype.export = function () {
+                return null;
             };
             Field.prototype.placeAtYardline = function (element, yardline) {
             };
-            Field.prototype.setOffset = function (offsetX, offsetY) {
-                this.offset.x = offsetX;
-                this.offset.y = offsetY;
-                console.log('updated field cursor offset position', this.offset, this.getCoordinates());
-            };
-            Field.prototype.getCoordinates = function () {
-                return this.grid.getGridCoordinatesFromPixels(new Playbook.Models.Coordinate(this.offset.x - Math.abs(this.paper.x), Math.abs(this.paper.y) + this.offset.y));
-            };
             Field.prototype.remove = function () { };
-            Field.prototype.click = function (e, self) {
-                self.setOffset(e.offsetX, e.offsetY);
-                var coords = self.getCoordinates();
-                console.log('field clicked', self.clickDisabled ? 'disabled' : 'enabled', e, coords);
-                var editorMode = self.canvas.editorMode;
-                switch (editorMode) {
-                    case Playbook.Editor.EditorModes.Select:
-                        console.log('selection mode');
-                        self.deselectAll();
-                        break;
-                    case Playbook.Editor.EditorModes.None:
-                        console.log('no mode');
-                        self.deselectAll();
-                        break;
-                    case Playbook.Editor.EditorModes.Assignment:
-                        if (self.selectedPlayers.size() == 1) {
-                            var player = self.selectedPlayers.getOne();
-                            // initialize a new route, ensures a route is available
-                            // for the following logic.
-                            if (player.assignment.routes &&
-                                player.assignment.routes.size() == 0) {
-                                var route = new Playbook.Models.Route(player);
-                                player.assignment.routes.add(route.guid, route);
-                            }
-                            // TODO: this will only get the first route, implement
-                            // route switching
-                            var playerRoute = player.assignment.routes.getOne();
-                            if (playerRoute.dragInitialized)
-                                break;
-                            // route exists, append the node
-                            playerRoute.addNode(coords);
-                            console.log('set player route', player.label, playerRoute);
-                            self.play.assignments.addAtIndex(player.assignment.guid, player.assignment, player.position.index);
-                        }
-                        else if (self.selectedPlayers.size() <= 0) {
-                            console.log('select a player first');
-                        }
-                        else {
-                            console.log('apply routes in bulk...?');
-                        }
-                        break;
-                }
-            };
-            Field.prototype.hoverIn = function (e, self) { };
-            Field.prototype.hoverOut = function (e, self) { };
-            Field.prototype.mouseDown = function (e, self) {
-                self.setOffset(e.offsetX, e.offsetY);
-            };
-            Field.prototype.dragMove = function (dx, dy, posx, posy, e) {
-                console.log('field drag', dx, dy, posx, posy);
-            };
-            Field.prototype.dragStart = function (x, y, e) {
-            };
-            Field.prototype.dragEnd = function (e) {
-            };
             Field.prototype.getBBoxCoordinates = function () { };
             Field.prototype.getPositionRelativeToBall = function (from) {
                 return this.getPositionRelativeToElement(from, this.ball);
@@ -3172,7 +4389,7 @@ var Playbook;
             Field.prototype.addPlayer = function (placement, position, assignment) {
                 var player = new Playbook.Models.Player(this, placement, position, assignment);
                 player.draw();
-                this.players.add(player.guid, player);
+                this.players.add(player);
                 return player;
             };
             Field.prototype.getPlayerWithPositionIndex = function (index) {
@@ -3181,13 +4398,36 @@ var Playbook;
                 });
                 return matchingPlayer;
             };
-            Field.prototype.applyFormation = function (formation) {
-                console.log(formation);
-                throw new Error('Field.applyFormation() not implemented...');
+            Field.prototype.applyPrimaryPlay = function (play) {
+                throw new Error('field applyPrimaryPlay() not implemented');
             };
-            Field.prototype.applyAssignments = function (assignments) {
+            Field.prototype.applyPrimaryFormation = function (formation) {
+                //console.log(formation);
+                // the order of placements within the formation get applied straight across
+                // to the order of personnel and positions.
                 var self = this;
-                if (assignments.hasAssignments()) {
+                this.players.forEach(function (player, index) {
+                    // NOTE: we're not using the index from the forEach callback,
+                    // because we can't assume the players collection stores the players
+                    // in the order according to the player's actual index property
+                    var playerIndex = player.position.index;
+                    if (playerIndex < 0) {
+                        throw new Error('Player must have a position index');
+                    }
+                    var newPlacement = formation.placements.getIndex(playerIndex);
+                    if (!newPlacement) {
+                        throw new Error('Updated player placement is invalid');
+                    }
+                    player.updatePlacement(newPlacement);
+                    player.draw();
+                });
+                // update the field play formation
+                this.playPrimary.setFormation(formation);
+                // TODO @theBull - implement set formation for opponent formation
+            };
+            Field.prototype.applyPrimaryAssignments = function (assignments) {
+                var self = this;
+                if (assignments.hasElements()) {
                     assignments.forEach(function (assignment, index) {
                         var player = self.getPlayerWithPositionIndex(assignment.positionIndex);
                         if (player) {
@@ -3197,20 +4437,33 @@ var Playbook;
                             player.draw();
                         }
                     });
-                    this.play.assignments = assignments;
+                    // TODO @theBull - implement apply opponent assignments
+                    this.playPrimary.setAssignments(assignments);
                 }
             };
-            Field.prototype.applyPersonnel = function (personnel) {
+            Field.prototype.applyPrimaryPersonnel = function (personnel) {
                 var self = this;
-                this.players.forEach(function (player, index) {
-                    var newPosition = personnel.positions.getIndex(index);
-                    if (self.play.personnel && self.play.personnel.hasPositions()) {
-                        self.play.personnel.positions.getIndex(index).fromJson(newPosition.toJson());
-                    }
-                    player.position.fromJson(newPosition.toJson());
-                    player.draw();
-                });
-                this.play.personnel = personnel;
+                if (personnel && personnel.hasPositions()) {
+                    this.players.forEach(function (player, index) {
+                        var newPosition = personnel.positions.getIndex(index);
+                        if (self.playPrimary.personnel &&
+                            self.playPrimary.personnel.hasPositions()) {
+                            self.playPrimary.personnel.positions.getIndex(index).fromJson(newPosition.toJson());
+                        }
+                        player.position.fromJson(newPosition.toJson());
+                        player.draw();
+                    });
+                    // TODO @theBull - implement apply opponent assignments
+                    this.playPrimary.setPersonnel(personnel);
+                }
+                else {
+                    var details = personnel ? '# positions: ' + personnel.positions.size() : 'Personnel is undefined.';
+                    alert([
+                        'There was an error applying this personnel group. ',
+                        'Please inspect it in the Team Management module. \n\n',
+                        details
+                    ].join(''));
+                }
             };
             Field.prototype.deselectAll = function () {
                 if (this.selectedPlayers.size() == 0)
@@ -3219,7 +4472,7 @@ var Playbook;
                     // will effectively tell the player to de-select itself
                     player.select();
                 });
-                console.log('All players de-selected', this.selectedPlayers);
+                //console.log('All players de-selected', this.selectedPlayers);
             };
             Field.prototype.togglePlayerSelection = function (player) {
                 // TODO - support alt/cmd/ctrl/shift selection
@@ -3233,12 +4486,12 @@ var Playbook;
                     this.selectedPlayers.remove(player.guid);
                 }
                 else {
-                    this.selectedPlayers.add(player.guid, player);
+                    this.selectedPlayers.add(player);
                 }
-                console.log(this.selectedPlayers);
+                //console.log(this.selectedPlayers);
             };
             return Field;
-        })(Models.FieldElement);
+        })();
         Models.Field = Field;
     })(Models = Playbook.Models || (Playbook.Models = {}));
 })(Playbook || (Playbook = {}));
@@ -3247,45 +4500,110 @@ var Playbook;
 (function (Playbook) {
     var Models;
     (function (Models) {
-        var Grid = (function () {
-            function Grid(context, cols, rows, gridsize) {
-                this.context = context;
-                this.canvas = this.context;
-                this.paper = this.context.paper;
-                this.dimensions = { cols: 0, rows: 0 };
-                this.dashArray = ['- '];
-                this.verticalStrokeOpacity = 0.1;
-                this.horizontalStrokeOpacity = 0.3;
-                this.strokeWidth = 0.5;
-                this.GRIDSIZE = gridsize || 15;
-                this.GRIDBASE = 10; // value must always be 10, do not change
-                // TODO - want to set this to 2 to allow snapping in between grid lines
-                this.divisor = 2;
-                this.width = this.paper.width;
-                this.height = this.paper.height;
-                this.dimensions.cols = cols;
-                this.dimensions.rows = rows;
+        var PreviewField = (function (_super) {
+            __extends(PreviewField, _super);
+            function PreviewField(paper, playPrimary, playOpponent) {
+                _super.call(this, paper, playPrimary, playOpponent);
             }
-            Grid.prototype.setGridsize = function (gridsize, paper) {
-                this.GRIDSIZE = gridsize;
-                this.paper = paper;
-                this.width = this.paper.width;
-                this.height = this.paper.height;
+            PreviewField.prototype.draw = function () {
+                var self = this;
+                this.ground.click = function (e) { return false; };
+                this.ball.y = 20;
+                this.ball.x = 26;
+                this.los.y = 20;
+                this.los.height = 1;
+                this.hashmark_left.start = 0;
+                this.hashmark_left.yards = 40;
+                this.hashmark_right.start = 0;
+                this.hashmark_right.yards = 40;
+                this.sideline_left.opacity = 0.35;
+                this.sideline_right.opacity = 0.35;
+                this.ground.draw();
+                this.hashmark_left.draw();
+                this.hashmark_right.draw();
+                this.sideline_left.draw();
+                this.sideline_right.draw();
+                this.los.draw();
+                this.ball.draw();
+                // draw the play data onto the field
+                if (this.playPrimary)
+                    this.playPrimary.draw(this);
+                // draw the opponent play data onto the field
+                if (this.playOpponent)
+                    this.playOpponent.draw(this);
             };
+            PreviewField.prototype.addPlayer = function (placement, position, assignment) {
+                // TODO @theBull - look into this
+                // adjust for no sidelines...
+                //placement.x -= 1;
+                var player = new Playbook.Models.PreviewPlayer(this, placement, position, assignment);
+                player.draw();
+                this.players.add(player);
+                return player;
+            };
+            PreviewField.prototype.togglePlayerSelection = function (player) {
+                throw new Error('PreviewField togglePlayerSelection() not implemented');
+            };
+            PreviewField.prototype.deselectAll = function () {
+                throw new Error('PreviewField deselectAll() not implemented');
+            };
+            PreviewField.prototype.useAssignmentTool = function (coords) {
+                throw new Error('PreviewField useAssignmentTool() not implemented');
+            };
+            return PreviewField;
+        })(Playbook.Models.Field);
+        Models.PreviewField = PreviewField;
+    })(Models = Playbook.Models || (Playbook.Models = {}));
+})(Playbook || (Playbook = {}));
+/// <reference path='../models.ts' />
+var Playbook;
+(function (Playbook) {
+    var Models;
+    (function (Models) {
+        var Grid = (function () {
+            function Grid(paper, cols, rows) {
+                this.paper = paper;
+                this.cols = cols;
+                this.rows = rows;
+                // sets this.width and this.height
+                this.size = this.resize(this.paper.sizingMode);
+                this.base = Playbook.Constants.GRID_BASE;
+                this.divisor = 2; // TODO @theBull document this
+                this.dashArray = ['- '];
+                this.verticalStrokeOpacity = 0.2;
+                this.horizontalStrokeOpacity = 0.25;
+                this.strokeWidth = 0.5;
+                this.color = '#000000';
+            }
+            Grid.prototype.getSize = function () {
+                return this.size;
+            };
+            Grid.prototype.getWidth = function () {
+                return this.width;
+            };
+            Grid.prototype.getHeight = function () {
+                return this.height;
+            };
+            /**
+             * TODO @theBull - document this
+             * @return {any} [description]
+             */
             Grid.prototype.draw = function () {
-                var cols = this.dimensions.cols;
-                var rows = this.dimensions.rows;
+                var cols = this.cols;
+                var rows = this.rows;
+                //var font = this.paper.getFont('Arial');
                 for (var c = 1; c < cols; c++) {
-                    var colX = c * this.GRIDSIZE;
-                    var pathStr = Playbook.Utilities.getPathString(colX, 0, colX, rows * this.GRIDSIZE);
+                    var colX = c * this.size;
+                    var pathStr = Playbook.Utilities.getPathString(colX, 0, colX, rows * this.size);
                     var p = this.paper.path(pathStr).attr({
                         'stroke-dasharray': this.dashArray,
                         'stroke-opacity': this.verticalStrokeOpacity,
-                        'stroke-width': this.strokeWidth
+                        'stroke-width': this.strokeWidth,
+                        'stroke': this.color
                     });
                 }
                 for (var r = 1; r < rows; r++) {
-                    var rowY = r * this.GRIDSIZE;
+                    var rowY = r * this.size;
                     var pathStr = Playbook.Utilities.getPathString(0, rowY, this.width, rowY);
                     var opacity, dashes;
                     if (r % 10 == 0) {
@@ -3294,80 +4612,199 @@ var Playbook;
                             if (value > 50)
                                 value = value - ((value - 50) * 2);
                             var str = value.toString();
-                            var lineNumbersLeft = this.paper.text(2, r, str, false);
-                            var lineNumbersRight = this.paper.text(50, r, str, false);
+                            // let lineNumbersLeft = this.paper.print(
+                            // 	2,
+                            // 	r,
+                            // 	str,
+                            // 	font,
+                            // 	30
+                            // );.transform('r-90');
+                            var lineNumbersLeft = this.paper.text(2, r, str, false).transform('r-90');
+                            // let lineNumbersRight = this.paper.print(
+                            // 	50, 
+                            // 	r, 
+                            // 	str, 
+                            // 	font, 
+                            // 	30
+                            // ).transform('r90');
+                            var lineNumbersRight = this.paper.text(50, r, str, false).transform('r90');
                         }
                         opacity = 1;
-                        dashes = ['-'];
+                        this.paper.path(pathStr).attr({
+                            'stroke-opacity': this.horizontalStrokeOpacity,
+                            'stroke-width': 3,
+                            'stroke': '#ffffff'
+                        });
                     }
                     else {
-                        opacity = this.horizontalStrokeOpacity;
-                        dashes = this.dashArray;
+                        this.paper.path(pathStr).attr({
+                            'stroke-dasharray': this.dashArray,
+                            'stroke-opacity': this.horizontalStrokeOpacity,
+                            'stroke-width': this.strokeWidth,
+                            'stroke': this.color
+                        });
                     }
-                    var p = this.paper.path(pathStr).attr({
-                        'stroke-dasharray': dashes,
-                        'stroke-opacity': opacity,
-                        'stroke-width': this.strokeWidth
-                    });
                 }
             };
-            // returns the grid value for the bottom-most grid line (horizontal)
+            /**
+             * recalculates the width and height of the grid
+             * with the context width and height
+             */
+            Grid.prototype.resize = function (sizingMode) {
+                if (this.cols <= 0)
+                    throw new Error('Grid cols must be defined and greater than 0');
+                if (this.paper.canvas.width <= 0)
+                    throw new Error('Canvas width must be greater than 0');
+                switch (this.paper.sizingMode) {
+                    case Playbook.Editor.PaperSizingModes.TargetGridWidth:
+                        this.size = Playbook.Constants.GRID_SIZE;
+                        break;
+                    case Playbook.Editor.PaperSizingModes.MaxCanvasWidth:
+                        this.size = Math.floor(this.paper.canvas.width / this.cols);
+                        break;
+                    case Playbook.Editor.PaperSizingModes.PreviewWidth:
+                        this.size = this.paper.canvas.width / this.cols; // don't round
+                        break;
+                }
+                this.width = this.cols * this.size;
+                this.height = this.rows * this.size;
+                return this.size;
+            };
+            /**
+             * TODO @theBull - document this
+             * returns the grid value for the bottom-most grid line (horizontal)
+             * @return {number} [description]
+             */
             Grid.prototype.bottom = function () {
-                return this.dimensions.rows;
+                return this.rows;
             };
-            // returns the grid value for the right-most grid line (vertical)
+            /**
+             * TODO @theBull - document this
+             * returns the grid value for the right-most grid line (vertical)
+             * @return {number} [description]
+             */
             Grid.prototype.right = function () {
-                return this.dimensions.cols;
+                return this.cols;
             };
+            /**
+             * TODO @theBull - document this
+             * @return {Playbook.Models.Coordinate} [description]
+             */
             Grid.prototype.getCenter = function () {
-                return new Playbook.Models.Coordinate(Math.round(this.dimensions.cols / 2), Math.round(this.dimensions.rows / 2));
+                return new Playbook.Models.Coordinate(Math.round(this.cols / 2), Math.round(this.rows / 2));
             };
+            /**
+             * TODO @theBull - document this
+             * @return {Playbook.Models.Coordinate} [description]
+             */
             Grid.prototype.getCenterInPixels = function () {
                 return this.getPixelsFromCoordinates(this.getCenter());
             };
+            /**
+             * TODO @theBull - document this
+             * @return {Playbook.Models.Coordinate} [description]
+             */
             Grid.prototype.getCoordinates = function () {
                 return new Playbook.Models.Coordinate(-1, -1); // TODO
             };
+            /**
+             * TODO @theBull - document this
+             * @return {Playbook.Models.Coordinate} [description]
+             */
             Grid.prototype.getDimensions = function () {
-                return this.dimensions;
+                return new Playbook.Models.Coordinate(this.cols, this.rows);
             };
+            /**
+             * TODO @theBull - document this
+             * @return {number} [description]
+             */
             Grid.prototype.gridProportion = function () {
-                return this.GRIDSIZE / this.GRIDBASE;
+                return this.size / this.base;
             };
+            /**
+             * TODO @theBull - document this
+             * @param  {number} val [description]
+             * @return {number}     [description]
+             */
             Grid.prototype.computeGridZoom = function (val) {
                 return val * this.gridProportion();
             };
+            /**
+             * Calculates a single absolute pixel value from the given grid value
+             * @param  {number} val the coord value to calculate
+             * @return {number}     The calculated absolute pixel
+             */
             Grid.prototype.getPixelsFromCoordinate = function (val) {
-                return val * this.GRIDSIZE;
+                return val * this.size;
             };
+            /**
+             * Returns the absolute pixel values of the given grid coords
+             * @param  {Playbook.Models.Coordinate} coords the grid coords to calculate
+             * @return {Playbook.Models.Coordinate}        the absolute pixel coords
+             */
             Grid.prototype.getPixelsFromCoordinates = function (coords) {
-                var c = new Playbook.Models.Coordinate(this.getPixelsFromCoordinate(coords.x), this.getPixelsFromCoordinate(coords.y));
-                return c;
+                var calculatedCoords = new Playbook.Models.Coordinate(this.getPixelsFromCoordinate(coords.x), this.getPixelsFromCoordinate(coords.y));
+                return calculatedCoords;
             };
+            /**
+             * Calculates grid coords from the given pixel values
+             * @param {Playbook.Models.Coordinate} coords coordinates in raw pixel form
+             * @return {Playbook.Models.Coordinate}		the matching grid pixels as coords
+             */
             Grid.prototype.getGridCoordinatesFromPixels = function (coords) {
                 // TODO: add in paper scroll offset
-                var x = Math.round((coords.x / this.GRIDSIZE) * this.divisor) / this.divisor;
-                var y = Math.round((coords.y / this.GRIDSIZE) * this.divisor) / this.divisor;
+                var x = Math.round((coords.x / this.size) * this.divisor) / this.divisor;
+                var y = Math.round((coords.y / this.size) * this.divisor) / this.divisor;
                 return new Playbook.Models.Coordinate(x, y);
             };
+            /**
+             * Takes the given coords and snaps them to the nearest grid coords
+             *
+             * @param {Playbook.Models.Coordinate} coords Coordinates to snap
+             * @return {Playbook.Models.Coordinate}		The nearest snapped coordinates
+             */
             Grid.prototype.snapToNearest = function (coords) {
                 return this.getGridCoordinatesFromPixels(coords);
             };
+            /**
+             * Snaps the given coords to the grid
+             * @param {Playbook.Models.Coordinate} coords assumed non-snapped coordinates
+             * @return {Playbook.Models.Coordinate}		the snapped coordinates
+             */
             Grid.prototype.snap = function (coords) {
                 var snapX = this.snapPixel(coords.x);
                 var snapY = this.snapPixel(coords.y);
                 return new Playbook.Models.Coordinate(snapX, snapY);
             };
-            // takes a pixel value and translates it into a corresponding
-            // number of grid units
+            /**
+             * takes a pixel value and translates it into a corresponding
+             * number of grid units
+             *
+             * @param  {number} val value to calculate
+             * @return {number}     calculated value
+             */
             Grid.prototype.snapPixel = function (val) {
-                return Math.round(val / (this.GRIDSIZE / this.divisor)) * (this.GRIDSIZE / this.divisor);
+                return Math.round(val / (this.size / this.divisor)) * (this.size / this.divisor);
             };
+            /**
+             * Determines whether the given value is equally divisible
+             * by the gridsize
+             *
+             * @param {number} val The value to calculate
+             * @return {boolean}	true if divisible, otherwise false
+             */
             Grid.prototype.isDivisible = function (val) {
-                return val % (this.GRIDSIZE / this.divisor) == 0;
+                return val % (this.size / this.divisor) == 0;
             };
+            /**
+             * [moveToPixels description]
+             * @param  {Playbook.Models.Coordinate} from [description]
+             * @param  {number}                     toX  [description]
+             * @param  {number}                     toY  [description]
+             * @return {Playbook.Models.Coordinate}      [description]
+             */
             Grid.prototype.moveToPixels = function (from, toX, toY) {
-                return null;
+                throw new Error('Grid.moveToPixels() not implemented');
             };
             return Grid;
         })();
@@ -3394,6 +4831,92 @@ var Playbook;
 (function (Playbook) {
     var Models;
     (function (Models) {
+        var Ground = (function (_super) {
+            __extends(Ground, _super);
+            function Ground(field) {
+                _super.call(this, field);
+                this.field = field;
+                this.offset = new Playbook.Models.Coordinate(0, 0);
+                this.opacity = 1;
+                this.clickable = true;
+                this.color = Playbook.Constants.FIELD_COLOR;
+            }
+            Ground.prototype.draw = function () {
+                var self = this;
+                this.raphael = this.paper.Raphael.rect(this.paper.x - 1, this.paper.y - 1, this.grid.width + 2, this.grid.height + 2).attr({
+                    x: self.paper.x - 1,
+                    y: self.paper.y - 1,
+                    width: self.grid.width + 2,
+                    height: self.grid.height + 2,
+                    stroke: '#000000',
+                    fill: this.color,
+                    opacity: self.opacity
+                });
+                this.raphael.click(this.click, this);
+                this.raphael.drag(this.dragMove, this.dragStart, this.dragEnd, this, this, this);
+            };
+            Ground.prototype.getClickCoordinates = function (offsetX, offsetY) {
+                this.setOffset(offsetX, offsetY);
+                return this.grid.getGridCoordinatesFromPixels(new Playbook.Models.Coordinate(this.getOffsetX() - Math.abs(this.paper.x), Math.abs(this.paper.y) + this.getOffsetY()));
+            };
+            Ground.prototype.click = function (e) {
+                var coords = this.getClickCoordinates(e.offsetX, e.offsetY);
+                var toolMode = this.paper.canvas.toolMode;
+                switch (toolMode) {
+                    case Playbook.Editor.ToolModes.Select:
+                        console.log('selection mode');
+                        this.field.deselectAll();
+                        break;
+                    case Playbook.Editor.ToolModes.None:
+                        console.log('no mode');
+                        this.field.deselectAll();
+                        break;
+                    case Playbook.Editor.ToolModes.Assignment:
+                        this.field.useAssignmentTool(coords);
+                        break;
+                }
+            };
+            Ground.prototype.hoverIn = function (e, self) { };
+            Ground.prototype.hoverOut = function (e, self) { };
+            Ground.prototype.mouseDown = function (e, self) {
+                self.setOffset(e.offsetX, e.offsetY);
+            };
+            Ground.prototype.dragMove = function (dx, dy, posx, posy, e) {
+                //console.log('field drag', dx, dy, posx, posy);
+            };
+            Ground.prototype.dragStart = function (x, y, e) {
+            };
+            Ground.prototype.dragEnd = function (e) {
+            };
+            Ground.prototype.getOffset = function () {
+                return this.offset;
+            };
+            Ground.prototype.getOffsetX = function () {
+                return this.offset && this.offset.x;
+            };
+            Ground.prototype.getOffsetY = function () {
+                return this.offset && this.offset.y;
+            };
+            Ground.prototype.setOffset = function (offsetX, offsetY) {
+                this.setOffsetX(offsetX);
+                this.setOffsetY(offsetY);
+            };
+            Ground.prototype.setOffsetX = function (value) {
+                this.offset.x = value;
+            };
+            Ground.prototype.setOffsetY = function (value) {
+                this.offset.y = value;
+            };
+            return Ground;
+        })(Models.FieldElement);
+        Models.Ground = Ground;
+    })(Models = Playbook.Models || (Playbook.Models = {}));
+})(Playbook || (Playbook = {}));
+/// <reference path='../models.ts' />
+var Playbook;
+(function (Playbook) {
+    var Models;
+    (function (Models) {
         var Hashmark = (function (_super) {
             __extends(Hashmark, _super);
             function Hashmark(context, offset) {
@@ -3402,13 +4925,15 @@ var Playbook;
                 this.offset = offset || 3;
                 this.x = this.grid.getCenter().x + this.offset;
                 this.y = 0;
-                this.width = (this.grid.GRIDSIZE / 2);
+                this.width = (this.grid.getSize() / 2);
                 this.height = 1;
+                this.start = 11;
+                this.yards = 110;
                 this.opacity = 0.9;
-                this.color = 'black';
+                this.color = '#ffffff';
             }
             Hashmark.prototype.draw = function () {
-                for (var i = 11; i < 110; i++) {
+                for (var i = this.start; i < this.yards; i++) {
                     this.raphael = this.paper.rect(this.x, i, this.width, this.height).attr({
                         'fill': this.color,
                         'fill-opacity': this.opacity,
@@ -3429,19 +4954,18 @@ var Playbook;
     (function (Models) {
         var LineOfScrimmage = (function (_super) {
             __extends(LineOfScrimmage, _super);
-            function LineOfScrimmage(context, y) {
-                _super.call(this, context);
-                this.context = context;
-                this.canvas = this.context.canvas;
-                this.paper = this.context.paper;
-                this.grid = this.canvas.grid;
+            function LineOfScrimmage(field, y) {
+                _super.call(this, field);
+                this.field = field;
+                if (!this.field || !this.field.ball)
+                    throw new Error('LineOfScrimmage constructor(): field/ball are null or undefined');
                 this.LOS_Y_OFFSET = 8;
-                this.x = 1;
-                this.y = this.grid.getCenter().y;
-                this.width = this.paper.width - (2 * this.grid.GRIDSIZE);
+                this.x = 0;
+                this.y = this.field.ball.y;
+                this.width = this.grid.width;
                 this.height = 4;
-                this.color = 'blue';
-                this.opacity = 0.25;
+                this.color = 'yellow';
+                this.opacity = 1;
             }
             LineOfScrimmage.prototype.draw = function () {
                 this.paper.rect(this.x, this.y, this.width, this.height).click(this.click).attr({
@@ -3491,78 +5015,432 @@ var Playbook;
 (function (Playbook) {
     var Models;
     (function (Models) {
+        var RelativePosition = (function (_super) {
+            __extends(RelativePosition, _super);
+            function RelativePosition(from, to) {
+                var fromCoords = new Playbook.Models.Coordinate(from.placement.x, from.placement.y);
+                var toCoords = new Playbook.Models.Coordinate(to.x, to.y);
+                var relativeCoords = this.grid(fromCoords, toCoords);
+                this.distance = Playbook.Utilities.distance(fromCoords.x, fromCoords.y, toCoords.x, toCoords.y);
+                this.theta = Playbook.Utilities.theta(fromCoords.x, fromCoords.y, toCoords.x, toCoords.y);
+                _super.call(this, relativeCoords.x, relativeCoords.y);
+            }
+            RelativePosition.prototype.grid = function (from, to) {
+                // returns values as grid units
+                return new Playbook.Models.Coordinate(from.x - to.x, to.y - from.y);
+            };
+            RelativePosition.prototype.absolute = function () {
+                // returns values as absolute pixels
+                // 
+                return null;
+            };
+            RelativePosition.prototype.window = function () {
+                // returns pixel position relative to the window in pixels
+                return null;
+            };
+            return RelativePosition;
+        })(Playbook.Models.Coordinate);
+        Models.RelativePosition = RelativePosition;
+    })(Models = Playbook.Models || (Playbook.Models = {}));
+})(Playbook || (Playbook = {}));
+/// <reference path='../models.ts' />
+var Playbook;
+(function (Playbook) {
+    var Models;
+    (function (Models) {
+        var Sideline = (function (_super) {
+            __extends(Sideline, _super);
+            function Sideline(field, offset) {
+                _super.call(this, field);
+                this.field = field;
+                this.color = 'white';
+                this.opacity = 1;
+                this.x = this.grid.getCenter().x;
+                this.y = 0;
+                this.width = this.grid.getSize();
+                this.height = this.grid.getHeight();
+                this.offset = offset || 0;
+            }
+            Sideline.prototype.draw = function () {
+                // adjust the left sideline so that it does not overlap the grid
+                // by shifting it left by its width so that its right edge aligns
+                // with the gridline
+                var bumpX = this.offset < 0 ? -this.width : 0;
+                var rect = this.paper.rect(this.x + this.offset, this.y, this.width, this.height).attr({
+                    'fill': this.color,
+                    'fill-opacity': this.opacity,
+                    'stroke-width': 0
+                });
+                this.paper.bump(bumpX, 0, rect);
+            };
+            return Sideline;
+        })(Models.FieldElement);
+        Models.Sideline = Sideline;
+    })(Models = Playbook.Models || (Playbook.Models = {}));
+})(Playbook || (Playbook = {}));
+/// <reference path='../models.ts' />
+var Playbook;
+(function (Playbook) {
+    var Utilities = (function () {
+        function Utilities() {
+        }
+        Utilities.getPathString = function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i - 0] = arguments[_i];
+            }
+            // arguments must be passed; must be at least 4 arguments; number of arguments must be even
+            if (!args || args.length < 4 || args.length % 2 != 0)
+                return undefined;
+            var str = 'M' + args[0] + ' ' + args[1];
+            for (var i = 2; i < args.length; i += 2) {
+                if (!args[i] || typeof args[i] != 'number')
+                    return undefined;
+                var arg = args[i];
+                str += ', L' + arg + ' ' + args[i + 1];
+            }
+            return str;
+        };
+        Utilities.getClosedPathString = function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i - 0] = arguments[_i];
+            }
+            return this.getPathString.apply(this, args) + ' Z';
+        };
+        Utilities.buildPath = function (from, to, width) {
+            //console.log(from, to, width);
+            var dist = this.distance(from.x, from.y, to.x, to.y);
+            var theta = this.theta(from.x, from.y, to.x, to.y);
+            var p1 = {
+                x: (Math.cos(theta + (Math.PI / 2)) * (width / 2)) + from.x,
+                y: (Math.sin(theta + (Math.PI / 2)) * (width / 2)) + from.y
+            };
+            var p2 = {
+                x: (Math.cos(theta) * dist) + p1.x,
+                y: (Math.sin(theta) * dist) + p1.y
+            };
+            var p3 = {
+                x: (Math.cos(theta + (1.5 * Math.PI)) * width) + p2.x,
+                y: (Math.sin(theta + (1.5 * Math.PI)) * width) + p2.y
+            };
+            var p4 = {
+                x: (Math.cos(theta + Math.PI) * dist) + p3.x,
+                y: (Math.sin(theta + Math.PI) * dist) + p3.y
+            };
+            var pathStr = this.getClosedPathString(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y);
+            console.log(pathStr);
+            return pathStr;
+        };
+        Utilities.distance = function (x1, y1, x2, y2) {
+            return Math.sqrt(Math.pow((x2 - x1), 2) + Math.pow((y2 - y1), 2));
+        };
+        Utilities.theta = function (x1, y1, x2, y2) {
+            var t = Math.atan2((y2 - y1), (x2 - x1));
+            return t == Math.PI ? 0 : t;
+        };
+        Utilities.toDegrees = function (angle) {
+            return angle * (180 / Math.PI);
+        };
+        Utilities.toRadians = function (angle) {
+            return angle * (Math.PI / 180);
+        };
+        return Utilities;
+    })();
+    Playbook.Utilities = Utilities;
+})(Playbook || (Playbook = {}));
+/// <reference path='../models.ts' />
+var Playbook;
+(function (Playbook) {
+    var Models;
+    (function (Models) {
+        var Canvas = (function (_super) {
+            __extends(Canvas, _super);
+            function Canvas(playPrimary, playOpponent, width, height) {
+                _super.call(this);
+                /**
+                 * TODO @theBull - find a better way to pass data into the canvas...
+                 * it shouldn't be dependent on play data at this level..........? maybe?
+                 */
+                this.playPrimary = playPrimary;
+                this.playOpponent = playOpponent;
+                /**
+                 * Note that paper is created during the initialize() method;
+                 * canvas is dependent on angular directive / dynamic HTML include
+                 * of the canvas, before the $container/container properties are
+                 * available; these containers are required by the paper, which
+                 * implements a Raphael object, that requires a container HTML element.
+                 */
+                //this.unitType = this.playPrimary.unitType;
+                //this.editorType = this.playPrimary.editorType;
+                this.toolMode = Playbook.Editor.ToolModes.Select;
+                // need to set tab explicitly if it's within an editor
+                this.tab = null;
+                this.minWidth = 500;
+                this.minHeight = 400;
+                this.listener = new Playbook.Models.CanvasListener(this);
+                this.readyCallbacks = [function () {
+                        console.log('CANVAS READY: default canvas ready callback');
+                    }];
+                // TODO @theBull - look for performance improvements here
+                // 
+                // Maintains a window interval timer which checks every 1ms for
+                // a change in container width; will fire a resize() if necessary
+                this.widthChangeInterval = null;
+            }
+            /**
+             * Converts this canvas's SVG graphics element into a data-URI
+             * which can be used in an <img/> src attribute to render the image
+             * as a PNG. Allows for retrieval and storage of the image as well.
+             *
+             * 3/9/2016: https://css-tricks.com/data-uris/
+             * @return {string} [description]
+             */
+            Canvas.prototype.exportToPng = function () {
+                if (!this.$container) {
+                    throw new Error('Canvas exportToPng(): Cannot export to png; \
+					SVG parent $container is null or undefined');
+                }
+                var svgElement = this.$container.find('svg')[0];
+                if (!svgElement) {
+                    throw new Error('Canvas exportToPng(): Cannot export to png; \
+					Could not find SVG element inside of canvas $container');
+                }
+                return Common.Utilities.exportToPng(this, svgElement);
+            };
+            Canvas.prototype.initialize = function ($container) {
+                var self = this;
+                this.container = $container[0]; // jquery lite converted to raw html
+                this.$container = $container; // jquery lite object
+                this.width = this.$container.width();
+                this.height = this.$container.height();
+                this.paper = new Playbook.Models.Paper(this);
+                this.paper.draw();
+                // TODO @theBull - stop / pause this timer if the canvas is not
+                // visible...
+                // this.widthChangeInterval = setInterval(function() {
+                // 	if(self.width != self.$container.width()) {
+                // 		// width has changed; update the canvas dimensions and
+                // 		// resize.
+                // 		self.width = self.$container.width();
+                // 		self.height = self.$container.height();
+                // 		self.resize();
+                // 	}
+                // }, 1);
+                this._ready();
+            };
+            Canvas.prototype.updatePlay = function (playPrimary, playOpponent, redraw) {
+                this.playPrimary = playPrimary || this.playPrimary;
+                this.playOpponent = playOpponent || this.playOpponent;
+                this.unitType = this.playPrimary.unitType;
+                this.editorType = this.playPrimary.editorType;
+                this.paper.updatePlay(this.playPrimary, this.playOpponent);
+            };
+            Canvas.prototype.onready = function (callback) {
+                if (this.readyCallbacks && this.readyCallbacks.length > 1000)
+                    throw new Error('Canvas onready(): callback not added; max ready callback limit exceeded');
+                this.readyCallbacks.push(callback);
+            };
+            Canvas.prototype._ready = function () {
+                for (var i = 0; i < this.readyCallbacks.length; i++) {
+                    this.readyCallbacks[i]();
+                }
+            };
+            Canvas.prototype.getSvg = function () {
+                var $svg = $('svg');
+                var serializer = new XMLSerializer();
+                var svg_blob = serializer.serializeToString($svg[0]);
+                return svg_blob;
+            };
+            Canvas.prototype.resize = function () {
+                var self = this;
+                this.width = this.$container.width();
+                this.height = this.$container.height();
+                this.paper.resize();
+                if (this._scrollable) {
+                    this._scrollable.initialize(this.$container, this.paper);
+                    this._scrollable.onready(function (content) {
+                        self._scrollable.scrollToPercentY(0.5);
+                    });
+                }
+            };
+            Canvas.prototype.setScrollable = function (_scrollable) {
+                this._scrollable = _scrollable;
+            };
+            Canvas.prototype.resetHeight = function () {
+                //this.height = this.$container.height(this.$container.height());
+            };
+            Canvas.prototype.listen = function (actionId, fn) {
+                this.listener.listen(actionId, fn);
+            };
+            Canvas.prototype.invoke = function (actionId, data, context) {
+                console.log('invoking action: ', actionId);
+                this.listener.invoke(actionId, data, context);
+            };
+            Canvas.prototype.zoomIn = function () {
+                throw new Error('canvas zoomIn() not implemented');
+            };
+            Canvas.prototype.zoomOut = function () {
+                throw new Error('canvas zoomOut() not implemented');
+            };
+            Canvas.prototype.getToolMode = function () {
+                return this.toolMode;
+            };
+            Canvas.prototype.getToolModeName = function () {
+                return Playbook.Editor.ToolModes[this.toolMode];
+            };
+            Canvas.prototype.getPaperWidth = function () {
+                var width = Math.max(this.$container.width(), this.minWidth);
+                var paperWidth = (Math.ceil(width / this.getGridSize()) *
+                    this.getGridSize()) - (4 * this.getGridSize());
+                return paperWidth;
+            };
+            Canvas.prototype.getPaperHeight = function () {
+                var height = Math.max(this.$container.height(), this.minHeight);
+                var paperHeight = (Math.ceil(height / this.getGridSize()) *
+                    this.getGridSize()) - (4 * this.getGridSize());
+                return paperHeight;
+            };
+            Canvas.prototype.getGridSize = function () {
+                return this.paper && this.paper.grid && this.paper.grid.getSize();
+            };
+            return Canvas;
+        })(Common.Models.Storable);
+        Models.Canvas = Canvas;
+    })(Models = Playbook.Models || (Playbook.Models = {}));
+})(Playbook || (Playbook = {}));
+/// <reference path='../models.ts' />
+var Playbook;
+(function (Playbook) {
+    var Models;
+    (function (Models) {
+        var CanvasListener = (function () {
+            function CanvasListener(context) {
+                //super(context);
+                this.actions = {};
+            }
+            CanvasListener.prototype.listen = function (actionId, fn) {
+                if (!this.actions.hasOwnProperty[actionId])
+                    this.actions[actionId] = [];
+                this.actions[actionId].push(fn);
+            };
+            CanvasListener.prototype.invoke = function (actionId, data, context) {
+                if (!this.actions[actionId])
+                    return;
+                for (var i = 0; i < this.actions[actionId].length; i++) {
+                    this.actions[actionId][i](data, context);
+                }
+            };
+            return CanvasListener;
+        })();
+        Models.CanvasListener = CanvasListener;
+    })(Models = Playbook.Models || (Playbook.Models = {}));
+})(Playbook || (Playbook = {}));
+/// <reference path='../models.ts' />
+var Playbook;
+(function (Playbook) {
+    var Models;
+    (function (Models) {
+        var PreviewCanvas = (function (_super) {
+            __extends(PreviewCanvas, _super);
+            function PreviewCanvas(playPrimary, playOpponent) {
+                _super.call(this, playPrimary, playOpponent);
+                this.minWidth = 250;
+                this.minHeight = 200;
+                this.toolMode = Playbook.Editor.ToolModes.None;
+                this.$exportCanvas = $('<canvas/>', {
+                    id: 'exportCanvas' + this.guid
+                }).width(500).height(400);
+                this.exportCanvas = this.$exportCanvas[0];
+            }
+            PreviewCanvas.prototype.initialize = function ($container) {
+                this.container = $container[0]; // jquery lite converted to raw html
+                this.$container = $container;
+                this.width = 500; //this.$container.width();
+                this.height = 400; //this.$container.height();
+                this.paper = new Playbook.Models.PreviewPaper(this);
+                this.paper.draw();
+            };
+            PreviewCanvas.prototype.refresh = function () {
+                this.paper.draw();
+            };
+            return PreviewCanvas;
+        })(Playbook.Models.Canvas);
+        Models.PreviewCanvas = PreviewCanvas;
+    })(Models = Playbook.Models || (Playbook.Models = {}));
+})(Playbook || (Playbook = {}));
+/// <reference path='../models.ts' />
+var Playbook;
+(function (Playbook) {
+    var Models;
+    (function (Models) {
         var Paper = (function () {
-            function Paper(canvas, width, height) {
-                this.canvas = canvas;
-                this.container = this.canvas.container;
-                this.$container = this.canvas.$container;
-                this.grid = this.canvas.grid;
-                this.width = width; // account for border widths
-                this.height = height;
-                this.viewWidth = this.canvas.width;
-                this.viewHeight = this.canvas.height;
-                this.x = this.getXOffset();
+            function Paper(canvas) {
+                this.canvas = this.canvas || canvas;
+                // By default, paper should be scaled based on max canvas width
+                this.sizingMode = this.sizingMode || Playbook.Editor.PaperSizingModes.MaxCanvasWidth;
+                this.x = 0;
                 this.y = 0;
                 this.scrollSpeed = 0.5;
                 this.zoomSpeed = 100;
-                this.Raphael = Raphael(canvas.container, this.width, this.height // * 2
+                this.showBorder = this.showBorder === true;
+                // Grid will help the paper determine its sizing
+                // and will be the basis for drawing objects' lengths and
+                // dimensions.
+                this.grid = this.grid || new Playbook.Models.Grid(this, Playbook.Constants.FIELD_COLS_FULL, Playbook.Constants.FIELD_ROWS_FULL);
+                // this is the actual Raphael paper
+                this.Raphael = this.Raphael || new Raphael(this.canvas.container, this.grid.width, this.grid.height // * 2
                 );
-                // debugging
-                this.showBorder = false;
+                // Paper methods within field are dependent on 
+                // this.Raphael
+                this.field = this.field || new Playbook.Models.Field(this, this.canvas.playPrimary, this.canvas.playOpponent);
             }
+            Paper.prototype.draw = function () {
+                this.clear();
+                if (this.showBorder)
+                    this.drawOutline();
+                this.field.draw();
+            };
+            Paper.prototype.updatePlay = function (playPrimary, playOpponent) {
+                this.field.updatePlay(playPrimary, playOpponent);
+            };
+            Paper.prototype.getWidth = function () {
+                return this.grid.width;
+            };
+            Paper.prototype.getHeight = function () {
+                return this.grid.height;
+            };
             Paper.prototype.getXOffset = function () {
-                return -Math.round((this.viewWidth - this.width) / 2);
+                return -Math.round((this.canvas.width - this.grid.width) / 2);
+            };
+            Paper.prototype.resize = function () {
+                this.grid.resize(this.sizingMode);
+                this.setViewBox();
+                this.draw();
+            };
+            Paper.prototype.clear = function () {
+                return this.Raphael.clear();
+            };
+            Paper.prototype.setViewBox = function () {
+                this.Raphael.canvas.setAttribute('width', this.grid.width);
+                //this.x = this.getXOffset();
+                var setting = this.Raphael.setViewBox(this.x, this.y, this.grid.width, this.grid.height, true);
             };
             Paper.prototype.drawOutline = function () {
                 var self = this;
                 if (this.showBorder) {
                     // paper view port
-                    if (!this.outline) {
-                        this.outline = this.Raphael.rect(this.x + 5, this.y + 5, this.viewWidth - 10, this.viewHeight - 10);
+                    if (!this.viewOutline) {
+                        this.viewOutline = this.Raphael.rect(this.x + 5, this.y + 5, this.canvas.width - 10, this.canvas.height - 10);
                     }
-                    this.outline.attr({
+                    this.viewOutline.attr({
                         x: self.x + 5,
                         y: self.y + 5,
-                        width: self.viewWidth - 10,
-                        height: self.viewHeight - 10,
-                        'fill': 'red',
-                        'opacity': 0.2
-                    });
-                    // actual paper
-                    if (!this.paperOutline) {
-                        this.paperOutline = this.Raphael.rect(this.x + 1, this.y + 1, this.width - 2, this.height - 2);
-                    }
-                    this.paperOutline.attr({
-                        x: self.x + 1,
-                        y: self.y + 1,
-                        width: self.width - 2,
-                        height: self.height - 2,
-                        fill: 'blue',
-                        opacity: 0.15
+                        width: self.canvas.width - 10,
+                        height: self.canvas.height - 10,
+                        stroke: 'red'
                     });
                 }
-            };
-            Paper.prototype.resize = function (width) {
-                console.log('resize paper', width);
-                this.Raphael.canvas.setAttribute('width', width);
-                this.viewWidth = width;
-                this.x = this.getXOffset();
-                var setting = this.Raphael.setViewBox(this.x, this.y, this.viewWidth, this.height, true);
-                this.drawOutline();
-            };
-            Paper.prototype.setDimensions = function (width, height) {
-                this.width = width;
-                this.height = height;
-                this.viewWidth = this.canvas.width;
-                this.viewHeight = this.canvas.height;
-                this.setViewBox();
-            };
-            Paper.prototype.setViewBox = function () {
-                this.Raphael.canvas.setAttribute('width', this.viewWidth);
-                var setting = this.Raphael.setViewBox(this.x, this.y, this.viewWidth, this.height, true);
-                //this.Raphael.canvas.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-                this.drawOutline();
-                return setting;
             };
             Paper.prototype.zoom = function (deltaY) {
                 if (deltaY < 0)
@@ -3571,7 +5449,7 @@ var Playbook;
                     this.zoomIn();
             };
             Paper.prototype.zoomToFit = function () {
-                //Math.round(this.viewWidth / (this.grid.GRIDSIZE * 50));
+                //Math.round(this.contextWidth / (this.grid.GRIDSIZE * 50));
             };
             Paper.prototype.zoomIn = function (speed) {
             };
@@ -3580,9 +5458,6 @@ var Playbook;
             Paper.prototype.scroll = function (scrollToX, scrollToY) {
                 this.y = scrollToY;
                 return this.setViewBox();
-            };
-            Paper.prototype.clear = function () {
-                return this.Raphael.clear();
             };
             Paper.prototype.path = function (path) {
                 return this.Raphael.path(path);
@@ -3595,7 +5470,7 @@ var Playbook;
             Paper.prototype.alignToGrid = function (x, y, absolute) {
                 var coords = new Playbook.Models.Coordinate(x, y);
                 return !absolute ?
-                    this.canvas.grid.getPixelsFromCoordinates(coords) :
+                    this.grid.getPixelsFromCoordinates(coords) :
                     coords;
             };
             Paper.prototype.rect = function (x, y, width, height, absolute) {
@@ -3627,7 +5502,8 @@ var Playbook;
                 return this.Raphael.text(pixels.x, pixels.y, text);
             };
             Paper.prototype.print = function (x, y, text, font, size, origin, letterSpacing) {
-                return this.Raphael.print(x, y, text, font, size, origin, letterSpacing);
+                var pixels = this.alignToGrid(x, y, false);
+                return this.Raphael.print(pixels.x, pixels.y, text, font, size, origin, letterSpacing);
             };
             Paper.prototype.getFont = function (family, weight, style, stretch) {
                 return this.Raphael.getFont(family, weight, stretch);
@@ -3735,8 +5611,8 @@ var Playbook;
             };
             Paper.prototype.buildPath = function (fromGrid, toGrid, width) {
                 //console.log(from, to, width);
-                var from = this.canvas.grid.getPixelsFromCoordinates(fromGrid);
-                var to = this.canvas.grid.getPixelsFromCoordinates(toGrid);
+                var from = this.grid.getPixelsFromCoordinates(fromGrid);
+                var to = this.grid.getPixelsFromCoordinates(toGrid);
                 var dist = this.distance(from.x, from.y, to.x, to.y);
                 var theta = this.theta(from.x, from.y, to.x, to.y);
                 var p1 = {
@@ -3782,32 +5658,24 @@ var Playbook;
 (function (Playbook) {
     var Models;
     (function (Models) {
-        var RelativePosition = (function (_super) {
-            __extends(RelativePosition, _super);
-            function RelativePosition(from, to) {
-                var fromCoords = new Playbook.Models.Coordinate(from.placement.x, from.placement.y);
-                var toCoords = new Playbook.Models.Coordinate(to.x, to.y);
-                var relativeCoords = this.grid(fromCoords, toCoords);
-                this.distance = Playbook.Utilities.distance(fromCoords.x, fromCoords.y, toCoords.x, toCoords.y);
-                this.theta = Playbook.Utilities.theta(fromCoords.x, fromCoords.y, toCoords.x, toCoords.y);
-                _super.call(this, relativeCoords.x, relativeCoords.y);
+        var FullPaper = (function (_super) {
+            __extends(FullPaper, _super);
+            function FullPaper(canvas) {
+                _super.call(this, canvas);
+                // Grid will help the paper determine its sizing
+                // and will be the basis for drawing objects' lengths and
+                // dimensions.
+                this.grid = new Playbook.Models.Grid(this, Playbook.Constants.FIELD_COLS_FULL, Playbook.Constants.FIELD_ROWS_FULL);
+                // this is the actual Raphael paper
+                this.Raphael = Raphael(this.canvas.container, this.grid.width, this.grid.height // * 2
+                );
+                // Paper methods within field are dependent on 
+                // this.Raphael
+                this.field = new Playbook.Models.Field(this, this.canvas.playPrimary, this.canvas.playOpponent);
             }
-            RelativePosition.prototype.grid = function (from, to) {
-                // returns values as grid units
-                return new Playbook.Models.Coordinate(from.x - to.x, to.y - from.y);
-            };
-            RelativePosition.prototype.absolute = function () {
-                // returns values as absolute pixels
-                // 
-                return null;
-            };
-            RelativePosition.prototype.window = function () {
-                // returns pixel position relative to the window in pixels
-                return null;
-            };
-            return RelativePosition;
-        })(Playbook.Models.Coordinate);
-        Models.RelativePosition = RelativePosition;
+            return FullPaper;
+        })(Playbook.Models.Paper);
+        Models.FullPaper = FullPaper;
     })(Models = Playbook.Models || (Playbook.Models = {}));
 })(Playbook || (Playbook = {}));
 /// <reference path='../models.ts' />
@@ -3815,108 +5683,25 @@ var Playbook;
 (function (Playbook) {
     var Models;
     (function (Models) {
-        var Sideline = (function (_super) {
-            __extends(Sideline, _super);
-            function Sideline(context, offset) {
-                _super.call(this, context);
-                this.context = context;
-                this.canvas = this.context.canvas;
-                this.paper = this.context.paper;
-                this.color = '#111111'; //offset ? (offset < 0 ? 'red' : 'green'): 'black';
-                this.opacity = 1;
-                this.x = this.grid.getCenter().x;
-                this.y = 0;
-                this.width = this.grid.GRIDSIZE;
-                this.height = this.paper.height;
-                this.offset = offset || 0;
+        var PreviewPaper = (function (_super) {
+            __extends(PreviewPaper, _super);
+            function PreviewPaper(previewCanvas) {
+                this.canvas = previewCanvas;
+                this.sizingMode = Playbook.Editor.PaperSizingModes.PreviewWidth;
+                this.showBorder = false;
+                // NOTE: Grid size uses PREVIEW constants
+                this.grid = new Playbook.Models.Grid(this, Playbook.Constants.FIELD_COLS_PREVIEW, Playbook.Constants.FIELD_ROWS_PREVIEW);
+                this.Raphael = Raphael(this.canvas.container, this.grid.width, this.grid.height // * 2
+                );
+                // Paper methods within field are dependent on 
+                // this.Raphael
+                this.field = new Playbook.Models.PreviewField(this, this.canvas.playPrimary, this.canvas.playOpponent);
+                _super.call(this, previewCanvas);
             }
-            Sideline.prototype.draw = function () {
-                // adjust the left sideline so that it does not overlap the grid
-                // by shifting it left by its width so that its right edge aligns
-                // with the gridline
-                var bumpX = this.offset < 0 ? -this.width : 0;
-                var rect = this.paper.rect(this.x + this.offset, this.y, this.width, this.height).attr({
-                    'fill': this.color,
-                    'fill-opacity': this.opacity,
-                    'stroke-width': 0
-                });
-                this.paper.bump(bumpX, 0, rect);
-            };
-            return Sideline;
-        })(Models.FieldElement);
-        Models.Sideline = Sideline;
+            return PreviewPaper;
+        })(Playbook.Models.Paper);
+        Models.PreviewPaper = PreviewPaper;
     })(Models = Playbook.Models || (Playbook.Models = {}));
-})(Playbook || (Playbook = {}));
-/// <reference path='../models.ts' />
-var Playbook;
-(function (Playbook) {
-    var Utilities = (function () {
-        function Utilities() {
-        }
-        Utilities.getPathString = function () {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i - 0] = arguments[_i];
-            }
-            // arguments must be passed; must be at least 4 arguments; number of arguments must be even
-            if (!args || args.length < 4 || args.length % 2 != 0)
-                return undefined;
-            var str = 'M' + args[0] + ' ' + args[1];
-            for (var i = 2; i < args.length; i += 2) {
-                if (!args[i] || typeof args[i] != 'number')
-                    return undefined;
-                var arg = args[i];
-                str += ', L' + arg + ' ' + args[i + 1];
-            }
-            return str;
-        };
-        Utilities.getClosedPathString = function () {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i - 0] = arguments[_i];
-            }
-            return this.getPathString.apply(this, args) + ' Z';
-        };
-        Utilities.buildPath = function (from, to, width) {
-            //console.log(from, to, width);
-            var dist = this.distance(from.x, from.y, to.x, to.y);
-            var theta = this.theta(from.x, from.y, to.x, to.y);
-            var p1 = {
-                x: (Math.cos(theta + (Math.PI / 2)) * (width / 2)) + from.x,
-                y: (Math.sin(theta + (Math.PI / 2)) * (width / 2)) + from.y
-            };
-            var p2 = {
-                x: (Math.cos(theta) * dist) + p1.x,
-                y: (Math.sin(theta) * dist) + p1.y
-            };
-            var p3 = {
-                x: (Math.cos(theta + (1.5 * Math.PI)) * width) + p2.x,
-                y: (Math.sin(theta + (1.5 * Math.PI)) * width) + p2.y
-            };
-            var p4 = {
-                x: (Math.cos(theta + Math.PI) * dist) + p3.x,
-                y: (Math.sin(theta + Math.PI) * dist) + p3.y
-            };
-            var pathStr = this.getClosedPathString(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y);
-            console.log(pathStr);
-            return pathStr;
-        };
-        Utilities.distance = function (x1, y1, x2, y2) {
-            return Math.sqrt(Math.pow((x2 - x1), 2) + Math.pow((y2 - y1), 2));
-        };
-        Utilities.theta = function (x1, y1, x2, y2) {
-            var t = Math.atan2((y2 - y1), (x2 - x1));
-            return t == Math.PI ? 0 : t;
-        };
-        Utilities.toDegrees = function (angle) {
-            return angle * (180 / Math.PI);
-        };
-        Utilities.toRadians = function (angle) {
-            return angle * (Math.PI / 180);
-        };
-        return Utilities;
-    })();
-    Playbook.Utilities = Utilities;
 })(Playbook || (Playbook = {}));
 /// <reference path='../models.ts' />
 var Playbook;
@@ -3934,10 +5719,15 @@ var Playbook;
                 this.name = name || 'untitled';
                 this.associated = new Common.Models.Association();
                 this.placements = new Playbook.Models.PlacementCollection();
-                this.setDefault();
+                this.png = null;
+                //this.setDefault();
             }
+            Formation.prototype.copy = function (newFormation) {
+                var copyFormation = newFormation || new Playbook.Models.Formation();
+                return _super.prototype.copy.call(this, copyFormation, this);
+            };
             Formation.prototype.toJson = function () {
-                return {
+                return $.extend(_super.prototype.toJson.call(this), {
                     name: this.name,
                     key: this.key,
                     parentRK: this.parentRK,
@@ -3945,12 +5735,15 @@ var Playbook;
                     editorType: this.editorType,
                     guid: this.guid,
                     associated: this.associated.toJson(),
-                    placements: this.placements.toJson()
-                };
+                    placements: this.placements.toJson(),
+                    png: this.png
+                });
             };
             Formation.prototype.fromJson = function (json) {
                 if (!json)
                     return;
+                var self = this;
+                _super.prototype.fromJson.call(this, json);
                 this.parentRK = json.parentRK;
                 this.editorType = Playbook.Editor.EditorTypes.Formation;
                 this.name = json.name;
@@ -3959,31 +5752,39 @@ var Playbook;
                 this.placements.fromJson(json.placements);
                 this.key = json.key;
                 this.associated.fromJson(json.associated);
+                this.png = json.png;
+                this.placements.onModified(function () {
+                    console.log('formation modified: placement collection:', self.guid);
+                    self.setModified(true);
+                });
+                this.onModified(function () {
+                    console.log('formation modified?', self.modified);
+                });
             };
             Formation.prototype.setDefault = function () {
                 this.placements.removeAll();
-                var p1 = new Playbook.Models.Placement({ x: 26, y: 61 });
-                var p2 = new Playbook.Models.Placement({ x: 27.5, y: 61 });
-                var p3 = new Playbook.Models.Placement({ x: 24.5, y: 61 });
-                var p4 = new Playbook.Models.Placement({ x: 23, y: 61 });
-                var p5 = new Playbook.Models.Placement({ x: 29, y: 61 });
-                var p6 = new Playbook.Models.Placement({ x: 26, y: 62 });
-                var p7 = new Playbook.Models.Placement({ x: 22, y: 62 });
-                var p8 = new Playbook.Models.Placement({ x: 10, y: 61 });
-                var p9 = new Playbook.Models.Placement({ x: 40, y: 61 });
-                var p10 = new Playbook.Models.Placement({ x: 26, y: 64 });
-                var p11 = new Playbook.Models.Placement({ x: 26, y: 66 });
-                this.placements.add(p1.guid, p1);
-                this.placements.add(p2.guid, p2);
-                this.placements.add(p3.guid, p3);
-                this.placements.add(p4.guid, p4);
-                this.placements.add(p5.guid, p5);
-                this.placements.add(p6.guid, p6);
-                this.placements.add(p7.guid, p7);
-                this.placements.add(p8.guid, p8);
-                this.placements.add(p9.guid, p9);
-                this.placements.add(p10.guid, p10);
-                this.placements.add(p11.guid, p11);
+                var p1 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(26, 61), 0);
+                var p2 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(27.5, 61), 1);
+                var p3 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(24.5, 61), 2);
+                var p4 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(23, 61), 3);
+                var p5 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(29, 61), 4);
+                var p6 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(26, 62), 5);
+                var p7 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(22, 62), 6);
+                var p8 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(10, 61), 7);
+                var p9 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(40, 61), 8);
+                var p10 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(26, 64), 9);
+                var p11 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(26, 66), 10);
+                this.placements.add(p1);
+                this.placements.add(p2);
+                this.placements.add(p3);
+                this.placements.add(p4);
+                this.placements.add(p5);
+                this.placements.add(p6);
+                this.placements.add(p7);
+                this.placements.add(p8);
+                this.placements.add(p9);
+                this.placements.add(p10);
+                this.placements.add(p11);
             };
             Formation.prototype.isValid = function () {
                 // TODO add validation for 7 players on LOS
@@ -4008,6 +5809,9 @@ var Playbook;
                 _super.call(this);
                 this.parentRK = -1;
                 this.unitType = Playbook.Editor.UnitTypes.Other;
+                this.onModified(function () {
+                    console.log('formation collection modified');
+                });
             }
             FormationCollection.prototype.toJson = function () {
                 return {
@@ -4022,13 +5826,20 @@ var Playbook;
                 // this.guid = json.guid || this.guid;
                 // this.unitType = json.unitType || this.unitType;
                 // this.parentRK = json.parentRK || this.parentRK
+                var self = this;
                 var formations = json || [];
                 for (var i = 0; i < formations.length; i++) {
                     var rawFormation = formations[i];
                     var formationModel = new Playbook.Models.Formation();
                     formationModel.fromJson(rawFormation);
-                    this.add(formationModel.guid, formationModel);
+                    this.add(formationModel);
                 }
+                this.forEach(function (formation, index) {
+                    formation.onModified(function () {
+                        console.log('formation collection modified: formation');
+                        self.setModified(true);
+                    });
+                });
             };
             return FormationCollection;
         })(Common.Models.ModifiableCollection);
@@ -4049,7 +5860,7 @@ var Playbook;
                 this.key = -1;
                 this.positions = new Playbook.Models.PositionCollection();
                 this.setDefault();
-                this.setType = Playbook.Editor.PlaybookSetTypes.Personnel;
+                this.setType = Playbook.Editor.SetTypes.Personnel;
                 this.onModified(function (data) {
                     console.log('personnel changed', data);
                 });
@@ -4066,7 +5877,12 @@ var Playbook;
                 this.name = personnel.name;
                 this.guid = personnel.guid;
             };
+            Personnel.prototype.copy = function (newPersonnel) {
+                return _super.prototype.copy.call(this, newPersonnel, this);
+            };
             Personnel.prototype.fromJson = function (json) {
+                if (!json)
+                    return null;
                 this.positions.removeAll();
                 this.positions.fromJson(json.positions);
                 this.unitType = json.unitType;
@@ -4079,7 +5895,7 @@ var Playbook;
                     name: this.name,
                     unitType: this.unitType,
                     key: this.key,
-                    positions: this.positions.toJsonArray(),
+                    positions: this.positions.toJson(),
                     guid: this.guid
                 };
             };
@@ -4105,7 +5921,7 @@ var Playbook;
             function PersonnelCollection() {
                 _super.call(this);
                 this.unitType = Playbook.Editor.UnitTypes.Other;
-                this.setType = Playbook.Editor.PlaybookSetTypes.Personnel;
+                this.setType = Playbook.Editor.SetTypes.Personnel;
                 this.guid = Common.Utilities.guid();
             }
             PersonnelCollection.prototype.toJson = function () {
@@ -4126,7 +5942,7 @@ var Playbook;
                     var rawPersonnel = personnelArray[i];
                     var personnelModel = new Playbook.Models.Personnel();
                     personnelModel.fromJson(rawPersonnel);
-                    this.add(personnelModel.key, personnelModel);
+                    this.add(personnelModel);
                 }
             };
             return PersonnelCollection;
@@ -4141,24 +5957,36 @@ var Playbook;
     (function (Models) {
         var Placement = (function (_super) {
             __extends(Placement, _super);
-            function Placement(options) {
+            function Placement(coordinates, index) {
                 _super.call(this, this);
-                if (!options)
-                    options = {};
-                this.x = options.x || 25;
-                this.y = options.y || 60;
+                if (coordinates) {
+                    this.x = coordinates.x;
+                    this.y = coordinates.y;
+                }
+                this.index = index >= 0 ? index : -1;
+                this.onModified(function () {
+                    console.log('placement modified');
+                });
             }
             Placement.prototype.toJson = function () {
                 return {
                     x: this.x,
                     y: this.y,
+                    index: this.index,
                     guid: this.guid
                 };
             };
             Placement.prototype.fromJson = function (json) {
                 this.x = json.x;
                 this.y = json.y;
+                this.index = json.index;
                 this.guid = json.guid;
+                this.setModified(true);
+            };
+            Placement.prototype.update = function (x, y) {
+                this.x = x;
+                this.y = y;
+                this.setModified(true);
             };
             Placement.prototype.getCoordinates = function () {
                 return new Playbook.Models.Coordinate(this.x, this.y);
@@ -4178,20 +6006,27 @@ var Playbook;
             function PlacementCollection() {
                 _super.call(this);
             }
-            PlacementCollection.prototype.fromJson = function (json) {
-                if (!json)
+            PlacementCollection.prototype.fromJson = function (placements) {
+                if (!placements)
                     return;
-                this.guid = json.guid;
-                var placements = json.placements || [];
+                var self = this;
+                this.empty();
                 for (var i = 0; i < placements.length; i++) {
                     var rawPlacement = placements[i];
-                    var placementModel = new Playbook.Models.Placement();
+                    var placementModel = new Playbook.Models.Placement(null);
                     placementModel.fromJson(rawPlacement);
-                    this.add(placementModel.guid, placementModel);
+                    this.add(placementModel);
                 }
+                this.forEach(function (placement, index) {
+                    placement.onModified(function () {
+                        console.log('placement collection modified: placement:', placement.guid);
+                        self.setModified(true);
+                    });
+                });
+                this.setModified(true);
             };
             PlacementCollection.prototype.toJson = function () {
-                return _super.prototype.toJsonArray.call(this);
+                return _super.prototype.toJson.call(this);
             };
             return PlacementCollection;
         })(Common.Models.ModifiableCollection);
@@ -4208,14 +6043,74 @@ var Playbook;
             function Play() {
                 _super.call(this, this);
                 this.name = 'Default';
-                this.assignments = new Playbook.Models.AssignmentCollection();
-                this.formation = new Playbook.Models.Formation();
-                this.personnel = new Playbook.Models.Personnel();
-                this.type = Playbook.Editor.UnitTypes.Other;
+                this.associated = new Common.Models.Association();
+                this.assignments = null;
+                this.formation = null;
+                this.personnel = null;
+                this.unitType = Playbook.Editor.UnitTypes.Other;
+                this.editorType = Playbook.Editor.EditorTypes.Play;
+                this.png = null;
             }
+            Play.prototype.setPlaybook = function (playbook) {
+                // Unit type is key.
+                if (playbook) {
+                    this.associated.playbooks.only(playbook.guid);
+                }
+                else {
+                    this.associated.playbooks.empty();
+                    console.warn('Play setPlaybook(): implementation is incomplete');
+                }
+                // TODO @theBull
+                // - add playbook field?
+                // - what happens when changing to playbooks of different unit types? 
+                this.setModified(true);
+            };
+            Play.prototype.setFormation = function (formation) {
+                if (formation) {
+                    this.associated.formations.only(formation.guid);
+                }
+                else {
+                    this.associated.formations.empty();
+                    this.setAssignments(null);
+                    this.setPersonnel(null);
+                }
+                this.formation = formation;
+                this.setModified(true);
+            };
+            Play.prototype.setAssignments = function (assignments) {
+                if (assignments) {
+                    this.associated.assignments.only(assignments.guid);
+                }
+                else {
+                    this.associated.assignments.empty();
+                }
+                this.assignments = assignments;
+                this.setModified(true);
+            };
+            Play.prototype.setPersonnel = function (personnel) {
+                if (personnel) {
+                    this.associated.personnel.only(personnel.guid);
+                }
+                else {
+                    this.associated.personnel.empty();
+                }
+                this.personnel = personnel;
+                this.setModified(true);
+            };
             Play.prototype.draw = function (field) {
                 this.field = field;
                 var self = this;
+                // set defaults, in case no assignments / personnel were assigned
+                if (!this.personnel) {
+                    this.personnel = new Playbook.Models.Personnel();
+                }
+                if (!this.assignments) {
+                    this.assignments = new Playbook.Models.AssignmentCollection();
+                }
+                if (!this.formation) {
+                    this.formation = new Playbook.Models.Formation();
+                    this.formation.setDefault();
+                }
                 this.formation.placements.forEach(function (placement, index) {
                     var position = self.personnel.positions.getIndex(index);
                     var assignment = self.assignments.getIndex(index);
@@ -4224,23 +6119,27 @@ var Playbook;
             };
             Play.prototype.fromJson = function (json) {
                 // TODO
-                this.key = json.key;
                 this.name = json.name;
-                this.assignments = new Playbook.Models.AssignmentCollection();
-                this.assignments.fromJson(json.assignments);
-                this.personnel = new Playbook.Models.Personnel();
-                this.personnel.fromJson(json.personnel);
-                this.type = json.type;
+                this.guid = json.guid;
+                this.associated.formations.add(json.formationGuid);
+                this.associated.personnel.add(json.personnelGuid);
+                this.associated.assignments.add(json.assignmentsGuid);
+                this.unitType = json.unitType;
+                this.editorType = json.editorType;
+                this.png = json.png;
             };
             Play.prototype.toJson = function () {
                 return {
                     key: this.key,
                     name: this.name,
-                    assignmentsGuid: this.assignments.guid,
-                    personnelGuid: this.personnel.guid,
-                    formationGuid: this.formation.guid,
-                    type: this.type,
-                    guid: this.guid
+                    associated: this.associated.toJson(),
+                    assignmentsGuid: this.assignments ? this.assignments.guid : null,
+                    personnelGuid: this.personnel ? this.personnel.guid : null,
+                    formationGuid: this.formation ? this.formation.guid : null,
+                    unitType: this.unitType,
+                    editorType: this.editorType,
+                    guid: this.guid,
+                    png: this.png
                 };
             };
             Play.prototype.hasAssignments = function () {
@@ -4255,6 +6154,38 @@ var Playbook;
             return Play;
         })(Common.Models.Modifiable);
         Models.Play = Play;
+    })(Models = Playbook.Models || (Playbook.Models = {}));
+})(Playbook || (Playbook = {}));
+/// <reference path='../models.ts' />
+var Playbook;
+(function (Playbook) {
+    var Models;
+    (function (Models) {
+        var PlayPrimary = (function (_super) {
+            __extends(PlayPrimary, _super);
+            function PlayPrimary() {
+                _super.call(this);
+                this.playType = Playbook.Editor.PlayTypes.Primary;
+            }
+            return PlayPrimary;
+        })(Playbook.Models.Play);
+        Models.PlayPrimary = PlayPrimary;
+    })(Models = Playbook.Models || (Playbook.Models = {}));
+})(Playbook || (Playbook = {}));
+/// <reference path='../models.ts' />
+var Playbook;
+(function (Playbook) {
+    var Models;
+    (function (Models) {
+        var PlayOpponent = (function (_super) {
+            __extends(PlayOpponent, _super);
+            function PlayOpponent() {
+                _super.call(this);
+                this.playType = Playbook.Editor.PlayTypes.Opponent;
+            }
+            return PlayOpponent;
+        })(Playbook.Models.Play);
+        Models.PlayOpponent = PlayOpponent;
     })(Models = Playbook.Models || (Playbook.Models = {}));
 })(Playbook || (Playbook = {}));
 /// <reference path='../models.ts' />
@@ -4277,7 +6208,7 @@ var Playbook;
                     // TODO
                     var playModel = new Playbook.Models.Play();
                     playModel.fromJson(rawPlay);
-                    this.add(rawPlay.key, playModel);
+                    this.add(playModel);
                 }
             };
             return PlayCollection;
@@ -4296,15 +6227,17 @@ var Playbook;
                 _super.call(this, this);
                 this.key = -1;
                 this.name = 'Untitled';
-                this.unitType = Playbook.Editor.UnitTypes.Other;
+                this.associated = new Common.Models.Association();
                 this.active = false;
+                this.unitType = Playbook.Editor.UnitTypes.Other;
             }
             PlaybookModel.prototype.toJson = function () {
                 return {
                     key: this.key,
                     name: this.name,
-                    unitType: this.unitType,
+                    associated: this.associated.toJson(),
                     active: this.active,
+                    unitType: this.unitType,
                     guid: this.guid
                 };
             };
@@ -4313,9 +6246,11 @@ var Playbook;
                     return;
                 this.key = json.key || this.key;
                 this.name = json.name || this.name;
-                this.unitType = json.type || this.unitType;
                 this.active = json.active || this.active;
+                this.unitType = json.unitType || this.unitType;
                 this.guid = json.guid || this.guid;
+                if (json.associated)
+                    this.associated.fromJson(json.associated);
             };
             return PlaybookModel;
         })(Common.Models.Modifiable);
@@ -4331,11 +6266,9 @@ var Playbook;
             __extends(PlaybookModelCollection, _super);
             function PlaybookModelCollection() {
                 _super.call(this);
-                this.unitType = Playbook.Editor.UnitTypes.Other;
             }
             PlaybookModelCollection.prototype.toJson = function () {
                 return {
-                    unitType: this.unitType,
                     guid: this.guid,
                     playbooks: _super.prototype.toJson.call(this)
                 };
@@ -4343,14 +6276,13 @@ var Playbook;
             PlaybookModelCollection.prototype.fromJson = function (json) {
                 if (!json)
                     return;
-                this.unitType = json.unitType || this.unitType;
                 this.guid = json.guid || this.guid;
                 var playbooks = json.playbooks || [];
                 for (var i = 0; i < playbooks.length; i++) {
                     var rawPlaybook = playbooks[i];
                     var playbookModel = new Playbook.Models.PlaybookModel();
                     playbookModel.fromJson(rawPlaybook);
-                    this.add(playbookModel.guid, playbookModel);
+                    this.add(playbookModel);
                 }
             };
             return PlaybookModelCollection;
@@ -4368,14 +6300,7 @@ var Playbook;
             function UnitType(unitType, name) {
                 _super.call(this, this);
                 this.unitType = unitType;
-                this.playbooks = new Playbook.Models.PlaybookModelCollection();
-                this.playbooks.unitType = unitType;
-                this.formations = new Playbook.Models.FormationCollection();
-                this.formations.unitType = unitType;
-                this.personnel = new Playbook.Models.PersonnelCollection();
-                this.personnel.unitType = unitType;
-                this.assignments = new Playbook.Models.AssignmentCollection();
-                this.assignments.unitType = unitType;
+                this.associated = new Common.Models.Association();
                 this.name = name;
                 this.active = false;
             }
@@ -4384,10 +6309,7 @@ var Playbook;
             };
             UnitType.prototype.toJson = function () {
                 var json = {
-                    playbooks: this.playbooks.toJson(),
-                    formations: this.formations.toJson(),
-                    personnel: this.personnel.toJson(),
-                    assignments: this.assignments.toJson(),
+                    associated: this.associated.toJson(),
                     unitType: this.unitType,
                     name: this.name,
                     active: this.active,
@@ -4402,10 +6324,10 @@ var Playbook;
                 this.name = json.name;
                 this.active = json.active;
                 this.guid = json.guid;
-                this.playbooks.fromJson(json.playbooks);
-                this.formations.fromJson(json.formations);
-                this.personnel.fromJson(json.personnel);
-                this.assignments.fromJson(json.assignments);
+                this.associated.playbooks.fromJson(json.playbooks);
+                this.associated.formations.fromJson(json.formations);
+                this.associated.personnel.fromJson(json.personnel);
+                this.associated.assignments.fromJson(json.assignments);
             };
             return UnitType;
         })(Common.Models.Modifiable);
@@ -4422,26 +6344,31 @@ var Playbook;
             function UnitTypeCollection() {
                 _super.call(this);
                 var offense = new Playbook.Models.UnitType(Playbook.Editor.UnitTypes.Offense, 'offense');
-                this.add(offense.guid, offense);
+                this.add(offense);
                 var defense = new Playbook.Models.UnitType(Playbook.Editor.UnitTypes.Defense, 'defense');
-                this.add(defense.guid, defense);
+                this.add(defense);
                 var specialTeams = new Playbook.Models.UnitType(Playbook.Editor.UnitTypes.SpecialTeams, 'special teams');
-                this.add(specialTeams.guid, specialTeams);
+                this.add(specialTeams);
                 var other = new Playbook.Models.UnitType(Playbook.Editor.UnitTypes.Other, 'other');
-                this.add(other.guid, other);
-                var mixed = new Playbook.Models.UnitType(Playbook.Editor.UnitTypes.Mixed, 'mixed');
-                this.add(mixed.guid, mixed);
+                this.add(other);
             }
             UnitTypeCollection.prototype.getByUnitType = function (unitTypeValue) {
                 return this.filterFirst(function (unitType) {
                     return unitType.unitType == unitTypeValue;
                 });
             };
-            UnitTypeCollection.prototype.getAllPlaybooks = function () {
+            UnitTypeCollection.prototype.getAssociatedPlaybooks = function () {
                 var collection = new Playbook.Models.PlaybookModelCollection();
                 this.forEach(function (unitType, index) {
-                    if (unitType && unitType.playbooks && unitType.playbooks.size()) {
-                        collection.append(unitType.playbooks);
+                    if (unitType && unitType.associated &&
+                        unitType.associated.playbooks &&
+                        unitType.associated.playbooks.hasElements()) {
+                        unitType.associated.playbooks.forEach(function (guid, i) {
+                            var playbookModel = impakt.context.Playbook.playbooks.get(guid);
+                            if (playbookModel) {
+                                collection.add(playbookModel);
+                            }
+                        });
                     }
                 });
                 return collection;
@@ -4472,12 +6399,6 @@ var Playbook;
             function Player(context, placement, position, assignment) {
                 _super.call(this, context);
                 // console.log('constructing player...');
-                this.context = context;
-                this.field = context;
-                this.ball = this.field.ball;
-                this.grid = this.field.grid;
-                this.canvas = this.field.canvas;
-                this.paper = this.field.paper;
                 this.font = this.paper.getFont('Arial');
                 this.placement = placement;
                 this.position = position;
@@ -4492,10 +6413,10 @@ var Playbook;
                 var ballCoords = this.getPositionRelativeToBall();
                 this.bx = ballCoords.x;
                 this.by = ballCoords.y;
-                this.radius = this.field.grid.GRIDSIZE / 2;
+                this.radius = this.grid.getSize() / 2;
                 this.color = 'grey';
-                this.width = this.field.grid.GRIDSIZE;
-                this.height = this.field.grid.GRIDSIZE;
+                this.width = this.grid.getSize();
+                this.height = this.grid.getSize();
                 this.opacity = 0.2;
                 this.selected = false;
                 this.selectedColor = 'red';
@@ -4506,15 +6427,18 @@ var Playbook;
                 this._isDraggingNewFromAlt = false;
                 this.contextmenuTemplateUrl
                     = 'modules/playbook/editor/canvas/player/playbook-editor-canvas-player-contextmenu.tpl.html';
+                // the set acts as a group for the other graphical elements
                 this.box = new Models.FieldElement(this);
                 this.icon = new Models.FieldElement(this);
                 this.text = new Models.FieldElement(this);
                 this.label = new Models.FieldElement(this);
+                this.indexLabel = new Models.FieldElement(this);
                 this.set = new Models.FieldElementSet(this);
                 this.set.push(this);
             }
             Player.prototype.draw = function () {
                 //TODO: all of these hard-coded integers are a problem
+                this.clear();
                 this.paper.remove(this.box.raphael);
                 this.box.ax = this.ax - (this.width / 2);
                 this.box.ay = this.ay - (this.width / 2);
@@ -4549,13 +6473,22 @@ var Playbook;
                 this.text.raphael.node.setAttribute('class', 'no-highlight');
                 this.paper.remove(this.label.raphael);
                 this.label.ax = this.ax;
-                this.label.ay = this.ay;
+                this.label.ay = this.ay - ((this.height / 2) * 0.4);
                 this.label.raphael = this.paper.text(this.label.ax, this.label.ay, this.position.label, true);
                 this.label.raphael.node.setAttribute('class', 'no-highlight');
+                // Index label - each player is indexed (0 - 10) via the personnel > position
+                // assigned to the player; this index is used to correlate assignments with
+                // personnel
+                this.paper.remove(this.indexLabel.raphael);
+                this.indexLabel.ax = this.ax;
+                this.indexLabel.ay = this.ay + ((this.height / 2) * 0.4);
+                this.indexLabel.raphael = this.paper.text(this.indexLabel.ax, this.indexLabel.ay, (this.position.index).toString(), true);
+                this.indexLabel.raphael.node.setAttribute('class', 'no-highlight');
                 this.set.push.apply(this.set, [
                     this.icon,
                     this.box,
                     this.label,
+                    this.indexLabel,
                     this.text
                 ]);
                 this.set.click(this.click, this);
@@ -4569,10 +6502,18 @@ var Playbook;
                 }
                 // console.log('player drawn');	
             };
+            Player.prototype.clear = function () {
+                this.paper.remove(this.box.raphael);
+                this.paper.remove(this.icon.raphael);
+                this.paper.remove(this.label.raphael);
+                this.paper.remove(this.indexLabel.raphael);
+                this.set.removeAll();
+                this.assignment.clear();
+            };
             Player.prototype.mousedown = function (e, self) {
                 // TODO: enumerate e.which (Event.SHIFT_)
                 if (e.which == 3) {
-                    console.log('right click');
+                    //console.log('right click');
                     self.canvas.invoke(Playbook.Editor.CanvasActions.PlayerContextmenu, 'open player context menu...', self);
                 }
             };
@@ -4591,19 +6532,19 @@ var Playbook;
                         e.returnValue = false;
                     }
                 }
-                console.log('player set', self.set);
-                console.log('player click+shift: ', e.shiftKey);
-                console.log('player click+ctrl: ', e.ctrlKey);
-                console.log('player click+alt: ', e.altKey);
-                console.log('player click+meta: ', e.metaKey);
+                //console.log('player set', self.set);
+                //console.log('player click+shift: ', e.shiftKey);
+                //console.log('player click+ctrl: ', e.ctrlKey);
+                //console.log('player click+alt: ', e.altKey);
+                //console.log('player click+meta: ', e.metaKey);
                 self.field.togglePlayerSelection(self);
-                var editorMode = self.canvas.editorMode;
-                switch (editorMode) {
-                    case Playbook.Editor.EditorModes.Select:
-                        console.log('Select player');
+                var toolMode = self.canvas.toolMode;
+                switch (toolMode) {
+                    case Playbook.Editor.ToolModes.Select:
+                        //console.log('Select player');
                         break;
-                    case Playbook.Editor.EditorModes.Assignment:
-                        console.log('Set player assignment');
+                    case Playbook.Editor.ToolModes.Assignment:
+                        //console.log('Set player assignment');
                         break;
                 }
                 return e.returnValue;
@@ -4616,8 +6557,8 @@ var Playbook;
                 this.dx = snapDx;
                 this.dy = snapDy;
                 // do not allow dragging while in route mode
-                if (this.canvas.editorMode == Playbook.Editor.EditorModes.Assignment) {
-                    console.log('drawing route', dx, dy, posx, posy);
+                if (this.canvas.toolMode == Playbook.Editor.ToolModes.Assignment) {
+                    //console.log('drawing route', dx, dy, posx, posy);
                     if (!this.assignment) {
                         this.assignment = new Playbook.Models.Assignment();
                         this.assignment.positionIndex = this.position.index;
@@ -4625,19 +6566,19 @@ var Playbook;
                     var route = this.assignment.routes.getOne();
                     // TODO: Implement route switching
                     if (!route) {
-                        console.log('creating route');
+                        //console.log('creating route');
                         var newRoute = new Playbook.Models.Route(this, true);
-                        this.assignment.routes.add(newRoute.guid, newRoute);
+                        this.assignment.routes.add(newRoute);
                         route = this.assignment.routes.get(newRoute.guid);
                     }
                     if (route.dragInitialized) {
                         var coords = new Playbook.Models.Coordinate(this.ax + snapDx, this.ay + snapDy);
                         route.initializeCurve(coords, e.shiftKey);
                     }
+                    // prevent remaining logic from getting executed.
                     return;
                 }
-                else if (this.canvas.editorMode == Playbook.Editor.EditorModes.Select) {
-                    console.log('dragging player & route');
+                else if (this.canvas.toolMode == Playbook.Editor.ToolModes.Select) {
                 }
                 // console.log(e.which);
                 if (e.which == 82) {
@@ -4657,16 +6598,16 @@ var Playbook;
                         this._isDraggingNewFromAlt = true;
                     }
                     this.dragged = snapDx != 0 || snapDy != 0;
-                    if (this.grid.isDivisible(dx) && this.grid.isDivisible(dy))
-                        console.log('snap:', snapDx, snapDy);
+                    if (this.grid.isDivisible(dx) && this.grid.isDivisible(dy)) {
+                    }
                     if (context.set) {
                         // apply the transform to the group
                         context.set.dragAll(snapDx, snapDy);
                     }
                     var coords = context.getCoordinates(context.ax + snapDx, context.ay + snapDy);
                     if (context.placement) {
-                        context.placement.x = coords.x;
-                        context.placement.y = coords.y;
+                        // Update the placement to track for modification
+                        context.placement.update(coords.x, coords.y);
                     }
                     var toBall = context.getPositionRelativeToBall();
                     context.bx = toBall.x;
@@ -4684,7 +6625,6 @@ var Playbook;
                 else if (e.shiftKey) {
                 }
                 else if (e.which == 3) {
-                    console.log('left click, do not drag');
                 }
             };
             Player.prototype.dragStart = function (x, y, e) {
@@ -4720,7 +6660,9 @@ var Playbook;
                 this.text.hide();
             };
             Player.prototype.getPositionRelativeToBall = function () {
-                return new Playbook.Models.RelativePosition(this, this.ball);
+                if (!this.field.ball)
+                    throw new Error('Player getPositionRelativeToBall(): ball is null or undefined');
+                return new Playbook.Models.RelativePosition(this, this.field.ball);
             };
             Player.prototype.getCoordinatesFromAbsolutePosition = function () {
                 return new Playbook.Models.Coordinate(this.ax, this.ay);
@@ -4740,6 +6682,15 @@ var Playbook;
                     'stroke': strokeColor
                 });
             };
+            Player.prototype.updatePlacement = function (placement) {
+                this.placement = placement;
+                var absCoords = this.grid.getPixelsFromCoordinates(new Playbook.Models.Coordinate(this.placement.x, this.placement.y));
+                this.ax = absCoords.x;
+                this.ay = absCoords.y;
+                var ballCoords = this.getPositionRelativeToBall();
+                this.bx = ballCoords.x;
+                this.by = ballCoords.y;
+            };
             Player.prototype.clearRoute = function () {
             };
             Player.prototype.setRouteFromDefaults = function (routeTitle) {
@@ -4755,8 +6706,49 @@ var Playbook;
                 return this.position != null;
             };
             return Player;
-        })(Models.FieldElement);
+        })(Playbook.Models.FieldElement);
         Models.Player = Player;
+    })(Models = Playbook.Models || (Playbook.Models = {}));
+})(Playbook || (Playbook = {}));
+/// <reference path='../models.ts' />
+var Playbook;
+(function (Playbook) {
+    var Models;
+    (function (Models) {
+        // @todo treat Player as a FieldElementSet
+        var PreviewPlayer = (function (_super) {
+            __extends(PreviewPlayer, _super);
+            function PreviewPlayer(context, placement, position, assignment) {
+                _super.call(this, context, placement, position, assignment);
+                this.color = '#000000';
+                this.opacity = 1;
+                // the set acts as a group for the other graphical elements
+                this.icon = new Models.FieldElement(this);
+            }
+            PreviewPlayer.prototype.draw = function () {
+                this.paper.remove(this.icon.raphael);
+                this.icon.raphael = this.paper.circle(this.placement.x, this.placement.y - 40, this.radius).attr({
+                    'fill': this.color,
+                    'stroke-width': 0,
+                });
+                this.icon.x = this.icon.raphael.attr('x');
+                this.icon.y = this.icon.raphael.attr('y');
+                this.icon.radius = this.radius;
+                this.icon.ax = this.icon.x + this.radius;
+                this.icon.ay = this.icon.y + this.radius;
+                this.icon.width = this.radius * 2;
+                this.icon.height = this.radius * 2;
+                // if(this.assignment){
+                // 	let route = this.assignment.routes.getOne();
+                // 	// TODO: implement route switching
+                // 	if (route) {
+                // 		route.draw();
+                // 	}	
+                // }
+            };
+            return PreviewPlayer;
+        })(Playbook.Models.Player);
+        Models.PreviewPlayer = PreviewPlayer;
     })(Models = Playbook.Models || (Playbook.Models = {}));
 })(Playbook || (Playbook = {}));
 /// <reference path='../models.ts' />
@@ -5137,7 +7129,9 @@ var Playbook;
                     return null;
                 for (var i = 0; i < 11; i++) {
                     var blank = new Playbook.Models.Position(positionSeedData);
-                    collection.add(blank.guid, blank);
+                    // add an index for the position :]
+                    blank.index = i;
+                    collection.add(blank);
                 }
                 return collection;
             };
@@ -5224,11 +7218,15 @@ var Playbook;
                 _super.call(this);
                 this.setDefault();
             }
+            PositionCollection.prototype.listPositions = function () {
+                var arr = [];
+                this.forEach(function (position, index) {
+                    arr.push(position.title);
+                });
+                return arr;
+            };
             PositionCollection.prototype.toJson = function () {
-                return {
-                    guid: this.guid,
-                    positions: _super.prototype.toJson.call(this)
-                };
+                return _super.prototype.toJson.call(this);
             };
             PositionCollection.prototype.fromJson = function (positions) {
                 if (!positions)
@@ -5237,7 +7235,7 @@ var Playbook;
                     var rawPosition = positions[i];
                     var positionModel = new Playbook.Models.Position();
                     positionModel.fromJson(rawPosition);
-                    this.add(positionModel.guid, positionModel);
+                    this.add(positionModel);
                 }
             };
             PositionCollection.prototype.setDefault = function () {
@@ -5254,35 +7252,35 @@ var Playbook;
     (function (Models) {
         var Route = (function (_super) {
             __extends(Route, _super);
-            function Route(context, dragInitialized) {
+            function Route(player, dragInitialized) {
+                this.player = player;
+                this.paper = this.player.paper;
+                this.grid = this.paper.grid;
                 _super.call(this, this);
-                if (context) {
-                    this.context = context;
-                    this.grid = this.context.grid;
-                    this.field = this.context.field;
-                    this.paper = this.context.paper;
+                if (player) {
                     this.nodes = new Common.Models.ModifiableLinkedList();
                     // add root node
-                    var root = this.addNode(this.context.placement.getCoordinates(), Playbook.Models.RouteNodeType.Root, false);
+                    var root = this.addNode(this.player.placement.getCoordinates(), Playbook.Models.RouteNodeType.Root, false);
                     root.data.disabled = true;
                 }
                 this.dragInitialized = dragInitialized === true;
                 this.path = new Playbook.Models.FieldElement(this);
+                this.color = 'black';
             }
-            Route.prototype.setContext = function (context) {
-                if (context) {
-                    this.context = context;
-                    this.grid = this.context.grid;
-                    this.field = this.context.field;
-                    this.paper = this.context.paper;
+            Route.prototype.setContext = function (player) {
+                if (player) {
+                    this.player = player;
+                    this.grid = this.player.grid;
+                    this.field = this.player.field;
+                    this.paper = this.player.paper;
                     var self_1 = this;
                     this.nodes.forEach(function (node, index) {
                         node.data.setContext(self_1);
                         // Pushing this onto the fieldElementSet maintained
                         // by 'self.context', which is a Player. This fieldElementSet
                         // is a Raphael set, which allows bulk transformations.
-                        if (!self_1.context.set.getByGuid(node.data.guid)) {
-                            self_1.context.set.push(node.data);
+                        if (!self_1.player.set.getByGuid(node.data.guid)) {
+                            self_1.player.set.push(node.data);
                         }
                     });
                     this.draw();
@@ -5304,7 +7302,7 @@ var Playbook;
             };
             Route.prototype.toJson = function () {
                 return {
-                    nodes: this.nodes.toJsonArray(),
+                    nodes: this.nodes.toJson(),
                     guid: this.guid,
                     dragInitialized: this.dragInitialized
                 };
@@ -5316,23 +7314,30 @@ var Playbook;
                 });
             };
             Route.prototype.draw = function () {
-                if (!this.context) {
-                    throw new Error('Route context is not set');
+                if (!this.player) {
+                    throw new Error('Route player is not set');
                 }
                 var pathStr = this.getMixedStringFromNodes(this.nodes.toArray());
                 console.log(pathStr);
                 this.paper.remove(this.path.raphael);
                 this.path.raphael = this.paper.path(pathStr).attr({
-                    'stroke': 'green',
+                    'stroke': this.color,
                     'stroke-width': 2
                 });
                 this.path.raphael.node.setAttribute('class', 'painted-fill');
-                this.context.set.exclude(this.path);
-                this.context.set.push(this.path);
+                this.player.set.exclude(this.path);
+                this.player.set.push(this.path);
+            };
+            Route.prototype.clear = function () {
+                this.paper.remove(this.path.raphael);
+                // this.nodes.forEach(function(node, index) {
+                // 	if(node && node.data)
+                // 		node.data.clear();
+                // });
             };
             Route.prototype.drawCurve = function (node) {
-                if (!this.context) {
-                    throw new Error('Route context is not set');
+                if (!this.player) {
+                    throw new Error('Route player is not set');
                 }
                 if (node) {
                 }
@@ -5341,29 +7346,29 @@ var Playbook;
                 var pathStr = this.paper.getCurveStringFromNodes(true, dataArray);
                 this.paper.remove(this.path.raphael);
                 this.path.raphael = this.paper.path(pathStr).attr({
-                    'stroke': '#22CFA7',
+                    'stroke': this.color,
                     'stroke-width': 2
                 });
                 this.path.raphael.node.setAttribute('class', 'painted-fill');
-                this.context.set.exclude(this.path);
-                this.context.set.push(this.path);
+                this.player.set.exclude(this.path);
+                this.player.set.push(this.path);
             };
             Route.prototype.drawLine = function () {
-                if (!this.context) {
-                    throw new Error('Route context is not set');
+                if (!this.player) {
+                    throw new Error('Route player is not set');
                 }
                 var pathStr = this.paper.getPathStringFromNodes(true, this.nodes.toDataArray());
                 this.paper.remove(this.path.raphael);
                 this.path.raphael = this.paper.path(pathStr).attr({
-                    'stroke': '#B82500',
+                    'stroke': this.color,
                     'stroke-width': 2
                 });
                 this.path.raphael.node.setAttribute('class', 'painted-fill');
-                this.context.set.exclude(this.path);
-                this.context.set.push(this.path);
+                this.player.set.exclude(this.path);
+                this.player.set.push(this.path);
             };
             Route.prototype.initializeCurve = function (coords, flip) {
-                // if(coords.x != this.context.x && coords.y != this.context.y) {
+                // if(coords.x != this.player.x && coords.y != this.player.y) {
                 // 	console.log('draw curve');
                 // }
                 // pre-condition: we do not have < 1 nodes, since we
@@ -5436,17 +7441,20 @@ var Playbook;
             };
             Route.prototype.addNode = function (coords, type, render) {
                 //let fromNode = this.getLastNode();
-                var routeNode = new Playbook.Models.RouteNode(this, coords, type);
+                var routeNodeType = type || (this.nodes.hasElements() ?
+                    Playbook.Models.RouteNodeType.Normal :
+                    Playbook.Models.RouteNodeType.Root);
+                var routeNode = new Playbook.Models.RouteNode(this, coords, routeNodeType);
                 // let self = this;
                 // routeNode.onModified(function(data: any) {
                 // 	self.generateChecksum();
                 // });
                 var node = new Common.Models.LinkedListNode(routeNode, null);
                 this.nodes.add(node);
-                //this.player.set.push(path, node);
+                this.player.set.push(node.data);
                 if (render !== false) {
                     node.data.draw();
-                    this.context.set.push(node.data);
+                    //this.player.set.push(node.data);
                     this.draw();
                 }
                 return node;
@@ -5585,7 +7593,7 @@ var Playbook;
                     var rawRoute = routes[i];
                     var routeModel = new Playbook.Models.Route(null);
                     routeModel.fromJson(rawRoute);
-                    this.add(routeModel.guid, routeModel);
+                    this.add(routeModel);
                 }
             };
             return RouteCollection;
@@ -5623,13 +7631,7 @@ var Playbook;
         var RouteNode = (function (_super) {
             __extends(RouteNode, _super);
             function RouteNode(context, coords, type) {
-                _super.call(this, this);
-                if (context) {
-                    this.context = context;
-                    this.field = this.context.field;
-                    this.grid = this.context.grid;
-                    this.paper = this.context.paper;
-                }
+                _super.call(this, context);
                 if (coords) {
                     this.x = coords.x;
                     this.y = coords.y;
@@ -5641,7 +7643,7 @@ var Playbook;
                         this.cy = this.ay;
                         this.ox = this.ax;
                         this.oy = this.ay;
-                        this.radius = this.grid.GRIDSIZE / 4;
+                        this.radius = this.grid.getSize() / 4;
                         this.width = this.radius * 2;
                         this.height = this.radius * 2;
                     }
@@ -5661,8 +7663,6 @@ var Playbook;
                 this.controlPath = new Playbook.Models.FieldElement(this);
                 // TODO
                 this.contextmenuTemplateUrl = 'modules/playbook/contextmenus/routeNode/playbook-contextmenus-routeNode.tpl.html';
-                // route node has been modified
-                this.setModified();
             }
             RouteNode.prototype.setContext = function (context) {
                 this.context = context;
@@ -5670,14 +7670,14 @@ var Playbook;
                 this.grid = this.context.grid;
                 this.paper = this.context.paper;
                 var coords = new Playbook.Models.Coordinate(this.x, this.y);
-                var absCoords = this.context.grid.getPixelsFromCoordinates(coords);
+                var absCoords = this.grid.getPixelsFromCoordinates(coords);
                 this.ax = absCoords.x;
                 this.ay = absCoords.y;
                 this.cx = this.ax;
                 this.cy = this.ay;
                 this.ox = this.ax;
                 this.oy = this.ay;
-                this.radius = this.grid.GRIDSIZE / 4;
+                this.radius = this.grid.getSize() / 4;
                 this.width = this.radius * 2;
                 this.height = this.radius * 2;
                 this.draw();
@@ -5730,7 +7730,8 @@ var Playbook;
             };
             RouteNode.prototype.draw = function () {
                 console.log('draw node');
-                this.raphael = this.context.paper.circle(this.x, this.y, this.radius).attr({
+                this.clear();
+                this.raphael = this.paper.circle(this.x, this.y, this.radius).attr({
                     'fill': 'grey',
                     'opacity': this.opacity
                 });
@@ -5742,6 +7743,9 @@ var Playbook;
                 this.contextmenu(this.contextmenuHandler, this);
                 if (this.type == Playbook.Models.RouteNodeType.CurveControl) {
                 }
+            };
+            RouteNode.prototype.clear = function () {
+                this.paper.remove(this.raphael);
             };
             RouteNode.prototype.drawAction = function () {
                 console.log('drawing action');
@@ -5769,7 +7773,7 @@ var Playbook;
                             this.actionGraphic.ax + (this.width * 2),
                             this.actionGraphic.ay
                         ]);
-                        this.actionGraphic.raphael = this.context.paper.path(pathStr).attr({
+                        this.actionGraphic.raphael = this.paper.path(pathStr).attr({
                             'stroke': 'blue',
                             'stroke-width': 2
                         });
@@ -5783,7 +7787,7 @@ var Playbook;
                         this.actionGraphic.y = this.y - 0.5;
                         this.actionGraphic.width = this.width * 2;
                         this.actionGraphic.height = this.height * 2;
-                        this.actionGraphic.raphael = this.context.paper.rect(this.actionGraphic.x, this.actionGraphic.y, this.actionGraphic.width, this.actionGraphic.height).attr({
+                        this.actionGraphic.raphael = this.paper.rect(this.actionGraphic.x, this.actionGraphic.y, this.actionGraphic.width, this.actionGraphic.height).attr({
                             'stroke': 'orange',
                             'stroke-width': 1
                         });
@@ -5793,7 +7797,7 @@ var Playbook;
             };
             RouteNode.prototype.contextmenuHandler = function (e, self) {
                 console.log('route node contextmenu');
-                self.field.canvas.invoke(Playbook.Editor.CanvasActions.RouteNodeContextmenu, 'open route node context menu...', self);
+                self.paper.canvas.invoke(Playbook.Editor.CanvasActions.RouteNodeContextmenu, 'open route node context menu...', self);
             };
             RouteNode.prototype.hoverIn = function (e, self) {
                 if (!this.disabled && !this.selected) {
@@ -5850,8 +7854,9 @@ var Playbook;
                     'stroke-width': 1,
                     'opacity': 0.2,
                 });
-                this.context.context.set.exclude(start.controlPath);
-                this.context.context.set.push(start.controlPath);
+                // this is referring to the player.
+                this.player.set.exclude(start.controlPath);
+                this.player.set.push(start.controlPath);
             };
             RouteNode.prototype.click = function (e, self) {
                 console.log('route node:', self);
@@ -5965,16 +7970,26 @@ var Playbook;
     var Models;
     (function (Models) {
         var Tab = (function () {
-            function Tab(play) {
+            function Tab(playPrimary, playOpponent) {
                 this.title = 'Untitled';
                 this.guid = Common.Utilities.guid();
                 this.active = true;
-                this.play = play;
-                this.key = play.key;
-                this.type = play.type;
-                this.editorType = play.editorType;
-                this.title = play.name;
+                this.playPrimary = playPrimary;
+                this.key = this.playPrimary.key;
+                this.unitType = this.playPrimary.unitType;
+                this.title = this.playPrimary.name;
+                this._closeCallbacks = [function () {
+                        console.log('tab closed', this.guid);
+                    }];
             }
+            Tab.prototype.onclose = function (callback) {
+                this._closeCallbacks.push(callback);
+            };
+            Tab.prototype.close = function () {
+                for (var i = 0; i < this._closeCallbacks.length; i++) {
+                    this._closeCallbacks[i]();
+                }
+            };
             return Tab;
         })();
         Models.Tab = Tab;
@@ -5991,13 +8006,9 @@ var Playbook;
                 _super.call(this);
             }
             TabCollection.prototype.getByPlayGuid = function (guid) {
-                var results = null;
-                this.forEach(function (tab, index) {
-                    if (tab && tab.play && tab.play.guid == guid) {
-                        results = tab;
-                    }
+                return this.filterFirst(function (tab, index) {
+                    return tab.play.guid == guid;
                 });
-                return results;
             };
             return TabCollection;
         })(Common.Models.Collection);
@@ -6006,29 +8017,31 @@ var Playbook;
 })(Playbook || (Playbook = {}));
 /// <reference path='../playbook.ts' />
 /// <reference path='../../../common/models/models.ts' />
-/// <reference path='../interfaces/ICanvas.ts' />
-/// <reference path='../interfaces/IListener.ts' />
-/// <reference path='../interfaces/IEditorObject.ts' />
-/// <reference path='../interfaces/IFieldContext.ts' />
+/// <reference path='../interfaces/interfaces.ts' />
 /// <reference path='./assignment/Assignment.ts' />
 /// <reference path='./assignment/AssignmentCollection.ts' />
 /// <reference path='./field/FieldElement.ts' />
 /// <reference path='./field/FieldElementSet.ts' />
 /// <reference path='./field/Ball.ts' />
-/// <reference path='./field/Canvas.ts' />
-/// <reference path='./field/CanvasListener.ts' />
 /// <reference path='./field/Coordinate.ts' />
 /// <reference path='./field/Endzone.ts' />
 /// <reference path='./field/Field.ts' />
+/// <reference path='./field/PreviewField.ts' />
 /// <reference path='./field/Grid.ts' />
 /// <reference path='./field/GridSquare.ts' />
+/// <reference path='./field/Ground.ts' />
 /// <reference path='./field/Hashmark.ts' />
 /// <reference path='./field/LineOfScrimmage.ts' />
 /// <reference path='./field/Listener.ts' />
-/// <reference path='./field/Paper.ts' />
 /// <reference path='./field/RelativePosition.ts' />
 /// <reference path='./field/Sideline.ts' />
 /// <reference path='./field/Utilities.ts' />
+/// <reference path='./canvas/Canvas.ts' />
+/// <reference path='./canvas/CanvasListener.ts' />
+/// <reference path='./canvas/PreviewCanvas.ts' />
+/// <reference path='./paper/Paper.ts' />
+/// <reference path='./paper/FullPaper.ts' />
+/// <reference path='./paper/PreviewPaper.ts' />
 /// <reference path='./formation/Formation.ts' />
 /// <reference path='./formation/FormationCollection.ts' />
 /// <reference path='./personnel/Personnel.ts' />
@@ -6036,12 +8049,15 @@ var Playbook;
 /// <reference path='./placement/Placement.ts' />
 /// <reference path='./placement/PlacementCollection.ts' />
 /// <reference path='./play/Play.ts' />
+/// <reference path='./play/PlayPrimary.ts' />
+/// <reference path='./play/PlayOpponent.ts' />
 /// <reference path='./play/PlayCollection.ts' />
 /// <reference path='./playbook/PlaybookModel.ts' />
 /// <reference path='./playbook/PlaybookModelCollection.ts' />
 /// <reference path='./playbook/UnitType.ts' />
 /// <reference path='./playbook/UnitTypeCollection.ts' />
 /// <reference path='./player/Player.ts' />
+/// <reference path='./player/PreviewPlayer.ts' />
 /// <reference path='./player/PlayerCollection.ts' />
 /// <reference path='./player/TeamMember.ts' />
 /// <reference path='./position/Position.ts' />
@@ -6053,10 +8069,23 @@ var Playbook;
 /// <reference path='./tab/TabCollection.ts' />
 /// <reference path='./interfaces.ts' />
 /// <reference path='../models/models.ts' />
+/// <reference path='./interfaces.ts' />
+/// <reference path='./interfaces.ts' />
+/// <reference path='./interfaces.ts' />
+/// <reference path='./interfaces.ts' />
+/// <reference path='./interfaces.ts' />
+/// <reference path='./interfaces.ts' />
+/// <reference path='./interfaces.ts' />
+/// <reference path='./interfaces.ts' />
 /// <reference path='./ICanvas.ts' />
 /// <reference path='./IEditorObject.ts' />
 /// <reference path='./IListener.ts' />
-/// <reference path='./IFieldContext.ts' />
+/// <reference path='./IField.ts' />
+/// <reference path='./IFieldElement.ts' />
+/// <reference path='./IPaper.ts' />
+/// <reference path='./IGrid.ts' />
+/// <reference path='./IRoute.ts' />
+/// <reference path='./IPlayer.ts' />
 /// <reference path='../../common/common.ts' />
 /// <reference path='./interfaces/interfaces.ts' />
 var Playbook;
@@ -6094,36 +8123,71 @@ var Playbook;
             return CursorTypes;
         })();
         Editor.CursorTypes = CursorTypes;
-        (function (PlaybookSetTypes) {
-            PlaybookSetTypes[PlaybookSetTypes["None"] = 0] = "None";
-            PlaybookSetTypes[PlaybookSetTypes["Personnel"] = 1] = "Personnel";
-            PlaybookSetTypes[PlaybookSetTypes["Assignment"] = 2] = "Assignment";
-        })(Editor.PlaybookSetTypes || (Editor.PlaybookSetTypes = {}));
-        var PlaybookSetTypes = Editor.PlaybookSetTypes;
+        (function (SetTypes) {
+            SetTypes[SetTypes["None"] = 0] = "None";
+            SetTypes[SetTypes["Personnel"] = 1] = "Personnel";
+            SetTypes[SetTypes["Assignment"] = 2] = "Assignment";
+            SetTypes[SetTypes["UnitType"] = 3] = "UnitType";
+        })(Editor.SetTypes || (Editor.SetTypes = {}));
+        var SetTypes = Editor.SetTypes;
         (function (UnitTypes) {
             UnitTypes[UnitTypes["Offense"] = 0] = "Offense";
             UnitTypes[UnitTypes["Defense"] = 1] = "Defense";
             UnitTypes[UnitTypes["SpecialTeams"] = 2] = "SpecialTeams";
             UnitTypes[UnitTypes["Other"] = 3] = "Other";
-            UnitTypes[UnitTypes["Mixed"] = 4] = "Mixed";
         })(Editor.UnitTypes || (Editor.UnitTypes = {}));
         var UnitTypes = Editor.UnitTypes;
-        (function (EditorModes) {
-            EditorModes[EditorModes["None"] = 0] = "None";
-            EditorModes[EditorModes["Select"] = 1] = "Select";
-            EditorModes[EditorModes["Formation"] = 2] = "Formation";
-            EditorModes[EditorModes["Assignment"] = 3] = "Assignment";
-            EditorModes[EditorModes["Zoom"] = 4] = "Zoom";
-        })(Editor.EditorModes || (Editor.EditorModes = {}));
-        var EditorModes = Editor.EditorModes;
+        (function (ToolModes) {
+            ToolModes[ToolModes["None"] = 0] = "None";
+            ToolModes[ToolModes["Select"] = 1] = "Select";
+            ToolModes[ToolModes["Formation"] = 2] = "Formation";
+            ToolModes[ToolModes["Assignment"] = 3] = "Assignment";
+            ToolModes[ToolModes["Zoom"] = 4] = "Zoom";
+        })(Editor.ToolModes || (Editor.ToolModes = {}));
+        var ToolModes = Editor.ToolModes;
         (function (EditorTypes) {
             EditorTypes[EditorTypes["Formation"] = 0] = "Formation";
             EditorTypes[EditorTypes["Assignment"] = 1] = "Assignment";
             EditorTypes[EditorTypes["Play"] = 2] = "Play";
-            EditorTypes[EditorTypes["Set"] = 3] = "Set";
         })(Editor.EditorTypes || (Editor.EditorTypes = {}));
         var EditorTypes = Editor.EditorTypes;
+        (function (PlayTypes) {
+            PlayTypes[PlayTypes["Any"] = 0] = "Any";
+            PlayTypes[PlayTypes["Primary"] = 1] = "Primary";
+            PlayTypes[PlayTypes["Opponent"] = 2] = "Opponent";
+        })(Editor.PlayTypes || (Editor.PlayTypes = {}));
+        var PlayTypes = Editor.PlayTypes;
+        /**
+         * Allows the paper to be scaled/sized differently.
+         * To specify an initial paper size, for example,
+         * Paper is initialized with MaxCanvasWidth,
+         * which causes the paper to determine its width based
+         * on the current maximum width of its parent canvas. On the
+         * contrary, the paper can be told to set its width based
+         * on a given, target grid cell size. For example, if the target
+         * grid width is 20px and the grid is 50 cols, the resulting
+         * paper width will calculate to 1000px.
+         */
+        (function (PaperSizingModes) {
+            PaperSizingModes[PaperSizingModes["TargetGridWidth"] = 0] = "TargetGridWidth";
+            PaperSizingModes[PaperSizingModes["MaxCanvasWidth"] = 1] = "MaxCanvasWidth";
+            PaperSizingModes[PaperSizingModes["PreviewWidth"] = 2] = "PreviewWidth";
+        })(Editor.PaperSizingModes || (Editor.PaperSizingModes = {}));
+        var PaperSizingModes = Editor.PaperSizingModes;
     })(Editor = Playbook.Editor || (Playbook.Editor = {}));
+})(Playbook || (Playbook = {}));
+var Playbook;
+(function (Playbook) {
+    var Constants;
+    (function (Constants) {
+        Constants.FIELD_COLS_FULL = 52;
+        Constants.FIELD_ROWS_FULL = 120;
+        Constants.FIELD_COLS_PREVIEW = 52;
+        Constants.FIELD_ROWS_PREVIEW = 40;
+        Constants.FIELD_COLOR = '#638148';
+        Constants.GRID_SIZE = 15;
+        Constants.GRID_BASE = 10;
+    })(Constants = Playbook.Constants || (Playbook.Constants = {}));
 })(Playbook || (Playbook = {}));
 var Icon;
 (function (Icon) {
@@ -6155,400 +8219,222 @@ impakt.playbook = angular.module('impakt.playbook', [
     'impakt.playbook.contextmenus',
     'impakt.playbook.modals',
     'impakt.playbook.browser',
-    'impakt.playbook.details',
     'impakt.playbook.editor',
     'impakt.playbook.layout',
     'impakt.playbook.nav',
 ])
-    .config(['$stateProvider', '$urlRouterProvider',
+    .config(['$stateProvider',
+    '$urlRouterProvider',
     function ($stateProvider, $urlRouterProvider) {
         console.debug('impakt.playbook - config');
         // impakt module states
-        $stateProvider
-            .state('playbook', {
+        $stateProvider.state('playbook', {
             url: '/playbook',
             templateUrl: 'modules/playbook/playbook.tpl.html',
             controller: 'playbook.ctrl'
-        })
-            .state('playbook.drilldown', {
-            url: '/{key:int}'
-        })
-            .state('playbook.editor', {
-            url: '/editor',
-            templateUrl: 'modules/playbook/editor/playbook-editor.tpl.html',
-            controller: 'playbook.editor.ctrl',
-            params: {
-                data: null
-            }
-        })
-            .state('playbook.layout', {
-            url: '/layout',
-            templateUrl: 'modules/playbook/layout/playbook-layout.tpl.html'
         });
     }])
-    .run(['$stateParams', '__localStorage', function ($stateParams, __localStorage) {
+    .run([
+    '$stateParams',
+    '__localStorage',
+    function ($stateParams, __localStorage) {
         console.debug('impakt.playbook - run');
     }]);
 /// <reference path='../playbook.mdl.ts' />
-impakt.playbook.browser = angular.module('impakt.playbook.browser', [])
-    .config(function () {
-    console.debug('impakt.playbook.browser - config');
-})
+impakt.playbook.browser = angular.module('impakt.playbook.browser', [
+    'impakt.playbook.browser.sidebar',
+    'impakt.playbook.browser.main',
+    'impakt.playbook.browser.details'
+])
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.playbook.browser - config');
+        $stateProvider.state('playbook.browser', {
+            url: '/browser',
+            views: {
+                'sidebar': {
+                    templateUrl: 'modules/playbook/browser/sidebar/playbook-browser-sidebar.tpl.html',
+                    controller: 'playbook.browser.sidebar.ctrl'
+                },
+                'main': {
+                    templateUrl: 'modules/playbook/browser/main/playbook-browser-main.tpl.html',
+                    controller: 'playbook.browser.main.ctrl',
+                },
+                'details': {
+                    templateUrl: 'modules/playbook/browser/details/playbook-browser-details.tpl.html',
+                    controller: 'playbook.browser.details.ctrl'
+                },
+            }
+        });
+    }])
     .run(function () {
     console.debug('impakt.playbook.browser - run');
 });
-/// <reference path='./playbook-browser.mdl.ts' />
-impakt.playbook.browser.controller('playbook.browser.ctrl', ['$scope', '__modals', '_playbookBrowser',
-    function ($scope, __modals, _playbookBrowser) {
-        $scope.isCollapsed = _playbookBrowser.isCollapsed;
-        $scope.unitTypes = impakt.context.Playbook.unitTypes;
-        $scope.unitTypesEnum = impakt.context.Playbook.unitTypesEnum;
+/// <reference path='../playbook-browser.mdl.ts' />
+impakt.playbook.browser.details = angular.module('impakt.playbook.browser.details', [])
+    .config(function () {
+    console.debug('impakt.playbook.browser.details - config');
+})
+    .run(function () {
+    console.debug('impakt.playbook.browser.details - run');
+});
+/// <reference path='./playbook-browser-details.mdl.ts' />
+impakt.playbook.browser.details.controller('playbook.browser.details.ctrl', ['$scope', '__modals', '_playbookBrowserDetails',
+    function ($scope, __modals, _playbookBrowserDetails) {
+    }]);
+/// <reference path='./playbook-browser-details.mdl.ts' />
+impakt.playbook.browser.details.service('_playbookBrowserDetails', [function () {
+        console.debug('service: impakt.playbook.browser.details');
+    }]);
+/// <reference path='../playbook-browser.mdl.ts' />
+impakt.playbook.browser.main = angular.module('impakt.playbook.browser.main', [])
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.playbook.browser.main - config');
+    }])
+    .run([function () {
+        console.debug('impakt.playbook.browser.main - run');
+    }]);
+/// <reference path='./playbook-browser-main.mdl.ts' />
+impakt.playbook.browser.main.controller('playbook.browser.main.ctrl', [
+    '$scope',
+    '__context',
+    '__router',
+    '_playbook',
+    '_playbookModals',
+    function ($scope, __context, __router, _playbook, _playbookModals) {
+        var parent = 'playbook.browser.main';
+        __router.push(parent, [
+            new Common.Models.Template('playbook.browser.main.all', 'modules/playbook/browser/main/all/playbook-browser-main-all.tpl.html'),
+            new Common.Models.Template('playbook.browser.main.playbook', 'modules/playbook/browser/main/playbook/playbook-browser-playbook.tpl.html')
+        ]);
+        $scope.template = {};
+        $scope.editor = impakt.context.Playbook.editor;
         $scope.playbooks = impakt.context.Playbook.playbooks;
-        $scope.selectedUnitType = null;
-        $scope.selectedPlaybook = null;
         $scope.formations = impakt.context.Playbook.formations;
-        $scope.associatedFormations = new Playbook.Models.FormationCollection();
-        _playbookBrowser.onready(function () {
-            console.log($scope.playbookData);
+        $scope.plays = impakt.context.Playbook.plays;
+        __context.onReady(function () {
+            $scope.playbooks = impakt.context.Playbook.playbooks;
+            $scope.formations = impakt.context.Playbook.formations;
+            $scope.plays = impakt.context.Playbook.plays;
         });
-        $scope.selectUnitType = function (unitType) {
-            console.log('selected unit type', unitType.name, unitType);
-            $scope.selectedUnitType = unitType;
+        $scope.goToAll = function () {
+            $scope.template = __router.get(parent, 'playbook.browser.main.all');
         };
-        $scope.selectPlaybook = function (playbook) {
-            console.log('selected playbook', playbook);
-            $scope.selectedPlaybook = playbook;
-            $scope.formations.forEach(function (formation, index) {
-                if (formation.associated.playbooks.indexOf($scope.selectedPlaybook.guid) > -1) {
-                    $scope.associatedFormations.add(formation.guid, formation);
-                }
-            });
+        $scope.goToPlaybook = function (playbook) {
+            $scope.template = __router.get(parent, 'playbook.browser.main.playbook');
+            $scope.template.data = playbook;
         };
-        $scope.getPlaybook = function (playbookKey) {
-            _playbookBrowser.getPlaybook(playbookKey);
+        $scope.getEditorTypeClass = function (editorType) {
+            return _playbook.getEditorTypeClass(editorType);
         };
-        $scope.refreshPlaybook = function (playbookKey) {
-            _playbookBrowser.refreshPlaybook(playbookKey);
+        $scope.openEditor = function () {
+            _playbook.toEditor();
         };
-        $scope.getPlaybooks = function () {
-            _playbookBrowser.getPlaybooks();
+        $scope.openFormationInEditor = function (formation) {
+            _playbook.editFormation(formation);
+        };
+        $scope.openPlayInEditor = function (play) {
+            _playbook.editPlay(play);
         };
         $scope.createPlaybook = function () {
-            console.log('create playbook');
-            var modalInstance = __modals.open('', 'modules/playbook/modals/create-playbook/create-playbook.tpl.html', 'playbook.modals.createPlaybook.ctrl', {});
-            modalInstance.result.then(function (createdPlaybook) {
-                console.log(createdPlaybook);
-            }, function (results) {
-                console.log('dismissed');
-            });
+            _playbookModals.createPlaybook();
         };
         $scope.deletePlaybook = function (playbook) {
-            console.log('delete playbook');
-            var modalInstance = __modals.open('', 'modules/playbook/modals/delete-playbook/delete-playbook.tpl.html', 'playbook.modals.deletePlaybook.ctrl', {
-                playbook: function () {
-                    return playbook;
-                }
-            });
-            modalInstance.result.then(function (results) {
-                console.log(results);
-            }, function (results) {
-                console.log('dismissed');
-            });
+            _playbookModals.deletePlaybook(playbook);
         };
-        $scope.getFormations = function (playbook) {
-            _playbookBrowser.getFormations(playbook);
+        $scope.createPlay = function () {
+            _playbookModals.createPlay();
+        };
+        $scope.deletePlay = function (play) {
+            _playbookModals.deletePlay(play);
         };
         $scope.createFormation = function () {
-            var modalInstance = __modals.open('', 'modules/playbook/modals/create-formation/create-formation.tpl.html', 'playbook.modals.createFormation.ctrl', {
-                playbook: function () {
-                    return $scope.selectedPlaybook;
-                },
-                unitType: function () {
-                    return $scope.selectedUnitType;
-                }
-            });
-            modalInstance.result.then(function (createdFormation) {
-                $scope.associatedFormations.add(createdFormation.guid, createdFormation);
-            }, function (results) {
-                console.log('dismissed');
-            });
+            _playbookModals.createFormation();
         };
         $scope.deleteFormation = function (formation) {
-            console.log('delete formation');
-            var modalInstance = __modals.open('', 'modules/playbook/modals/delete-formation/delete-formation.tpl.html', 'playbook.modals.deleteFormation.ctrl', {
-                formation: function () {
-                    return formation;
-                }
-            });
-            modalInstance.result.then(function (results) {
-                $scope.associatedFormations.remove(formation.guid);
-            }, function (results) {
-                console.log('dismissed');
-            });
+            _playbookModals.deleteFormation(formation);
         };
-        $scope.editFormation = function (formation) {
-            console.log('open for editing', formation);
-            formation.active = !formation.active;
-            _playbookBrowser.editFormation(formation);
-        };
-        $scope.createSet = function (formation) {
-            console.log('create set', formation.key);
-            var modalInstance = __modals.open('', 'modules/playbook/modals/create-set/create-set.tpl.html', 'playbook.modals.createSet.ctrl', {
-                formation: function () {
-                    return formation;
-                }
-            });
-            modalInstance.result.then(function (createdSet) {
-                console.log(createdSet);
-            }, function (results) {
-                console.log('dismissed');
-            });
-        };
-        $scope.deleteSet = function (formation, set) {
-            console.log('delete set');
-            var modalInstance = __modals.open('', 'modules/playbook/modals/delete-set/delete-set.tpl.html', 'playbook.modals.deleteSet.ctrl', {
-                set: function () {
-                    return set;
-                },
-                formation: function () {
-                    return formation;
-                }
-            });
-            modalInstance.result.then(function (results) {
-                console.log(results);
-            }, function (results) {
-                console.log('dismissed');
-            });
-        };
+        /**
+         * Navigates to the main browser 'all' view
+         */
+        $scope.goToAll();
     }]);
 /// <reference path='./playbook-browser.mdl.ts' />
-impakt.playbook.browser.service('_playbookBrowser', [
-    '$rootScope',
-    '$q',
-    '$state',
-    '__localStorage',
+impakt.playbook.browser.controller('playbook.browser.ctrl', ['$scope',
+    function ($scope) {
+    }]);
+/// <reference path='./playbook-browser.mdl.ts' />
+impakt.playbook.browser.service('_playbookBrowser', [function () {
+    }]);
+/// <reference path='../playbook-browser.mdl.ts' />
+impakt.playbook.browser.sidebar = angular.module('impakt.playbook.browser.sidebar', [])
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.playbook.browser.sidebar - config');
+    }])
+    .run([function () {
+        console.debug('impakt.playbook.browser.sidebar - run');
+    }]);
+/// <reference path='./playbook-browser-sidebar.mdl.ts' />
+impakt.playbook.browser.sidebar.controller('playbook.browser.sidebar.ctrl', [
+    '$scope',
+    '__router',
     '_playbook',
-    function ($rootScope, $q, $state, __localStorage, _playbook) {
-        console.debug('service: impakt.playbook.browser');
-        var self = this;
-        // playbook data by playbook type
-        this.playbookData = new Playbook.Models.PlaybookData();
-        // Set browser to expanded or collapsed by default
-        this.isCollapsed = false;
-        this.init = function () {
-            // TODO - issue #43 raised for faulty getFormation response
-            this.checkForDefaultItem();
-            this.getPlaybooks();
+    '_playbookModals',
+    function ($scope, __router, _playbook, _playbookModals) {
+        var parent = 'playbook.browser.sidebar';
+        __router.push(parent, [
+            new Common.Models.Template('playbook.browser.sidebar.unitTypes', 'modules/playbook/browser/sidebar/unitTypes/unitTypes.tpl.html'),
+            new Common.Models.Template('playbook.browser.sidebar.playbooks', 'modules/playbook/browser/sidebar/playbook/playbooks.tpl.html'),
+            new Common.Models.Template('playbook.browser.sidebar.associated', 'modules/playbook/browser/sidebar/associated/associated.tpl.html'),
+            new Common.Models.Template('playbook.browser.sidebar.plays', 'modules/playbook/browser/sidebar/play/plays.tpl.html'),
+            new Common.Models.Template('playbook.browser.sidebar.formations', 'modules/playbook/browser/sidebar/formation/formations.tpl.html')
+        ]);
+        $scope.template = {};
+        $scope.unitTypes = impakt.context.Playbook.unitTypes;
+        $scope.plays = impakt.context.Playbook.plays;
+        $scope.formations = impakt.context.Playbook.formations;
+        $scope.goToUnitTypes = function () {
+            $scope.template = __router.get(parent, 'playbook.browser.sidebar.unitTypes');
         };
-        this.getPositionList = function (type) {
-            return impakt.context.positionDefaults.getByUnitType(type);
+        $scope.goToPlaybooks = function () {
+            $scope.template = __router.get(parent, 'playbook.browser.sidebar.playbooks');
         };
-        this.checkForDefaultItem = function () {
-            var d = $q.defer();
-            if (__localStorage.isDefaultEditorInfoSet()) {
-                var editorInfo = __localStorage.getDefaultEditorInfo();
-            }
-            return d.promise;
+        $scope.goToAssociated = function () {
+            $scope.template = __router.get(parent, 'playbook.browser.sidebar.associated');
         };
-        this.resetDefaultPlaybook = function () {
-            $state.transitionTo('playbook');
-            __localStorage.resetDefaultPlaybook();
+        $scope.goToPlays = function () {
+            $scope.template = __router.get(parent, 'playbook.browser.sidebar.plays');
         };
-        this.refreshPlaybook = function (key) {
-            var d = $q.defer();
-            this.getPlaybook(key).then(function (playbook) {
-                d.resolve(playbook);
-            }, function (err) {
-                d.reject(err);
-            });
-            return d.promise;
+        $scope.goToFormations = function () {
+            $scope.template = __router.get(parent, 'playbook.browser.sidebar.formations');
         };
-        this.getPlaybooks = function () {
-            return _playbook.getPlaybooks().then(function (playbooks) {
-                console.log(playbooks);
-                self.playbookData.fromJson(playbooks);
-                self.ready(self.playbookData);
-            }, function (err) {
-                console.error(err);
-            });
+        $scope.refreshPlays = function () {
+            $scope.plays = impakt.context.Playbook.plays;
         };
-        this.getPlaybook = function (key) {
-            var d = $q.defer();
-            _playbook.getPlaybook(key).then(function (playbook) {
-                self.playbookData.get(playbook.type).set(key, playbook);
-                self.getFormations(key)
-                    .then(function (formations) {
-                    // to do
-                    d.resolve(playbook);
-                }, function (err) {
-                    d.reject(err);
-                });
-            }, function (err) {
-                console.error(err);
-                d.reject(err);
-            });
-            return d.promise;
+        $scope.refreshFormations = function () {
+            $scope.formations = impakt.context.Playbook.formations;
         };
-        this.createPlaybook = function (name, unitType) {
-            var d = $q.defer();
-            var playbookModel = new Playbook.Models.PlaybookModel();
-            playbookModel.fromJson({
-                key: -1,
-                name: name,
-                unitType: unitType
-            });
-            _playbook.createPlaybook({
-                version: 1,
-                name: playbookModel.name,
-                data: {
-                    version: 1,
-                    model: playbookModel,
-                    unitType: playbookModel.unitType
-                }
-            }).then(function (createdPlaybook) {
-                impakt.context.Playbook.playbooks.add(createdPlaybook.guid, createdPlaybook);
-                d.resolve(createdPlaybook);
-            }, function (err) {
-                console.error(err);
-                d.reject(err);
-            });
-            return d.promise;
+        $scope.createPlay = function () {
+            _playbookModals.createPlay();
         };
-        this.deletePlaybook = function (playbook) {
-            var d = $q.defer();
-            _playbook.deletePlaybook({
-                key: playbook.key
-            })
-                .then(function (deletedPlaybook) {
-                console.log('Playbook deleted: ', deletedPlaybook);
-                self.playbookData.get(playbook.type).remove(playbook.key);
-                d.resolve(playbook);
-            }, function (err) {
-                console.error(err);
-                d.reject(err);
-            });
-            return d.promise;
+        $scope.createFormation = function () {
+            _playbookModals.createFormation();
         };
-        this.getFormations = function (playbook) {
-            var d = $q.defer();
-            _playbook.getFormations(playbook).then(function (formationCollection) {
-                self.playbookData.setFormationCollection(formationCollection);
-                d.resolve(formationCollection);
-            }, function (err) {
-                d.reject(err);
-            });
-            return d.promise;
+        $scope.openFormationInEditor = function (formation) {
+            _playbook.editFormation(formation);
+            _playbook.refreshEditor();
         };
-        this.createFormation = function (name, playbookGuid, unitTypeGuid) {
-            var d = $q.defer();
-            _playbook.createFormation(name, playbookGuid, unitTypeGuid)
-                .then(function (formation) {
-                // open the formation in the editor
-                self.editFormation(formation);
-                d.resolve(formation);
-            }, function (err) {
-                console.error(err);
-                d.reject(err);
-            });
-            return d.promise;
+        $scope.openPlayInEditor = function (play) {
+            _playbook.editPlay(play);
+            _playbook.refreshEditor();
         };
-        this.deleteFormation = function (formation) {
-            var d = $q.defer();
-            _playbook.deleteFormation(formation)
-                .then(function (deletedFormation) {
-                d.resolve(deletedFormation);
-            }, function (err) {
-                console.error(err);
-                d.reject(err);
-            });
-            return d.promise;
-        };
-        this.editFormation = function (formation) {
-            __localStorage.setDefaultEditorInfo(formation.parentRK, formation.editorType, formation.key, formation.unitType);
-            var play = new Playbook.Models.Play();
-            play.formation = formation;
-            if ($state.is('playbook.editor')) {
-                console.log('Editor is open');
-                $rootScope.$broadcast('playbook-editor-tab.open', play);
-            }
-            else {
-                $state.transitionTo('playbook.editor', {
-                    data: play
-                });
-            }
-        };
-        this.getSets = function (playbook) {
-            throw new Error('playbook.browser.srv getSets() not implemented');
-        };
-        this.createSet = function (set) {
-            throw new Error('playbook.browser.srv createSet() not implemented');
-        };
-        this.toggleUnitType = function (unitType) {
-            unitType.active = !unitType.active;
-            if (unitType.active) {
-                __localStorage.setDefaultPlaybookUnitType(unitType.unitType);
-            }
-            else {
-                // reset the current playbook type
-                __localStorage.resetDefaultPlaybookUnitType();
-                // reset the current playbook key
-                __localStorage.resetDefaultPlaybookKey();
-            }
-        };
-        this.togglePlaybook = function (playbook) {
-            playbook.active = !playbook.active;
-            if (playbook.active) {
-                __localStorage.setDefaultPlaybookKey(playbook.key);
-            }
-            else {
-                __localStorage.resetDefaultPlaybookKey();
-            }
-        };
-        this.ready = function (data) {
-            this.readyCallback(data);
-        };
-        this.onready = function (callback) {
-            this.readyCallback = callback;
-        };
-        this.readyCallback = function (data) {
-            console.log('playbook browser ready...data: ', data);
-        };
-        this.collapseCallback = function () {
-            console.log('playbook browser collapse (default)');
-        };
-        this.expandCallback = function () {
-            console.log('playbook browser expand (default)');
-        };
-        this.toggleCallback = function (isCollapsed) {
-            console.log('playbook browser toggle (default)', isCollapsed);
-        };
-        this.collapse = function () {
-            this.collapseCallback();
-        };
-        this.oncollapse = function (callback) {
-            this.collapseCallback = callback;
-        };
-        this.toggle = function () {
-            this.isCollapsed = !this.isCollapsed;
-            this.isCollapsed ? this.collapse() : this.expand();
-            this.toggleCallback(this.isCollapsed);
-        };
-        this.ontoggle = function (callback) {
-            this.toggleCallback = callback;
-        };
-        this.expand = function () {
-            this.isCollapsed = false;
-            this.expandCallback();
-        };
-        this.onexpand = function (callback) {
-            this.expandCallback = callback;
-        };
-        $rootScope.$on('playbook-browser.toggle', function (e, data) {
-        });
-        $rootScope.$on('playbook-browser.collapse', function (e, data) {
-            self.collapse();
-        });
-        this.init();
+        $scope.goToPlays();
+        console.debug('controller: playbook.browser.sidebar.ctrl', __router.templates);
     }]);
 /// <reference path='../playbook.mdl.ts' />
 impakt.playbook.contextmenus = angular.module('impakt.playbook.contextmenus', [
@@ -6606,93 +8492,36 @@ impakt.playbook.contextmenus.routeNode.service('_playbookContextmenusRouteNode',
         this.init();
     }]);
 /// <reference path='../playbook.mdl.ts' />
-impakt.playbook.details = angular.module('impakt.playbook.details', [])
-    .config(function () {
-    console.debug('impakt.playbook.details - config');
-})
-    .run(function () {
-    console.debug('impakt.playbook.details - run');
-});
-/// <reference path='./playbook-details.mdl.ts' />
-impakt.playbook.details.controller('playbook.details.ctrl', ['$scope', '__modals', '_playbookDetails',
-    function ($scope, __modals, _playbookDetails) {
-        $scope.isCollapsed = true;
-        _playbookDetails.ontoggle(function (isCollapsed) {
-            $scope.isCollapsed = isCollapsed;
-        });
-        $scope.toggle = function () {
-            _playbookDetails.toggle();
-        };
-        $scope.toggleUnitType = function (unitType) {
-            console.log('toggle playbook type', unitType);
-            _playbookDetails.toggleUnitType(unitType);
-        };
-        $scope.togglePlaybook = function (playbook) {
-            console.log('toggle playbook key', playbook);
-            _playbookDetails.togglePlaybook(playbook);
-        };
-    }]);
-/// <reference path='./playbook-details.mdl.ts' />
-impakt.playbook.browser.service('_playbookDetails', [
-    '$rootScope',
-    '$q',
-    '$state',
-    '__localStorage',
-    '__parser',
-    '_playbook',
-    function ($rootScope, $q, $state, __localStorage, __parser, _playbook) {
-        console.debug('service: impakt.playbook.browser');
-        var self = this;
-        // Set browser to expanded or collapsed by default
-        this.isCollapsed = true;
-        this.init = function () { };
-        this.collapseCallback = function () {
-            console.log('playbook details collapse (default)');
-        };
-        this.expandCallback = function () {
-            console.log('playbook details expand (default)');
-        };
-        this.toggleCallback = function (isCollapsed) {
-            console.log('playbook browser toggle (default)', isCollapsed);
-        };
-        this.collapse = function () {
-            this.collapseCallback();
-        };
-        this.oncollapse = function (callback) {
-            this.collapseCallback = callback;
-        };
-        this.toggle = function () {
-            this.isCollapsed = !this.isCollapsed;
-            this.isCollapsed ? this.collapse() : this.expand();
-            this.toggleCallback(this.isCollapsed);
-        };
-        this.ontoggle = function (callback) {
-            this.toggleCallback = callback;
-        };
-        this.expand = function () {
-            this.isCollapsed = false;
-            this.expandCallback();
-        };
-        this.onexpand = function (callback) {
-            this.expandCallback = callback;
-        };
-        $rootScope.$on('playbook-details.toggle', function (e, data) {
-        });
-        $rootScope.$on('playbook-details.collapse', function (e, data) {
-            self.collapse();
-        });
-        this.init();
-    }]);
-/// <reference path='../playbook.mdl.ts' />
 impakt.playbook.editor = angular.module('impakt.playbook.editor', [
     'impakt.playbook.editor.tabs',
     'impakt.playbook.editor.tools',
     'impakt.playbook.editor.mode',
-    'impakt.playbook.editor.canvas'
+    'impakt.playbook.editor.canvas',
+    'impakt.playbook.editor.details'
 ])
-    .config(function () {
-    console.debug('impakt.playbook.editor - config');
-})
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.playbook.editor - config');
+        $stateProvider.state('playbook.editor', {
+            url: '/editor',
+            views: {
+                // Uses browser side bar for now
+                'sidebar': {
+                    templateUrl: 'modules/playbook/browser/sidebar/playbook-browser-sidebar.tpl.html',
+                    controller: 'playbook.browser.sidebar.ctrl'
+                },
+                'main': {
+                    templateUrl: 'modules/playbook/editor/playbook-editor.tpl.html',
+                    controller: 'playbook.editor.ctrl'
+                },
+                'details': {
+                    templateUrl: 'modules/playbook/editor/details/playbook-editor-details.tpl.html',
+                    controller: 'playbook.editor.details.ctrl'
+                }
+            }
+        });
+    }])
     .run(function () {
     console.debug('impakt.playbook.editor - run');
 });
@@ -6713,19 +8542,70 @@ impakt.playbook.editor.canvas.controller('playbook.editor.canvas.ctrl', [
         $scope.formations = _playbookEditorCanvas.formations;
         $scope.personnelCollection = _playbookEditorCanvas.personnelCollection;
         $scope.plays = _playbookEditorCanvas.plays;
-        _playbookEditorCanvas.onready(function () {
-            console.log('playbook.editor.canvas.ctrl ready');
+        $scope.tab = _playbookEditorCanvas.getActiveTab();
+        $scope.hasOpenTabs = $scope.tab != null;
+        // check if there are any open tabs; if not, hide the canvas and
+        // clear the canvas data.
+        if ($scope.tab) {
+            $scope.tab.onclose(function () {
+                $scope.hasOpenTabs = _playbookEditorCanvas.hasTabs();
+            });
+        }
+        // _playbookEditorCanvas.onready(function() {
+        // 	$scope.tab = _playbookEditorCanvas.activeTab;
+        // });	
+        $scope.formations.onModified(function () {
+            // $scope.$apply();
         });
-        console.debug('controller: playbook.editor.canvas');
+        /**
+         * Toggle Editor mode
+         */
+        $scope.switchToPlayMode = function () {
+            console.log('switch from formation mode to play mode', $scope.tab.playPrimary);
+            $scope.tab.playPrimary.editorType = Playbook.Editor.EditorTypes.Play;
+        };
+        $scope.getEditorTypeClass = function (editorType) {
+            return _playbookEditorCanvas.getEditorTypeClass(parseInt(editorType));
+        };
+        /**
+         * Toggle Formation / Personnel / Assignments
+         */
         $scope.applyFormation = function (formation) {
             console.log('apply formation to editor');
-            _playbookEditorCanvas.applyFormation(formation);
+            _playbookEditorCanvas.applyPrimaryFormation(formation);
         };
         $scope.applyPersonnel = function (personnel) {
-            _playbookEditorCanvas.applyPersonnel(personnel);
+            _playbookEditorCanvas.applyPrimaryPersonnel(personnel);
         };
         $scope.applyPlay = function (play) {
-            _playbookEditorCanvas.applyPlay(play);
+            _playbookEditorCanvas.applyPrimaryPlay(play);
+        };
+        /**
+         * Determine whether to show quick formation dropdown. Should only
+         * be possible when in play- or formation-editing types.
+         * @param {Playbook.Editor.EditorTypes} editorType Editor type enum to
+         * determine which type of editor window we have open.
+         */
+        $scope.isFormationVisible = function (editorType) {
+            return editorType == Playbook.Editor.EditorTypes.Formation ||
+                editorType == Playbook.Editor.EditorTypes.Play;
+        };
+        /**
+         * Personnel should be visible when setting assignments, since we need the
+         * mapping information of a personnel group to determine how assignments are
+         * paired with the players in the given formation.
+         * @param {Playbook.Editor.EditorTypes} editorType [description]
+         */
+        $scope.isPersonnelVisible = function (editorType) {
+            return editorType == Playbook.Editor.EditorTypes.Assignment ||
+                editorType == Playbook.Editor.EditorTypes.Play;
+        };
+        $scope.isAssignmentVisible = function (editorType) {
+            return editorType == Playbook.Editor.EditorTypes.Assignment ||
+                editorType == Playbook.Editor.EditorTypes.Play;
+        };
+        $scope.toBrowser = function () {
+            _playbookEditorCanvas.toBrowser();
         };
     }]);
 ///<reference path='./playbook-editor-canvas.mdl.ts' />
@@ -6735,9 +8615,10 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas', ['$rootScope',
     '$templateCache',
     '$timeout',
     '__contextmenu',
+    '_playPreview',
     '_playbookEditorCanvas',
     '_scrollable',
-    function ($rootScope, $compile, $templateCache, $timeout, __contextmenu, _playbookEditorCanvas, _scrollable) {
+    function ($rootScope, $compile, $templateCache, $timeout, __contextmenu, _playPreview, _playbookEditorCanvas, _scrollable) {
         console.debug('directive: impakt.playbook.editor.canvas - register');
         return {
             restrict: 'E',
@@ -6752,6 +8633,7 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas', ['$rootScope',
                 var editorType = parseInt(attrs.editortype);
                 var key = attrs.key;
                 $timeout(function () {
+                    // $timeout NOTE:
                     // wrapping this step in a timeout due to a DOM rendering race.
                     // The angular ng-show directive kicks in when activating/
                     // deactivating the tabs, and the .col class (css-flex)
@@ -6763,6 +8645,7 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas', ['$rootScope',
                     canvas.setScrollable(_scrollable);
                     _scrollable.onready(function (content) {
                         _scrollable.scrollToPercentY(0.5);
+                        _playPreview.setViewBox(canvas.paper.x, canvas.paper.y, canvas.paper.canvas.width, canvas.paper.canvas.height);
                     });
                     _scrollable.initialize($element, canvas.paper);
                 });
@@ -6817,41 +8700,59 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas', ['$rootScope',
         };
     }]);
 /// <reference path='../../playbook.ts' />
-/// <reference path='../../models/field/Canvas.ts' />
+/// <reference path='../../models/canvas/Canvas.ts' />
 /// <reference path='../../../../common/common.ts' />
 /// <reference path='./playbook-editor-canvas.mdl.ts' />
 impakt.playbook.editor.canvas.service('_playbookEditorCanvas', [
     '$rootScope',
     '$timeout',
     '_base',
+    '_playPreview',
     '_playbook',
     '_playbookEditor',
-    function ($rootScope, $timeout, _base, _playbook, _playbookEditor) {
+    function ($rootScope, $timeout, _base, _playPreview, _playbook, _playbookEditor) {
         console.debug('service: impakt.playbook.editor.canvas');
         var self = this;
-        this.playbookData = _playbookEditor.playbookData;
+        this.activeTab = _playbookEditor.activeTab;
         this.playbooks = impakt.context.Playbook.playbooks;
+        this.formations = impakt.context.Playbook.formations;
         this.personnelCollection = impakt.context.Playbook.personnel;
+        this.assignments = impakt.context.Playbook.assignments;
         this.plays = impakt.context.Playbook.assignments;
-        this.readyCallback = function () { console.log('canvas ready'); };
+        this.readyCallbacks = [function () { console.log('canvas ready'); }];
         this.component = new Common.Base.Component('_playbookEditorCanvas', Common.Base.ComponentType.Service, []);
         function init() {
             _playbookEditor.component.loadDependency(self.component);
         }
         this.onready = function (callback) {
-            this.readyCallback = callback;
+            this.readyCallbacks.push(callback);
+            _playbookEditor.onready(function () {
+                self.ready();
+            });
         };
         this.ready = function () {
-            this.readyCallback();
+            for (var i = 0; i < this.readyCallbacks.length; i++) {
+                this.readyCallbacks[i]();
+            }
+            this.readyCallbacks = [];
         };
         this.create = function (tab) {
-            var canvas = new Playbook.Models.Canvas(tab.play);
+            // TODO @theBull - implement opponent play
+            var canvas = new Playbook.Models.Canvas(tab.playPrimary, new Playbook.Models.PlayOpponent());
             canvas.tab = tab;
-            _playbookEditor.addCanvas(canvas);
+        };
+        this.getActiveTab = function () {
+            this.activeTab = _playbookEditor.activeTab;
+            return this.activeTab;
+        };
+        this.hasTabs = function () {
+            return _playbookEditor.hasTabs();
+        };
+        this.toBrowser = function () {
+            _playbookEditor.toBrowser();
         };
         this.initialize = function ($element, editorType, guid) {
-            var canvas = _playbookEditor.canvases[guid];
-            self.formations = impakt.context.Playbook.formations;
+            var canvas = _playbookEditor.canvas;
             // attach listeners to canvas
             // canvas.listen(
             // 	Playbook.Editor.CanvasActions.PlayerContextmenu, 
@@ -6879,33 +8780,44 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas', [
                 });
             });
             canvas.initialize($element);
-            this.ready();
             return canvas;
         };
         /**
          * Applies the given formation to the field
          * @param {Playbook.Models.Formation} formation The Formation to apply
          */
-        this.applyFormation = function (formation) {
-            var activeCanvas = _playbookEditor.activeCanvas;
-            activeCanvas.field.applyFormation(formation);
+        this.applyPrimaryFormation = function (formation) {
+            if (canApplyData()) {
+                _playbookEditor.canvas.paper.field.applyPrimaryFormation(formation);
+            }
         };
         /**
          * Applies the given personnel data to the field
          * @param {Playbook.Models.Personnel} personnel The Personnel to apply
          */
-        this.applyPersonnel = function (personnel) {
-            var activeCanvas = _playbookEditor.activeCanvas;
-            activeCanvas.field.applyPersonnel(personnel);
+        this.applyPrimaryPersonnel = function (personnel) {
+            if (canApplyData()) {
+                _playbookEditor.canvas.paper.field.applyPrimaryPersonnel(personnel);
+            }
         };
         /**
          * Applies the given play data to the field
          * @param {Playbook.Models.Play} play The Play to apply
          */
-        this.applyPlay = function (play) {
-            var activeCanvas = _playbookEditor.activeCanvas;
-            activeCanvas.field.applyPlay(play);
+        this.applyPrimaryPlay = function (playPrimary) {
+            if (canApplyData()) {
+                _playbookEditor.canvas.paper.field.applyPlayPrimary(playPrimary);
+            }
         };
+        function canApplyData() {
+            if (!_playbookEditor.canvas ||
+                !_playbookEditor.canvas.paper ||
+                !_playbookEditor.canvas.paper.field) {
+                throw new Error('Cannot apply primary formation; canvas, paper, or field is null or undefined');
+                return false;
+            }
+            return true;
+        }
         function getAbsolutePosition(element) {
             var $dom = $(element.raphael.node);
             console.log('$dom offsets: ', $dom.offset().left, $dom.offset().top, element.width, element.height);
@@ -6918,12 +8830,12 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas', [
         this.remove = function (tab) {
             // do something
         };
-        this.activate = function (activateCanvas) {
-            _playbookEditor.activateCanvas(activateCanvas);
-        };
         this.scrollTo = function (x, y) {
             console.log(x, y);
-            this.active.canvas.paper.scroll(x, y);
+            this.canvas.paper.scroll(x, y);
+        };
+        this.getEditorTypeClass = function (editorType) {
+            return _playbookEditor.getEditorTypeClass(editorType);
         };
         /*****
         *
@@ -6932,16 +8844,16 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas', [
         *
         *
         ******/
-        $rootScope.$on('playbook-editor-canvas.zoomIn', function (e, data) {
-            self.active.canvas.paper.zoomIn();
-        });
-        $rootScope.$on('playbook-editor-canvas.zoomOut', function (e, data) {
-            self.active.canvas.paper.zoomOut();
-        });
         // receives command from playbook.editor to create a new canvas
         $rootScope.$on('playbook-editor-canvas.create', function (e, tab) {
             console.log('creating canvas...');
             self.create(tab);
+        });
+        $rootScope.$on('playbook-editor-canvas.zoomIn', function (e, data) {
+            //self.active.canvas.paper.zoomIn();
+        });
+        $rootScope.$on('playbook-editor-canvas.zoomOut', function (e, data) {
+            //self.active.canvas.paper.zoomOut();
         });
         // receives command from playbook.editor to close canvas
         $rootScope.$on('playbook-editor-canvas.close', function (e, tab) {
@@ -6969,6 +8881,28 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas', [
         init();
     }]);
 /// <reference path='../playbook-editor.mdl.ts' />
+impakt.playbook.editor.details = angular.module('impakt.playbook.editor.details', [])
+    .config(function () {
+    console.debug('impakt.playbook.editor.details - config');
+})
+    .run(function () {
+    console.debug('impakt.playbook.editor.details - run');
+});
+/// <reference path='./playbook-editor-details.mdl.ts' />
+impakt.playbook.editor.details.controller('playbook.editor.details.ctrl', ['$scope', '_playbookEditorDetails',
+    function ($scope, _playbookEditorDetails) {
+        $scope.canvas = _playbookEditorDetails.canvas;
+        $scope.refreshPreview = function () {
+        };
+    }]);
+/// <reference path='./playbook-editor-details.mdl.ts' />
+impakt.playbook.editor.details.service('_playbookEditorDetails', [
+    '_playbookEditor',
+    function (_playbookEditor) {
+        console.debug('service: impakt.playbook.browser');
+        this.canvas = _playbookEditor.canvas;
+    }]);
+/// <reference path='../playbook-editor.mdl.ts' />
 impakt.playbook.editor.mode = angular.module('impakt.playbook.editor.mode', [])
     .config(function () {
     console.debug('impakt.playbook.editor.mode - config');
@@ -6981,17 +8915,16 @@ impakt.playbook.editor.mode.controller('playbook.editor.mode.ctrl', [
     '$scope',
     '_playbookEditor',
     function ($scope, _playbookEditor) {
-        $scope.activeCanvas = _playbookEditor.activeCanvas;
+        $scope.canvas = _playbookEditor.canvas;
     }]);
 /// <reference path='./playbook-editor.mdl.ts' />
 impakt.playbook.editor.controller('playbook.editor.ctrl', [
     '$scope',
     '$stateParams',
     '_playbookEditor',
-    '_playbookBrowser',
-    function ($scope, $stateParams, _playbookEditor, _playbookBrowser) {
-        _playbookEditor.initializeData = $stateParams.data;
-        $scope.canvases = _playbookEditor.canvases;
+    function ($scope, $stateParams, _playbookEditor) {
+        $scope.canvas = _playbookEditor.canvas;
+        //_playbookEditor.init();
         var templatePrefix = 'modules/playbook/editor/';
         $scope.templates = {
             tools: [
@@ -7017,11 +8950,10 @@ impakt.playbook.editor.controller('playbook.editor.ctrl', [
 /// <reference path='../../../common/common.ts' />
 impakt.playbook.editor.service('_playbookEditor', [
     '$rootScope',
-    '__modals',
     '_base',
     '_playbook',
-    '_playbookBrowser',
-    function ($rootScope, __modals, _base, _playbook, _playbookBrowser) {
+    '_playbookModals',
+    function ($rootScope, _base, _playbook, _playbookModals) {
         console.debug('service: impakt.playbook.editor');
         var self = this;
         this.component = new Common.Base.Component('_playbookEditor', Common.Base.ComponentType.Service, [
@@ -7029,53 +8961,133 @@ impakt.playbook.editor.service('_playbookEditor', [
             '_playbookEditorTabs',
             '_playbookEditorCanvas'
         ]);
-        this.tabs = new Playbook.Models.TabCollection();
-        this.canvases = {};
-        this.activeCanvas = null;
-        this.editorMode = Playbook.Editor.EditorModes[Playbook.Editor.EditorModes.None];
-        this.playbookData = _playbookBrowser.playbookData;
-        this.initializeData = null;
-        function init() {
-            self.component.onready(function (c) {
-                console.debug('service: impakt.playbook.editor - load complete');
-                if (self.initializeData) {
-                    // load data into a new tab
-                    $rootScope.$broadcast('playbook-editor-tab.open', self.initializeData);
-                }
-                else {
+        // tabs and plays are references to the targeted application-level data collections;
+        // when the data changes at the application-level; tabs and plays added through this
+        // service are handled by reference, so that no copies of them are created, unless
+        // a *new* play is being created, or a play is being created as a *new copy* of another.
+        // This keeps the data footprint minimal, as well as prevents the redundancy of 
+        // data models existing application-wide. 
+        this.tabs = impakt.context.Playbook.editor.tabs;
+        this.plays = impakt.context.Playbook.editor.plays;
+        this.formations = impakt.context.Playbook.editor.formations;
+        // sets a default tab - this should be overwritten as soon as it becomes available
+        this.activeTab = null;
+        this.canvas = null;
+        this.toolMode = Playbook.Editor.ToolModes[Playbook.Editor.ToolModes.None];
+        $rootScope.$on('playbook-editor.refresh', function (e, formationKey) {
+            self.plays = impakt.context.Playbook.editor.plays;
+            self.formations = impakt.context.Playbook.editor.formations;
+            self.loadTabs();
+        });
+        this.readyCallback = function () {
+            console.log('Playbook editor ready default callback');
+        };
+        var initialized = false;
+        this.ready = function () {
+            this.readyCallback();
+        };
+        this.init = function () {
+            console.info('initializing playbook editor service');
+            console.debug('service: impakt.playbook.editor - load complete');
+            initialized = true;
+            var initialPlay = null;
+            if (self.tabs.isEmpty()) {
+                self.loadTabs();
+            }
+            // check for active tab and initialize the canvas with that tab's play
+            self.tabs.forEach(function (tab, index) {
+                if (tab.active) {
+                    initialPlay = self.plays.filterFirst(function (play) {
+                        return play.guid == tab.playPrimary.guid;
+                    });
+                    if (initialPlay) {
+                        if (!self.canvas) {
+                            self.canvas = new Playbook.Models.Canvas(initialPlay, null);
+                        }
+                    }
                 }
             });
+            if (!initialPlay) {
+                // Throw an error at this point; we should always have some physical play to use
+                // whether it's a new play or an existing play; we shouldn't arbitrarily initialize
+                // the canvas with a blank play here
+                throw new Error('_playbookEditor init(): \
+				Trying to create a new canvas but there are \
+				no active tabs / play data to start with.');
+            }
+            self.canvas.onready(function () {
+                self.loadTabs();
+                self.ready();
+            });
             _base.loadComponent(self.component);
-        }
-        this.addTab = function (play) {
-            var existingTab = this.tabs.getByPlayGuid(play.guid);
+        };
+        this.onready = function (callback) {
+            this.readyCallback = callback;
+        };
+        /**
+         * Checks for open plays in the editor context, as well as the
+         * corresponding tab; if the tab is active, grab the corresponding
+         * play and pass it in to initialize the canvas.
+         */
+        this.loadTabs = function () {
+            this.plays.forEach(function (play, index) {
+                // loop over all plays currently 'open' in the editor context...
+                // determine whether each play has a corresponding tab 
+                var playExists = false;
+                self.tabs.forEach(function (tab, j) {
+                    if (tab.playPrimary.guid == play.guid) {
+                        playExists = true;
+                    }
+                });
+                if (!playExists) {
+                    var tab = new Playbook.Models.Tab(play, null);
+                    // Hmm...
+                    tab.active = index == 0;
+                    self.addTab(tab);
+                }
+            });
+        };
+        this.addTab = function (tab) {
             // ignore if it is already open
-            if (existingTab) {
-                this.activateTab(existingTab, true);
+            if (this.tabs.contains(tab.guid)) {
+                this.activateTab(tab, true);
                 return;
             }
-            var tab = new Playbook.Models.Tab(play);
-            this.tabs.add(tab.guid, tab);
-            // activate this tab (will activate the canvas as well)
-            this.activateTab(tab, false);
-            // create a new canvas in the editor
-            $rootScope.$broadcast('playbook-editor-canvas.create', tab);
+            else {
+                // add the new tab...
+                this.tabs.add(tab);
+                if (tab.active) {
+                    // ...and set it to active
+                    this.activateTab(tab, false);
+                }
+            }
         };
-        this.activateTab = function (tab, activateCanvas) {
+        this.activateTab = function (tab) {
             this.inactivateOtherTabs(tab);
-            this.tabs.get(tab.guid).active = true;
-            if (activateCanvas) {
-                var canvas = this.canvases[tab.guid];
-                this.activateCanvas(canvas);
+            // for redundancy to ensure tab is explicitly set to active
+            tab.active = true;
+            // create another pointer to always track the active tab
+            this.activeTab = tab;
+            if (this.canvas) {
+                // pass new data to canvas
+                this.canvas.updatePlay(this.activeTab.playPrimary, null, true);
             }
         };
         this.closeTab = function (tab) {
             this.tabs.remove(tab.guid);
-            var canvas = this.canvases[tab.guid];
-            if (canvas.active) {
-                this.activeCanvas = null;
+            // remove play from editor context
+            this.plays.remove(tab.playPrimary.guid);
+            // get last tab
+            if (this.tabs.hasElements()) {
+                // activate the last tab
+                this.activateTab(this.tabs.getLast());
             }
-            delete this.canvases[tab.guid];
+            else {
+                // no remaining tabs - nullify active Tab
+                this.activeTab = null;
+            }
+            // tell tab to close (fire off close callbacks)
+            tab.close();
         };
         this.inactivateOtherTabs = function (tab) {
             this.tabs.forEach(function (currentTab, index) {
@@ -7083,36 +9095,12 @@ impakt.playbook.editor.service('_playbookEditor', [
                     currentTab.active = false;
             });
         };
-        this.addCanvas = function (canvas) {
-            this.canvases[canvas.tab.guid] = canvas;
-            this.activateCanvas(canvas);
+        this.hasTabs = function () {
+            return this.tabs.hasElements();
         };
-        this.activateCanvas = function (canvas) {
-            this.inactivateOtherCanvases(canvas);
-            this.canvases[canvas.tab.guid].active = true;
-            this.activeCanvas = canvas;
+        this.getEditorTypeClass = function (editorType) {
+            return _playbook.getEditorTypeClass(editorType);
         };
-        this.getActiveCanvas = function () {
-            return this.activeCanvas;
-        };
-        this.inactivateOtherCanvases = function (canvas) {
-            for (var tabGuid in this.canvases) {
-                var someCanvas = this.canvases[tabGuid];
-                if (someCanvas.tab.guid != canvas.tab.guid)
-                    someCanvas.active = false;
-            }
-        };
-        // this.createCanvas = function(tab: Playbook.Editor.Tab) {
-        // 	console.info('create canvas: ', tab.guid);
-        // 	$rootScope.$broadcast('playbook-editor-canvas.create', { tab: tab });
-        // }
-        // this.closeCanvas = function(tab: Playbook.Editor.Tab) {
-        // 	console.info('close tab: ', tab.guid);
-        // 	$rootScope.$broadcast('playbook-editor-canvas.close', { tab: tab });
-        // }
-        $rootScope.$on('playbook.deleteFormation', function (e, formationKey) {
-            throw new Error('remove tab on delete of formation not implemented');
-        });
         /*
         *
         *	Tool -> Canvas bindings
@@ -7126,26 +9114,11 @@ impakt.playbook.editor.service('_playbookEditor', [
         };
         this.save = function () {
             // save the data for the active item
-            var activeCanvas = this.getActiveCanvas();
-            console.log(activeCanvas);
-            if (activeCanvas) {
-                var data = activeCanvas.play;
-                var modalInstance = __modals.open('', 'modules/playbook/modals/save-play/save-play.tpl.html', 'playbook.modals.savePlay.ctrl', {
-                    personnel: function () {
-                        return data.personnel;
-                    },
-                    assignmentCollection: function () {
-                        return data.assignments;
-                    },
-                    formation: function () {
-                        return data.formation;
-                    }
-                });
-                modalInstance.result.then(function (createdPlay) {
-                    console.log(createdPlay);
-                }, function (results) {
-                    console.log('dismissed');
-                });
+            var activeTab = this.activeTab;
+            console.log(activeTab);
+            if (activeTab) {
+                var play = activeTab.playPrimary;
+                _playbookModals.savePlay(play);
             }
         };
         this.zoomIn = function () {
@@ -7155,18 +9128,21 @@ impakt.playbook.editor.service('_playbookEditor', [
             $rootScope.$broadcast('playbook-editor-canvas.zoomOut');
         };
         this.setCursor = function (cursor) {
-            if (this.activeCanvas && this.activeCanvas.$container) {
-                this.activeCanvas.$container.css({ 'cursor': cursor });
+            if (this.canvas && this.canvas.$container) {
+                this.canvas.$container.css({ 'cursor': cursor });
             }
         };
-        this.setEditorMode = function (editorMode) {
-            console.log('Change editor mode: ', editorMode, Playbook.Editor.EditorModes[editorMode]);
-            if (this.activeCanvas) {
-                this.activeCanvas.editorMode = editorMode;
-                this.editorMode = Playbook.Editor.EditorModes[editorMode];
+        this.setToolMode = function (toolMode) {
+            console.log('Change editor tool mode: ', toolMode, Playbook.Editor.ToolModes[toolMode]);
+            if (this.canvas) {
+                this.canvas.toolMode = toolMode;
+                this.toolMode = Playbook.Editor.ToolModes[toolMode];
             }
         };
-        init();
+        this.toBrowser = function () {
+            _playbook.toBrowser();
+        };
+        this.init();
     }]);
 /// <reference path='../playbook-editor.mdl.ts' />
 impakt.playbook.editor.tabs =
@@ -7180,79 +9156,59 @@ impakt.playbook.editor.tabs =
         console.debug('impakt.playbook.editor.tabs - run');
     });
 /// <reference path='./playbook-editor-tabs.mdl.ts' />
-/// <reference path='../../models/field/Canvas.ts' />
+/// <reference path='../../models/canvas/Canvas.ts' />
 /// <reference path='../../../../common/common.ts' />
 /// <reference path='../../playbook.ts' />
 impakt.playbook.editor.tabs.controller('playbook.editor.tabs.ctrl', [
     '$scope',
-    '$stateParams',
-    '__modals',
     '_base',
+    '_playbookModals',
     '_playbookEditorTabs',
-    function ($scope, $stateParams, __modals, _base, _playbookEditorTabs) {
-        $scope.play = $stateParams.data;
-        console.debug('controller: playbook.editor.tabs', $stateParams.data);
+    function ($scope, _base, _playbookModals, _playbookEditorTabs) {
         this.component = new Common.Base.Component('playbook.editor.tabs.ctrl', Common.Base.ComponentType.Controller);
         function init(self) {
             _playbookEditorTabs.component.loadDependency(self.component);
         }
-        // this creates a reference to the tabs within the service;
-        // when it changes, $scope is automatically updated
-        $scope.tabs = _playbookEditorTabs.getTabs();
-        // open new tab by default
-        //_playbookEditorTabs.new(0, true);
+        $scope.tabs = _playbookEditorTabs.tabs;
+        $scope.getEditorTypeClass = function (editorType) {
+            return _playbookEditorTabs.getEditorTypeClass(parseInt(editorType));
+        };
         $scope.new = function () {
-            console.log('new editor');
-            var modalInstance = __modals.open('', 'modules/playbook/modals/new-editor/new-editor.tpl.html', 'playbook.modals.newEditor.ctrl', {
-                data: function () {
-                    return 1;
-                }
-            });
-            modalInstance.result.then(function (data) {
-                console.log(data);
-            }, function (results) {
-                console.log('dismissed');
-            });
-            //_playbookEditorTabs.new(0, true);
+            _playbookModals.openNewEditorTab();
         };
         $scope.close = function (tab) {
-            _playbookEditorTabs.close(tab);
+            var toClose = confirm('Are you sure you want to close?');
+            if (toClose)
+                _playbookEditorTabs.close(tab);
         };
         $scope.activate = function (tab) {
             _playbookEditorTabs.activate(tab, true);
+        };
+        $scope.toBrowser = function () {
+            _playbookEditorTabs.toBrowser();
         };
         init(this);
     }]);
 /// <reference path='../../playbook.ts' />
 /// <reference path='./playbook-editor-tabs.mdl.ts' />
-impakt.playbook.editor.tabs.service('_playbookEditorTabs', ['$rootScope', '_base', '_playbookEditor',
+impakt.playbook.editor.tabs.service('_playbookEditorTabs', ['$rootScope',
+    '_base',
+    '_playbookEditor',
     function ($rootScope, _base, _playbookEditor) {
         console.debug('service: impakt.playbook.editor.tabs');
         var self = this;
+        this.tabs = _playbookEditor.tabs;
+        this.canvases = _playbookEditor.canvases;
         this.component = new Common.Base.Component('_playbookEditorTabs', Common.Base.ComponentType.Service, [
             'playbook.editor.tabs.ctrl'
         ]);
         function init() {
             _playbookEditor.component.loadDependency(self.component);
         }
-        this.open = function (play) {
-            console.log('open tab with data: ', play);
-            _playbookEditor.addTab(play);
-        };
-        $rootScope.$on('playbook-editor-tab.open', function (e, play) {
-            self.open(play);
-        });
-        this.newFormation = function (formationName) {
-            console.log('new formation', formationName);
-        };
-        this.new = function () {
-            console.log('creating new tab...');
+        this.openNew = function () {
             // Step 2: build a generic model from that response
-            this.open(null);
+            _playbookEditor.addTab(new Playbook.Models.Play());
         };
-        $rootScope.$on('playbook-editor-tab.new', function (e, data) {
-            self.new();
-        });
         this.close = function (tab) {
             // remove the tab from the array			
             _playbookEditor.closeTab(tab);
@@ -7260,11 +9216,11 @@ impakt.playbook.editor.tabs.service('_playbookEditorTabs', ['$rootScope', '_base
         this.activate = function (tab, activateCanvas) {
             _playbookEditor.activateTab(tab, true);
         };
-        this.getTabs = function () {
-            return _playbookEditor.tabs;
+        this.toBrowser = function () {
+            _playbookEditor.toBrowser();
         };
-        this.getCanvases = function () {
-            return _playbookEditor.canvases;
+        this.getEditorTypeClass = function (editorType) {
+            return _playbookEditor.getEditorTypeClass(editorType);
         };
         init();
     }]);
@@ -7273,7 +9229,7 @@ var Playbook;
     var Editor;
     (function (Editor) {
         var Tool = (function () {
-            function Tool(title, action, glyphiconIcon, tooltip, cursor, editorMode, selected) {
+            function Tool(title, action, glyphiconIcon, tooltip, cursor, mode, selected) {
                 this.title = 'Generic tool';
                 this.guid = Common.Utilities.guid();
                 this.tooltip = 'Generic tool';
@@ -7284,7 +9240,7 @@ var Playbook;
                 this.tooltip = tooltip || this.tooltip;
                 this.glyphicon.icon = glyphiconIcon || this.glyphicon.icon;
                 this.cursor = cursor || Playbook.Editor.CursorTypes.pointer;
-                this.editorMode = editorMode || Playbook.Editor.EditorModes.Select;
+                this.mode = mode || Playbook.Editor.ToolModes.Select;
                 this.selected = selected || false;
             }
             return Tool;
@@ -7346,12 +9302,9 @@ impakt.playbook.editor.tools.service('_playbookEditorTools', ['$rootScope', '_ba
         }
         this.tools = [
             new Playbook.Editor.Tool('Toggle menu', Playbook.Editor.ToolActions.ToggleMenu, 'menu-hamburger'),
-            new Playbook.Editor.Tool('Select', Playbook.Editor.ToolActions.Select, 'hand-up', 'Select', Playbook.Editor.CursorTypes.pointer, Playbook.Editor.EditorModes.Select, true),
-            new Playbook.Editor.Tool('Add player', Playbook.Editor.ToolActions.AddPlayer, 'user'),
-            new Playbook.Editor.Tool('Save', Playbook.Editor.ToolActions.Save, 'floppy-save'),
-            new Playbook.Editor.Tool('Zoom in', Playbook.Editor.ToolActions.ZoomIn, 'zoom-in'),
-            new Playbook.Editor.Tool('Zoom out', Playbook.Editor.ToolActions.ZoomOut, 'zoom-out'),
-            new Playbook.Editor.Tool('Assignment', Playbook.Editor.ToolActions.Assignment, 'screenshot', '', Playbook.Editor.CursorTypes.crosshair, Playbook.Editor.EditorModes.Assignment)
+            new Playbook.Editor.Tool('Save', Playbook.Editor.ToolActions.Save, 'floppy-disk'),
+            new Playbook.Editor.Tool('Select', Playbook.Editor.ToolActions.Select, 'hand-up', 'Select', Playbook.Editor.CursorTypes.pointer, Playbook.Editor.ToolModes.Select, true),
+            new Playbook.Editor.Tool('Assignment', Playbook.Editor.ToolActions.Assignment, 'screenshot', '', Playbook.Editor.CursorTypes.crosshair, Playbook.Editor.ToolModes.Assignment),
         ];
         this.deselectAll = function () {
             for (var i = 0; i < this.tools.length; i++) {
@@ -7383,7 +9336,7 @@ impakt.playbook.editor.tools.service('_playbookEditorTools', ['$rootScope', '_ba
                     break;
             }
             this.setCursor(tool.cursor);
-            this.setEditorMode(tool.editorMode);
+            this.setToolMode(tool.mode);
         };
         /*
         *	TOOL BINDINGS
@@ -7406,16 +9359,28 @@ impakt.playbook.editor.tools.service('_playbookEditorTools', ['$rootScope', '_ba
         this.setCursor = function (cursor) {
             _playbookEditor.setCursor(cursor);
         };
-        this.setEditorMode = function (mode) {
-            _playbookEditor.setEditorMode(mode);
+        this.setToolMode = function (mode) {
+            _playbookEditor.setToolMode(mode);
         };
         init(this);
     }]);
 /// <reference path='../playbook.mdl.ts' />
 impakt.playbook.layout = angular.module('impakt.playbook.layout', [])
-    .config(function () {
-    console.debug('impakt.playbook.layout - config');
-})
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.playbook.layout - config');
+        $stateProvider.state('playbook.layout', {
+            url: '/layout',
+            views: {
+                'sidebar': {},
+                'main': {
+                    templateUrl: 'modules/playbook/layout/playbook-layout.tpl.html'
+                },
+                'details': {}
+            }
+        });
+    }])
     .run(function () {
     console.debug('impakt.playbook.layout - run');
 });
@@ -7430,21 +9395,18 @@ impakt.playbook.modals = angular.module('impakt.playbook.modals', [])
 /// <reference path='../playbook-modals.mdl.ts' />
 impakt.playbook.modals.controller('playbook.modals.createFormation.ctrl', ['$scope',
     '$uibModalInstance',
-    '_playbookBrowser',
-    'playbook',
-    'unitType',
-    function ($scope, $uibModalInstance, _playbookBrowser, playbook, unitType) {
+    '_playbook',
+    function ($scope, $uibModalInstance, _playbook) {
         $scope.formation = new Playbook.Models.Formation();
-        $scope.unitType = unitType;
-        $scope.playbook = playbook;
+        $scope.unitTypes = impakt.context.Playbook.unitTypes;
+        $scope.selectedUnitType = $scope.unitTypes.getByUnitType($scope.formation.unitType);
         $scope.ok = function () {
-            $scope.formation.associated.playbooks.push($scope.playbook.guid);
-            $scope.formation.associated.unitTypes.push($scope.unitType.guid);
-            $scope.formation.unitType = $scope.unitType.unitType;
-            $scope.formation.parentRK = $scope.playbook.key;
-            console.log($scope.formation.toJson());
-            _playbookBrowser.createFormation($scope.formation)
+            $scope.formation.parentRK = 1;
+            $scope.formation.setDefault();
+            // TO DO: validate data
+            _playbook.createFormation($scope.formation)
                 .then(function (createdFormation) {
+                // TO DO: navigate to editor with formation
                 $uibModalInstance.close(createdFormation);
             }, function (err) {
                 console.error(err);
@@ -7456,18 +9418,80 @@ impakt.playbook.modals.controller('playbook.modals.createFormation.ctrl', ['$sco
         };
     }]);
 /// <reference path='../playbook-modals.mdl.ts' />
-impakt.playbook.modals.controller('playbook.modals.createPersonnelSet.ctrl', [
-    '$scope',
-    '$uibModalInstance',
-    '__parser',
-    '_playbookBrowser',
-    function ($scope, $uibModalInstance, __parser, _playbookBrowser) {
+impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl', [
+    '$scope', '$uibModalInstance', '_playbook',
+    function ($scope, $uibModalInstance, _playbook) {
+        $scope.newPlay = new Playbook.Models.Play();
+        $scope.playbooks = impakt.context.Playbook.playbooks;
+        $scope.formations = impakt.context.Playbook.formations;
+        $scope.assignments = impakt.context.Playbook.assignments;
+        $scope.selectedPlaybook = $scope.playbooks.first();
+        $scope.selectedFormation = $scope.formations.first();
+        $scope.selectedAssignments = $scope.assignments.first();
+        $scope.personnelCollection = impakt.context.Playbook.personnel;
+        $scope.selectedPersonnel = $scope.personnelCollection.first();
+        $scope.unitType = Playbook.Editor.UnitTypes.Other;
+        $scope.unitTypes = impakt.context.Playbook.unitTypes;
+        $scope.selectedUnitType = $scope.unitTypes.getByUnitType($scope.unitType);
+        // Intialize new Play with data
+        $scope.newPlay.setFormation($scope.selectedFormation);
+        $scope.newPlay.setAssignments($scope.selectedAssignments);
+        $scope.newPlay.setPersonnel($scope.selectedPersonnel);
+        $scope.newPlay.unittype = $scope.unitType;
+        // Add the new play onto the creation context, to access from
+        // other parts of the application
+        impakt.context.Playbook.creation.plays.add($scope.newPlay);
+        $scope.selectUnitType = function (unitTypeValue) {
+            $scope.selectedUnitType = $scope.unitTypes.getByUnitType(unitTypeValue);
+        };
+        $scope.selectPlaybook = function (playbook) {
+            $scope.newPlay.setPlaybook($scope.playbooks.get(playbook.guid));
+        };
+        $scope.selectFormation = function (formation) {
+            $scope.newPlay.setFormation($scope.formations.get(formation.guid));
+        };
+        $scope.selectAssignments = function (assignments) {
+            $scope.newPlay.setAssignments($scope.formations.get(assignments.guid));
+        };
+        $scope.selectPersonnel = function (personnel) {
+            $scope.newPlay.setPersonnel($scope.personnelCollection.get(personnel.guid));
+        };
+        $scope.ok = function () {
+            $scope.newPlay.unitType = $scope.selectedUnitType.unitType;
+            _playbook.createPlay($scope.newPlay)
+                .then(function (createdPlay) {
+                removePlayFromCreationContext();
+                $uibModalInstance.close(createdPlay);
+            }, function (err) {
+                removePlayFromCreationContext();
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            removePlayFromCreationContext();
+            $uibModalInstance.dismiss();
+        };
+        // Navigates to the team module
+        $scope.toTeam = function () {
+            var response = confirm('You are about to navigate to the Team module. Your play will not be created. Continue?');
+            if (response) {
+                $scope.cancel();
+                _playbook.toTeam();
+            }
+        };
+        function removePlayFromCreationContext() {
+            // Remove the play from the creation context, since we aren't
+            // going to proceed with creating the play
+            if ($scope.newPlay)
+                impakt.context.Playbook.creation.plays.remove($scope.newPlay.guid);
+        }
     }]);
 /// <reference path='../playbook-modals.mdl.ts' />
 impakt.playbook.modals.controller('playbook.modals.createPlaybook.ctrl', [
-    '$scope', '$uibModalInstance', '_playbookBrowser',
-    function ($scope, $uibModalInstance, _playbookBrowser) {
-        $scope.playbookName = '';
+    '$scope', '$uibModalInstance', '_playbook',
+    function ($scope, $uibModalInstance, _playbook) {
+        $scope.newPlaybookModel = new Playbook.Models.PlaybookModel();
         $scope.unitType = Playbook.Editor.UnitTypes.Other;
         $scope.unitTypes = impakt.context.Playbook.unitTypes;
         $scope.selectedUnitType = $scope.unitTypes.getByUnitType($scope.unitType);
@@ -7475,7 +9499,8 @@ impakt.playbook.modals.controller('playbook.modals.createPlaybook.ctrl', [
             $scope.selectedUnitType = $scope.unitTypes.getByUnitType(unitTypeValue);
         };
         $scope.ok = function () {
-            _playbookBrowser.createPlaybook($scope.playbookName, $scope.unitType)
+            $scope.newPlaybookModel.unitType = $scope.selectedUnitType.unitType;
+            _playbook.createPlaybook($scope.newPlaybookModel)
                 .then(function (createdPlaybook) {
                 $uibModalInstance.close(createdPlaybook);
             }, function (err) {
@@ -7491,12 +9516,30 @@ impakt.playbook.modals.controller('playbook.modals.createPlaybook.ctrl', [
 impakt.playbook.modals.controller('playbook.modals.deleteFormation.ctrl', [
     '$scope',
     '$uibModalInstance',
-    '_playbookBrowser',
+    '_playbook',
     'formation',
-    function ($scope, $uibModalInstance, _playbookBrowser, formation) {
+    function ($scope, $uibModalInstance, _playbook, formation) {
         $scope.formation = formation;
         $scope.ok = function () {
-            _playbookBrowser.deleteFormation($scope.formation)
+            _playbook.deleteFormation($scope.formation)
+                .then(function (results) {
+                $uibModalInstance.close(results);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../playbook-modals.mdl.ts' />
+impakt.playbook.modals.controller('playbook.modals.deletePlay.ctrl', [
+    '$scope', '$uibModalInstance', '_playbook', 'play',
+    function ($scope, $uibModalInstance, _playbook, play) {
+        $scope.play = play;
+        $scope.ok = function () {
+            _playbook.deletePlay($scope.play)
                 .then(function (results) {
                 $uibModalInstance.close(results);
             }, function (err) {
@@ -7510,11 +9553,14 @@ impakt.playbook.modals.controller('playbook.modals.deleteFormation.ctrl', [
     }]);
 /// <reference path='../playbook-modals.mdl.ts' />
 impakt.playbook.modals.controller('playbook.modals.deletePlaybook.ctrl', [
-    '$scope', '$uibModalInstance', '_playbookBrowser', 'playbook',
-    function ($scope, $uibModalInstance, _playbookBrowser, playbook) {
+    '$scope',
+    '$uibModalInstance',
+    '_playbook',
+    'playbook',
+    function ($scope, $uibModalInstance, _playbook, playbook) {
         $scope.playbook = playbook;
         $scope.ok = function () {
-            _playbookBrowser.deletePlaybook($scope.playbook)
+            _playbook.deletePlaybook($scope.playbook)
                 .then(function (results) {
                 $uibModalInstance.close(results);
             }, function (err) {
@@ -7530,18 +9576,270 @@ impakt.playbook.modals.controller('playbook.modals.deletePlaybook.ctrl', [
 impakt.playbook.modals.controller('playbook.modals.newEditor.ctrl', [
     '$scope',
     '$uibModalInstance',
-    '_playbookBrowser',
     '_playbookEditorTabs',
     'data',
-    function ($scope, $uibModalInstance, _playbookBrowser, _playbookEditorTabs, data) {
+    function ($scope, $uibModalInstance, _playbookEditorTabs, data) {
         $scope.playbooks = impakt.context.Playbook.playbooks;
         $scope.unitTypes = impakt.context.Playbook.unitTypes;
         $scope.formationName = '';
         console.log($scope.playbooks);
         $scope.ok = function () {
-            _playbookEditorTabs.newFormation($scope.formationName)
-                .then(function (createdPlaybook) {
-                $uibModalInstance.close(createdPlaybook);
+            _playbookEditorTabs.openNew();
+            $uibModalInstance.close();
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='./playbook-modals.mdl.ts' />
+impakt.playbook.modals.service('_playbookModals', [
+    '__modals',
+    function (__modals) {
+        /**
+         *
+         * PLAYBOOK
+         *
+         */
+        this.createPlaybook = function () {
+            console.log('create playbook');
+            var modalInstance = __modals.open('', 'modules/playbook/modals/create-playbook/create-playbook.tpl.html', 'playbook.modals.createPlaybook.ctrl', {});
+            modalInstance.result.then(function (createdPlaybook) {
+                console.log(createdPlaybook);
+            }, function (results) {
+                console.log('dismissed');
+            });
+        };
+        this.deletePlaybook = function (playbook) {
+            var modalInstance = __modals.open('', 'modules/playbook/modals/delete-playbook/delete-playbook.tpl.html', 'playbook.modals.deletePlaybook.ctrl', {
+                playbook: function () {
+                    return playbook;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+            }, function (results) {
+                console.log('dismissed');
+            });
+        };
+        /**
+         *
+         * PLAY
+         *
+         */
+        this.createPlay = function () {
+            console.log('create play');
+            var modalInstance = __modals.open('lg', 'modules/playbook/modals/create-play/create-play.tpl.html', 'playbook.modals.createPlay.ctrl', {});
+            modalInstance.result.then(function (createdPlaybook) {
+                console.log(createdPlaybook);
+            }, function (results) {
+                console.log('dismissed');
+            });
+        };
+        this.savePlay = function (play) {
+            var template, controller, data, size;
+            if (play.editorType == Playbook.Editor.EditorTypes.Play) {
+                size = 'lg';
+                template = 'modules/playbook/modals/save-play/save-play.tpl.html';
+                controller = 'playbook.modals.savePlay.ctrl';
+                data = {
+                    play: function () {
+                        return play;
+                    }
+                };
+            }
+            else if (play.editorType == Playbook.Editor.EditorTypes.Formation) {
+                size = '';
+                template = 'modules/playbook/modals/save-formation/save-formation.tpl.html';
+                controller = 'playbook.modals.saveFormation.ctrl';
+                data = {
+                    formation: function () {
+                        return play.formation;
+                    }
+                };
+            }
+            var modalInstance = __modals.open(size, template, controller, data);
+            modalInstance.result.then(function (results) {
+                console.log(results);
+            }, function (results) {
+                console.log('dismissed');
+            });
+        };
+        this.deletePlay = function (play) {
+            var modalInstance = __modals.open('', 'modules/playbook/modals/delete-play/delete-play.tpl.html', 'playbook.modals.deletePlay.ctrl', {
+                play: function () {
+                    return play;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+            }, function (results) {
+                console.log('dismissed');
+            });
+        };
+        /**
+         *
+         * FORMATION
+         *
+         */
+        this.createFormation = function () {
+            var modalInstance = __modals.open('', 'modules/playbook/modals/create-formation/create-formation.tpl.html', 'playbook.modals.createFormation.ctrl', {});
+            modalInstance.result.then(function (createdFormation) {
+            }, function (results) {
+            });
+        };
+        this.deleteFormation = function (formation) {
+            console.log('delete formation');
+            var modalInstance = __modals.open('', 'modules/playbook/modals/delete-formation/delete-formation.tpl.html', 'playbook.modals.deleteFormation.ctrl', {
+                formation: function () {
+                    return formation;
+                }
+            });
+            modalInstance.result.then(function (results) {
+            }, function (results) {
+                console.log('dismissed');
+            });
+        };
+        this.openNewEditorTab = function () {
+            console.log('new editor tab');
+            var modalInstance = __modals.open('', 'modules/playbook/modals/new-editor/new-editor.tpl.html', 'playbook.modals.newEditor.ctrl', {
+                data: function () {
+                    return 1;
+                }
+            });
+            modalInstance.result.then(function (data) {
+                console.log(data);
+            }, function (results) {
+                console.log('dismissed');
+            });
+        };
+    }]);
+/// <reference path='../playbook-modals.mdl.ts' />
+impakt.playbook.modals.controller('playbook.modals.saveFormation.ctrl', ['$scope',
+    '$uibModalInstance',
+    '_playbook',
+    'formation',
+    function ($scope, $uibModalInstance, _playbook, formation) {
+        $scope.formation = formation;
+        $scope.copyFormation = false;
+        var originalFormationKey = formation.key;
+        var originalFormationName = formation.name;
+        var originalFormationGuid = formation.guid;
+        $scope.copyFormationChange = function () {
+            $scope.formation.key = $scope.copyFormation ? -1 : originalFormationKey;
+            $scope.formation.name = $scope.copyFormation ?
+                $scope.formation.name + ' (copy)' :
+                originalFormationName;
+            $scope.formation.guid = $scope.copyFormation ?
+                Common.Utilities.guid() :
+                originalFormationGuid;
+        };
+        $scope.ok = function () {
+            var options = {
+                formation: {
+                    action: formation.modified ?
+                        Common.API.Actions.Overwrite :
+                        Common.API.Actions.Nothing // do nothing if no changes
+                }
+            };
+            if ($scope.copyFormation) {
+                options.formation.action = Common.API.Actions.Copy;
+            }
+            _playbook.saveFormation($scope.formation, options)
+                .then(function (savedFormation) {
+                if ($scope.copyFormation) {
+                    var contextFormation = impakt.context.Playbook.formations.get(savedFormation.guid);
+                    if (contextFormation) {
+                        // add new copied formation as new tab in editor
+                        _playbook.editFormation(contextFormation);
+                    }
+                }
+                console.log(savedFormation);
+                $uibModalInstance.close(savedFormation);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $scope.formation.key = originalFormationKey;
+            $scope.formation.name = originalFormationName;
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../playbook-modals.mdl.ts' />
+impakt.playbook.modals.controller('playbook.modals.savePlay.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_playbook',
+    'play',
+    function ($scope, $uibModalInstance, _playbook, play) {
+        $scope.play = play;
+        $scope.copyPlay = false;
+        $scope.copyFormation = false;
+        $scope.copyPersonnel = false;
+        $scope.copyAssignments = false;
+        // retain the orginal keys for toggling copy state
+        var originalPlayKey = $scope.play.key;
+        var originalFormationKey = $scope.play.formation.key;
+        var originalAssignmentsKey = $scope.play.assignments.key;
+        $scope.copyPlayChange = function () {
+            $scope.play.key =
+                $scope.copyPlay ? -1 :
+                    originalPlayKey;
+        };
+        $scope.copyFormationChange = function () {
+            $scope.play.formation.key =
+                $scope.copyFormation ? -1 :
+                    originalFormationKey;
+        };
+        $scope.copyAssignmentsChange = function () {
+            $scope.play.assignments.key =
+                $scope.copyAssignments ? -1 :
+                    originalAssignmentsKey;
+        };
+        $scope.ok = function () {
+            var play = $scope.play;
+            // determine whether there are changes to the entity; if so,
+            // set action to overwrite, otherwise set action to nothing
+            // track options for how to send the data to the server
+            // TO-DO: create a better model for this
+            var options = {
+                play: {
+                    action: play.modified ? Common.API.Actions.Overwrite : Common.API.Actions.Nothing
+                },
+                formation: {
+                    action: play.formation.modified ? Common.API.Actions.Overwrite : Common.API.Actions.Nothing
+                },
+                // TO-DO: implement assignments
+                assignments: {
+                    action: Common.API.Actions.Nothing
+                }
+            };
+            // If any of the following entities (play, formation, assignments)
+            // exist on the play and their corresponding copy boolean
+            // (copyPlay, copyFormation, copyPersonnel, copyAssignments) is set to true,
+            // a new corresponding entity (Play, Formation, Assigments)
+            // will be created and the new entity will have its values copied 
+            // from the existing entity.
+            // this new copied entity gets sent to server-side for creation.
+            if ($scope.play && $scope.copyPlay) {
+                originalPlayKey = $scope.play.key;
+                $scope.play.key = -1;
+                options.play.action = Common.API.Actions.Copy;
+                play = $scope.play;
+            }
+            if ($scope.play.formation && $scope.copyFormation) {
+                originalFormationKey = $scope.play.formation.key;
+                $scope.play.formation.key = -1;
+                options.formation.action = Common.API.Actions.Copy;
+                play.formation = $scope.formation;
+            }
+            if ($scope.play.assignments && $scope.copyAssignments) {
+                console.error('save play assignments not implemented');
+            }
+            _playbook.savePlay(play, options)
+                .then(function (savedPlay) {
+                $uibModalInstance.close(savedPlay);
             }, function (err) {
                 console.error(err);
                 $uibModalInstance.close(err);
@@ -7551,44 +9849,44 @@ impakt.playbook.modals.controller('playbook.modals.newEditor.ctrl', [
             $uibModalInstance.dismiss();
         };
     }]);
-/// <reference path='../playbook-modals.mdl.ts' />
-impakt.playbook.modals.controller('playbook.modals.savePlay.ctrl', [
-    '$scope',
-    '$uibModalInstance',
-    '_playbook',
-    'formation',
-    'personnel',
-    'assignmentCollection',
-    function ($scope, $uibModalInstance, _playbook, formation, personnel, assignmentCollection) {
-        $scope.playName = '';
-        $scope.formation = formation;
-        $scope.personnel = personnel;
-        $scope.assignmentCollection = assignmentCollection;
-        $scope.assignments = assignmentCollection.toJsonArray();
-        console.log('play assignments: ', $scope.assignments);
-        $scope.ok = function () {
-            var play = new Playbook.Models.Play();
-            play.name = $scope.playName;
-            play.formation = $scope.formation;
-            play.personnel = $scope.personnel;
-            play.assignments = $scope.assignmentCollection;
-            console.log($scope.playName, $scope.assignments);
-            // _playbook.updateFormation(data)
-            // .then(function(response) {
-            // 	console.log(response);
-            // }, function(err) {
-            // 	console.error(err);
-            // });
-            // _playbook.createPlay(play).then(function(data) {
-            // 	console.log(data);
-            // }, function(error) {
-            // 	console.error(error);
-            // });
-        };
-        $scope.cancel = function () {
-            $uibModalInstance.dismiss();
-        };
-    }]);
+/// <reference path='../models.ts' />
+var Playbook;
+(function (Playbook) {
+    var Models;
+    (function (Models) {
+        var Dimension = (function () {
+            function Dimension(width, height) {
+                this.width = width || 0;
+                this.height = height || 0;
+            }
+            Dimension.prototype.setWidth = function (width) {
+                return this.setDimensions(width, this.height).width;
+            };
+            Dimension.prototype.setHeight = function (height) {
+                return this.setDimensions(this.width, height).height;
+            };
+            Dimension.prototype.setDimensions = function (width, height) {
+                if (width <= 0) {
+                    throw new Error('Width cannot be negative');
+                }
+                if (height <= 0) {
+                    throw new Error('Height cannot be negative');
+                }
+                this.width = width;
+                this.height = height;
+                return this;
+            };
+            Dimension.prototype.getWidth = function () {
+                return this.width;
+            };
+            Dimension.prototype.getHeight = function () {
+                return this.height;
+            };
+            return Dimension;
+        })();
+        Models.Dimension = Dimension;
+    })(Models = Playbook.Models || (Playbook.Models = {}));
+})(Playbook || (Playbook = {}));
 /// <reference path='../models.ts' />
 var Playbook;
 (function (Playbook) {
@@ -7621,49 +9919,11 @@ var Playbook;
 (function (Playbook) {
     var Models;
     (function (Models) {
-        var RoutePath = (function (_super) {
-            __extends(RoutePath, _super);
-            function RoutePath(context, startNode, endNode) {
-                _super.call(this, context);
-                this.startNode = startNode;
-                this.endNode = endNode;
-                this.title = 'route';
-                this.width = RoutePath.ROUTE_WIDTH;
+        var RoutePath = (function () {
+            function RoutePath() {
             }
-            RoutePath.prototype.draw = function () {
-                // console.log(
-                // 	'draw route from: ',
-                // 	this.startNode.x,
-                // 	this.startNode.y,
-                // 	this.endNode.x,
-                // 	this.endNode.y
-                // );
-                var pathString = this.paper.buildPath(new Playbook.Models.Coordinate(this.startNode.x, this.startNode.y), new Playbook.Models.Coordinate(this.endNode.x, this.endNode.y), this.width);
-                this.path = new Playbook.Models.FieldElement(this);
-                this.path.raphael = this.paper.path(pathString).attr({
-                    'fill': 'red',
-                    'title': this.title
-                });
-                return this.path;
-            };
-            RoutePath.prototype.click = function (e, self) {
-                console.log('route path clicked');
-            };
-            RoutePath.prototype.hoverIn = function (e, self) { };
-            RoutePath.prototype.hoverOut = function (e, self) { };
-            RoutePath.prototype.mousedown = function (e, self) { };
-            RoutePath.prototype.dragMove = function (dx, dy, posx, posy, e) { };
-            RoutePath.prototype.dragStart = function (x, y, e) { };
-            RoutePath.prototype.dragEnd = function (e) { };
-            RoutePath.prototype.getSaveData = function () { };
-            RoutePath.prototype.getBBoxCoordinates = function () { };
-            RoutePath.prototype.remove = function () {
-                console.log('not implemented');
-                //this.path.remove();
-            };
-            RoutePath.ROUTE_WIDTH = 5;
             return RoutePath;
-        })(Models.FieldElement);
+        })();
         Models.RoutePath = RoutePath;
     })(Models = Playbook.Models || (Playbook.Models = {}));
 })(Playbook || (Playbook = {}));
@@ -7709,12 +9969,16 @@ impakt.playbook.constant('PLAYBOOK', {
     DELETE_SET: '/deleteSet',
     // Plays
     CREATE_PLAY: '/createPlay',
+    UPDATE_PLAY: '/updatePlay',
     GET_PLAY: '/getPlay',
-    GET_PLAYS: '/getPlays'
+    GET_PLAYS: '/getPlays',
+    DELETE_PLAY: '/deletePlay'
 });
 /// <reference path='./playbook.mdl.ts' />
 impakt.playbook.controller('playbook.ctrl', ['$scope', '$state', '$stateParams', '_playbook',
     function ($scope, $state, $stateParams, _playbook) {
+        // load up the browser by default
+        $state.go('playbook.browser');
     }]);
 /// <reference path='./models/models.ts' />
 /// <reference path='./playbook.ts' />
@@ -7726,46 +9990,45 @@ impakt.playbook.service('_playbook', [
     '$state',
     '__api',
     '__localStorage',
-    function (PLAYBOOK, $rootScope, $q, $state, __api, __localStorage) {
+    '__notifications',
+    function (PLAYBOOK, $rootScope, $q, $state, __api, __localStorage, __notifications) {
         var self = this;
-        this.playbooks = [];
-        this.browser = {
-            open: function (id) {
-            },
-            drilldown: function (key) {
-            },
-            collapse: function () {
-                console.info('collapse playbook browser');
-                $rootScope.$broadcast('playbook-browser.collapse', {});
-            },
-            toggle: function () {
-                console.log('toggle playbook browser');
-                $rootScope.$broadcast('playbook-browser.toggle', {});
-            }
-        };
-        this.editor = {
-            openCallback: function (id, parentId) { },
-            onOpen: function (callback) {
-                self.editor.openCallback = callback;
-            },
-            open: function (id, parentId) {
-            }
-        };
-        // retrieves all playbook data
-        // TODO: implement *for the given user*
+        // TODO @theBull - ensure the 'current user' is being addressed
+        // TODO @theBull - add notification handling
+        /**
+         * Retrieves all playbooks for the current user
+         */
         this.getPlaybooks = function () {
             var d = $q.defer();
+            var notification = __notifications.pending('Getting playbooks...');
             __api.get(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.GET_PLAYBOOKS))
                 .then(function (response) {
-                var playbooks = Common.Utilities.parseData(response.data.results);
                 var collection = new Playbook.Models.PlaybookModelCollection();
-                collection.fromJson(playbooks);
+                if (response && response.data && response.data.results) {
+                    var playbookResults = Common.Utilities.parseData(response.data.results);
+                    for (var i = 0; i < playbookResults.length; i++) {
+                        var playbookResult = playbookResults[i];
+                        if (playbookResult && playbookResult.data && playbookResult.data.model) {
+                            var playbookModel = new Playbook.Models.PlaybookModel();
+                            playbookResult.data.model.key = playbookResult.key;
+                            playbookModel.fromJson(playbookResult.data.model);
+                            collection.add(playbookModel);
+                        }
+                    }
+                }
+                notification.success([collection.size(), ' Playbooks successfully retreived'].join(''));
                 d.resolve(collection);
             }, function (error) {
+                notification.error('Failed to retieve Playbooks');
+                console.error(error);
                 d.reject(error);
             });
             return d.promise;
         };
+        /**
+         * Gets a single playbook with the given key
+         * @param {number} key The key of the playbook to retrieve
+         */
         this.getPlaybook = function (key) {
             var d = $q.defer();
             __api.get(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.GET_PLAYBOOK, '/' + key))
@@ -7777,37 +10040,72 @@ impakt.playbook.service('_playbook', [
             });
             return d.promise;
         };
-        this.createPlaybook = function (data) {
+        /**
+         * Sends a playbook model to the server for storage
+         * @param {Playbook.Models.PlaybookModel} playbookModel The model to be created/saved
+         */
+        this.createPlaybook = function (playbookModel) {
             var d = $q.defer();
-            __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.CREATE_PLAYBOOK), data)
+            // set key to -1 to ensure a new object is created server-side
+            playbookModel.key = -1;
+            var playbookModelJson = playbookModel.toJson();
+            var notification = __notifications.pending('Creating playbook "', playbookModel.name, '"...');
+            __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.CREATE_PLAYBOOK), {
+                version: 1,
+                name: playbookModel.name,
+                data: {
+                    version: 1,
+                    model: playbookModelJson
+                }
+            })
                 .then(function (response) {
                 var results = Common.Utilities.parseData(response.data.results);
                 var playbook = new Playbook.Models.PlaybookModel();
                 if (results && results.data && results.data.model) {
                     playbook.fromJson(results.data.model);
+                    // update the context
+                    impakt.context.Playbook.playbooks.add(playbook);
                 }
                 else {
                     throw new Error('CreatePlaybook did not return a valid playbook model');
                 }
+                notification.success('Successfully created playbook "', playbook.name, '"');
                 d.resolve(playbook);
             }, function (error) {
+                notification.error('Failed to create playbook "', playbookModel.name, '"');
                 d.reject(error);
             });
             return d.promise;
         };
-        this.deletePlaybook = function (data) {
+        /**
+         * Deletes the given playbook for the current user
+         * @param {Playbook.Models.PlaybookModel} playbook The playbook to be deleted
+         */
+        this.deletePlaybook = function (playbook) {
             var d = $q.defer();
-            __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.DELETE_PLAYBOOK), data)
-                .then(function (response) {
-                var playbook = Common.Utilities.parseData(response.data.results);
+            var notification = __notifications.pending('Deleting playbook "', playbook.name, '"...');
+            __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.DELETE_PLAYBOOK), { key: playbook.key }).then(function (response) {
+                // update the context
+                impakt.context.Playbook.playbooks.remove(playbook.guid);
+                notification.success('Deleted playbook "', playbook.name, '"');
                 d.resolve(playbook);
             }, function (error) {
+                notification.error('Failed to delete playbook "', playbook.name, '"');
                 d.reject(error);
             });
             return d.promise;
         };
+        /**
+         * Creates the given formation for the current user
+         * @param {Playbook.Models.Formation} newFormation The formation to be created
+         */
         this.createFormation = function (newFormation) {
             var d = $q.defer();
+            if (newFormation.key > 0) {
+                throw new Error('The formation you are trying to create already exists (key > 0) key: '
+                    + newFormation.key);
+            }
+            var notification = __notifications.pending('Creating formation "', newFormation.name, '"...');
             __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.CREATE_FORMATION), {
                 version: 1,
                 name: newFormation.name,
@@ -7829,41 +10127,76 @@ impakt.playbook.service('_playbook', [
                 var formationModel = new Playbook.Models.Formation();
                 formationModel.fromJson(result.data.formation);
                 console.log(formationModel);
-                impakt.context.Playbook.formations.add(formationModel.guid, formationModel);
+                impakt.context.Playbook.formations.add(formationModel);
+                notification.success('Successfully created formation "', formationModel.name, '"');
+                self.editFormation(formationModel);
                 d.resolve(formationModel);
             }, function (error) {
+                notification.error('Failed to create formation "', newFormation.name, '"');
                 d.reject(error);
             });
             return d.promise;
         };
+        /**
+         * Deletes the given formation for the current user
+         * @param {Playbook.Models.Formation} formation The formation to be deleted
+         */
         this.deleteFormation = function (formation) {
             var d = $q.defer();
+            var notification = __notifications.pending('Deleting formation "', formation.name, '"...');
             __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.DELETE_FORMATION), {
                 key: formation.key
             })
                 .then(function (response) {
                 var formationKey = response.data.results.key;
-                $rootScope.$broadcast('playbook.deleteFormation', formationKey);
+                // TODO @theBull
+                // Deleting a formation will adversely impakt all plays that are
+                // associated with that formation...How do we handle this?
+                // update the context
                 impakt.context.Playbook.formations.remove(formation.guid);
+                notification.success('Successfully deleted formation "', formation.name, '"');
                 d.resolve(formationKey);
             }, function (error) {
+                notification.error('Failed to delete formation "', formation.name, '"');
                 d.reject(error);
             });
             return d.promise;
         };
-        this.getFormations = function (playbook) {
+        /**
+         * Retrieves all formations for the current user
+         */
+        this.getFormations = function () {
             var d = $q.defer();
-            __api.get(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.GET_FORMATIONS, '?$filter=ParentRK eq ' + playbook.key))
+            var notification = __notifications.pending('Getting Formations...');
+            __api.get(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.GET_FORMATIONS, '?$filter=ParentRK gt 0'))
                 .then(function (response) {
-                var formations = Common.Utilities.parseData(response.data.results);
+                var results = Common.Utilities.parseData(response.data.results);
                 var collection = new Playbook.Models.FormationCollection();
+                var formations = [];
+                for (var i = 0; i < results.length; i++) {
+                    var result = results[i];
+                    if (result && result.data && result.data.formation) {
+                        var formation = result.data.formation;
+                        formation.key = result.key;
+                        formations.push(formation);
+                    }
+                    else {
+                        throw new Error('An invalid formation was retrieved');
+                    }
+                }
                 collection.fromJson(formations);
+                notification.success(collection.size(), ' Formations successfully retrieved');
                 d.resolve(collection);
             }, function (error) {
+                notification.error('Failed to retrieve Formations');
                 d.reject(error);
             });
             return d.promise;
         };
+        /**
+         * Retrieves the formation with the given key for the current user
+         * @param {[type]} key The key to retrieve
+         */
         this.getFormation = function (key) {
             var d = $q.defer();
             __api.get(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.GET_FORMATION, '?Key=' + key))
@@ -7878,10 +10211,48 @@ impakt.playbook.service('_playbook', [
             });
             return d.promise;
         };
+        /**
+         * Opens the given formation for editing / navigates to the play editor
+         * @param {Playbook.Models.Formation} formation The formation to be edited
+         */
+        this.editFormation = function (formation, forceOpen) {
+            // determine whether the formation is already open            
+            var formationOpen = forceOpen ? forceOpen : impakt.context.Playbook.editor.plays.hasElementWhich(function (play) {
+                return play.editorType == Playbook.Editor.EditorTypes.Formation &&
+                    play.formation.guid == formation.guid;
+            });
+            // do not add a new editor play to the context if the formation
+            // is already open
+            if (!formationOpen) {
+                // formation isn't opened yet,
+                // 1. create new play for the formation to sit in
+                // 2. create a working copy of the formation
+                // 3. update the working copy's properties accordingly
+                // 4. add the working play to the editor context
+                // Set Play to formation-only editing mode
+                var play = new Playbook.Models.PlayPrimary();
+                // need to make a copy of the formation here
+                var formationCopy = formation.copy();
+                play.setFormation(formationCopy);
+                play.editorType = Playbook.Editor.EditorTypes.Formation;
+                play.unitType = formation.unitType;
+                play.name = formation.name;
+                // add the play onto the editor context
+                impakt.context.Playbook.editor.plays.add(play);
+            }
+            // navigate to playbook editor
+            //if(!$state.is('playbook.editor'))
+            $state.transitionTo('playbook.editor');
+        };
+        /**
+         * Updates the given formation for the current user
+         * @param {Playbook.Models.Formation} formation The formation to update
+         */
         this.updateFormation = function (formation) {
             var d = $q.defer();
             // update assignment collection to json object
             var formationData = formation.toJson();
+            var notification = __notifications.pending('Updating formation');
             __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.UPDATE_FORMATION), {
                 version: 1,
                 name: formationData.name,
@@ -7894,18 +10265,129 @@ impakt.playbook.service('_playbook', [
                 }
             })
                 .then(function (response) {
-                var formations = Common.Utilities.parseData(response.data.results);
-                d.resolve(formations);
+                var results = Common.Utilities.parseData(response.data.results);
+                var formationModel = new Playbook.Models.Formation();
+                if (results && results.data && results.data.formation) {
+                    formationModel.fromJson(results.data.formation);
+                    // update the context
+                    impakt.context.Playbook.formations.set(formationModel.guid, formationModel);
+                }
+                notification.success('Successfully updated formation "', formation.name, '"');
+                d.resolve(formationModel);
             }, function (error) {
+                notification.error('Failed to update formation "', formation.name, '"');
                 d.reject(error);
             });
             return d.promise;
         };
-        this.getSets = function (playbook) {
-            throw new Error('playbook.srv getSets() Not implemented');
+        /**
+         * Saves the given formation according to the options passed for the given user
+         * TODO @theBull create Options model
+         *
+         * @param {Playbook.Models.Formation} formation    Formation to save
+         * @param {any}                  options Save options
+         */
+        this.saveFormation = function (formation, options) {
+            var d = $q.defer();
+            var notification = __notifications.pending('Saving formation "', formation.name, '"...');
+            if (options.formation.action == Common.API.Actions.Create ||
+                options.formation.action == Common.API.Actions.Copy) {
+                // ensure formation has no key
+                formation.key = -1;
+                // ensure formation has a unique guid
+                formation.guid = Common.Utilities.guid();
+                self.createFormation(formation)
+                    .then(function (createdFormation) {
+                    notification.success('Successfully created and saved formation "', formation.name, '"');
+                    d.resolve(createdFormation);
+                }, function (err) {
+                    notification.error('Failed to save formation "', formation.name, '"');
+                    d.reject(err);
+                });
+            }
+            else if (options.formation.action == Common.API.Actions.Overwrite) {
+                // double check that the formation is  modified
+                if (formation.modified) {
+                    self.updateFormation(formation)
+                        .then(function (updatedFormation) {
+                        notification.success('Successfully saved formation "', formation.name, '"');
+                        d.resolve(updatedFormation);
+                    }, function (err) {
+                        notification.error('Failed to save formation "', formation.name, '"');
+                        d.reject(err);
+                    });
+                }
+                else {
+                    notification.warning('Formation "', formation.name, '" was not saved; no changes were detected.');
+                    d.reject(null);
+                }
+            }
+            return d.promise;
         };
+        /**
+         * Retrieves all sets (for the given playbook?) of the current user
+         * @param {[type]} playbook ???
+         */
+        this.getSets = function (playbook) {
+            var d = $q.defer();
+            var personnelNotification = __notifications.pending('Getting Personnel...');
+            var assignmentsNotification = __notifications.pending('Getting Assignments...');
+            __api.get(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.GET_SETS))
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var personnelResults = [];
+                var personnelCollection = new Playbook.Models.PersonnelCollection();
+                var assignmentResults = [];
+                var assignmentCollection = new Playbook.Models.AssignmentCollection();
+                // get personnel & assignments from `sets`
+                for (var i = 0; i < results.length; i++) {
+                    var result = results[i];
+                    if (result && result.data) {
+                        var data = result.data;
+                        switch (data.setType) {
+                            case Playbook.Editor.SetTypes.Personnel:
+                                data.personnel.key = result.key;
+                                personnelResults.push(data.personnel);
+                                break;
+                            case Playbook.Editor.SetTypes.Assignment:
+                                data.assignment.key = result.key;
+                                assignmentResults.push(data.assignment);
+                                break;
+                        }
+                    }
+                }
+                for (var i_2 = 0; i_2 < personnelResults.length; i_2++) {
+                    var personnel = personnelResults[i_2];
+                    var personnelModel = new Playbook.Models.Personnel();
+                    personnelModel.fromJson(personnel);
+                    personnelCollection.add(personnelModel);
+                }
+                for (var i_3 = 0; i_3 < assignmentResults.length; i_3++) {
+                    var assignment = assignmentResults[i_3];
+                    var assignmentModel = new Playbook.Models.Assignment();
+                    assignmentModel.fromJson(assignment);
+                    assignmentCollection.add(assignmentModel);
+                }
+                personnelNotification.success(personnelCollection.size(), ' Personnel groups successfully retrieved');
+                assignmentsNotification.success(assignmentCollection.size(), ' Assignment sets successfully retrieved');
+                d.resolve({
+                    personnel: personnelCollection,
+                    assignments: assignmentCollection
+                });
+            }, function (error) {
+                personnelNotification.error('Failed to retrieve Personnel groups');
+                assignmentsNotification.error('Failed to retrieve Assignment groups');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Creates a set (TO-DO)
+         * @param {[type]} set The set to create
+         */
         this.createSet = function (set) {
             var d = $q.defer();
+            var notification = __notifications.pending('Creating set "', set.name, '"...');
             __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.CREATE_SET), {
                 version: 1,
                 name: set.name,
@@ -7926,14 +10408,22 @@ impakt.playbook.service('_playbook', [
                 // );
                 // setModel.fromJson(set);
                 throw new Error('createSet not implemented');
+                notification.success('Successfully created set "', set.name, '"');
                 d.resolve(null);
             }, function (error) {
+                notification.success('Failed to create set "', set.name, '"');
                 d.reject(error);
             });
             return d.promise;
         };
+        /**
+         * Creates the given play for the current user
+         * @param {Playbook.Models.Play} play The play to create
+         */
         this.createPlay = function (play) {
+            var playData = play.toJson();
             var d = $q.defer();
+            var notification = __notifications.pending('Creating play "', play.name, '"...');
             __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.CREATE_PLAY), {
                 version: 1,
                 name: play.name,
@@ -7944,27 +10434,311 @@ impakt.playbook.service('_playbook', [
                     name: play.name,
                     ownerRK: 1,
                     parentRK: 1,
-                    play: play
+                    play: playData
                 }
             })
                 .then(function (response) {
-                d.resolve(response);
+                var results = Common.Utilities.parseData(response.data.results);
+                var playModel = null;
+                if (results && results.data && results.data.play) {
+                    playModel = new Playbook.Models.Play();
+                    playModel.fromJson(results.data.play);
+                    playModel.key = results.key;
+                    impakt.context.Playbook.plays.add(playModel);
+                }
+                notification.success('Successfully created play "', play.name, '"');
+                d.resolve(playModel);
             }, function (error) {
+                notification.error('Failed to create play "', play.name, '"');
                 d.reject(error);
             });
             return d.promise;
         };
-        this.getPlays = function () {
+        /**
+         * Saves the given play according to the options passed for the given user
+         * TODO @theBull create Options model
+         *
+         * @param {Playbook.Models.Play} play    [description]
+         * @param {any}                  options [description]
+         */
+        this.savePlay = function (play, options) {
             var d = $q.defer();
-            __api.get(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.GET_PLAYS))
+            var notification = __notifications.pending('Saving play "', play.name, '"...');
+            async.parallel([
+                // 
+                // Save formation
+                // 
+                // 
+                // Save formation
+                // 
+                function (callback) {
+                    // create, copy, or overwrite?
+                    if (options.formation.action == Common.API.Actions.Create ||
+                        options.formation.action == Common.API.Actions.Copy) {
+                        // ensure playbook.formation has no key
+                        play.formation.key = -1;
+                        self.createFormation(play.formation)
+                            .then(function (createdFormation) {
+                            play.formation = createdFormation;
+                            callback(null, play);
+                        }, function (err) {
+                            callback(err);
+                        });
+                    }
+                    else if (options.formation.action == Common.API.Actions.Overwrite) {
+                        if (play.formation.modified) {
+                            self.updateFormation(play.formation)
+                                .then(function (updatedFormation) {
+                                callback(null, play);
+                            }, function (err) {
+                                callback(err);
+                            });
+                        }
+                        else {
+                            callback(null, play);
+                        }
+                    }
+                    else {
+                        callback(null, play);
+                    }
+                },
+                // save personnel
+                // function(callback) {
+                //     console.warn('Save Play > Personnel not implemented, skipping...');
+                //     callback(null, play);
+                // },
+                // // save assignments
+                // function(callback) {
+                //     console.warn('Save Play > Assignments not implemented, skipping...');
+                //     callback(null, play);
+                // },
+                // save play
+                // save personnel
+                // function(callback) {
+                //     console.warn('Save Play > Personnel not implemented, skipping...');
+                //     callback(null, play);
+                // },
+                // // save assignments
+                // function(callback) {
+                //     console.warn('Save Play > Assignments not implemented, skipping...');
+                //     callback(null, play);
+                // },
+                // save play
+                function (callback) {
+                    if (options.play.action == Common.API.Actions.Create ||
+                        options.play.action == Common.API.Actions.Copy) {
+                        // ensure play has no key
+                        play.key = -1;
+                        self.createPlay(play)
+                            .then(function (createdPlay) {
+                            callback(null, createdPlay);
+                        }, function (err) {
+                            callback(err);
+                        });
+                    }
+                    else if (options.play.action == Common.API.Actions.Overwrite) {
+                        if (play.modified) {
+                            self.updatePlay(play)
+                                .then(function (updatedPlay) {
+                                callback(null, updatedPlay);
+                            }, function (err) {
+                                callback(err);
+                            });
+                        }
+                        else {
+                            callback(null, play);
+                        }
+                    }
+                    else {
+                        callback(null, play);
+                    }
+                }
+            ], function (err, results) {
+                if (err) {
+                    notification.error('Failed to save play "', play.name, '"');
+                    d.reject(err);
+                }
+                else {
+                    notification.success('Successfully saved play "', play.name, '"');
+                    d.resolve(results);
+                }
+            });
+            return d.promise;
+        };
+        /**
+         * Updates the given play for the current user
+         * @param {Playbook.Models.Play} play The play to update
+         */
+        this.updatePlay = function (play) {
+            var d = $q.defer();
+            var notification = __notifications.pending('Updating play "', play.name, '"...');
+            var playData = play.toJson();
+            __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.UPDATE_PLAY), {
+                version: 1,
+                name: play.name,
+                key: play.key,
+                data: {
+                    version: 1,
+                    name: play.name,
+                    key: play.key,
+                    play: playData
+                }
+            })
                 .then(function (response) {
-                var data = Common.Utilities.parseData(response.data.results);
-                console.log(data);
-                d.resolve(data);
+                var results = Common.Utilities.parseData(response.data.results);
+                var playModel = new Playbook.Models.Play();
+                if (results && results.data && results.data.play) {
+                    playModel.fromJson(results.data.play);
+                    // update the context
+                    impakt.context.Playbook.plays.set(playModel.guid, playModel);
+                }
+                notification.success('Successfully updated play "', playModel.name, '"');
+                d.resolve(playModel);
             }, function (error) {
+                notification.error('Failed to update play "', play.name, '"');
                 d.reject(error);
             });
             return d.promise;
+        };
+        /**
+         * Retrieves all plays for the current user
+         */
+        this.getPlays = function () {
+            var d = $q.defer();
+            var notification = __notifications.pending('Getting Plays...');
+            __api.get(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.GET_PLAYS))
+                .then(function (response) {
+                var playCollection = new Playbook.Models.PlayCollection();
+                if (response && response.data && response.data.results) {
+                    var results = Common.Utilities.parseData(response.data.results);
+                    if (results) {
+                        var rawPlays = results;
+                        for (var i = 0; i < results.length; i++) {
+                            var result = results[i];
+                            if (result && result.data && result.data.play) {
+                                var playModel = new Playbook.Models.Play();
+                                playModel.fromJson(result.data.play);
+                                playModel.key = result.key;
+                                playCollection.add(playModel);
+                            }
+                        }
+                    }
+                }
+                notification.success(playCollection.size(), ' Plays successfully retrieved');
+                d.resolve(playCollection);
+            }, function (error) {
+                notification.error('Failed to retrieve Plays');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Prepares the given play to be opened in the play editor
+         * @param {Playbook.Models.Play} play The play to be edited
+         */
+        this.editPlay = function (play) {
+            // Set Play to play editing mode
+            play.editorType = Playbook.Editor.EditorTypes.Play;
+            if (!play.formation) {
+                var associatedFormation = play.associated.formations.primary();
+                if (associatedFormation) {
+                    play.formation = impakt.context.Playbook.formations.get(associatedFormation);
+                }
+            }
+            if (!play.personnel) {
+                var associatedPersonnel = play.associated.personnel.primary();
+                if (associatedPersonnel) {
+                    play.personnel = impakt.context.Playbook.personnel.get(associatedPersonnel);
+                }
+            }
+            // add the play onto the editor context
+            impakt.context.Playbook.editor.plays.add(play);
+            // navigate to playbook editor
+            //if (!$state.is('playbook.editor'))
+            $state.transitionTo('playbook.editor');
+        };
+        /**
+         * Deletes the given play for the current user
+         * @param {Playbook.Models.Play} play The play to be deleted
+         */
+        this.deletePlay = function (play) {
+            var d = $q.defer();
+            var notification = __notifications.pending('Deleting play "', play.name, '"...');
+            __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.DELETE_PLAY), {
+                key: play.key
+            })
+                .then(function (response) {
+                var playKey = response.data.results.key;
+                // update the context
+                impakt.context.Playbook.plays.remove(play.guid);
+                notification.success('Successfully deleted play "', play.name, '"');
+                d.resolve(play);
+            }, function (error) {
+                notification.error('Failed to delete play "', play.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Returns a list of all unit types
+         */
+        this.getUnitTypes = function () {
+            return new Playbook.Models.UnitTypeCollection();
+        };
+        /**
+         * Returns an list of all unit types
+         */
+        this.getUnitTypesEnum = function () {
+            var typeEnums = {};
+            for (var unitType in Playbook.Editor.UnitTypes) {
+                if (unitType >= 0)
+                    typeEnums[parseInt(unitType)]
+                        = Common.Utilities.camelCaseToSpace(Playbook.Editor.UnitTypes[unitType], true);
+            }
+            return typeEnums;
+        };
+        /**
+         * Returns a class for the given editorType
+         * @param {Playbook.Editor.EditorTypes} editorType Editor Type enum
+         */
+        this.getEditorTypeClass = function (editorType) {
+            var editorTypeClass = '';
+            switch (editorType) {
+                case Playbook.Editor.EditorTypes.Formation:
+                    editorTypeClass = 'playbook-editor-type-formation';
+                    break;
+                case Playbook.Editor.EditorTypes.Assignment:
+                    editorTypeClass = 'playbook-editor-type-assignment';
+                    break;
+                case Playbook.Editor.EditorTypes.Play:
+                    editorTypeClass = 'playbook-editor-type-play';
+                    break;
+            }
+            return editorTypeClass;
+        };
+        /**
+         * Navigates to the playbook editor
+         */
+        this.toEditor = function () {
+            $state.transitionTo('playbook.editor');
+        };
+        /**
+         * Refreshes the playbook editor
+         */
+        this.refreshEditor = function () {
+            $rootScope.$broadcast('playbook-editor.refresh');
+        };
+        /**
+         * Navigates to the playbook browser
+         */
+        this.toBrowser = function () {
+            $state.transitionTo('playbook.browser');
+        };
+        /**
+         * Navigates to the team module
+         */
+        this.toTeam = function () {
+            $state.transitionTo('team');
         };
     }]);
 // declare var impakt: any;
@@ -8006,7 +10780,8 @@ impakt.search = angular.module('impakt.search', []);
 /// <reference path='../modules.mdl.ts' />
 /// <reference path='./team.ts' />
 impakt.team = angular.module('impakt.team', [
-    'impakt.team.personnel'
+    'impakt.team.personnel',
+    'impakt.team.unitTypes'
 ])
     .config([function () {
         console.debug('impakt.team - config');
@@ -8050,7 +10825,7 @@ impakt.team.personnel.controller('impakt.team.personnel.ctrl', [
         $scope.personnel = _team.personnel.getOne() || new Playbook.Models.Personnel();
         $scope.selectedPersonnel = {
             guid: $scope.personnel.guid,
-            unitType: $scope.personnel.unitType
+            unitType: $scope.personnel.unitType.toString()
         };
         $scope.unitTypes = Playbook.Models.UnitType.getUnitTypes();
         var positionDefault = new Playbook.Models.PositionDefault();
@@ -8072,7 +10847,7 @@ impakt.team.personnel.controller('impakt.team.personnel.ctrl', [
             if ($scope.selectedPersonnel.guid) {
                 $scope.personnel = null;
                 $scope.personnel = $scope.personnelCollection.get($scope.selectedPersonnel.guid);
-                $scope.selectedPersonnel.unitType = $scope.personnel.unitType;
+                $scope.selectedPersonnel.unitType = $scope.personnel.unitType.toString();
                 $scope.positionOptions = positionDefault.getByUnitType($scope.personnel.unitType);
             }
         };
@@ -8083,7 +10858,7 @@ impakt.team.personnel.controller('impakt.team.personnel.ctrl', [
         $scope.update = function (position, index) {
             var updated = impakt.context.Playbook.positionDefaults.switchPosition(position, position.positionListValue);
             console.log(position, updated);
-            $scope.personnel.positions.replace(position.guid, updated.guid, updated);
+            $scope.personnel.positions.replace(position.guid, updated);
         };
         $scope.save = function () {
             console.log($scope.personnel);
@@ -8107,21 +10882,45 @@ impakt.team.personnel.controller('impakt.team.personnel.ctrl', [
 /**
  * Team constants defined here
  */
-// TODO 
+impakt.team.constant('TEAM', {
+    ENDPOINT: '/playbook',
+});
 /// <reference path='./team.mdl.ts' />
 impakt.team.controller('team.ctrl', ['$scope', '_team',
     function ($scope, _team) {
         $scope.title = 'Team Management';
+        $scope.tabs = {
+            personnel: {
+                title: 'Personnel groups',
+                active: true,
+                src: "modules/team/personnel/team-personnel.tpl.html"
+            },
+            unitTypes: {
+                title: 'Unit types',
+                active: false,
+                src: "modules/team/unit-types/team-unit-types.tpl.html"
+            }
+        };
+        $scope.activate = function (tab) {
+            for (var key in $scope.tabs) {
+                var obj = $scope.tabs[key];
+                if (obj.active)
+                    obj.active = false;
+            }
+            tab.active = true;
+        };
     }]);
 /// <reference path='./team.mdl.ts' />
 // Team service
-impakt.team.service('_team', ['$q', 'PLAYBOOK', '__api', function ($q, PLAYBOOK, __api) {
+impakt.team.service('_team', ['$q', 'PLAYBOOK', 'TEAM', '__api', '__notifications',
+    function ($q, PLAYBOOK, TEAM, __api, __notifications) {
         this.personnel = impakt.context.Playbook.personnel;
         this.savePersonnel = function (personnelModel, createNew) {
             var d = $q.defer();
             var result;
             if (createNew) {
                 personnelModel.key = 0;
+                personnelModel.guid = Common.Utilities.guid();
                 result = this.createPersonnel(personnelModel);
             }
             else {
@@ -8137,13 +10936,14 @@ impakt.team.service('_team', ['$q', 'PLAYBOOK', '__api', function ($q, PLAYBOOK,
         this.createPersonnel = function (personnelModel) {
             var d = $q.defer();
             var personnelJson = personnelModel.toJson();
+            var notification = __notifications.pending('Creating personnel group "', personnelModel.name, '"...');
             __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.CREATE_SET), {
                 version: 1,
                 ownerRK: 1,
                 parentRK: 1,
                 name: personnelJson.name,
                 data: {
-                    setType: Playbook.Editor.PlaybookSetTypes.Personnel,
+                    setType: Playbook.Editor.SetTypes.Personnel,
                     personnel: personnelJson,
                     name: personnelJson.name,
                     version: 1,
@@ -8155,9 +10955,11 @@ impakt.team.service('_team', ['$q', 'PLAYBOOK', '__api', function ($q, PLAYBOOK,
                 var results = Common.Utilities.parseData(response.data.results);
                 var personnelModel = new Playbook.Models.Personnel();
                 if (results && results.data && results.data.personnel) {
+                    results.data.personnel.key = results.key;
                     personnelModel.fromJson(results.data.personnel);
                 }
-                impakt.context.Playbook.personnel.add(personnelModel.guid, personnelModel);
+                impakt.context.Playbook.personnel.add(personnelModel);
+                notification.success('Personnel group "', personnelModel.name, '" successfully created');
                 d.resolve(personnelModel);
             }, function (error) {
                 d.reject(error);
@@ -8172,7 +10974,7 @@ impakt.team.service('_team', ['$q', 'PLAYBOOK', '__api', function ($q, PLAYBOOK,
                 name: personnelJson.name,
                 key: personnelJson.key,
                 data: {
-                    setType: Playbook.Editor.PlaybookSetTypes.Personnel,
+                    setType: Playbook.Editor.SetTypes.Personnel,
                     personnel: personnelJson,
                     name: personnelJson.name,
                     key: personnelJson.key,
@@ -8192,9 +10994,10 @@ impakt.team.service('_team', ['$q', 'PLAYBOOK', '__api', function ($q, PLAYBOOK,
             });
             return d.promise;
         };
-        this.deletePersonnel = function (personnelModel) {
+        this.deletePersonnel = function (personnel) {
             var d = $q.defer();
-            __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.DELETE_SET), { key: personnelModel.key }).then(function (response) {
+            __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.DELETE_SET), { key: personnel.key }).then(function (response) {
+                impakt.context.Playbook.personnel.remove(personnel.guid);
                 d.resolve(response);
             }, function (err) {
                 d.reject(err);
@@ -8202,6 +11005,22 @@ impakt.team.service('_team', ['$q', 'PLAYBOOK', '__api', function ($q, PLAYBOOK,
             return d.promise;
         };
     }]);
+/// <reference path='../team.mdl.ts' />
+impakt.team.unitTypes = angular.module('impakt.team.unitTypes', [])
+    .config([function () {
+        console.debug('impakt.team.unitTypes - config');
+    }])
+    .run([function () {
+        console.debug('impakt.team.unitTypes - run');
+    }]);
+/// <reference path='./team-unit-types.mdl.ts' />
+impakt.team.unitTypes.controller('impakt.team.unitTypes.ctrl', [
+    '$scope',
+    '_team',
+    function ($scope, _team) {
+        $scope.unitTypes = impakt.context.Playbook.unitTypes.toArray();
+    }
+]);
 /// <reference path='../modules.mdl.ts' />
 impakt.user = angular.module('impakt.user', [
     'impakt.user.login'
@@ -8223,19 +11042,363 @@ impakt.user.login = angular.module('impakt.user.login', [])
 /// <reference path='./user-login.mdl.ts' />
 impakt.user.login.controller('user.login.ctrl', ['$scope', function ($scope) {
     }]);
+/// <reference path='./models.ts' />
+var User;
+(function (User) {
+    var Models;
+    (function (Models) {
+        var Organization = (function (_super) {
+            __extends(Organization, _super);
+            function Organization() {
+                _super.call(this);
+                this.companyName = null;
+                this.emailAccounting = null;
+                this.emailOther = null;
+                this.emailPrimary = null;
+                this.emailSales = null;
+                this.emailScheduling = null;
+                this.emailWarranty = null;
+                this.faxAccounting = null;
+                this.faxPrimary = null;
+                this.faxSales = null;
+                this.faxScheduling = null;
+                this.faxWarranty = null;
+                this.organizationKey = -1;
+                this.phoneAccounting = null;
+                this.phonePrimary = null;
+                this.phoneSales = null;
+                this.phoneScheduling = null;
+                this.phoneWarranty = null;
+                this.primaryAddress1 = null;
+                this.primaryAddress2 = null;
+                this.primaryAddress3 = null;
+                this.primaryCity = null;
+                this.primaryCountry = null;
+                this.primaryPostalCode = null;
+                this.primaryStateProvince = null;
+                this.secondaryAddress1 = null;
+                this.secondaryAddress2 = null;
+                this.secondaryAddress3 = null;
+                this.secondaryCity = null;
+                this.secondaryCountry = null;
+                this.secondaryPostalCode = null;
+                this.secondaryStateProvince = null;
+                this.upsFedExAddress1 = null;
+                this.upsFedExAddress2 = null;
+                this.upsFedExAddress3 = null;
+                this.upsFedExCity = null;
+                this.upsFedExCountry = null;
+                this.upsFedExPostalCode = null;
+                this.upsFedExStateProvince = null;
+                this.website = null;
+            }
+            Organization.prototype.toJson = function () {
+                var json = {
+                    companyName: this.companyName,
+                    emailAccounting: this.emailAccounting,
+                    emailOther: this.emailOther,
+                    emailPrimary: this.emailPrimary,
+                    emailSales: this.emailSales,
+                    emailScheduling: this.emailScheduling,
+                    emailWarranty: this.emailWarranty,
+                    faxAccounting: this.faxAccounting,
+                    faxPrimary: this.faxPrimary,
+                    faxSales: this.faxSales,
+                    faxScheduling: this.faxScheduling,
+                    faxWarranty: this.faxWarranty,
+                    organizationKey: this.organizationKey,
+                    phoneAccounting: this.phoneAccounting,
+                    phonePrimary: this.phonePrimary,
+                    phoneSales: this.phoneSales,
+                    phoneScheduling: this.phoneScheduling,
+                    phoneWarranty: this.phoneWarranty,
+                    primaryAddress1: this.primaryAddress1,
+                    primaryAddress2: this.primaryAddress2,
+                    primaryAddress3: this.primaryAddress3,
+                    primaryCity: this.primaryCity,
+                    primaryCountry: this.primaryCountry,
+                    primaryPostalCode: this.primaryPostalCode,
+                    primaryStateProvince: this.primaryStateProvince,
+                    secondaryAddress1: this.secondaryAddress1,
+                    secondaryAddress2: this.secondaryAddress2,
+                    secondaryAddress3: this.secondaryAddress3,
+                    secondaryCity: this.secondaryCity,
+                    secondaryCountry: this.secondaryCountry,
+                    secondaryPostalCode: this.secondaryPostalCode,
+                    secondaryStateProvince: this.secondaryStateProvince,
+                    upsFedExAddress1: this.upsFedExAddress1,
+                    upsFedExAddress2: this.upsFedExAddress2,
+                    upsFedExAddress3: this.upsFedExAddress3,
+                    upsFedExCity: this.upsFedExCity,
+                    upsFedExCountry: this.upsFedExCountry,
+                    upsFedExPostalCode: this.upsFedExPostalCode,
+                    upsFedExStateProvince: this.upsFedExStateProvince,
+                    website: this.website
+                };
+                return json;
+            };
+            Organization.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.companyName = json.companyName;
+                this.emailAccounting = json.emailAccounting;
+                this.emailOther = json.emailOther;
+                this.emailPrimary = json.emailPrimary;
+                this.emailSales = json.emailSales;
+                this.emailScheduling = json.emailScheduling;
+                this.emailWarranty = json.emailWarranty;
+                this.faxAccounting = json.faxAccounting;
+                this.faxPrimary = json.faxPrimary;
+                this.faxSales = json.faxSales;
+                this.faxScheduling = json.faxScheduling;
+                this.faxWarranty = json.faxWarranty;
+                this.organizationKey = json.organizationKey;
+                this.phoneAccounting = json.phoneAccounting;
+                this.phonePrimary = json.phonePrimary;
+                this.phoneSales = json.phoneSales;
+                this.phoneScheduling = json.phoneScheduling;
+                this.phoneWarranty = json.phoneWarranty;
+                this.primaryAddress1 = json.primaryAddress1;
+                this.primaryAddress2 = json.primaryAddress2;
+                this.primaryAddress3 = json.primaryAddress3;
+                this.primaryCity = json.primaryCity;
+                this.primaryCountry = json.primaryCountry;
+                this.primaryPostalCode = json.primaryPostalCode;
+                this.primaryStateProvince = json.primaryStateProvince;
+                this.secondaryAddress1 = json.secondaryAddress1;
+                this.secondaryAddress2 = json.secondaryAddress2;
+                this.secondaryAddress3 = json.secondaryAddress3;
+                this.secondaryCity = json.secondaryCity;
+                this.secondaryCountry = json.secondaryCountry;
+                this.secondaryPostalCode = json.secondaryPostalCode;
+                this.secondaryStateProvince = json.secondaryStateProvince;
+                this.upsFedExAddress1 = json.upsFedExAddress1;
+                this.upsFedExAddress2 = json.upsFedExAddress2;
+                this.upsFedExAddress3 = json.upsFedExAddress3;
+                this.upsFedExCity = json.upsFedExCity;
+                this.upsFedExCountry = json.upsFedExCountry;
+                this.upsFedExPostalCode = json.upsFedExPostalCode;
+                this.upsFedExStateProvince = json.upsFedExStateProvince;
+                this.website = json.website;
+            };
+            return Organization;
+        })(Common.Models.Storable);
+        Models.Organization = Organization;
+    })(Models = User.Models || (User.Models = {}));
+})(User || (User = {}));
+/// <reference path='../../../common/common.ts' />
+/// <reference path='../../../common/models/models.ts' />
+/// <reference path='./Organization.ts' />
+/// <reference path='./models.ts' />
+var User;
+(function (User) {
+    var Models;
+    (function (Models) {
+        var Account = (function (_super) {
+            __extends(Account, _super);
+            function Account() {
+                _super.call(this);
+            }
+            Account.prototype.toJson = function () {
+                return {
+                    Name: this.name,
+                    OrganizationKey: this.organizationKey
+                };
+            };
+            Account.prototype.fromJson = function (json) {
+                this.name = json.name;
+                this.organizationKey = json.organizationKey;
+            };
+            return Account;
+        })(Common.Models.Storable);
+        Models.Account = Account;
+    })(Models = User.Models || (User.Models = {}));
+})(User || (User = {}));
+/// <reference path='./models.ts' />
+var User;
+(function (User) {
+    var Models;
+    (function (Models) {
+        var AccountUser = (function (_super) {
+            __extends(AccountUser, _super);
+            function AccountUser() {
+                _super.call(this);
+            }
+            AccountUser.prototype.toJson = function () {
+                return {};
+            };
+            AccountUser.prototype.fromJson = function () {
+            };
+            return AccountUser;
+        })(Common.Models.Storable);
+        Models.AccountUser = AccountUser;
+    })(Models = User.Models || (User.Models = {}));
+})(User || (User = {}));
+/// <reference path='./models.ts' />
+var User;
+(function (User) {
+    var Models;
+    (function (Models) {
+        var OrganizationCollection = (function (_super) {
+            __extends(OrganizationCollection, _super);
+            function OrganizationCollection() {
+                _super.call(this);
+            }
+            OrganizationCollection.prototype.toJson = function () {
+                return _super.prototype.toJson.call(this);
+            };
+            OrganizationCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                throw new Error('OrganizationCollection fromJson(): not implemented');
+            };
+            return OrganizationCollection;
+        })(Common.Models.Collection);
+        Models.OrganizationCollection = OrganizationCollection;
+    })(Models = User.Models || (User.Models = {}));
+})(User || (User = {}));
+/// <reference path='./models.ts' />
+var User;
+(function (User) {
+    var Models;
+    (function (Models) {
+        var UserModel = (function (_super) {
+            __extends(UserModel, _super);
+            function UserModel() {
+                _super.call(this);
+                this.firstName = null;
+                this.lastName = null;
+                this.organizationKey = 0;
+                this.organizationName = null;
+                this.invitationType = 1;
+                this.invitationKey = 0;
+                this.email = null;
+                this.recaptchaChallenge = '';
+                this.recaptchaResponse = '';
+            }
+            UserModel.prototype.toJson = function () {
+                return {
+                    FirstName: this.firstName,
+                    LastName: this.lastName,
+                    OrganizationName: this.organizationName,
+                    OrganizationKey: this.organizationKey,
+                    InvitationType: this.invitationType,
+                    InvitationKey: this.invitationKey,
+                    Email: this.email,
+                    RecaptchaChallenge: this.recaptchaChallenge,
+                    RecaptchaResponse: this.recaptchaResponse
+                };
+            };
+            UserModel.prototype.fromJson = function (json) {
+                this.firstName = json.FirstName;
+                this.lastName = json.LastName;
+                this.organizationName = json.OrganizationName;
+                this.email = json.Email;
+            };
+            return UserModel;
+        })(Common.Models.Storable);
+        Models.UserModel = UserModel;
+    })(Models = User.Models || (User.Models = {}));
+})(User || (User = {}));
+/// <reference path='./user.mdl.ts' />
+impakt.user.constant('USER', {
+    'ORG_ENDPOINT': '/configuration',
+    'GET_ORGANIZATIONS': '/getOrganizations'
+});
 /// <reference path='./user.mdl.ts' />
 impakt.user.controller('impakt.user.ctrl', [
     '$scope',
     '$http',
     '$window',
     '__signin',
-    function ($scope, $http, $window, __signin) {
-        console.log('user controller');
+    '_user',
+    function ($scope, $http, $window, __signin, _user) {
+        $scope.userName = _user.userName;
+        $scope.organizationKey = _user.organizationKey;
+        $scope.isOnline = _user.isOnline;
+        $scope.onlineStatus = _user.getOnlineStatusString();
+        $scope.organizations = _user.organizations;
+        $scope.selectedOrganization = _user.selectedOrganization;
+        $scope.$watch('isOnline', function (newVal, oldVal) {
+            $scope.onlineStatus = _user.getOnlineStatusString();
+        });
+        $scope.selectOrganization = function () {
+            _user.selectOrganization($scope.selectedOrganization);
+        };
         $scope.profileClick = function () {
             // TODO
         };
         $scope.logout = function () {
-            __signin.logout();
+            confirm('Are you sure you want to logout? You will lose any unsaved data.') && __signin.logout();
         };
     }]);
+/// <reference path='./user.mdl.ts' />
+impakt.user.service('_user', [
+    'USER',
+    '$window',
+    '$q',
+    '__context',
+    '__api',
+    '__notifications',
+    '__localStorage',
+    function (USER, $window, $q, __context, // TODO @theBull - might not need this after the Alpha
+        __api, __notifications, __localStorage) {
+        this.userName = __localStorage.getUserName();
+        this.organizationKey = __localStorage.getOrganizationKey();
+        this.organizations = new User.Models.OrganizationCollection();
+        this.selectedOrganization = null;
+        this.isOnline = navigator ? navigator.onLine : undefined;
+        var self = this;
+        function init() {
+            self.getOrganizations();
+        }
+        $window.addEventListener("offline", function (e) {
+            console.log('offline');
+            self.isOnline = false;
+        });
+        $window.addEventListener("online", function (e) {
+            console.log('online');
+            self.isOnline = true;
+        });
+        this.selectOrganization = function (organization) {
+            this.selectedOrganization = organization;
+            __localStorage.setOrganizationKey(organization.organizationKey);
+            var notification = __notifications.pending('Updating application context data...');
+            // make application context requests
+            __context.initialize(impakt.context).then(function (results) {
+                notification.success('Successfully updated the application context data');
+            }, function (err) {
+                notification.error('Failed to update the application context data');
+            });
+        };
+        this.getOnlineStatusString = function () {
+            return this.isOnline === true ? "online" :
+                this.isOnline === false ? "offline" : "unknown";
+        };
+        this.getOrganizations = function () {
+            var d = $q.defer();
+            var notification = __notifications.pending('Retrieving Organizations...');
+            __api.get(__api.path(USER.ORG_ENDPOINT, USER.GET_ORGANIZATIONS)).then(function (response) {
+                if (response && response.data && response.data.results) {
+                    var results = response.data.results;
+                    for (var i = 0; i < results.length; i++) {
+                        var result = response.data.results[i];
+                        if (result) {
+                            var organizationModel = new User.Models.Organization();
+                            organizationModel.fromJson(result);
+                            self.organizations.add(organizationModel);
+                        }
+                    }
+                }
+                notification.success(self.organizations.size(), ' Organizations successfully retrieved');
+                d.resolve(self.organizations);
+            }, function (err) {
+                notification.error('Failed to retrieve Organizations');
+                d.reject(err);
+            });
+            return d.promise;
+        };
+        init();
+    }]);
+/// <reference path='../../common/common.ts' />
 //# sourceMappingURL=impakt.js.map

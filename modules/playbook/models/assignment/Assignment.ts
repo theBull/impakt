@@ -7,13 +7,19 @@ module Playbook.Models {
 
 		public routes: Playbook.Models.RouteCollection;
 		public positionIndex: number;
-		public setType: Playbook.Editor.PlaybookSetTypes;
+		public setType: Playbook.Editor.SetTypes;
 
 		constructor() {
 			super(this);
 			this.routes = new Playbook.Models.RouteCollection();
 			this.positionIndex = -1;
-			this.setType = Playbook.Editor.PlaybookSetTypes.Assignment;
+			this.setType = Playbook.Editor.SetTypes.Assignment;
+		}
+
+		public clear(): void {
+			this.routes.forEach(function(route, index) {
+				route.clear();
+			});
 		}
 
 		public erase() {
@@ -39,7 +45,7 @@ module Playbook.Models {
 
 		public toJson(): any {
 			return {
-				routes: this.routes.toJsonArray(),
+				routes: this.routes.toJson(),
 				positionIndex: this.positionIndex,
 				guid: this.guid
 			}

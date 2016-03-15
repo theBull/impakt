@@ -3,7 +3,7 @@
 </div>
 <div class="modal-body">
 	<div class='marginBottom2'>
-	    <input type='text' ng-model='playbookName' 
+	    <input type='text' ng-model='newPlaybookModel.name' 
 	        placeholder='Playbook name?' />
     </div>	
 
@@ -14,7 +14,7 @@
 		    		<input type='radio' 
 		    			ng-model='selectedUnitTypeValue.unitType'
 		    			ng-value='unitType.unitType'
-		    			ng-change='selectUnitType(unitType.unitType)'
+		    			ng-change='selectUnitType(selectedUnitTypeValue.unitType)'
 		    			ng-checked='selectedUnitType.unitType == unitType.unitType'
 		    			name='unitType' />
 		    	</div>
@@ -22,7 +22,8 @@
 	    	</div>
 	    </label>
     </div>
- 	{{selectedUnitType}}
+ 	<!-- {{selectedUnitType.toJson()}} -->
+ 	<!-- {{newPlaybookModel.toJson()}} -->
 
 </div>
 <div class="modal-footer">

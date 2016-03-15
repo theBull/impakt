@@ -26,44 +26,44 @@ function($rootScope: any, _base: any, _playbookEditor: any) {
 			'Toggle menu',
 			Playbook.Editor.ToolActions.ToggleMenu,
 			'menu-hamburger'
-			),
+		),
+		new Playbook.Editor.Tool(
+			'Save',
+			Playbook.Editor.ToolActions.Save,
+			'floppy-disk'
+		),
 		new Playbook.Editor.Tool(
 			'Select',
 			Playbook.Editor.ToolActions.Select,
 			'hand-up',
 			'Select',
 			Playbook.Editor.CursorTypes.pointer,
-			Playbook.Editor.EditorModes.Select,
+			Playbook.Editor.ToolModes.Select,
 			true
 		),
-		new Playbook.Editor.Tool(
-			'Add player',
-			Playbook.Editor.ToolActions.AddPlayer,
-			'user'
-			),
-		new Playbook.Editor.Tool(
-			'Save',
-			Playbook.Editor.ToolActions.Save,
-			'floppy-save'
-			),
-		new Playbook.Editor.Tool(
-			'Zoom in',
-			Playbook.Editor.ToolActions.ZoomIn,
-			'zoom-in'
-			),
-		new Playbook.Editor.Tool(
-			'Zoom out',
-			Playbook.Editor.ToolActions.ZoomOut, 
-			'zoom-out'
-			),
 		new Playbook.Editor.Tool(
 			'Assignment',
 			Playbook.Editor.ToolActions.Assignment,
 			'screenshot',
 			'',
 			Playbook.Editor.CursorTypes.crosshair,
-			Playbook.Editor.EditorModes.Assignment
-			)
+			Playbook.Editor.ToolModes.Assignment
+		),
+		// new Playbook.Editor.Tool(
+		// 	'Add player',
+		// 	Playbook.Editor.ToolActions.AddPlayer,
+		// 	'user'
+		// 	),
+		// new Playbook.Editor.Tool(
+		// 	'Zoom in',
+		// 	Playbook.Editor.ToolActions.ZoomIn,
+		// 	'zoom-in'
+		// 	),
+		// new Playbook.Editor.Tool(
+		// 	'Zoom out',
+		// 	Playbook.Editor.ToolActions.ZoomOut, 
+		// 	'zoom-out'
+		// 	),
 	];
 
 	this.deselectAll = function() {
@@ -106,7 +106,7 @@ function($rootScope: any, _base: any, _playbookEditor: any) {
 		}
 
 		this.setCursor(tool.cursor);
-		this.setEditorMode(tool.editorMode);
+		this.setToolMode(tool.mode);
 	}
 	
 	/*
@@ -135,8 +135,8 @@ function($rootScope: any, _base: any, _playbookEditor: any) {
 		_playbookEditor.setCursor(cursor);
 	}
 
-	this.setEditorMode = function(mode) {
-		_playbookEditor.setEditorMode(mode);
+	this.setToolMode = function(mode) {
+		_playbookEditor.setToolMode(mode);
 	}
 
 

@@ -12,6 +12,10 @@
 	<link href='css/blueprint-util.css' type='text/css' rel='stylesheet' />
 	<link href='css/app.css' type='text/css' rel='stylesheet' />
 
+	<!-- FONT -->
+	<script src="https://use.typekit.net/alt6zfq.js"></script>
+	<script>try{Typekit.load({ async: true });}catch(e){}</script>
+
 	<!-- Libraries -->
 	<script src='js/jquery.min.js'></script>
 	<script src='js/angular.js'></script>
@@ -31,37 +35,207 @@
 </head>
 <body>
 
-	<div class='blueprint col black-bg'>
+	<div class='blueprint col gray-bg-2'>
 		<div class='center' ng-controller='signin.ctrl'>
-			<div class='pad4 height32 width32 light-border-bottom-red light-bg'>
+			
+			<div class='pad4 minHeight32 width50 light-border-bottom-red gray-bg-3 font-white'>
 				
-				<h1>Login</h1>
 				
-				<div class='marginTop2'>
+				<!-- LOGIN -->
+				<div class='col marginRight1' ng-show='showSignin'>
+					<h3>Login</h3>
 					
-					<input 
-						type='text'
-						placeholder='{{data.username}}'
-						name='data.username'
-						ng-model='data.username'
-						required />
-				</div>
-				
-				<div class='marginTop2'>
-				
-					<input 
-						type='password' 
-						placeholder='{{data.password}}'
-						name='data.password'
-						ng-model='data.password'
-						required />
-				</div>
-				
-				<div class='marginTop2'>
-					<button ng-click='signin()'>Signin</button>
+					<div class='marginTop2'>
+						
+						<input 
+							type='text'
+							placeholder='{{signinData.username}}'
+							name='signinData.username'
+							ng-model='signinData.username'
+							required />
+					</div>
+					
+					<div class='marginTop2'>
+					
+						<input 
+							type='password' 
+							placeholder='{{signinData.password}}'
+							name='signinData.password'
+							ng-model='signinData.password'
+							required />
+					</div>
+
+					<div class='marginTop2'>
+
+						<div class='row height3'>
+							
+							<button 
+								ng-click='signin()' 
+								class='red-bg-hover font-white height3 pad light-border'>
+								Signin
+							</button>
+							
+							<div class='marginLeft1 pad'>
+								<span>{{signinMessage}}</span>
+							</div>
+
+						</div>
+					</div>
+					
 				</div>
 
+				<div class='marginTop1 marginBottom1'>
+					<button 
+						ng-click='toggleSignin(true)' 
+						ng-show='showRegister' 
+						class='gray-bg-7-hover font-white height3 pad light-border'>
+						Signin
+					</button>
+
+					<!-- <hr />
+					
+					<button ng-click='toggleRegister(true)' ng-show='showSignin'
+						class='gray-bg-7-hover font-white height3 pad light-border'>Register
+					</button> -->
+				</div>
+
+
+				<!-- REGISTER -->
+				<div class='row' ng-show='showRegister'>
+					<div class='col'>
+						<div class='marginBottom2'>
+							<h3>Register</h3>
+						</div>
+						<stepper>
+
+							<!-- User Info -->
+							<step>
+								<h5>User information</h5>
+								<div class='marginTop2'>
+									<input 
+										type='text'
+										placeholder='First name'
+										ng-model='user.firstName'
+										required />
+								</div>
+								<div class='marginTop2'>
+									<input 
+										type='text'
+										placeholder='Last name'
+										ng-model='user.lastName'
+										required />
+								</div>
+								<div class='marginTop2'>
+									<input 
+										type='text'
+										placeholder='Email'
+										ng-model='user.email'
+										required />
+								</div>
+								<div class='marginTop2'>
+									<input 
+										type='text'
+										placeholder='Organization name'
+										ng-model='user.organizationName'
+										required />
+								</div>
+
+								<div class='marginTop2'>
+									<button ng-click='createUser(next)' 
+										class='red-bg-hover font-white height3 pad light-border'>next</button>
+								</div>
+							</step>
+
+							<!-- Organization info -->
+							<step>
+								<h5>Create organization</h5>
+								<div class='marginTop2'>
+									<!-- <p>name</p> -->
+									<input 
+										type='text'
+										placeholder='Name'
+										ng-model='organization.companyName'
+										required />
+								</div>
+
+								<div class='marginTop2'>
+									<!-- <p>city</p> -->
+									<input 
+										type='text'
+										placeholder='City'
+										ng-model='organization.primaryCity'
+										required />
+								</div>
+								
+								<div class='marginTop2'>
+									<p>state/province</p>
+									<select ng-options='state.name as state.abbreviation for state in states'
+										ng-model='organization.primaryStateProvince'>
+									</select>
+
+								</div>
+
+								<!-- <div class='marginTop2'>
+									<p>
+										2. Create account
+									</p>
+								</div> -->
+
+								<div class='row'>
+									<div class='marginTop2 marginRight1'>
+										<button ng-click='prev()' 
+											class='red-bg-hover font-white height3 pad light-border'>back</button>
+									</div>
+
+									<div class='marginTop2'>
+										<button ng-click='createAccount(next)' 
+											class='red-bg-hover font-white height3 pad light-border'>next</button>
+									</div>
+								</div>
+							</step>
+
+							<step>
+								<!-- <h5>
+									Organization <span class='font-green glyphicon glyphicon-ok'></span> 
+								</h5>
+								<div class='marginLeft2'>
+									<p>{{organization.companyName}}</p>
+									<p>{{organization.primaryCity}}</p>
+									<p>{{organization.primaryStateProvince}}</p>
+								</div> -->
+								<h5>Create account</h5>
+								<div class='marginTop2'>
+									
+									<input 
+										type='text'
+										placeholder='Account name'
+										ng-model='account.name'
+										required />
+								</div>								
+								
+								<div class='row'>
+									<div class='marginTop2 marginRight1'>
+										<button ng-click='prev()' 
+											class='red-bg-hover font-white height3 pad light-border'>back</button>
+									</div>
+
+									<div class='marginTop2'>
+										<button ng-click='createAccount(next)' 
+											class='red-bg-hover font-white height3 pad light-border'>next</button>
+									</div>
+								</div>
+							</step>
+
+						</stepper>
+
+					</div>
+				</div>
+
+
 			</div>
+
+			
+
 		</div>
 	</div>
 </body>

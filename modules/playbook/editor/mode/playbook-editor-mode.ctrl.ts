@@ -9,6 +9,6 @@ function(
 	_playbookEditor: any
 ) {
 
-	$scope.activeCanvas = _playbookEditor.activeCanvas;
+	$scope.canvas = _playbookEditor.canvas;
 	
 }]);

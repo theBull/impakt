@@ -1,0 +1,59 @@
+<div class="modal-header">
+    <h3 class="modal-title">
+        Save &quot;{{formation.name}}&quot;
+    </h3>
+</div>
+<div class="modal-body">
+	
+    <div class='padBottom1'>
+        <span ng-show='formation.modified && !copyFormation'>
+            <div>
+                <span class='glyphicon glyphicon-exclamation-sign'></span>
+                &quot;{{formation.name}}&quot; has been modified. 
+                Clicking save will update the formation <em>anywhere</em> it is used.
+            </div>
+        </span>
+        <span ng-show='!formation.modified && !copyFormation'>
+            No changes
+        </span>
+        <span ng-show='copyFormation'>
+            Clicking save will create a new copy of this formation as &quot;{{formation.name}}&quot;
+        </span>
+    </div>
+
+    <div class='padBottom1'>
+        <div>
+            <strong>Name</strong>
+            <input type='text' ng-model='formation.name' />
+        </div>
+        <div class='padTop1'>
+            <input type='checkbox' 
+                ng-model='copyFormation' 
+                ng-change='copyFormationChange()' />
+            <span>
+                Save as a new copy
+            </span>
+        </div>
+    </div>  
+    
+    <div class='padBottom1'>
+        <span>
+            Unit type:
+            <type-formatter value='{{formation.unitType}}' 
+                type='Playbook.Editor.UnitTypes'>
+            </type-formatter>
+        </span>
+    </div>
+    <div class='padBottom1'>
+        <span class='glyphicon glyphicon-ok'></span>
+        {{formation.placements.size()}} players
+    </div>
+    <div class='padBottom1'>
+        <play-preview></play-preview>
+    </div>
+
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary" type="button" ng-click="ok()">save</button>
+    <button class="btn btn-default" type="button" ng-click="cancel()">cancel</button>
+</div>

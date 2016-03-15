@@ -6,8 +6,9 @@ module Playbook.Models {
 	extends Common.Models.ModifiableCollection<Playbook.Models.Assignment> {
 
 		public unitType: Playbook.Editor.UnitTypes;
-		public setType: Playbook.Editor.PlaybookSetTypes;
+		public setType: Playbook.Editor.SetTypes;
 		public name: string;
+		public key: number;
 
 		// at this point I'm expecting an object literal with data / count
 		// properties, but not a valid AssignmentCollection; Essentially
@@ -19,17 +20,19 @@ module Playbook.Models {
 				for (let i = 0; i < count; i++) {
 					let assignment = new Playbook.Models.Assignment();
 					assignment.positionIndex = i;
-					this.add(assignment.guid, assignment);
+					this.add(assignment);
 				}
 			}
 
-			this.setType = Playbook.Editor.PlaybookSetTypes.Assignment;
+			this.setType = Playbook.Editor.SetTypes.Assignment;
 			this.unitType = Playbook.Editor.UnitTypes.Other;
 			this.name = 'Untitled';
+			this.key = -1;
 		}
 
-		public hasAssignments(): boolean {
-			return this.size() > 0;
+		public copy(): Playbook.Models.AssignmentCollection {
+			console.error('copy Playbook AssignmentCollection not implemented');
+			return null;
 		}
 
 		public toJson(): any {
@@ -37,6 +40,7 @@ module Playbook.Models {
 				unitType: this.unitType,
 				setType: this.setType,
 				guid: this.guid,
+				key: this.key,
 				assignments: super.toJson()
 			}
 		}
@@ -46,6 +50,7 @@ module Playbook.Models {
 				return;
 
 			this.guid = json.guid;
+			this.key = json.key;
 			this.unitType = json.unitType;
 			this.setType = json.setType;
 
@@ -56,20 +61,16 @@ module Playbook.Models {
 				let assignmentModel = new Playbook.Models.Assignment();
 				assignmentModel.fromJson(rawAssignment);
 
-				this.add<Assignment>(
-					assignmentModel.guid,
-					assignmentModel
-				);
+				this.add(assignmentModel);
 			}
 		}
 
 		public getAssignmentByPositionIndex(index: number): Playbook.Models.Assignment {
 			let result = null;
-			if (this.hasAssignments()) {
-				result = this.filterFirst<Playbook.Models.Assignment>(
-					function(assignment) {
-						return assignment.positionIndex == index;
-					});
+			if (this.hasElements()) {
+				result = this.filterFirst(function(assignment) {
+					return assignment.positionIndex == index;
+				});
 			}
 			return result;
 		}

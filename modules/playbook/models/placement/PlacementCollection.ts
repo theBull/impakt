@@ -8,26 +8,33 @@ module Playbook.Models {
 			super();
 		}
 
-		public fromJson(json: any) {
-			if (!json)
+		public fromJson(placements: any) {
+			if (!placements)
 				return;
 
-			this.guid = json.guid;
+			let self = this;
 
-			let placements = json.placements || [];
+			this.empty();
+
 			for (let i = 0; i < placements.length; i++) {
 				let rawPlacement = placements[i];
-				let placementModel = new Playbook.Models.Placement();
+				let placementModel = new Playbook.Models.Placement(null);
 				placementModel.fromJson(rawPlacement);
-				this.add<Playbook.Models.Placement>(
-					placementModel.guid, 
-					placementModel
-				);
+				this.add(placementModel);
 			}
+
+			this.forEach(function(placement, index) {
+				placement.onModified(function() {
+					console.log('placement collection modified: placement:', placement.guid);
+					self.setModified(true);
+				});	
+			});
+
+			this.setModified(true);
 		}
 
 		public toJson(): any {
-			return super.toJsonArray();
+			return super.toJson();
 		}
 	}
 }

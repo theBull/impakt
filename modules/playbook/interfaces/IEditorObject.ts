@@ -4,7 +4,7 @@ module Playbook.Interfaces {
 	export interface IEditorObject {
 		key: any;
 		name: string;
-		type: Playbook.Editor.UnitTypes;
+		unitType: Playbook.Editor.UnitTypes;
 		editorType: Playbook.Editor.EditorTypes;
 		parentRK: number;
 		personnel: Playbook.Models.Personnel;

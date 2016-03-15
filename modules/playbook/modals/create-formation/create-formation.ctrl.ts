@@ -3,31 +3,30 @@
 impakt.playbook.modals.controller('playbook.modals.createFormation.ctrl', 
 ['$scope', 
 '$uibModalInstance', 
-'_playbookBrowser', 
-'playbook',
-'unitType',
+'_playbook',
 function(
 	$scope: any, 
 	$uibModalInstance: any, 
-	_playbookBrowser: any,
-	playbook: any,
-	unitType: any) {
+	_playbook: any) {
 
 	$scope.formation = new Playbook.Models.Formation();
-	$scope.unitType = unitType;
-	$scope.playbook = playbook;
+	$scope.unitTypes = impakt.context.Playbook.unitTypes;
+	$scope.selectedUnitType = $scope.unitTypes.getByUnitType(
+		$scope.formation.unitType
+	);
 
 	$scope.ok = function () {
 
-        $scope.formation.associated.playbooks.push($scope.playbook.guid);
-        $scope.formation.associated.unitTypes.push($scope.unitType.guid);
-        $scope.formation.unitType = $scope.unitType.unitType;
-        $scope.formation.parentRK = $scope.playbook.key;
+        $scope.formation.parentRK = 1;
+        $scope.formation.setDefault();
 
-        console.log($scope.formation.toJson());
+        // TO DO: validate data
         
-		_playbookBrowser.createFormation($scope.formation)
+		_playbook.createFormation($scope.formation)
 		.then(function(createdFormation) {
+
+			// TO DO: navigate to editor with formation
+
 			$uibModalInstance.close(createdFormation);
 		}, function(err) {
 			console.error(err);

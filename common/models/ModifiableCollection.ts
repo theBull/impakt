@@ -3,110 +3,153 @@
 module Common.Models {
 
 	export class ModifiableCollection<T extends Common.Models.Modifiable>
-		extends Common.Models.Collection<T>
 		implements Common.Interfaces.IModifiable {
 		
 		private _modifiable: Common.Models.Modifiable;
+		private _collection: Common.Models.Collection<T>;
+		public guid: string;
 
 		constructor() {
-			super();
 			this._modifiable = new Common.Models.Modifiable(this);
+			this._collection = new Common.Models.Collection<T>();
+			this.guid = this._modifiable.guid;
 		}
-		public setModified(): boolean {
-			return this._modifiable.setModified();
+		public setModified(forciblyModify?: boolean): boolean {
+			return this._modifiable.setModified(forciblyModify === true);
 		}
 		public onModified(callback: Function): void {
+			let self = this;
 			this._modifiable.onModified(callback);
+			this._collection.forEach(function(modifiableItem, index) {
+				modifiableItem.onModified(function() {
+					// child elements modified, 
+					// propegate changes up to the parent
+					self.isModified();
+				});
+			});
 		}
 		public isModified(): void {
 			this._modifiable.isModified();
 		}
+		/**
+		 * When commanding the collection whether to listen, 
+		 * apply the true/false argument to all of its contents as well
+		 * @param {boolean} startListening true to start listening, false to stop
+		 */
+		public listen(startListening: boolean) {
+			
+			this._modifiable.listening = startListening;
+			
+			return this;
+		}
 		public size(): number {
-			return super.size();
+			return this._collection.size();
 		}
 		public isEmpty(): boolean {
-			return super.isEmpty();
+			return this._collection.isEmpty();
 		}
-		public get<T>(key: string | number): T {
-			return super.get<T>(key);
+		public hasElements(): boolean {
+			return this._collection.hasElements();
 		}
-		public getOne<T>(): T {
-			return super.getOne<T>();
+		public get(key: string | number): T {
+			return this._collection.get(key);
+		}
+		public first(): T {
+			return this._collection.first();
+		}
+		public getOne(): T {
+			return this._collection.getOne();
 		}
 		public getIndex(index: number): T {
-			return super.getIndex(index);
+			return this._collection.getIndex(index);
 		}
-		public set<T>(key: string | number, data: T) {
-			super.set<T>(key, data);
+		public set(key: string | number, data: T) {
+			this._collection.set(key, data);
 			this._modifiable.setModified();
+			return this;
 		}
-		public replace<T>(replaceKey: string | number, key: string | number, data: T) {
-			super.replace<T>(replaceKey, key, data);
+		public replace(replaceKey: string | number, data: T) {
+			this._collection.replace(replaceKey, data);
 			this._modifiable.setModified();
+			return this;
 		}
-		public setAtIndex<T>(index: number, data: T) {
-			super.setAtIndex<T>(index, data);
+		public setAtIndex(index: number, data: T) {
+			this._collection.setAtIndex(index, data);
 			this._modifiable.setModified();
+			return this;
 		}
-		public add<T>(key: string | number, data: T) {
-			super.add<T>(key, data);
+		public add(data: T) {
+			this._collection.add(data);
 			this._modifiable.setModified();
+			return this;
 		}
-		public addAtIndex(key: string | number, data: T, index: number) {
-			super.addAtIndex(key, data, index);
+		public addAtIndex(data: T, index: number) {
+			this._collection.addAtIndex(data, index);
 			this._modifiable.setModified();
+			return this;
 		}
 		public append(collection: Common.Models.Collection<T>) {
-			super.append(collection);
+			this._collection.append(collection);
 			this._modifiable.setModified();
+			return this;
 		}
-		public forEach<T>(iterator: Function): void {
-			super.forEach<T>(iterator);
+		public forEach(iterator: Function): void {
+			this._collection.forEach(iterator);
 		}
-		public filter<T>(predicate: Function): T[] {
-			return super.filter<T>(predicate);
+		public hasElementWhich(predicate: Function): boolean {
+			return this._collection.hasElementWhich(predicate);
 		}
-		public filterFirst<T>(predicate: Function): T {
-			return super.filterFirst<T>(predicate);
+		public filter(predicate: Function): T[] {
+			return this._collection.filter(predicate);
 		}
-		public remove<T>(key: string | number): T {
-			let results = super.remove<T>(key); 
+		public filterFirst(predicate: Function): T {
+			return this._collection.filterFirst(predicate);
+		}
+		public remove(key: string | number): T {
+			let results = this._collection.remove(key); 
 			this._modifiable.setModified();
 			return results;
 		}
-		public removeAll<T>(): void {
-			super.removeAll<T>(); 
+		public removeAll(): void {
+			this._collection.removeAll(); 
 			this._modifiable.setModified();
+		}
+		public empty(): void {
+			this.removeAll();
 		}
 		/**
 		 * Allows you to run an iterator method over each item
 		 * in the collection before the collection is completely
 		 * emptied.
 		 */
-		public removeEach<T>(iterator): void {
-			super.removeEach<T>(iterator); 
+		public removeEach(iterator): void {
+			this._collection.removeEach(iterator); 
 			this._modifiable.setModified();
 		}
-		public contains<T>(key: string | number): boolean {
-			return super.contains<T>(key);
+		public contains(key: string | number): boolean {
+			return this._collection.contains(key);
 		}
 		public getAll(): { any?: T } {
-			return super.getAll();
+			return this._collection.getAll();
 		}
 
-		public getLast<T>(): T {
-			return super.getLast<T>();
+		public getLast(): T {
+			return this._collection.getLast();
 		}
-		public toArray<T>(): T[] {
-			return super.toArray<T>();
-		}
-
-		public toJsonArray(): any[] {
-			return super.toJsonArray();
+		public toArray(): T[] {
+			return this._collection.toArray();
 		}
 		
 		public toJson(): any {
-			return super.toJson();
+			return this._collection.toJson();
+		}
+
+		public copy(
+			newElement: Common.Models.ModifiableCollection<T>,
+			context: Common.Models.ModifiableCollection<T>
+		): Common.Models.ModifiableCollection<T> {
+			console.error('ModifiableCollection copy() not implemented');
+			return null;
 		}
 
 	}

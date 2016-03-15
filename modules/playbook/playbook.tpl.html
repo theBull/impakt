@@ -1,24 +1,12 @@
-<div class='row'>
+<div class='row positionRelative'>
+
+	<!-- Sidebar -->
+	<div class='col shrink minWidth3' ui-view='sidebar'></div>
+
+	<!-- Main -->
+	<div class='col' ui-view='main'></div>
+
+	<!-- Details -->
+	<div class='col shrink minWidth3' ui-view='details'></div>
 	
-	<ng-include class='stretchY'
-		ng-attr-src="'modules/playbook/browser/playbook-browser.tpl.html'">
-	</ng-include>
-
-	<div class='col'>
-
-		<!-- <div class='row height3 pad1 black-bg'>
-	 		<div class='col width20'>
-	 			<a href='#/playbook/editor'>Editor</a>
-	 		</div>
-			<div class='col width20'>
-				<a href='#/playbook/layout'>Layout</a>
-			</div>
-		</div> -->
-
-		<div class='col' ui-view></div>
-	</div>
-
-	<ng-include class='stretchY'
-		ng-attr-src="'modules/playbook/details/playbook-details.tpl.html'">
-	</ng-include>
 </div>

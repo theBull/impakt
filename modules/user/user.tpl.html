@@ -1,25 +1,55 @@
 
 <!-- User template -->
-<div class='col'>
-	<div id='main-profile-controls' class='col' 
-		ng-controller='impakt.user.ctrl' ng-init='showUserSettings = false'>
+<div id='main-profile-controls' class='col font-white' 
+		ng-controller='impakt.user.ctrl'>
 		
-		<div class='col positionRelative' ng-click='profileClick(); showUserSettings = !showUserSettings'>
-			<div id='main-profile-image' class='height4 width4 margin'></div>
+		<!-- Profile Image -->
+		<div id='main-profile-image' 
+			class='height10 width10 margin'>
+		</div>
 
-			<div id='main-profile-settings-container' class='col pad1' ng-show='showUserSettings'>
-				<!-- <div id='main-profile-user-fullname' class='marginTop1'>
-					<span class='pointer font-grey'>
-						Coach Brown
-					</span>
-				</div> -->
-				<div id='main-profile-logout'>
-					<span class='pointer font-grey' ng-click='logout()'>
-						logout
-					</span>
-				</div>
+		<div id='main-profile-settings-container' 
+			class='col pad'>
+
+			<div>
+				<h2>Profile name</h2>
 			</div>
 
+			<!-- Organization details -->
+			<div>
+				<p>Organization {{organizationKey}}</p>
+			</div>
+
+			<div class='maxWidth20 marginBottom1'>
+				Choose an organization
+				<select ng-options='organization as organization.companyName for organization in organizations.toArray()' 
+					ng-model='selectedOrganization'
+					ng-change='selectOrganization()'>
+
+				</select>
+			</div>
+
+			<!-- User details -->
+			<div>
+				<p>{{userName}}</p>
+			</div>
+
+			<!-- Online / offline status -->
+			<div>		
+				<p title='You are {{onlineStatus}}'>
+					<span ng-class='{"font-red": !isOnline, "font-green": isOnline}'>
+						{{onlineStatus}}
+					</span>
+				</p>				
+			</div>
+
+			<div class='marginTop2'>
+				<span class='blue-bg-hover pointer pad widthAuto' ng-click='logout()'>
+					logout 
+					<span class='glyphicon glyphicon-log-out'></span>
+				</span>
+			</div>
+			
 		</div>
-	</div>
+
 </div>

@@ -2,4 +2,7 @@
 /**
  * Team constants defined here
  */
- // TODO
+impakt.team.constant('TEAM', {
+    ENDPOINT: '/playbook',
+
+});

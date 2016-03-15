@@ -1,4 +1,4 @@
-/// <reference path='../models.ts' />
+	/// <reference path='../models.ts' />
 
 module Playbook.Models {
 
@@ -13,6 +13,7 @@ module Playbook.Models {
 		public unitType: Playbook.Editor.UnitTypes;
 		public editorType: Playbook.Editor.EditorTypes;
 		public associated: Common.Models.Association;
+		public png: string;
 
 		constructor(name?: string) {
 			super(this);
@@ -23,11 +24,17 @@ module Playbook.Models {
 			this.name = name || 'untitled';
 			this.associated = new Common.Models.Association();
 			this.placements = new Playbook.Models.PlacementCollection();
-			this.setDefault();
+			this.png = null;
+			//this.setDefault();
+		}
+
+		public copy(newFormation?: Playbook.Models.Formation): Playbook.Models.Formation {
+			let copyFormation = newFormation || new Playbook.Models.Formation();
+			return <Playbook.Models.Formation>super.copy(copyFormation, this);
 		}
 
 		public toJson(): any {
-			return {
+			return $.extend(super.toJson(), {
 				name: this.name,
 				key: this.key,
 				parentRK: this.parentRK,
@@ -35,14 +42,17 @@ module Playbook.Models {
 				editorType: this.editorType,
 				guid: this.guid,
 				associated: this.associated.toJson(),
-				placements: this.placements.toJson()
-			}
+				placements: this.placements.toJson(),
+				png: this.png
+			});
 		}
 
 		public fromJson(json: any) {
 			if (!json)
 				return;
 
+			let self = this;
+			super.fromJson(json);
 			this.parentRK = json.parentRK;
 			this.editorType = Playbook.Editor.EditorTypes.Formation;
 			this.name = json.name;
@@ -51,35 +61,45 @@ module Playbook.Models {
 			this.placements.fromJson(json.placements);
 			this.key = json.key;
 			this.associated.fromJson(json.associated);
+			this.png = json.png;
+
+			this.placements.onModified(function() {
+				console.log('formation modified: placement collection:', self.guid);
+				self.setModified(true);
+			});
+
+			this.onModified(function() {
+				console.log('formation modified?', self.modified);
+			});
 		}
 
 		public setDefault() {
 			this.placements.removeAll();
 
-			let p1 = new Playbook.Models.Placement({ x: 26, y: 61});
-			let p2 = new Playbook.Models.Placement({ x: 27.5, y: 61});
-			let p3 = new Playbook.Models.Placement({ x: 24.5, y: 61});
-			let p4 = new Playbook.Models.Placement({ x: 23, y: 61});
-			let p5 = new Playbook.Models.Placement({ x: 29, y: 61});
-			let p6 = new Playbook.Models.Placement({ x: 26, y: 62});
-			let p7 = new Playbook.Models.Placement({ x: 22, y: 62});
-			let p8 = new Playbook.Models.Placement({ x: 10, y: 61});
-			let p9 = new Playbook.Models.Placement({ x: 40, y: 61});
-			let p10 = new Playbook.Models.Placement({ x: 26, y: 64});
-			let p11 = new Playbook.Models.Placement({ x: 26, y: 66});
+			let p1 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(26, 61), 0);
+			let p2 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(27.5, 61), 1);
+			let p3 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(24.5, 61), 2);
+			let p4 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(23, 61), 3);
+			let p5 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(29, 61), 4);
+			let p6 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(26, 62), 5);
+			let p7 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(22, 62), 6);
+			let p8 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(10, 61), 7);
+			let p9 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(40, 61), 8);
+			let p10 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(26, 64), 9);
+			let p11 = new Playbook.Models.Placement(new Playbook.Models.Coordinate(26, 66), 10);
 
 
-			this.placements.add(p1.guid, p1);
-			this.placements.add(p2.guid, p2);
-			this.placements.add(p3.guid, p3);
-			this.placements.add(p4.guid, p4);
-			this.placements.add(p5.guid, p5);
-			this.placements.add(p6.guid, p6);
-			this.placements.add(p7.guid, p7);
-			this.placements.add(p8.guid, p8);
-			this.placements.add(p9.guid, p9);
-			this.placements.add(p10.guid, p10);
-			this.placements.add(p11.guid, p11);
+			this.placements.add(p1);
+			this.placements.add(p2);
+			this.placements.add(p3);
+			this.placements.add(p4);
+			this.placements.add(p5);
+			this.placements.add(p6);
+			this.placements.add(p7);
+			this.placements.add(p8);
+			this.placements.add(p9);
+			this.placements.add(p10);
+			this.placements.add(p11);
 		}
 
 		public isValid(): boolean {

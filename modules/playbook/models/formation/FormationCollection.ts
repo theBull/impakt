@@ -15,6 +15,10 @@ module Playbook.Models {
 			super();
 			this.parentRK = -1;
 			this.unitType = Playbook.Editor.UnitTypes.Other;
+
+			this.onModified(function() {
+				console.log('formation collection modified');
+			});
 		}
 
 		public toJson(): any {
@@ -32,7 +36,7 @@ module Playbook.Models {
 			// this.guid = json.guid || this.guid;
 			// this.unitType = json.unitType || this.unitType;
 			// this.parentRK = json.parentRK || this.parentRK
-
+			let self = this;
 			let formations = json || [];
 			for (let i = 0; i < formations.length; i++) {
 				let rawFormation = formations[i];
@@ -40,10 +44,17 @@ module Playbook.Models {
 				let formationModel = new Playbook.Models.Formation();
 				formationModel.fromJson(rawFormation);
 
-				this.add<Playbook.Models.Formation>(
-					formationModel.guid, formationModel
-				);
+				this.add(formationModel);
 			}
+
+			this.forEach(function(formation, index) {
+				formation.onModified(function() {
+					console.log('formation collection modified: formation');
+					self.setModified(true);
+				});
+			});
+
+
 		}
 	}
 }

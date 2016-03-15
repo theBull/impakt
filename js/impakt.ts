@@ -4,7 +4,9 @@ declare var $: any;
 declare var angular: any;
 declare var Raphael: any;
 declare var async: any;
-declare var sjcl: any;
+declare var objectHash: any;
+declare var LZString: any;
+declare var canvg: any;
 
 // global impakt namespace
 var impakt: any = {};
@@ -35,18 +37,23 @@ impakt.app = angular.module('impakt.app', [
 
 		// impakt module states - should these be module-specific?
 		$stateProvider
-			.state('film', {
-				url: '/film',
-				templateUrl: 'modules/film/film.tpl.html'
-			})
 			.state('team', {
 				url: '/team',
 				templateUrl: 'modules/team/team.tpl.html'
 			})
-			.state('stats', {
-				url: '/stats',
-				templateUrl: 'modules/stats/stats.tpl.html'
+			.state('profile', {
+				url: '/profile',
+				templateUrl: 'modules/user/user.tpl.html'
 			});
+			// TODO @theBull - implement
+			// .state('film', {
+			// 	url: '/film',
+			// 	templateUrl: 'modules/film/film.tpl.html'
+			// })
+			// .state('stats', {
+			// 	url: '/stats',
+			// 	templateUrl: 'modules/stats/stats.tpl.html'
+			// });
 
 		
 
@@ -60,8 +67,9 @@ impakt.app = angular.module('impakt.app', [
 	console.debug('impakt - running');
 
 	// TODO: Change to application/json?
-	$http.defaults.headers.common =
-		{ 'Content-Type': 'application/json' };
+	$http.defaults.headers.common =	{ 
+		'Content-Type': 'application/json'
+	};
 
 	let accessToken = __localStorage.getAccessToken();
 	if (accessToken) {

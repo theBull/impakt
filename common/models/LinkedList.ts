@@ -66,7 +66,7 @@ module Common.Models {
 			}
 		}
 
-		public toJsonArray(): any[] {
+		public toJson(): any[] {
 			let arr = [];
 			this.forEach(function(node, i) {
 				if(node && node.toJson){
@@ -107,6 +107,10 @@ module Common.Models {
 
 		public size(): number {
 			return this._length;
-		}		
+		}	
+
+		public hasElements(): boolean {
+			return this.size() > 0;
+		}	
 	}
 }

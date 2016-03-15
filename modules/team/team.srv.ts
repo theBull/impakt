@@ -2,7 +2,8 @@
 
 // Team service
 impakt.team.service('_team',
-	['$q', 'PLAYBOOK', '__api', function($q: any, PLAYBOOK: any, __api: any) {
+	['$q', 'PLAYBOOK', 'TEAM', '__api', '__notifications',
+	function($q: any, PLAYBOOK: any, TEAM: any, __api: any, __notifications: any) {
 
     this.personnel = impakt.context.Playbook.personnel;
 
@@ -11,10 +12,11 @@ impakt.team.service('_team',
 		createNew?: boolean
     ) {
 		let d = $q.defer();
-
 		let result;
+	
 		if (createNew) {
 			personnelModel.key = 0;
+			personnelModel.guid = Common.Utilities.guid();
 			result = this.createPersonnel(personnelModel);			
 		} else {
 			result = this.updatePersonnel(personnelModel);
@@ -31,6 +33,9 @@ impakt.team.service('_team',
     this.createPersonnel = function(personnelModel: Playbook.Models.Personnel) {
 		let d = $q.defer();
 		let personnelJson = personnelModel.toJson();
+		let notification = __notifications.pending(
+			'Creating personnel group "', personnelModel.name, '"...'
+		);
 		__api.post(
             __api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.CREATE_SET),
             {
@@ -39,7 +44,7 @@ impakt.team.service('_team',
 				parentRK: 1,
 				name: personnelJson.name,
 				data: {
-					setType: Playbook.Editor.PlaybookSetTypes.Personnel,
+					setType: Playbook.Editor.SetTypes.Personnel,
 					personnel: personnelJson,
 					name: personnelJson.name,
 					version: 1,
@@ -53,10 +58,15 @@ impakt.team.service('_team',
 
 			let personnelModel = new Playbook.Models.Personnel();
 			if (results && results.data && results.data.personnel) {
+				results.data.personnel.key = results.key;
 				personnelModel.fromJson(results.data.personnel);
 			}
 
-			impakt.context.Playbook.personnel.add(personnelModel.guid, personnelModel);
+			impakt.context.Playbook.personnel.add(personnelModel);
+
+			notification.success(
+				'Personnel group "', personnelModel.name, '" successfully created'
+			);
 
 			d.resolve(personnelModel);
         }, function(error: any) {
@@ -76,7 +86,7 @@ impakt.team.service('_team',
 				name: personnelJson.name,
 				key: personnelJson.key,
 				data: {
-					setType: Playbook.Editor.PlaybookSetTypes.Personnel,
+					setType: Playbook.Editor.SetTypes.Personnel,
 					personnel: personnelJson,
 					name: personnelJson.name,
 					key: personnelJson.key,
@@ -102,12 +112,13 @@ impakt.team.service('_team',
 		return d.promise;
     }
 
-    this.deletePersonnel = function(personnelModel: Playbook.Models.Personnel) {
+    this.deletePersonnel = function(personnel: Playbook.Models.Personnel) {
 		let d = $q.defer();
 		__api.post(
 			__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.DELETE_SET),
-			{ key: personnelModel.key }
+			{ key: personnel.key }
 		).then(function(response: any) {
+			impakt.context.Playbook.personnel.remove(personnel.guid);
 			d.resolve(response);
 		}, function(err) {
 			d.reject(err);

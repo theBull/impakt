@@ -1,18 +1,26 @@
 
-<div class='col scrollY'>
-	<div class='row marginBottom2 height3'>
-		<!-- <div class='pad height3 width7 red-bg font-white pointer marginRight1'
-			ng-click='test()'>
-			<span class='glyphicon glyphicon-plus'></span> test
-		</div> -->
-		<div class='pad height3 width9 red-bg font-white pointer'
-			ng-click='clearAll()'>
+<div class='col pad scrollY gray-bg-1 font-white'>
+	
+	<div class='marginBottom1'>
+		<h4>Notifications ({{notifications.size()}})</h4>
+	</div>
+
+	<div class='marginBottom1'>
+		<div class='pad height3 width9 red-bg-hover font-white pointer'
+			ng-click='clearAll()'
+			ng-show='notifications.hasElements()'>
 			<span class='glyphicon glyphicon-remove'></span> clear all
 		</div>
+		<div ng-show='notifications.isEmpty()'>
+			<p>You have no notifications.</p>
+		</div>
 	</div>
-	<notification-item ng-repeat='notification in notifications.toArray()'
-		class='pad height3 pointer'
-		type='notification.type'>
-		{{notification.message}}
-	</notification-item>
+	
+	<div class='col heightAuto'>
+		<notification-item ng-repeat='notification in notifications.toArray()'
+			class='pad minHeight3 pointer'
+			type='notification.type'>
+			{{notification.message}}
+		</notification-item>
+	</div>
 </div>

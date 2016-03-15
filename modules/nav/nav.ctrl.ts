@@ -4,80 +4,55 @@ declare var impakt: any;
 
 impakt.nav.controller('nav.ctrl', [
 	'$scope',
-	'$window',
 	'$location',
+	'__nav',
 	'__notifications',
 	function(
 		$scope: any,
-		$window: any,
 		$location: any,
+		__nav: any,
 		__notifications: any) {
-
-		$scope.isOnline = navigator.onLine;
-		$window.addEventListener("offline", function(e) { 
-			console.log('offline');
-			$scope.isOnline = false;
-		});
-		$window.addEventListener("online", function(e) { 
-			console.log('online');
-			$scope.isOnline = true;
-		});
 
 		// Default menu visiblity
 		$scope.isMenuCollapsed = true;
 		$scope.notifications = __notifications.notifications;
-		$scope.menuItems = [
-			{
-				label: 'Playbook',
-				glyphicon: 'book',
-				path: '/playbook',
-				isActive: true
-			},
-			{
-				label: 'Team Management',
-				glyphicon: 'list-alt',
-				path: '/team',
-				isActive: false
-			},
-			{
-				label: 'Film',
-				glyphicon: 'film',
-				path: '/film',
-				isActive: false
-			},
-			{
-				label: 'Stats',
-				glyphicon: 'signal',
-				path: '/stats',
-				isActive: false
-			}
-		];
+
+		$scope.menuItems = __nav.menuItems;
+		$scope.notificationsMenuItem = __nav.notificationsMenuItem;
 
 		// set default view
 		$location.path('/playbook');
 		
 		$scope.navigatorNavSelection = getActiveNavItemLabel();
 
-		$scope.menuVisibilityToggle = function() {
-			$scope.isMenuCollapsed = !$scope.isMenuCollapsed;
+		$scope.notificationItemClick = function() {
+			$scope.notificationsMenuItem.isActive = !$scope.notificationsMenuItem.isActive;
+			$scope.menuVisibilityToggle($scope.notificationsMenuItem, false);
 		}
 
-		$scope.menuItemClick = function(item: any) {
+		$scope.menuVisibilityToggle = function(navigationItem: Navigation.NavigationItem, propagate?: boolean) {
+			$scope.isMenuCollapsed = !$scope.isMenuCollapsed;
+			propagate && $scope.menuItemClick(navigationItem);
+		}
+
+		$scope.menuItemClick = function(navigationItem: Navigation.NavigationItem) {
 			var activeNavItem = getActiveNavItem();
 			if(activeNavItem)
 				activeNavItem.isActive = false;
 
-			item.isActive = true;
-			$location.path(item.path);
-			$scope.navigatorNavSelection = item.label;
+			navigationItem.isActive = true;
+
+			if(navigationItem)
+				$location.path(navigationItem.path);
+
+			$scope.navigatorNavSelection = navigationItem.label;
 		}
 
-		function getActiveNavItem() {
+		function getActiveNavItem(): Navigation.NavigationItem {
 			// pre-assumption, we can only have 1 active menu item
-			var activeItem = $scope.menuItems.filter(function(item: any) {
-				return item.isActive === true;
+			return $scope.menuItems.filterFirst(function(menuItem) {
+				return menuItem.isActive === true;
 			});
-			return activeItem.length > 0 ? activeItem[0] : null;
 		}
 
 		function getActiveNavItemLabel() {

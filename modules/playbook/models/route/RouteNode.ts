@@ -27,10 +27,12 @@ module Playbook.Models {
 	export class RouteNode
 		extends Playbook.Models.FieldElement {
 
-		public context: Playbook.Models.Route;
-		public paper: Playbook.Models.Paper;
-		public grid: Playbook.Models.Grid;
-		public field: Playbook.Models.Field;
+		public context: Playbook.Interfaces.IRoute;
+		public paper: Playbook.Interfaces.IPaper;
+		public grid: Playbook.Interfaces.IGrid;
+		public field: Playbook.Interfaces.IField;
+		public player: Playbook.Interfaces.IPlayer;
+		
 		public node: Common.Models.LinkedListNode<Playbook.Models.RouteNode>;
 		public type: Playbook.Models.RouteNodeType;
 		public action: Playbook.Models.RouteNodeActions;
@@ -49,14 +51,7 @@ module Playbook.Models {
 			coords: Playbook.Models.Coordinate,
 			type: Playbook.Models.RouteNodeType
 		) {
-			super(this);
-
-			if (context) {
-				this.context = context;
-				this.field = this.context.field;
-				this.grid = this.context.grid;
-				this.paper = this.context.paper;
-			}
+			super(context);
 			
 			if(coords) {
 				this.x = coords.x;
@@ -70,7 +65,7 @@ module Playbook.Models {
 					this.cy = this.ay;
 					this.ox = this.ax;
 					this.oy = this.ay;
-					this.radius = this.grid.GRIDSIZE / 4;
+					this.radius = this.grid.getSize() / 4;
 					this.width = this.radius * 2;
 					this.height = this.radius * 2;
 				}
@@ -95,26 +90,23 @@ module Playbook.Models {
 
 			// TODO
 			this.contextmenuTemplateUrl = 'modules/playbook/contextmenus/routeNode/playbook-contextmenus-routeNode.tpl.html';
-
-			// route node has been modified
-			this.setModified();
 		}
 
-		public setContext(context: Playbook.Models.Route) {
+		public setContext(context: Playbook.Interfaces.IRoute) {
 			this.context = context;
 			this.field = this.context.field;
 			this.grid = this.context.grid;
 			this.paper = this.context.paper;
 
 			let coords = new Playbook.Models.Coordinate(this.x, this.y);
-			let absCoords = this.context.grid.getPixelsFromCoordinates(coords);
+			let absCoords = this.grid.getPixelsFromCoordinates(coords);
 			this.ax = absCoords.x;
 			this.ay = absCoords.y;
 			this.cx = this.ax;
 			this.cy = this.ay;
 			this.ox = this.ax;
 			this.oy = this.ay;
-			this.radius = this.grid.GRIDSIZE / 4;
+			this.radius = this.grid.getSize() / 4;
 			this.width = this.radius * 2;
 			this.height = this.radius * 2;
 
@@ -175,7 +167,10 @@ module Playbook.Models {
 
 		public draw() {
 			console.log('draw node');
-			this.raphael = this.context.paper.circle(
+
+			this.clear();
+
+			this.raphael = this.paper.circle(
 				this.x,
 				this.y,
 				this.radius
@@ -208,6 +203,10 @@ module Playbook.Models {
 			}
 		}
 
+		public clear(): void {
+			this.paper.remove(this.raphael);
+		}
+
 		public drawAction() {
 			console.log('drawing action');
 			switch (this.action) {
@@ -238,13 +237,13 @@ module Playbook.Models {
 					this.actionGraphic.height = this.height * 2;
 					this.actionGraphic.ax = this.ax - this.width;
 					this.actionGraphic.ay = this.ay;
-					let pathStr = this.paper.getPathString(true, [
+					let pathStr: string = this.paper.getPathString(true, [
 						this.actionGraphic.ax,
 						this.actionGraphic.ay,
 						this.actionGraphic.ax + (this.width * 2),
 						this.actionGraphic.ay
 					]);
-					this.actionGraphic.raphael = this.context.paper.path(pathStr).attr({
+					this.actionGraphic.raphael = this.paper.path(pathStr).attr({
 						'stroke': 'blue',
 						'stroke-width': 2
 					});
@@ -260,7 +259,7 @@ module Playbook.Models {
 					this.actionGraphic.y = this.y - 0.5;
 					this.actionGraphic.width = this.width * 2;
 					this.actionGraphic.height = this.height * 2;
-					this.actionGraphic.raphael = this.context.paper.rect(
+					this.actionGraphic.raphael = this.paper.rect(
 						this.actionGraphic.x,
 						this.actionGraphic.y,
 						this.actionGraphic.width,
@@ -277,7 +276,7 @@ module Playbook.Models {
 
 		public contextmenuHandler(e: any, self: any) {
 			console.log('route node contextmenu');
-			self.field.canvas.invoke(
+			self.paper.canvas.invoke(
 				Playbook.Editor.CanvasActions.RouteNodeContextmenu,
 				'open route node context menu...',
 				self
@@ -349,8 +348,9 @@ module Playbook.Models {
 				'opacity': 0.2,
 			});
 
-			this.context.context.set.exclude(start.controlPath);
-			this.context.context.set.push(start.controlPath)
+			// this is referring to the player.
+			this.player.set.exclude(start.controlPath);
+			this.player.set.push(start.controlPath)
 		}
 
 		public click(e: any, self: any) {

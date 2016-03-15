@@ -1,12 +1,13 @@
 
-<h4 class='font-white'>Personnel groups</h4>
-
 <div class='panoramic' ng-controller='impakt.team.personnel.ctrl'>
-	<div class='col shrink marginRight4 white-border-top padTop1'>
+	<div class='col shrink marginRight4'>
 		<table class='font-white gray-bg-3'>
 			<thead class='gray-bg-2'>
 				<th class='pad light-border'>
 					name
+				</th>
+				<th class='pad light-border'>
+					id
 				</th>
 				<th class='pad light-border'>
 					unit type
@@ -20,18 +21,20 @@
 			</thead>
 			<tbody>
 				<tr ng-repeat='(guid, personnelItem) in personnelCollection.getAll()'>
-					<td class='pad light-border'>
+					<td class='light-border'>
 						{{personnelItem.name}}
 					</td>
-					<td class='pad light-border'>
-						{{personnelItem.unitType}}
+					<td class='light-border'>
+						{{personnelItem.key}}
 					</td>
-					<td class='pad light-border'>
+					<td class='light-border'>
+						<type-formatter value='{{personnelItem.unitType}}' type='Playbook.Editor.UnitTypes'></type-formatter>
+					</td>
+					<td class='light-border'>
 						{{personnelItem.positions.size()}}
 					</td>
 					<td class='light-border textCenter pointer'>
-						<div class='pad' 
-							ng-click='deletePersonnel(personnelItem)'>
+						<div ng-click='deletePersonnel(personnelItem)'>
 							<span 
 								class='glyphicon glyphicon-remove font-red'
 								title='delete this personnel group'></span>
@@ -86,7 +89,7 @@
 
 		</table>	
 	</div>
-	<div class='col white-border-top'>
+	<div class='col'>
 		<ng-include src='"modules/team/personnel/team-personnel-create.tpl.html"'></ng-include>
 	</div>
 </div>

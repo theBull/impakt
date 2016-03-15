@@ -3,14 +3,16 @@
 module Playbook.Models {
 	export class FieldElement 
 		extends Common.Models.Modifiable
-		implements Playbook.Interfaces.IFieldContext {
+		implements Playbook.Interfaces.IFieldElement {
 		
-		public context: any;
-		public canvas: Playbook.Models.Canvas;
-		public field: Playbook.Models.Field;
-		public paper: Playbook.Models.Paper;
-		public grid: Playbook.Models.Grid;
-		public ball: Playbook.Models.Ball;
+		public context: Playbook.Interfaces.IField | 
+			Playbook.Interfaces.IFieldElement |
+			Playbook.Interfaces.IRoute;
+		public canvas: Playbook.Interfaces.ICanvas;
+		public grid: Playbook.Interfaces.IGrid;
+		public field: Playbook.Interfaces.IField;
+		public paper: Playbook.Interfaces.IPaper;
+
 		public id: number;
 		public guid: string;
 		public name: string;
@@ -49,15 +51,17 @@ module Playbook.Models {
 		public contextmenuTemplateUrl: string;
 
 		constructor(
-			context: Playbook.Interfaces.IFieldContext, 
-			canvas?: Playbook.Models.Canvas
+			context: Playbook.Interfaces.IField | 
+			Playbook.Interfaces.IFieldElement |
+			Playbook.Interfaces.IRoute
 		) { 
 			super(this);
 			this.context = context;
-			this.canvas = canvas || this.context.canvas;
-			this.field = this.context.field;
 			this.paper = this.context.paper;
-			this.grid = this.context.grid;
+			this.canvas = this.paper.canvas;
+			this.field = this.paper.field;
+			this.grid = this.paper.grid;
+
 			this.raphael = null;
 			this.dx = 0;
 			this.dy = 0;
@@ -127,13 +131,13 @@ module Playbook.Models {
 		}
 
 		public getSaveData(): any {
-			console.log('getSaveData() not implemented');
+			//console.log('getSaveData() not implemented');
 		}
 		public draw(...args: any[]): any {
-			console.log('draw() not implemented');
+			//console.log('draw() not implemented');
 		}
 		public getBBoxCoordinates(): any {
-			console.log('getBBoxCoordinates() not implemented');
+			//console.log('getBBoxCoordinates() not implemented');
 		}
 		public mouseDown(fn: any, context: any): void {
 			this.raphael.mousedown(function(e: any) {
@@ -151,10 +155,10 @@ module Playbook.Models {
 			)
 		}
 		public hoverIn(e: any, context?: any): void {
-			console.log('hoverIn() not implemented');
+			//console.log('hoverIn() not implemented');
 		}
 		public hoverOut(e: any, context?: any): void {
-			console.log('hoverOut() not implemented');
+			//console.log('hoverOut() not implemented');
 		}
 		public click(fn: any, context: any): void {
 			//console.log('fieldElement click');
@@ -184,17 +188,17 @@ module Playbook.Models {
 		}
 		public dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void {
 			var currentCoords = new Playbook.Models.Coordinate(this.x, this.y);
-			console.log(this.x, this.y);
+			//console.log(this.x, this.y);
 		}
 		public dragStart(x: number, y: number, e: any): void {
-			console.log('dragStart() not implemented');
+			//console.log('dragStart() not implemented');
 		}
 		public dragEnd(e: any): void {
-			console.log('dragEnd() not implemented');
+			//console.log('dragEnd() not implemented');
 		}
 
 		public drop(): void {
-			console.log('drop element: ', this.ax, this.ay, this.dx, this.dy);
+			//console.log('drop element: ', this.ax, this.ay, this.dx, this.dy);
 			this.ax += this.dx;
 			this.ay += this.dy;
 			this.ox = this.ax;
@@ -209,7 +213,7 @@ module Playbook.Models {
 				this.setCoordinates();
 
 				let attrs;
-				console.log(this.raphael);
+				//console.log(this.raphael);
 				if (this.raphael.type != 'circle') {
 
 					attrs = {

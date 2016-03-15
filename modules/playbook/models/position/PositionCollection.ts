@@ -10,11 +10,16 @@ module Playbook.Models {
 			this.setDefault();
 		}
 
+		public listPositions(): string[] {
+			let arr = [];	
+			this.forEach(function(position: Playbook.Models.Position, index) {
+				arr.push(position.title);
+			});
+			return arr;
+		}
+
 		public toJson(): any {
-			return {
-				guid: this.guid,
-				positions: super.toJson()
-			};
+			return super.toJson();
 		}
 
 		public fromJson(positions: any) {
@@ -28,7 +33,7 @@ module Playbook.Models {
 				let positionModel = new Playbook.Models.Position();
 				positionModel.fromJson(rawPosition);
 
-				this.add<Playbook.Models.Position>(positionModel.guid, positionModel);
+				this.add(positionModel);
 			}
 		}
 

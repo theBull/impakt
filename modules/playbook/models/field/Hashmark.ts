@@ -4,8 +4,10 @@ module Playbook.Models {
 	export class Hashmark extends FieldElement {
 
 		public offset: number;
+		public start: number;
+		public yards: number;
 
-		constructor(context: Playbook.Models.Field, offset?: number) {
+		constructor(context: Playbook.Interfaces.IField, offset?: number) {
 			super(context);
 
 			// hash marks should be -x- grid units from center
@@ -13,17 +15,18 @@ module Playbook.Models {
 
 			this.x = this.grid.getCenter().x + this.offset;
 			this.y = 0;
-			this.width = (this.grid.GRIDSIZE / 2);
+			this.width = (this.grid.getSize() / 2);
 			this.height = 1;
-
+			this.start = 11;
+			this.yards = 110;
 			this.opacity = 0.9;
-			this.color = 'black';
+			this.color = '#ffffff';
 
 		}
 		
 		public draw(): void {
 
-			for (var i = 11; i < 110; i++) {
+			for (var i = this.start; i < this.yards; i++) {
 				this.raphael = this.paper.rect(
 					this.x,
 					i,

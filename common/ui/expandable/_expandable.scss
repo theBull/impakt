@@ -4,9 +4,7 @@ expandable {
 .expandable-handle {
 	position: absolute;
 	background-color: $gray-bg-3;
-	top: 0;
-	right: 0;
-	border-right: 1px solid #111;
+	border: 1px solid #222;
 }
 .expandable-handle-vertical {
 	height: 100%;
@@ -23,5 +21,17 @@ expandable {
 }
 .expandable-handle:hover {
 	background-color: $gray-bg-2;
-	box-shadow: 0 0 10px $blueGlow;
+	box-shadow: 0 0 5px rgba(255, 255, 255, 0.15);
+}
+.expandable-left {
+	border-left: 1px solid #111;
+}
+.expandable-right {
+	border-right: 1px solid #111;
+}
+.expandable-top {
+	border-top: 1px solid #111;
+}
+.expandable-bottom {
+	border-bottom: 1px solid #111;
 }

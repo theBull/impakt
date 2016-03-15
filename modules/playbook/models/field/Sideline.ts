@@ -3,38 +3,29 @@
 module Playbook.Models {
 	export class Sideline extends FieldElement {
 
-		public context: Playbook.Models.Field;
-		public canvas: Playbook.Models.Canvas;
-		public paper: Playbook.Models.Paper;
-		public color: string;
-		public opacity: number;
-		public width: number;
-		public height: number;
-		public x: number;
-		public y: number;
+		public field: Playbook.Interfaces.IField;
 		public offset: number;
 
-		constructor(context: Playbook.Models.Field, offset?: number) {
-			super(context);
+		constructor(
+			field: Playbook.Interfaces.IField, 
+			offset?: number
+		) {
+			super(field);
 
-			this.context = context;
-			this.canvas = this.context.canvas;
-			this.paper = this.context.paper;
-			this.color = '#111111'; //offset ? (offset < 0 ? 'red' : 'green'): 'black';
-
+			this.field = field;
+			this.color = 'white';
 			this.opacity = 1;
-
 			this.x = this.grid.getCenter().x;
 			this.y = 0;
-			this.width = this.grid.GRIDSIZE;
-			this.height = this.paper.height;
+			this.width = this.grid.getSize();
+			this.height = this.grid.getHeight();
 			this.offset = offset || 0;
 		}
-
 		public draw(): void {
 			// adjust the left sideline so that it does not overlap the grid
 			// by shifting it left by its width so that its right edge aligns
 			// with the gridline
+			
 			var bumpX = this.offset < 0 ? -this.width : 0;
 
 			var rect = this.paper.rect(

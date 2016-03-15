@@ -12,6 +12,7 @@ impakt.common = angular.module('impakt.common', [
 	'impakt.common.localStorage',
 	'impakt.common.parser',
 	'impakt.common.signin',
+	'impakt.common.locale',
 	'impakt.common.ui',
 	'impakt.common.notifications'
 ])

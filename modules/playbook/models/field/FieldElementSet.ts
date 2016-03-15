@@ -84,7 +84,7 @@ module Playbook.Models {
 		}
 
 		public dragAll(dx: number, dy: number) {
-			console.log('dragging ' + this.length + ' items');
+			//console.log('dragging ' + this.length + ' items');
 			// for each item in the set, update its drag position
 			for (var i = 0; i < this.items.length; i++) {
 				var item = this.items[i];

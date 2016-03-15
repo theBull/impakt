@@ -36,21 +36,21 @@ module Playbook {
 			static crosshair = 'crosshair';
 		}
 
-		export enum PlaybookSetTypes {
+		export enum SetTypes {
 			None,
 			Personnel,
-			Assignment
+			Assignment,
+			UnitType
 		}
 
 		export enum UnitTypes {
 			Offense,
 			Defense,
 			SpecialTeams,
-			Other,
-			Mixed
+			Other
 		}
 		
-		export enum EditorModes {
+		export enum ToolModes {
 			None,
 			Select,
 			Formation,
@@ -61,10 +61,42 @@ module Playbook {
 		export enum EditorTypes {
 			Formation,
 			Assignment,
-			Play,
-			Set
+			Play
+		}
+
+		export enum PlayTypes {
+			Any,
+			Primary,
+			Opponent
+		}
+
+		/**
+		 * Allows the paper to be scaled/sized differently.
+		 * To specify an initial paper size, for example,
+		 * Paper is initialized with MaxCanvasWidth,
+		 * which causes the paper to determine its width based
+		 * on the current maximum width of its parent canvas. On the
+		 * contrary, the paper can be told to set its width based
+		 * on a given, target grid cell size. For example, if the target
+		 * grid width is 20px and the grid is 50 cols, the resulting
+		 * paper width will calculate to 1000px.
+		 */
+		export enum PaperSizingModes {
+			TargetGridWidth,
+			MaxCanvasWidth,
+			PreviewWidth
 		}
 	}
+}
+
+module Playbook.Constants {
+	export const FIELD_COLS_FULL = 52; 
+	export const FIELD_ROWS_FULL = 120;
+	export const FIELD_COLS_PREVIEW = 52;
+	export const FIELD_ROWS_PREVIEW = 40;
+	export const FIELD_COLOR = '#638148';
+	export const GRID_SIZE = 15;
+	export const GRID_BASE = 10;
 }
 
 module Icon {

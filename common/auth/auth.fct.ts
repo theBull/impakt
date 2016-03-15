@@ -18,7 +18,8 @@
 				let data = [
 					'grant_type=password',
 					'&username=', encodeURIComponent(username),
-					'&Password=', password].join('');
+					'&Password=', password
+				].join('');
 
 				$http.post(
 					__api.path(API.HOST_URL, AUTH.TOKEN_ENDPOINT),
@@ -33,6 +34,12 @@
 					d.reject(err);
 				});
 				return d.promise;
+			}
+
+			function createOrganization(organization: User.Models.Organization) {
+
+				let orgData = organization.toJson();
+
 			}
 
 			return self;

@@ -26,7 +26,7 @@ module Playbook.Models {
 				let routeModel = new Playbook.Models.Route(null);
 				routeModel.fromJson(rawRoute);
 
-				this.add<Playbook.Models.Route>(routeModel.guid, routeModel);
+				this.add(routeModel);
 			}
 		}
 	}

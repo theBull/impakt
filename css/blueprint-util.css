@@ -13,7 +13,7 @@ html, body {
 body { 
 	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 	font-size: 10px; 
-  	line-height: 1;
+  	line-height: 1.2;
   	color: #333333;
   	background-color: #ffffff;
 	display: flex;
@@ -63,7 +63,7 @@ h2 { font-size: 2.5em; line-height: 1.25em; margin-top: -0.2em; margin-bottom: 0
 /*
 *	(Subheader, Entity title)
 */
-h3 { font-size: 1.5em; line-height: 1.22em;  margin-top: -0.3em; margin-bottom: 0.35em; }
+h3 { font-size: 1.5em; line-height: 1.22em;  margin-top: -0.1em; margin-bottom: 0.35em; }
 /*
 *	(Standard page content, body text, list/row contents)
 */
@@ -72,7 +72,7 @@ label { display: block; }
 /*
 *	(Secondary information & content)
 */
-h5 { font-size: 1.2em; line-height: 1.7em; margin-top: -0.5em; margin-bottom: 0.45em; }
+h5 { font-size: 1.2em; line-height: 1.7em; margin-top: -0.3em; margin-bottom: 0.45em; }
 /*
 *	(Section Titles, Column headers)
 */
@@ -109,7 +109,7 @@ input { /* same font-size as <h4> (standard body font) */
 	padding: 0.6em;
 	display: block;
 }
-input[type="text"] {
+input[type="text"], input[type='password'] {
 	width: 100%;
 }
 input[type="checkbox"] {
@@ -260,6 +260,7 @@ a {
 	overflow-x: hidden;
 	overflow-y: hidden;
 	max-height: 100%;
+	max-width: 100%;
 	/*min-height: 100%;*/
 }
 /*.row > div:not(.col) {
@@ -302,24 +303,26 @@ a {
 */
 .grid { 
 	display: flex; 
-	flex-flow: row nowrap;
+	flex-flow: row wrap;
 	justify-content: flex-start; 
 	align-content: flex-start; 
 	align-items: flex-start;
-	align-self: stretch;
+	align-self: flex-start;
 	flex: 1 1 auto;
 	overflow-y: hidden;
+	overflow-x: hidden;
+	max-width: 100%;
 }
-.grid > div {
+/*.grid > div {
 	display: flex;
 	flex-flow: column wrap;
 	align-content: flex-start;
 	align-items: flex-start;
 	justify-content: flext-start;
-	align-self: stretch;
+	align-self: flex-start;
 	flex: 1 1 auto;
 	max-height: 100%;
-}
+}*/
 
 
 /*
@@ -364,7 +367,8 @@ a {
     justify-content: center;
     align-content: center;
     align-items: center;
-	flex: 1 1 auto;
+    align-self: center;
+	flex: 1 0 auto;
 	height: 100%;
 	width: 100%;
 }
@@ -398,7 +402,6 @@ a {
 	display: flex;
 	flex: 0 1 auto !important;
 }
-
 .stretch {
 	align-self: stretch;
 }
@@ -411,6 +414,9 @@ a {
 	display: flex;
 	flex-direction: column;
 	align-self: stretch;
+}
+.holdX {
+	flex: 1 0 auto !important;
 }
 
 /*
@@ -522,6 +528,15 @@ a {
 .zIndexTop {
 	z-index: 1000;
 }
+.ellipsis, li.ellipsis {
+	overflow-x: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.noWordWrap {
+	white-space: nowrap;
+}
+
 
 @media (min-width : 1025px) {
 	.fragment {
@@ -597,6 +612,17 @@ a {
 
 	/* Internet Explorer */
 	filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);
+}
+
+/**
+ * Display
+ */
+.inlineBlock {
+	display: inline-block;
+	vertical-align: top;
+}
+.vert {
+	height: 100%;
 }
 
 

@@ -380,7 +380,9 @@ module Playbook.Models {
 
 			for (let i = 0; i < 11; i++) {
 				let blank = new Playbook.Models.Position(positionSeedData);
-				collection.add(blank.guid, blank);
+				// add an index for the position :]
+				blank.index = i;
+				collection.add(blank);
 			}
 			return collection;
 		}

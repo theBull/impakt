@@ -1,5 +1,5 @@
 /// <reference path='../../playbook.ts' />
-/// <reference path='../../models/field/Canvas.ts' />
+/// <reference path='../../models/canvas/Canvas.ts' />
 /// <reference path='../../../../common/common.ts' />
 /// <reference path='./playbook-editor-canvas.mdl.ts' />
 
@@ -9,23 +9,28 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 	'$rootScope', 
 	'$timeout', 
 	'_base', 
+	'_playPreview',
 	'_playbook',
 	'_playbookEditor',
 	function(
 		$rootScope: any, 
 		$timeout: any, 
 		_base: any, 
+		_playPreview: any,
 		_playbook: any,
 		_playbookEditor: any
 	) {
 		console.debug('service: impakt.playbook.editor.canvas');
 
 		var self = this;
-		this.playbookData = _playbookEditor.playbookData;
+
+		this.activeTab = _playbookEditor.activeTab;
 		this.playbooks = impakt.context.Playbook.playbooks;
+		this.formations = impakt.context.Playbook.formations;
 		this.personnelCollection = impakt.context.Playbook.personnel;
+		this.assignments = impakt.context.Playbook.assignments;
 		this.plays = impakt.context.Playbook.assignments;
-		this.readyCallback = function() { console.log('canvas ready'); }
+		this.readyCallbacks = [function() { console.log('canvas ready'); }]
 
 		this.component = new Common.Base.Component(
 			'_playbookEditorCanvas',
@@ -38,24 +43,44 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 		}
 
 		this.onready = function(callback: Function) {
-			this.readyCallback = callback;
+			this.readyCallbacks.push(callback);
+			_playbookEditor.onready(function() {
+				self.ready();
+			});
 		}
 		this.ready = function() {
-			this.readyCallback();
+			for(let i = 0; i < this.readyCallbacks.length; i++) {
+				this.readyCallbacks[i]();
+			}
+			this.readyCallbacks = [];
 		}
 
 		this.create = function(tab: Playbook.Models.Tab) {
-			let canvas = new Playbook.Models.Canvas(tab.play);
+			// TODO @theBull - implement opponent play
+			let canvas = new Playbook.Models.Canvas(
+				tab.playPrimary,
+				new Playbook.Models.PlayOpponent() 
+			);
 			canvas.tab = tab;
-			_playbookEditor.addCanvas(canvas);
+		}
+
+		this.getActiveTab = function(): Playbook.Models.Tab {
+			this.activeTab = _playbookEditor.activeTab;
+			return this.activeTab;
+		}
+
+		this.hasTabs = function(): boolean {
+			return _playbookEditor.hasTabs();
+		}
+
+		this.toBrowser = function(): void {
+			_playbookEditor.toBrowser();
 		}
 
 		this.initialize = function($element: any, editorType: number, guid: any)
 			: Playbook.Models.Canvas {
 			
-			let canvas = _playbookEditor.canvases[guid];
-
-			self.formations = impakt.context.Playbook.formations;
+			let canvas = _playbookEditor.canvas;
 			
 			// attach listeners to canvas
 			// canvas.listen(
@@ -99,8 +124,6 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 				});
 
 			canvas.initialize($element);
-
-			this.ready();
 			
 			return canvas;			
 		}
@@ -110,30 +133,43 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 		 * Applies the given formation to the field
 		 * @param {Playbook.Models.Formation} formation The Formation to apply
 		 */
-		this.applyFormation = function(formation: Playbook.Models.Formation) {
-			let activeCanvas = _playbookEditor.activeCanvas;
-			activeCanvas.field.applyFormation(formation);
+		this.applyPrimaryFormation = function(formation: Playbook.Models.Formation) {
+			if(canApplyData()) {
+				_playbookEditor.canvas.paper.field.applyPrimaryFormation(formation);	
+			}
 		}
 
 		/**
 		 * Applies the given personnel data to the field
 		 * @param {Playbook.Models.Personnel} personnel The Personnel to apply
 		 */
-		this.applyPersonnel = function(personnel: Playbook.Models.Personnel) {
-			let activeCanvas = _playbookEditor.activeCanvas;
-			activeCanvas.field.applyPersonnel(personnel);
+		this.applyPrimaryPersonnel = function(personnel: Playbook.Models.Personnel) {
+			if(canApplyData()) {
+				_playbookEditor.canvas.paper.field.applyPrimaryPersonnel(personnel);
+			}
 		}
 
 		/**
 		 * Applies the given play data to the field
 		 * @param {Playbook.Models.Play} play The Play to apply
 		 */
-		this.applyPlay = function(play: Playbook.Models.Play) {
-			let activeCanvas = _playbookEditor.activeCanvas;
-			activeCanvas.field.applyPlay(play);
+		this.applyPrimaryPlay = function(playPrimary: Playbook.Models.PlayPrimary) {
+			if(canApplyData()) {
+				_playbookEditor.canvas.paper.field.applyPlayPrimary(playPrimary);	
+			}
 		}
 
-		function getAbsolutePosition(element: Playbook.Models.FieldElement) {
+		function canApplyData(): boolean {
+			if(!_playbookEditor.canvas ||
+				!_playbookEditor.canvas.paper ||
+				!_playbookEditor.canvas.paper.field) {
+				throw new Error('Cannot apply primary formation; canvas, paper, or field is null or undefined');
+				return false;
+			}
+			return true;
+		}
+
+		function getAbsolutePosition(element: Playbook.Models.RouteNode) {
 			
 			let $dom = $(element.raphael.node);
 
@@ -157,13 +193,13 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 			// do something
 		}
 
-		this.activate = function(activateCanvas: Playbook.Models.Canvas) {
-			_playbookEditor.activateCanvas(activateCanvas);
-		}
-
 		this.scrollTo = function(x: number, y: number) {
 			console.log(x, y);
-			this.active.canvas.paper.scroll(x, y);
+			this.canvas.paper.scroll(x, y);
+		}
+
+		this.getEditorTypeClass = function(editorType: Playbook.Editor.EditorTypes) {
+			return _playbookEditor.getEditorTypeClass(editorType);
 		}
 
 
@@ -175,22 +211,22 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 		*
 		*
 		******/
-		$rootScope.$on('playbook-editor-canvas.zoomIn',
-			function(e: any, data: any) {
-				self.active.canvas.paper.zoomIn();
-			});
-
-		$rootScope.$on('playbook-editor-canvas.zoomOut',
-			function(e: any, data: any) {
-				self.active.canvas.paper.zoomOut();
-			});
-
 		// receives command from playbook.editor to create a new canvas
-		$rootScope.$on('playbook-editor-canvas.create', 
+		$rootScope.$on('playbook-editor-canvas.create',
 			function(e: any, tab: Playbook.Models.Tab) {
 				console.log('creating canvas...');
 
 				self.create(tab);
+			});
+
+		$rootScope.$on('playbook-editor-canvas.zoomIn',
+			function(e: any, data: any) {
+				//self.active.canvas.paper.zoomIn();
+			});
+
+		$rootScope.$on('playbook-editor-canvas.zoomOut',
+			function(e: any, data: any) {
+				//self.active.canvas.paper.zoomOut();
 			});
 
 		// receives command from playbook.editor to close canvas
@@ -227,8 +263,6 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 			function(e: any, data: any) {
 				console.info('zoom out');			
 			});
-
-
 
 		init();
 

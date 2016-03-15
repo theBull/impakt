@@ -2,7 +2,6 @@
 * PLAYBOOK EDITOR MODULE
 */
 #playbook-editor-main {
-	background-color: rgb(150, 152, 154);
 	height: 100%;
 }
 
@@ -17,4 +16,5 @@
 @import 
 	'./tabs/playbook-editor-tabs',
 	'./canvas/playbook-editor-canvas',
-	'./tools/playbook-editor-tools';
+	'./tools/playbook-editor-tools',
+	'./details/playbook-editor-details';

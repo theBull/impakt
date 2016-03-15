@@ -3,5 +3,6 @@ module Common.Interfaces {
 		onModified(callback: Function): void;
 		isModified(): void;
 		setModified(): boolean;
+		listen(startListening: boolean): any;
 	}
 }

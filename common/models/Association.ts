@@ -9,33 +9,31 @@ module Common.Models {
 	export class Association
 	extends Common.Models.Modifiable {
 
-		public unitTypes: string[];
-		public playbooks: string[];
-		public formations: string[];
-		public personnel: string[];
-		public assignments: string[];
-		public plays: string[];
+		public playbooks: Common.Models.AssociationArray;
+		public formations: Common.Models.AssociationArray;
+		public personnel: Common.Models.AssociationArray;
+		public assignments: Common.Models.AssociationArray;
+		public plays: Common.Models.AssociationArray;
 		public guid: string;
 		
 		constructor() {
 			super(this);
-			this.unitTypes = [];
-			this.playbooks = [];
-			this.formations = [];
-			this.personnel = [];
-			this.assignments = [];
-			this.plays = [];
+			this.playbooks = new Common.Models.AssociationArray();
+			this.formations = new Common.Models.AssociationArray();
+			this.personnel = new Common.Models.AssociationArray();
+			this.assignments = new Common.Models.AssociationArray();
+			this.plays = new Common.Models.AssociationArray();
 		}
 
 		public toJson(): any {
+			let self = this;
 			return {
-				unitTypes: this.unitTypes,
-				playbooks: this.playbooks,
-				formations: this.formations,
-				personnel: this.personnel,
-				assignments: this.assignments,
-				plays: this.plays,
-				guid: this.guid
+				playbooks: self.playbooks.toJson(),
+				formations: self.formations.toJson(),
+				personnel: self.personnel.toJson(),
+				assignments: self.assignments.toJson(),
+				plays: self.plays.toJson(),
+				guid: self.guid
 			}
 		}
 
@@ -43,12 +41,11 @@ module Common.Models {
 			if (!json)
 				return;
 
-			this.unitTypes = json.unitTypes || this.unitTypes;
-			this.playbooks = json.playbooks || this.playbooks;
-			this.formations = json.formations || this.formations;
-			this.personnel = json.personnel || this.personnel;
-			this.assignments = json.assignments || this.assignments;
-			this.plays = json.plays || this.plays;
+			this.playbooks.addAll(json.playbooks)
+			this.formations.addAll(json.formations)
+			this.personnel.addAll(json.personnel);
+			this.assignments.addAll(json.assignments);
+			this.plays.addAll(json.plays);
 			this.guid = json.guid || this.guid;
 		}
 

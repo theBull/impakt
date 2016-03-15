@@ -2,7 +2,8 @@
 /// <reference path='./team.ts' />
 
 impakt.team = angular.module('impakt.team', [
-	'impakt.team.personnel'
+	'impakt.team.personnel',
+	'impakt.team.unitTypes'
 ])
 .config([function() {
 	console.debug('impakt.team - config');

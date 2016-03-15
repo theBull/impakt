@@ -8,13 +8,9 @@ module Playbook.Models {
 		}
 
 		public getByPlayGuid(guid: string): Playbook.Models.Tab {
-			let results = null;
-			this.forEach(function(tab, index) {
-				if(tab && tab.play && tab.play.guid == guid) {
-					results = tab;
-				}
+			return this.filterFirst(function(tab, index) {
+				return tab.play.guid == guid;
 			});
-			return results;
 		}
 	}
 }

@@ -24,6 +24,7 @@ impakt.common.modals.factory('__modals', [
 			}
 			return $uibModal.open({
 				animation: true,
+				backdrop: true,
 				size: size,
 				templateUrl: templateUrl,
 				controller: controllerName,

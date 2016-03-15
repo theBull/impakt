@@ -16,13 +16,18 @@ $liSub3RedHover: rgba(110, 10, 11, 0.90);
 
 $blueGlow: #22CFA7;
 
-$white: rgba(233, 233, 233, 0.9);
+$white: rgba(255, 255, 255, 0.9);
 $fontWhite: rgba(255, 255, 255, 0.9);
-$fontGrey: rgba(180, 182, 184, 0.9);
+$fontWhiteHover: rgba(255, 255, 255, 0.5);
+$fontGray: rgba(180, 182, 184, 0.9);
+$fontGray1: #111;
 $fontRed: rgb(192, 35, 40);
+$fontGreen: #86BE75;
 
 $lightBackground: rgba(222, 225, 227, 0.9);
 $lightBorderColor: rgba(100, 100, 100, 0.1);
+$lightBorder: 1px solid $lightBorderColor;
+$whiteBorder: 1px solid $white;
 $lightBorderColorRed: rgba(205, 55, 55, 1);
 $darkBackground: rgba(30, 32, 34, 0.9);
 $lightBlueBackground: #3a617e;
@@ -31,11 +36,29 @@ $darkBlueBackground: #29506D;
 $darkBlueBackgroundHover: #18405c;
 $lightGreenBackground: #C3D49B;
 $darkGreenBackground: #7C8764;
+$darkBorderColor: rgba(0, 0, 0, 0.5);
+$darkBorder: 1px solid $darkBorderColor;
+$black: #000000;
+$red: #BB250E;
+$blue: #2A58D2;
+$blue-bg-hover: #336BCB;
+$black-bg: $black;
+$black-bg-hover: #111111;
+$gray-bg-1: #111111;
+$gray-bg-1-hover: #191919;
 $gray-bg-2: #222222;
+$gray-bg-2-hover: #2a2a2a;
 $gray-bg-3: #333333;
+$gray-bg-3-hover: #3b3b3b;
 $gray-bg-4: #444444;
+$gray-bg-4-hover: #4c4c4c;
+$gray-bg-5: #555555;
+$gray-bg-5-hover: #5d5d5d;
 $gray-bg-a: #aaaaaa;
+$gray-bg-a-hover: #b1b1b1;
 $gray-bg-7: #777777;
+$gray-bg-7-hover: #7f7f7f;
+$gray: $gray-bg-3;
 
 
 /* Main site styles */
@@ -43,22 +66,34 @@ body {
 	font-size: $BASE_FONT_SIZE;
 	font-weight: 200;
 	letter-spacing: 1px;
-	background-color: $gray-bg-4;
+	background-color: $black;
+}
+html, h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+	font-family: "acumin-pro", Helvetica, "sans-serif", sans;
+}
+table, tr, td {
+	border: $lightBorder;
+	border-collapse: collapse;
+}
+td {
+	padding: 1em;
 }
 header {
 	width: 100%;
 	margin: 0;
 	padding: 0;
 }
-span {
+span, strong {
 	display: inline-block;
 }
-input, textarea {
-	border: 1px solid $gray-bg-3;
+input, input:-webkit-autofill, textarea {
+	border: 1px solid $gray-bg-1;
 	margin-right: 1px;
 	margin-bottom: 1px;
-	background-color: $gray-bg-3;
-	color: #ffffff;
+	background-color: $gray-bg-2;
+	-webkit-text-fill-color: $fontWhite;
+    -webkit-box-shadow: 0 0 0px 1000px $gray-bg-2 inset;
+	color: $fontWhite;
 }
 input:focus, textarea:focus {
 	outline: 0;
@@ -69,9 +104,13 @@ input[disabled], textarea[disabled], select[disabled] {
 	background-color: $gray-bg-4;
 	border-color: $gray-bg-a;
 }
-input[type="checkbox"] {
+input[type="checkbox"], input[type="radio"] {
 	background-color: $gray-bg-4;
 	border-color: $gray-bg-a;
+	-webkit-box-shadow: none;
+}
+button:focus {
+	outline: 0;
 }
 label {
 	font-weight: 200;
@@ -79,10 +118,12 @@ label {
 select {
 	font-size: $BASE_FONT_SIZE;
 	margin: 1px;
-	border: 0;
+	border: 1px solid $gray-bg-1;
 	outline: 0;
 	height: 3em;
-	background-color: $gray-bg-3;
+	background-color: $gray-bg-2;
+	color: $fontWhite;
+	width: 100%;
 }
 select:focus {
 	outline: 1px solid #000;
@@ -184,16 +225,64 @@ ol > li {
     user-select: none;
 }
 
-/* COLOR CLASSES */
-.gray-bg-2 {
-	background-color: #222222;
+/**
+ * 
+ * COLOR CLASSES
+ * 
+ */
+.circle-bg {
+	border-radius: 0.5em;
+	font-size: 0.9em;
+	text-align: center;
+	padding: 0.25em 0.5em;
+	border: $darkBorder;
 }
-.gray-bg-3 {
-	background-color: #333333;
+.black-bg, .black-bg-hover, .black-circle-bg {
+	background-color: $black-bg;
+}
+.black-bg-hover:hover {
+	background-color: $black-bg-hover;
+}
+.black-circle-bg {
+	color: $white;
+}
+.gray-bg-1, .gray-bg-1-hover {
+	background-color: $gray-bg-1;
+}
+.gray-bg-1-hover:hover {
+	background-color: $gray-bg-1-hover;
+}
+.gray-bg-2, .gray-bg-2-hover {
+	background-color: $gray-bg-2;
+}
+.gray-bg-2-hover:hover {
+	background-color: $gray-bg-2-hover;
+}
+.gray-bg-3, .gray-bg-3-hover {
+	background-color: $gray-bg-3;
 }
 .gray-bg-3-hover:hover {
-	background-color: #444444;
+	background-color: $gray-bg-3-hover;
 }
+.gray-bg-4, .gray-bg-4-hover {
+	background-color: $gray-bg-4;
+}
+.gray-bg-4-hover:hover {
+	background-color: $gray-bg-4-hover;
+}
+.gray-bg-5, .gray-bg-5-hover {
+	background-color: $gray-bg-5;
+}
+.gray-bg-5-hover:hover {
+	background-color: $gray-bg-5-hover;
+}
+.gray-bg-7, .gray-bg-7-hover {
+	background-color: $gray-bg-7;
+}
+.gray-bg-7-hover:hover {
+	background-color: $gray-bg-7-hover;
+}
+
 .black-gradient-bg {
 	background: rgb(69,72,77); /* Old browsers */
 	background: -moz-linear-gradient(top,  rgba(69,72,77,1) 0%, rgba(0,0,0,1) 100%); /* FF3.6+ */
@@ -207,20 +296,30 @@ ol > li {
 .black-gradient-bg-hover:hover {
 	background-color: #010203;
 }
-.black-bg {
-	background-color: #000000;
-}
+
 .light-bg {
 	background-color: $lightBackground;
 }
 .dark-bg {
 	background-color: $darkBackground;
 }
-.red-bg, .red-bg-hover {
-	background-color: #BB250E;
+.red-bg, .red-bg-hover, .red-circle-bg {
+	background-color: $red;
 }
 .red-bg-hover:hover {
 	background-color: #AA0000;
+}
+.red-circle-bg {
+	color: $white;
+}
+.blue-bg, .blue-bg-hover, .blue-circle-bg {
+	background-color: $blue;
+}
+.blue-bg-hover:hover {
+	background-color: $blue-bg-hover;
+}
+.blue-circle-bg {
+	color: $white;
 }
 .light-blue-bg {
 	background-color: $lightBlueBackground;
@@ -261,8 +360,29 @@ ol > li {
 .light-border-left-red {
 	border-left: 1px solid $lightBorderColorRed;
 }
+.dark-border {
+	border: $darkBorder;
+}
+.dark-border-top {
+	border-top: $darkBorder;
+}
+.dark-border-bottom {
+	border-bottom: $darkBorder;
+}
+.dark-border-left {
+	border-left: $darkBorder;
+}
+.dark-border-right {
+	border-right: $darkBorder;
+}
+.white-bg, .white-circle-bg {
+	background-color: $white;
+}
+.white-circle-bg {
+	color: $black;
+}
 .white-border {
-	border: 1px solid $white;
+	border: $whiteBorder;
 }
 .white-border-top {
 	border-top: 1px solid $white;
@@ -279,20 +399,47 @@ ol > li {
 .white-border-left-red {
 	border-left: 1px solid $white;
 }
+.gray-border {
+	border: 1px solid $gray;
+}
+.gray-border-top {
+	border-top: 1px solid $gray;
+}
+.gray-border-bottom {
+	border-bottom: 1px solid $gray;
+}
+.gray-border-bottom-red {
+	border-bottom: 1px solid $gray;
+}
+.gray-border-left {
+	border-left: 1px solid $gray;
+}
+.gray-border-left-red {
+	border-left: 1px solid $gray;
+}
 
 /*
 *
 *	FONT
 *
  */
-.font-white {
+.font-white, .font-white-hover {
 	color: $fontWhite;
 }
-.font-grey {
-	color: $fontGrey;
+.font-white-hover:hover {
+	color: $fontWhiteHover;
+}
+.font-gray {
+	color: $fontGray;
+}
+.font-gray-1 {
+	color: $fontGray1;
 }
 .font-red {
 	color: $fontRed;
+}
+.font-green {
+	color: $fontGreen;
 }
 .no-highlight, 
 text.no-highlight, 

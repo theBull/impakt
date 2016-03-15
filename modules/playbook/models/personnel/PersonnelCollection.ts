@@ -6,13 +6,13 @@ module Playbook.Models {
 	extends Common.Models.ModifiableCollection<Playbook.Models.Personnel> {
 
 		public unitType: Playbook.Editor.UnitTypes;
-		public setType: Playbook.Editor.PlaybookSetTypes;
+		public setType: Playbook.Editor.SetTypes;
 		public guid: string;
 
 		constructor() {
 			super();
 			this.unitType = Playbook.Editor.UnitTypes.Other;
-			this.setType = Playbook.Editor.PlaybookSetTypes.Personnel;
+			this.setType = Playbook.Editor.SetTypes.Personnel;
 			this.guid = Common.Utilities.guid();
 		}
 
@@ -39,9 +39,7 @@ module Playbook.Models {
 				let personnelModel = new Playbook.Models.Personnel();
 				personnelModel.fromJson(rawPersonnel);
 
-				this.add<Playbook.Models.Personnel>(
-					personnelModel.key, personnelModel
-				);
+				this.add(personnelModel);
 			}
 		}
 	}

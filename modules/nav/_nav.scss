@@ -7,10 +7,6 @@
 #impakt-navigator header {
 	
 }
-#impakt-navigator nav {
-	border-right: 1px solid #000;
-	color: #fff;
-}
 #impakt-navigator-nav ul,
 #impakt-navigator-nav li {
 	list-style-type: none;
@@ -21,14 +17,6 @@
 #impakt-navigator-nav li {
 	cursor: pointer;
 	text-align: center;
-}
-#impakt-navigator-nav li.active,
-#impakt-navigator-nav li.active:hover {
-	color: #fff;
-}
-#impakt-navigator-nav li:hover {
-	background-color: #555;
-	color: #ddd;
 }
 #impakt-navigator-nav .nav-item-icon {
 	border-radius: 50%;
@@ -41,14 +29,4 @@
 	background-color: #434343;
 	color: #fff;
 	position: relative;
-}
-#impakt-navigator-container {
-	border-right: 4px solid #000;
-}
-#impakt-navigator-view {
-	color: #505050;
-	background-color: #c8c8c8;
-}
-#impakt-navigator-playbook .k-treeview .k-in {
-	padding: 5px;
 }

@@ -8,17 +8,35 @@ module Playbook.Models {
 		public guid: string = Common.Utilities.guid();
 		public key: number;
 		public active: boolean = true;
-		public play: Playbook.Models.Play;
-		public type: Playbook.Editor.UnitTypes;
-		public editorType: Playbook.Editor.EditorTypes;
+		public playPrimary: Playbook.Models.PlayPrimary;
+		public playOpponent: Playbook.Models.PlayOpponent;
+		public unitType: Playbook.Editor.UnitTypes;
 		public canvas: Playbook.Models.Canvas;
 
-		constructor(play: Playbook.Models.Play) {
-			this.play = play;
-			this.key = play.key;
-			this.type = play.type;
-			this.editorType = play.editorType;
-			this.title = play.name;
+		private _closeCallbacks: Array<Function>;
+
+		constructor(
+			playPrimary: Playbook.Models.PlayPrimary,
+			playOpponent: Playbook.Models.PlayOpponent
+		) {
+			this.playPrimary = playPrimary;
+			this.key = this.playPrimary.key;
+			this.unitType = this.playPrimary.unitType;
+			this.title = this.playPrimary.name;
+
+			this._closeCallbacks = [function() {
+				console.log('tab closed', this.guid);
+			}];
+		}
+
+		public onclose(callback: Function): void {
+			this._closeCallbacks.push(callback);
+		}
+
+		public close(): void {
+			for(var i = 0; i < this._closeCallbacks.length; i++) {
+				this._closeCallbacks[i]();
+			}
 		}
 	}
 }

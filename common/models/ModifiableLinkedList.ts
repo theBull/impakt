@@ -25,8 +25,8 @@ module Common.Models {
 			super.forEach(iterator);
 		}
 
-		public toJsonArray(): any[] {
-			return super.toJsonArray();
+		public toJson(): any[] {
+			return super.toJson();
 		}
 
 		public toDataArray<T>(): T[] {
@@ -49,6 +49,10 @@ module Common.Models {
 
 		public size(): number {
 			return super.size();
-		}		
+		}
+
+		public hasElements(): boolean {
+			return super.hasElements();
+		}	
 	}
 }

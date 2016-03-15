@@ -1,7 +1,29 @@
 /// <reference path='../js/impakt.ts' />
 
 module Common {
+	export module API {
+		export enum Actions {
+			Nothing,
+			Create,
+			Overwrite,
+			Copy
+		}
+	}
 	export module Base {
+
+		/**
+		 * The Common.Base.Component class allows you to dynamically
+		 * track when angular controllers, services, factories, etc. are
+		 * being loaded as dependencies of one another. 
+		 *
+		 * TODO: Investigate this further; I implemented this early on
+		 * during development and may not have had a firm grasp on 
+		 * the loading order of various angular components. I didn't 
+		 * really take clear note of why I implemented this in the first place;
+		 * I believe it was necessary. I just need to validate my initial
+		 * assumptions.
+		 * 
+		 */
 		export class Component {
 
 			public type: ComponentType;
@@ -114,7 +136,102 @@ module Common {
 	}
 
 	export class Utilities {
+
+		public static exportToPng(canvas: Playbook.Interfaces.ICanvas, svgElement: HTMLElement)
+		: string {
+			if(!svgElement)
+				throw new Error('play-preview: Corresponding SVG element not found');
+
+			// Serialize the SVG XML into a string
+			let svgString = Common.Utilities.serializeXMLToString(svgElement);
+			
+			// canvg javascript library takes the canvas HTML element and the SVG
+			// in string form
+			canvg(canvas.exportCanvas, svgString);
+
+			// the exportCanvas is a <canvas/> element, which possesses a method
+			// to export its data as a PNG data URL
+			let pngDataURI = canvas.exportCanvas.toDataURL("image/png");
+			
+			return pngDataURI;
+		}
+
+		/**
+		 * Compresses the given SVG element into a compressed string
+		 * @param  {HTMLElement} svg SVG element to handle
+		 * @return {string}          the compressed SVG string
+		 */
+		public static compressSVG(svg: HTMLElement): string {
+			let serialized = Common.Utilities.serializeXMLToString(svg);
+			let encoded = Common.Utilities.toBase64(serialized);
+			
+			// TODO: NEED TO FIX COMPRESSION ISSUE. USING THIS METHOD CAUSES 
+			// THE COMPRESSED CHARACTERS (NON UTF-8) TO BE CONVERTED TO '?'
+			// WHICH BREAKS PARSING
+			//return Common.Utilities.compress(encoded);
+			return encoded;
+		}
+
+		/**
+		 * Compresses the given string
+		 * @param  {string} svg String to compress
+		 * @return {any}        a compressed svg string
+		 */
+		public static compress(str: string): string {
+			return LZString.compress(str);
+		}
+
+		/**
+		 * Takes a compressed SVG data and decompresses it
+		 * @param  {string} compressed The compressed SVG data to decompress 
+		 * @return {string}            The decompressed string of SVG
+		 */
+		public static decompressSVG(compressed: string): string {
+			// TO-DO: COMPRESSION BROKEN; SEE COMPRESSSVG ABOVE FOR NOTES
+			//let decompressed = Common.Utilities.decompress(compressed);
+			//return Common.Utilities.fromBase64(decompressed); 
+			
+			return Common.Utilities.fromBase64(compressed);
+		}
+
+		/**
+		 * Decompresses the given string
+		 * @param  {string} compressed The (compressed) string to decompress
+		 * @return {string}            the decompressed string
+		 */
+		public static decompress(compressed: string): string {
+			return LZString.decompress(compressed);
+		}
+
+		/**
+		 * Encodes the given string of SVG into base64
+		 * @param  {string} svgString svg string
+		 * @return {string}           base64 encoded svg string
+		 */
+		public static toBase64(str: string): string {
+			return window.btoa(str);
+		}
+
+		/**
+		 * Decodes the given base64 encoded svg string
+		 * @param  {string} base64Svg base64 encoded svg string
+		 * @return {string}           decoded svg string
+		 */
+		public static fromBase64(str: string): string {
+			return window.atob(str);
+		}
+
+		/**
+		 * Converts the given SVG HTML element into a string
+		 * @param  {HTMLElement} svg Element to convert to string
+		 * @return {string}          returns the stringified SVG element
+		 */
+		public static serializeXMLToString(xml: any): string {
+			return (new XMLSerializer()).serializeToString(xml);
+		}
+		
 		public static parseData(data) {
+			
 			for (let i = 0; i < data.length; i++) {
 				try {
 					data[i].data = JSON.parse(data[i].data);
@@ -143,15 +260,18 @@ module Common {
 
 			// capitalize the first letter - as an example.
 			if (capitalizeFirst)
-				result = (result.charAt(0).toUpperCase() + result.slice(1)).trim();
+				result = Common.Utilities.sentenceCase(result);
 
 			return result;
+		}
+		public static sentenceCase(str: string) {
+			return (str.charAt(0).toUpperCase() + str.slice(1)).trim();
 		}
 		public static convertEnumToList(obj) {
 			let list = {};
 			for (let key in obj) {
 				if (!isNaN(key)) {
-					list[key] = Common.Utilities.camelCaseToSpace(obj[key], true);
+					list[parseInt(key)] = Common.Utilities.camelCaseToSpace(obj[key], true);
 				}
 			}
 			return list;
@@ -244,7 +364,32 @@ module Common {
 		 * @param {any} json The object to be hashed
 		 */
 		public static generateChecksum(json: any) {
-			return sjcl.hash.sha256.hash(JSON.stringify(json));
+			return objectHash(json, {});
+		}
+
+		private static prepareObjectForEncoding(obj) {
+			let output = null;
+			if(Array.isArray(obj)) {
+				let arr = obj;
+				for (let i = 0; i < arr.length; i++) {
+					let arrItem = arr[i];
+					output = Common.Utilities.prepareObjectForEncoding(arrItem);
+				}				
+			} else {
+				let keys = Object.keys(obj).sort();
+				output = [];
+				let prop;
+				for (var i = 0; i < keys.length; i++) {
+					prop = keys[i];
+					output.push(prop);
+					output.push(obj[prop]);
+				}
+			}
+		    return output;
 		}
 	}
+}
+
+module Common.UI {
+	export const SCROLL_BAR_SIZE = 12;
 }

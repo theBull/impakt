@@ -10,7 +10,7 @@ impakt.team.personnel.controller('impakt.team.personnel.ctrl', [
 		$scope.personnel = _team.personnel.getOne() || new Playbook.Models.Personnel();
 		$scope.selectedPersonnel = { 
 			guid: $scope.personnel.guid,
-			unitType: $scope.personnel.unitType
+			unitType: $scope.personnel.unitType.toString()
 		};
 		$scope.unitTypes = Playbook.Models.UnitType.getUnitTypes();
 		let positionDefault = new Playbook.Models.PositionDefault();
@@ -37,7 +37,7 @@ impakt.team.personnel.controller('impakt.team.personnel.ctrl', [
 			if ($scope.selectedPersonnel.guid) {
 				$scope.personnel = null;
 				$scope.personnel = $scope.personnelCollection.get($scope.selectedPersonnel.guid);
-				$scope.selectedPersonnel.unitType = $scope.personnel.unitType;
+				$scope.selectedPersonnel.unitType = $scope.personnel.unitType.toString();
 				$scope.positionOptions = positionDefault.getByUnitType($scope.personnel.unitType);
 			}
 		}
@@ -55,7 +55,7 @@ impakt.team.personnel.controller('impakt.team.personnel.ctrl', [
 				position.positionListValue
 			);
 			console.log(position, updated);
-			$scope.personnel.positions.replace(position.guid, updated.guid, updated);
+			$scope.personnel.positions.replace(position.guid, updated);
 		}
 
 		$scope.save = function() {

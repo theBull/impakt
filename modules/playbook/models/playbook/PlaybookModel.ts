@@ -7,23 +7,26 @@ module Playbook.Models {
 
 		public key: number;
 		public name: string;
-		public unitType: Playbook.Editor.UnitTypes;
+		public associated: Common.Models.Association;
 		public active: boolean;
+		public unitType: Playbook.Editor.UnitTypes;
 
 		constructor() {
 			super(this);
 			this.key = -1;
 			this.name = 'Untitled';
-			this.unitType = Playbook.Editor.UnitTypes.Other;
+			this.associated = new Common.Models.Association();
 			this.active = false;			
+			this.unitType = Playbook.Editor.UnitTypes.Other;
 		}
 
 		public toJson(): any {
 			return {
 				key: this.key,
 				name: this.name,
-				unitType: this.unitType,
+				associated: this.associated.toJson(),
 				active: this.active,
+				unitType: this.unitType,
 				guid: this.guid
 			}
 		}
@@ -34,9 +37,11 @@ module Playbook.Models {
 			
 			this.key = json.key || this.key;
 			this.name = json.name || this.name;
-			this.unitType = json.type || this.unitType;
 			this.active = json.active || this.active;
+			this.unitType = json.unitType || this.unitType;
 			this.guid = json.guid || this.guid;
+			if (json.associated)
+				this.associated.fromJson(json.associated);
 		}
 
 	}

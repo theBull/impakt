@@ -9,6 +9,7 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas',
 	'$templateCache',
 	'$timeout',
 	'__contextmenu',
+	'_playPreview',
 	'_playbookEditorCanvas', 
 	'_scrollable',
 	function(
@@ -17,6 +18,7 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas',
 		$templateCache: any, 
 		$timeout: any,
 		__contextmenu: any,
+		_playPreview: any,
 		_playbookEditorCanvas: any,
 		_scrollable: any
 	) {
@@ -37,6 +39,7 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas',
 
 			$timeout(function() {
 				
+				// $timeout NOTE:
 				// wrapping this step in a timeout due to a DOM rendering race.
 				// The angular ng-show directive kicks in when activating/
 				// deactivating the tabs, and the .col class (css-flex)
@@ -44,15 +47,20 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas',
 				// This timeout lets all of that finish before intializing
 				// the canvas; the canvas requires an accurate $element height
 				// value in order to get its proper dimensions.
-				
+			
 				let canvas = _playbookEditorCanvas.initialize(
 					$element, editorType, key
 				);
 				canvas.setScrollable(_scrollable);
 
-
 				_scrollable.onready(function(content) {
 					_scrollable.scrollToPercentY(0.5);
+					_playPreview.setViewBox(
+						canvas.paper.x,
+						canvas.paper.y,
+						canvas.paper.canvas.width, 
+						canvas.paper.canvas.height
+					);
 				});
 
 				_scrollable.initialize(

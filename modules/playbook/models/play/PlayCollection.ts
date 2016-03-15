@@ -9,6 +9,8 @@ module Playbook.Models {
 			super();
 		}
 
+		
+
 		public addAllRaw(plays: any[]) {
 			if (!plays)
 				plays = [];
@@ -22,7 +24,7 @@ module Playbook.Models {
 				let playModel = new Playbook.Models.Play();
 				playModel.fromJson(rawPlay);
 
-				this.add<Play>(rawPlay.key, playModel);
+				this.add(playModel);
 
 			}
 		}

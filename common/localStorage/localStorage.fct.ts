@@ -13,6 +13,7 @@ impakt.common.localStorage.factory('__localStorage', [
 			getAccessTokenExpiration: getAccessTokenExpiration,
 			getUserName: getUserName,
 			getOrganizationKey: getOrganizationKey,
+			setOrganizationKey: setOrganizationKey,
 			isDefaultEditorInfoSet: isDefaultEditorInfoSet, 
 
 			getDefaultEditorInfo: getDefaultEditorInfo,
@@ -71,11 +72,42 @@ impakt.common.localStorage.factory('__localStorage', [
 		function getAccessTokenExpiration() {
 			return localStorage.getItem(LOCAL_STORAGE.ACCESS_TOKEN_EXPIRES);
 		}
-		function getUserName() {
-			return localStorage.getItem(LOCAL_STORAGE.USER_NAME);
+
+		/**
+		 * Returns the username stored in localStorage, if it exists, otherwise throws
+		 * an exception.
+		 * 
+		 * @return {string} the username (email) stored in local storage
+		 */
+		function getUserName(): string {
+			let userName = localStorage.getItem(LOCAL_STORAGE.USER_NAME);
+			if(!userName)
+				throw new Error('__localStorage getUserName(): user name could not be found!');
+
+			return userName;
 		}
-		function getOrganizationKey() {
-			return localStorage.getItem(LOCAL_STORAGE.ORGANIZATION_KEY);
+		/**
+		 * Retrieves the current logged in user's organization key from local storage,
+		 * throws an exception if it doesn't exist.
+		 *
+		 * @return {number} The organization key
+		 */
+		function getOrganizationKey(): number {
+			let orgKey = localStorage.getItem(LOCAL_STORAGE.ORGANIZATION_KEY);
+			if(!orgKey)
+				throw new Error('__localStorage getOrganizationKey(): organization key could not be found!');
+
+			return parseInt(orgKey);
+		}
+		/**
+		 * Sets the current organization key
+		 * @param {number} organizationKey the organization key
+		 */
+		function setOrganizationKey(organizationKey: number): void {
+			if(isNaN(organizationKey))
+				throw new Error('__localStorage setOrganizationKey(): Failed to set organization key ' + organizationKey);
+			
+			localStorage.setItem(LOCAL_STORAGE.ORGANIZATION_KEY, organizationKey.toString());
 		}
 		function setAccessToken(data: any) {
 			self.setItem(LOCAL_STORAGE.ACCESS_TOKEN, data['access_token']);

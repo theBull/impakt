@@ -6,7 +6,7 @@ module Playbook.Editor {
 		glyphicon: Icon.Glyphicon = new Icon.Glyphicon();
 		action: Playbook.Editor.ToolActions = ToolActions.Nothing;
 		cursor: string;
-		editorMode: Playbook.Editor.EditorModes;
+		mode: Playbook.Editor.ToolModes;
 		selected: boolean;
 
 		constructor(
@@ -15,7 +15,7 @@ module Playbook.Editor {
 			glyphiconIcon?: string,
 			tooltip?: string,
 			cursor?: string,
-			editorMode?: Playbook.Editor.EditorModes,
+			mode?: Playbook.Editor.ToolModes,
 			selected?: boolean
 		) {
 
@@ -24,7 +24,7 @@ module Playbook.Editor {
 			this.tooltip = tooltip || this.tooltip;
 			this.glyphicon.icon = glyphiconIcon || this.glyphicon.icon;
 			this.cursor = cursor || Playbook.Editor.CursorTypes.pointer;
-			this.editorMode = editorMode || Playbook.Editor.EditorModes.Select;
+			this.mode = mode || Playbook.Editor.ToolModes.Select;
 			this.selected = selected || false;
 		}
 	}

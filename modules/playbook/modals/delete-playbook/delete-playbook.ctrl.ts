@@ -2,17 +2,20 @@
  
 impakt.playbook.modals.controller('playbook.modals.deletePlaybook.ctrl', 
 [
-'$scope', '$uibModalInstance', '_playbookBrowser', 'playbook',
+'$scope', 
+'$uibModalInstance', 
+'_playbook', 
+'playbook',
 function(
 	$scope: any, 
 	$uibModalInstance: any, 
-	_playbookBrowser: any, 
+	_playbook: any, 
 	playbook: any) {
 
 	$scope.playbook = playbook;
 
 	$scope.ok = function () {
-		_playbookBrowser.deletePlaybook($scope.playbook)
+		_playbook.deletePlaybook($scope.playbook)
 		.then(function(results) {
 			$uibModalInstance.close(results);
 		}, function(err) {

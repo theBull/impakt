@@ -2,10 +2,10 @@
  
 impakt.playbook.modals.controller('playbook.modals.createPlaybook.ctrl', 
 [
-'$scope', '$uibModalInstance', '_playbookBrowser',
-	function($scope: any, $uibModalInstance: any, _playbookBrowser: any) {
+'$scope', '$uibModalInstance', '_playbook',
+	function($scope: any, $uibModalInstance: any, _playbook: any) {
 
-	$scope.playbookName = '';
+	$scope.newPlaybookModel = new Playbook.Models.PlaybookModel();
 	$scope.unitType = Playbook.Editor.UnitTypes.Other;
 	$scope.unitTypes = impakt.context.Playbook.unitTypes;
 	$scope.selectedUnitType = $scope.unitTypes.getByUnitType($scope.unitType);
@@ -15,7 +15,10 @@ impakt.playbook.modals.controller('playbook.modals.createPlaybook.ctrl',
 	}
 
 	$scope.ok = function () {
-		_playbookBrowser.createPlaybook($scope.playbookName, $scope.unitType)
+		
+		$scope.newPlaybookModel.unitType = $scope.selectedUnitType.unitType;
+		
+		_playbook.createPlaybook($scope.newPlaybookModel)
 		.then(function(createdPlaybook) {
 			$uibModalInstance.close(createdPlaybook);
 		}, function(err) {

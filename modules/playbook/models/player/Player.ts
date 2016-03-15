@@ -3,7 +3,10 @@
 module Playbook.Models {
 
 	// @todo treat Player as a FieldElementSet
-	export class Player extends FieldElement {
+	export class Player 
+	extends Playbook.Models.FieldElement
+	implements Playbook.Interfaces.IPlayer,
+	Playbook.Interfaces.IFieldElement {
 
 		public placement: Playbook.Models.Placement;
 		public position: Playbook.Models.Position;
@@ -16,12 +19,13 @@ module Playbook.Models {
 		public unselectedColor: string;
 		public selectedOpacity: number;
 		public label: any;
+		public indexLabel: any;
 
 		private _isCreatedNewFromAltDisabled: any;
 		private _newFromAlt: any;
 		private _isDraggingNewFromAlt: any;
 
-		public set: any;
+		public set: Playbook.Models.FieldElementSet;
 		public icon: FieldElement;
 		public box: FieldElement;
 		public text: FieldElement;
@@ -36,12 +40,6 @@ module Playbook.Models {
 
 			// console.log('constructing player...');
 
-			this.context = context;
-			this.field = context;
-			this.ball = this.field.ball;
-			this.grid = this.field.grid;
-			this.canvas = this.field.canvas;
-			this.paper = this.field.paper;
 			this.font = this.paper.getFont('Arial');
 
 			this.placement = placement;
@@ -65,10 +63,10 @@ module Playbook.Models {
 			this.bx = ballCoords.x;
 			this.by = ballCoords.y;
 
-			this.radius = this.field.grid.GRIDSIZE / 2;
+			this.radius = this.grid.getSize() / 2;
 			this.color = 'grey';
-			this.width = this.field.grid.GRIDSIZE;
-			this.height = this.field.grid.GRIDSIZE;
+			this.width = this.grid.getSize();
+			this.height = this.grid.getSize();
 			this.opacity = 0.2;
 
 			this.selected = false;
@@ -84,16 +82,20 @@ module Playbook.Models {
 				= 'modules/playbook/editor/canvas/player/playbook-editor-canvas-player-contextmenu.tpl.html';
 
 
+			// the set acts as a group for the other graphical elements
 			this.box = new FieldElement(this);
 			this.icon = new FieldElement(this);
 			this.text = new FieldElement(this);
 			this.label = new FieldElement(this);
+			this.indexLabel = new FieldElement(this);
 			this.set = new FieldElementSet(this);
 			this.set.push(this);
 		}
 
 		public draw() {			
 			//TODO: all of these hard-coded integers are a problem
+			
+			this.clear();
 
 			this.paper.remove(this.box.raphael);
 			this.box.ax = this.ax - (this.width / 2);
@@ -161,7 +163,7 @@ module Playbook.Models {
 
 			this.paper.remove(this.label.raphael);
 			this.label.ax = this.ax;
-			this.label.ay = this.ay;
+			this.label.ay = this.ay - ((this.height / 2) * 0.4);
 			this.label.raphael = this.paper.text(
 				this.label.ax,
 				this.label.ay,
@@ -170,10 +172,25 @@ module Playbook.Models {
 			)
 			this.label.raphael.node.setAttribute('class', 'no-highlight');
 
+			// Index label - each player is indexed (0 - 10) via the personnel > position
+			// assigned to the player; this index is used to correlate assignments with
+			// personnel
+			this.paper.remove(this.indexLabel.raphael);
+			this.indexLabel.ax = this.ax;
+			this.indexLabel.ay = this.ay + ((this.height / 2) * 0.4);
+			this.indexLabel.raphael = this.paper.text(
+				this.indexLabel.ax,
+				this.indexLabel.ay,
+				(this.position.index).toString(),
+				true
+			)
+			this.indexLabel.raphael.node.setAttribute('class', 'no-highlight');
+
 			this.set.push.apply(this.set, [
 					this.icon,
 					this.box,
 					this.label,
+					this.indexLabel,
 					this.text
 				]
 			);
@@ -182,7 +199,7 @@ module Playbook.Models {
 			this.text.hide();
 
 			if(this.assignment){
-				let route = this.assignment.routes.getOne<Playbook.Models.Route>();
+				let route = this.assignment.routes.getOne();
 				// TODO: implement route switching
 				if (route) {
 					route.draw();
@@ -193,11 +210,21 @@ module Playbook.Models {
 			// console.log('player drawn');	
 		}
 
+		public clear(): void {
+
+			this.paper.remove(this.box.raphael);
+			this.paper.remove(this.icon.raphael);
+			this.paper.remove(this.label.raphael);
+			this.paper.remove(this.indexLabel.raphael);
+			this.set.removeAll();
+			this.assignment.clear();
+		}
+
 		public mousedown(e: any, self: any) {
 
 			// TODO: enumerate e.which (Event.SHIFT_)
 			if (e.which == 3) {
-				console.log('right click');
+				//console.log('right click');
 				self.canvas.invoke(
 					Playbook.Editor.CanvasActions.PlayerContextmenu,
 					'open player context menu...',
@@ -222,22 +249,21 @@ module Playbook.Models {
 				}
 			}
 
-			console.log('player set', self.set);
-
-			console.log('player click+shift: ', e.shiftKey);
-			console.log('player click+ctrl: ', e.ctrlKey);
-			console.log('player click+alt: ', e.altKey);
-			console.log('player click+meta: ', e.metaKey);
+			//console.log('player set', self.set);
+			//console.log('player click+shift: ', e.shiftKey);
+			//console.log('player click+ctrl: ', e.ctrlKey);
+			//console.log('player click+alt: ', e.altKey);
+			//console.log('player click+meta: ', e.metaKey);
 			
 			self.field.togglePlayerSelection(self);
 
-			let editorMode = self.canvas.editorMode;
-			switch(editorMode) {
-				case Playbook.Editor.EditorModes.Select:
-					console.log('Select player');
+			let toolMode = self.canvas.toolMode;
+			switch(toolMode) {
+				case Playbook.Editor.ToolModes.Select:
+					//console.log('Select player');
 					break;
-				case Playbook.Editor.EditorModes.Assignment:
-					console.log('Set player assignment');
+				case Playbook.Editor.ToolModes.Assignment:
+					//console.log('Set player assignment');
 					break;
 			}
 
@@ -253,22 +279,22 @@ module Playbook.Models {
 			this.dy = snapDy;
 
 			// do not allow dragging while in route mode
-			if (this.canvas.editorMode == Playbook.Editor.EditorModes.Assignment) {
-				console.log('drawing route', dx, dy, posx, posy);
+			if (this.canvas.toolMode == Playbook.Editor.ToolModes.Assignment) {
+				//console.log('drawing route', dx, dy, posx, posy);
 
 				if (!this.assignment) {
 					this.assignment = new Playbook.Models.Assignment();
 					this.assignment.positionIndex = this.position.index;
 				}
 
-				let route = this.assignment.routes.getOne<Playbook.Models.Route>();
+				let route = this.assignment.routes.getOne();
 
 				// TODO: Implement route switching
 				if (!route) {
-					console.log('creating route');
+					//console.log('creating route');
 					let newRoute = new Playbook.Models.Route(this, true);
-					this.assignment.routes.add(newRoute.guid, newRoute);
-					route = this.assignment.routes.get<Playbook.Models.Route>(newRoute.guid);
+					this.assignment.routes.add(newRoute);
+					route = this.assignment.routes.get(newRoute.guid);
 				}
 				if (route.dragInitialized) {
 
@@ -279,9 +305,12 @@ module Playbook.Models {
 
 					route.initializeCurve(coords, e.shiftKey);
 				}
+
+				// prevent remaining logic from getting executed.
 				return;
-			} else if (this.canvas.editorMode == Playbook.Editor.EditorModes.Select) {
-				console.log('dragging player & route');
+				
+			} else if (this.canvas.toolMode == Playbook.Editor.ToolModes.Select) {
+				//console.log('dragging player & route');
 			}
 
 			// console.log(e.which);
@@ -313,8 +342,9 @@ module Playbook.Models {
 				
 				this.dragged = snapDx != 0 || snapDy != 0;
 				
-				if (this.grid.isDivisible(dx) && this.grid.isDivisible(dy))
-					console.log('snap:', snapDx, snapDy);
+				if (this.grid.isDivisible(dx) && this.grid.isDivisible(dy)) {
+					//console.log('snap:', snapDx, snapDy);
+				}
 
 				if(context.set) {
 					// apply the transform to the group
@@ -327,8 +357,8 @@ module Playbook.Models {
 				);
 
 				if (context.placement) {
-					context.placement.x = coords.x;
-					context.placement.y = coords.y;
+					// Update the placement to track for modification
+					context.placement.update(coords.x, coords.y);
 				}
 
 				let toBall = context.getPositionRelativeToBall();
@@ -353,7 +383,7 @@ module Playbook.Models {
 				// 	console.log('creating route');
 				// }
 			} else if(e.which == 3) {
-				console.log('left click, do not drag');
+				//console.log('left click, do not drag');
 			}
 		}
 		public dragStart(x: number, y: number, e: any) {
@@ -376,7 +406,7 @@ module Playbook.Models {
 
 			if(this.assignment) {
 				// TODO: implement route switching
-				let route = this.assignment.routes.getOne<Playbook.Models.Route>();
+				let route = this.assignment.routes.getOne();
 				if (route) {
 					if (route.dragInitialized) {
 						route.dragInitialized = false;
@@ -394,8 +424,11 @@ module Playbook.Models {
 		}
 
 		public getPositionRelativeToBall() {
+			if(!this.field.ball) 
+				throw new Error('Player getPositionRelativeToBall(): ball is null or undefined');
+
 			return new Playbook.Models.RelativePosition(
-				this, this.ball
+				this, this.field.ball
 			);
 		}
 
@@ -428,6 +461,22 @@ module Playbook.Models {
 			this.icon.raphael.attr({
 				'stroke': strokeColor
 			});
+		}
+
+		public updatePlacement(placement: Playbook.Models.Placement) {
+			this.placement = placement;
+			var absCoords = this.grid.getPixelsFromCoordinates(
+				new Playbook.Models.Coordinate(
+					this.placement.x,
+					this.placement.y
+				)
+			);
+			this.ax = absCoords.x;
+			this.ay = absCoords.y;
+
+			let ballCoords = this.getPositionRelativeToBall();
+			this.bx = ballCoords.x;
+			this.by = ballCoords.y;
 		}
 
 		public clearRoute() {

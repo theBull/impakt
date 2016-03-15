@@ -38,7 +38,7 @@ impakt.common.scrollable.service('_scrollable',
 			this.$container = $container;
 			this.height = $container.height();
 			this.content = content;
-			this.contentHeight = content.height;
+			this.contentHeight = content.getHeight();
 			this.HEIGHT_RATIO = this.height / this.contentHeight;
 			// console.log(
 			// 	'container height: ', this.height, 

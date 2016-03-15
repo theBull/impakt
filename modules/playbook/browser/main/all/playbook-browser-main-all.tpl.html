@@ -1,0 +1,131 @@
+<div class='font-white'>
+
+	<div class='pad' ng-show='editor.plays.hasElements()'>
+		<h4>Open in editor</h4>
+		
+		<span ng-repeat='play in editor.plays.toArray() | orderBy: "editorType"'
+			class='gray-bg-3-hover pad marginRight1 pointer {{getEditorTypeClass(play.editorType)}}'
+			ng-click='openEditor()'>
+			{{play.name}}
+		</span>
+		
+	</div>
+
+	<div class='pad'>
+		<h4>Playbooks</h4>
+		<div class='pad red-bg-hover pointer marginBottom1 width6'
+			ng-click='createPlaybook()'>
+			<span class='glyphicon glyphicon-plus'></span>
+			new
+		</div>
+		<div class='grid ratio1'>
+			<div 
+				ng-repeat='playbook in playbooks.toArray()'
+				class='inlineBlock pad gray-bg-3-hover marginBottom1 marginRight1 height12 width10 pointer'>
+				<h5>
+					{{playbook.name}}
+				</h5>
+				<p>
+					<type-formatter 
+						value='{{playbook.unitType}}' 
+						type='Playbook.Editor.UnitTypes'>
+					</type-formatter>
+				</p>
+				<div>
+					<div class='marginRight2 pointer' ng-click='goToPlaybook(playbook)'>
+						<span class='glyphicon glyphicon-eye-open' 
+							title='Open playbook'>
+						</span>
+						view
+					</div>
+					<div class='pointer' ng-click='deletePlaybook(playbook)'>
+						<span class='glyphicon glyphicon-remove' 
+							title='Delete playbook'>
+						</span>
+						delete
+					</div>
+				</div>
+			</div>
+		</div>
+
+	</div>
+	<div class='pad'>
+		<h4>Plays</h4>
+		<div class='pad red-bg-hover pointer marginBottom1 width6'
+			 ng-click='createPlay()'>
+			<span class='glyphicon glyphicon-plus'></span>
+			new
+		</div>
+		<div class='grid'>
+			<div 
+				ng-repeat='play in plays.toArray()'
+				class='positionRelative gray-bg-3-hover marginBottom1 height21 width18 pointer marginRight1'>
+				<div class='col'>
+					
+					<div class='pad marginBottom1'>
+						<h5>
+							{{play.name}}
+						</h5>
+
+						<div class='row height1'>
+							<div class='marginRight2 pointer' ng-click='openPlayInEditor(play)'>
+								<span class='glyphicon glyphicon-pencil' 
+									title='Edit play' 
+									 >
+								</span>
+								edit
+							</div>
+							<div class='pointer' ng-click='deletePlay(play)'>
+								<span class='glyphicon glyphicon-remove' 
+									title='Delete play'>
+								</span>
+								delete
+							</div>
+						</div>
+					</div>
+					
+
+					<play-preview guid='{{play.guid}}'>
+					</play-preview>					
+
+				</div>
+				
+			</div>
+		</div>
+	</div>
+	<div class='pad'>
+		<h4>Formations</h4>
+		<div class='pad red-bg-hover pointer marginBottom1 width6'
+			ng-click='createFormation()'>
+			<span class='glyphicon glyphicon-plus'></span>
+			new
+		</div>
+		<div class='grid'>
+			<div 
+				ng-repeat='formation in formations.toArray()'
+				class='positionRelative pad gray-bg-3-hover marginBottom1 height20 width18 pointer marginRight1'>
+				<div class='col'>
+					<h5>{{formation.name}}</h5>
+					
+					<div>
+						<div class='marginRight2 pointer padBottom1' ng-click='openFormationInEditor(formation)'>
+							<span class='glyphicon glyphicon-pencil' 
+								title='Edit formation'>
+							</span>
+							edit
+						</div>
+						<div class='pointer' ng-click='deleteFormation(formation)'>
+							<span class='glyphicon glyphicon-remove' 
+								title='Delete formation'>
+							</span>
+							delete
+						</div>
+					</div>
+
+					<!-- TODO @theBull - implement; issue #98 -->
+					<!-- <play-preview guid='{{formation.guid}}'></play-preview> -->
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

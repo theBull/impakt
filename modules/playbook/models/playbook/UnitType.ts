@@ -8,26 +8,14 @@ module Playbook.Models {
 		public unitType: Playbook.Editor.UnitTypes;
 		public name: string;
 		public active: boolean;
-		public playbooks: Playbook.Models.PlaybookModelCollection;
-		public formations: Playbook.Models.FormationCollection;
-		public personnel: Playbook.Models.PersonnelCollection;
-		public assignments: Playbook.Models.AssignmentCollection;
+		public associated: Common.Models.Association;
+		public setType: Playbook.Editor.SetTypes;
 
 		constructor(unitType: Playbook.Editor.UnitTypes, name: string) {
 			super(this);
 			this.unitType = unitType;
 
-			this.playbooks = new Playbook.Models.PlaybookModelCollection();
-			this.playbooks.unitType = unitType;
-
-			this.formations = new Playbook.Models.FormationCollection();
-			this.formations.unitType = unitType;
-
-			this.personnel = new Playbook.Models.PersonnelCollection();
-			this.personnel.unitType = unitType;
-
-			this.assignments = new Playbook.Models.AssignmentCollection();
-			this.assignments.unitType = unitType;
+			this.associated = new Common.Models.Association();
 
 			this.name = name;
 			this.active = false;
@@ -39,10 +27,7 @@ module Playbook.Models {
 
 		public toJson(): any {
 			let json = {
-				playbooks: this.playbooks.toJson(),
-				formations: this.formations.toJson(),
-				personnel: this.personnel.toJson(),
-				assignments: this.assignments.toJson(),
+				associated: this.associated.toJson(),
 				unitType: this.unitType,
 				name: this.name,
 				active: this.active,
@@ -59,10 +44,10 @@ module Playbook.Models {
 			this.name = json.name;
 			this.active = json.active;
 			this.guid = json.guid;
-			this.playbooks.fromJson(json.playbooks);
-			this.formations.fromJson(json.formations);
-			this.personnel.fromJson(json.personnel);
-			this.assignments.fromJson(json.assignments);
+			this.associated.playbooks.fromJson(json.playbooks);
+			this.associated.formations.fromJson(json.formations);
+			this.associated.personnel.fromJson(json.personnel);
+			this.associated.assignments.fromJson(json.assignments);
 		}
 	}
 }

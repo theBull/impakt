@@ -1,42 +1,6 @@
 /*
 *	USER PROFILE MODULE
 */
-#main-profile-controls {
-	z-index: 1000;
-}
-#main-profile-controls header {
-	border-bottom: 1px solid #000;
-	color: #fff;
-}
-#main-profile-controls ul {
-	padding: 0;
-	white-space: nowrap;
-}
-#main-profile-controls ul > a {
-	margin: 0;
-	display: inline-block;
-	white-space: nowrap;
-}
-#main-profile-controls ul,
-#main-profile-controls li {
-	list-style-type: none;
-	list-style-position: inside;
-	margin: 0;
-}
-#main-profile-controls li {
-	display: inline-block;
-	text-align: center;
-	cursor: pointer;
-	border-left: 1px solid #333;
-	background-color: rgba(30, 31, 32, 0.15);
-}
-#main-profile-controls li.active {
-	color: #fff;
-	background-color: rgba(90, 91, 92, 0.25);
-}
-#main-profile-controls li:hover {
-	background-color: rgba(60, 61, 62, 0.25);
-}
 
 #main-profile-controls #main-profile-image {
 	border-radius: 50%;
@@ -47,7 +11,4 @@
 }
 #main-profile-controls #main-profile-image:hover {
 	border: 2px solid #fff;
-}
-
-#main-profile-controls #main-profile-settings-container {
 }

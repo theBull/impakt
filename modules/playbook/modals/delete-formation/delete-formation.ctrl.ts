@@ -4,18 +4,18 @@ impakt.playbook.modals.controller('playbook.modals.deleteFormation.ctrl',
 [
 '$scope', 
 '$uibModalInstance', 
-'_playbookBrowser', 
+'_playbook', 
 'formation',
 function(
 	$scope: any, 
 	$uibModalInstance: any, 
-	_playbookBrowser: any, 
+	_playbook: any, 
 	formation: any) {
 
 	$scope.formation = formation;
 
 	$scope.ok = function () {
-		_playbookBrowser.deleteFormation($scope.formation)
+		_playbook.deleteFormation($scope.formation)
 		.then(function(results) {
 			$uibModalInstance.close(results);
 		}, function(err) {

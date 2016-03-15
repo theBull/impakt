@@ -5,16 +5,12 @@ module Playbook.Models {
 	export class PlaybookModelCollection
 	extends Common.Models.ModifiableCollection<Playbook.Models.PlaybookModel> {
 
-		public unitType: Playbook.Editor.UnitTypes;
-
 		constructor() {
 			super();
-			this.unitType = Playbook.Editor.UnitTypes.Other;
 		}
 
 		public toJson(): any {
 			return {
-				unitType: this.unitType,
 				guid: this.guid,
 				playbooks: super.toJson()
 			}
@@ -23,8 +19,7 @@ module Playbook.Models {
 		public fromJson(json: any) {
 			if (!json)
 				return;
-			
-			this.unitType = json.unitType || this.unitType;
+
 			this.guid = json.guid || this.guid;
 
 			let playbooks = json.playbooks || [];
@@ -32,10 +27,7 @@ module Playbook.Models {
 				let rawPlaybook = playbooks[i];
 				let playbookModel = new Playbook.Models.PlaybookModel();
 				playbookModel.fromJson(rawPlaybook);
-				this.add<Playbook.Models.PlaybookModel>(
-					playbookModel.guid,
-					playbookModel
-				);
+				this.add(playbookModel);
 			}
 		}
 	}

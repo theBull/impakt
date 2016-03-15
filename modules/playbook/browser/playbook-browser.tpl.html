@@ -1,35 +1,12 @@
+<div ng-controller='playbook.browser.ctrl' 
+	class='row font-white'>
 
-<expandable 
-	direction='right'
-	min='3'
-	max='34'
-	class='col'>
+	<ng-include class='col'
+		src='"modules/playbook/browser/sidebar/playbook-browser-sidebar.tpl.html"'>
+	</ng-include>
 
-	<sliding-panel 
-		ng-show='!collapsed'
-		class='col positionRelative scrollY gray-bg-3 font-white'  
-		id='playbook-browser'
-		ng-controller='playbook.browser.ctrl'>
+	<ng-include class='col'
+		src='"modules/playbook/browser/main/playbook-browser-main.tpl.html"'>
+	</ng-include>
 
-	  	<!-- do not add col / scroll classes to this div -->
-		<div class='padBottom10' ng-show='!collapsed'>
-
-			<!-- Unit types -->		
-			<sliding-panel-layer 
-				ng-include="'modules/playbook/browser/unitTypes/unitTypes.tpl.html'">
-			</sliding-panel-layer>
-
-			<!-- Playbooks -->
-			<sliding-panel-layer
-				ng-include="'modules/playbook/browser/playbook/playbooks.tpl.html'">
-			</sliding-panel-layer>
-
-			<!-- Formations -->
-			<sliding-panel-layer 
-				ng-include="'modules/playbook/browser/formation/formations.tpl.html'">
-			</sliding-panel-layer>
-
-		</div>
-		
-	</sliding-panel>
-</expandable>
+</div>

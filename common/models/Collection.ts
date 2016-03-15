@@ -13,6 +13,15 @@ module Common.Models {
 			this._count = 0;
 			this._keys = [];
 		}
+		private _getKey(data: T) {
+			if (data && data.guid) {
+				return data.guid;
+			}
+			else {
+				//throw new Error('Object does not have a guid');
+				console.error('Object does not have a guid');
+			}
+		}
 		private _ensureKeyType(key: string | number) {
 			if (typeof key == 'string') {
 				// could be valid string 'foo' or number hidden as string '2'
@@ -30,33 +39,60 @@ module Common.Models {
 		public isEmpty(): boolean {
 			return this.size() == 0;
 		}
-		public get<T>(key: string | number): T {
+		public hasElements(): boolean {
+			return this.size() > 0;
+		}
+		public get(key: string | number): T {
 			key = this._ensureKeyType(key);
 			return this[key];
 		}
-		public getOne<T>(): T {
+		public exists(key: string | number): boolean {
+			return this.contains(key);
+		}
+		public first(): T {
+			return this.getOne();
+		}
+		public getOne(): T {
 			return this[this._keys[0]];
 		}
 		public getIndex(index: number): T {
-			return this.get<T>(this._keys[index]);
+			return this.get(this._keys[index]);
 		}
-		public set<T>(key: string | number, data: T) {
+		public getAll(): { any?: T } {
+			let obj = {};
+			for (let i = 0; i < this._keys.length; i++) {
+				let key = this._keys[i];				
+				// shitty way of hiding private properties
+				obj[key] = this.get(key);
+			}
+			return obj;
+		}
+		/**
+		 * Retrieves the last element in the collection
+		 * @return {T} [description]
+		 */
+		public getLast(): T {
+			let key = this._keys[this._keys.length - 1];
+			return this.get(key);
+		}
+		public set(key: string | number, data: T) {
 			if (!this.hasOwnProperty(key.toString()))
 				throw Error('Object does not have key ' + key + '. Use the add(key) method.');
 
 			this[key] = data;
-			this._keys.push(key);
 		}
-		public replace<T>(replaceKey: string | number, key: string | number, data: T) {
+		public replace(replaceKey: string | number, data: T) {
+			let key = this._getKey(data);
 			this._keys[this._keys.indexOf(replaceKey)] = key;
 			this[key] = data;
 
 			delete this[replaceKey];
 		}
-		public setAtIndex<T>(index: number, data: T) {
+		public setAtIndex(index: number, data: T) {
 
 		}
-		public add<T>(key: string | number, data: T) {
+		public add(data: T) {
+			let key = this._getKey(data);
 			if(this[key] && this._keys.indexOf(key) > -1) {
 				this.set(key, data);
 			} else {
@@ -65,7 +101,8 @@ module Common.Models {
 				this._count++;	
 			}			
 		}
-		public addAtIndex(key: string | number, data: T, index: number) {
+		public addAtIndex(data: T, index: number) {
+			let key = this._getKey(data);
 
 			let exists = this._keys.indexOf(key) > -1;
 			if (!exists || this._keys.indexOf(key) == index) {
@@ -97,13 +134,13 @@ module Common.Models {
 			let self = this;
 			collection.forEach(function(item: T, index) {
 				if(item && item.guid) {
-					self.add(item.guid, item);	
+					self.add(item);	
 				} else {
 					throw new Error('item is null or does not have guid');
 				}
 			});
 		}
-		public forEach<T>(iterator: Function): void {
+		public forEach(iterator: Function): void {
 			if (!this._keys)
 				return;
 
@@ -112,7 +149,10 @@ module Common.Models {
 				iterator(this[key], i);
 			}
 		}
-		public filter<T>(predicate: Function): T[] {
+		public hasElementWhich(predicate: Function): boolean {
+			return this.filterFirst(predicate) != null;
+		}
+		public filter(predicate: Function): T[] {
 			let results = [];
 			this.forEach(function(element: T, index) {
 				if(predicate(element)) {
@@ -121,11 +161,11 @@ module Common.Models {
 			});
 			return results;
 		}
-		public filterFirst<T>(predicate: Function): T {
-			let results = this.filter<T>(predicate);
+		public filterFirst(predicate: Function): T {
+			let results = this.filter(predicate);
 			return results && results.length > 0 ? results[0] : null;
 		}
-		public remove<T>(key: string | number): T {
+		public remove(key: string | number): T {
 			if (!this[key])
 				throw Error('Object at key ' + key + ' does not exist');
 
@@ -136,11 +176,10 @@ module Common.Models {
 			this._count--;
 			return obj;
 		}
-		public removeAll<T>(): void {
+		public removeAll(): void {
 			while (this._count > 0) {
 				let key = this._keys[0];
 				this.remove(key);
-				console.log('removing key', key);
 			}
 		}
 		/**
@@ -148,7 +187,7 @@ module Common.Models {
 		 * in the collection before the collection is completely
 		 * emptied.
 		 */
-		public removeEach<T>(iterator): void {
+		public removeEach(iterator): void {
 			// first, run the iterator over each item in the
 			// collection
 			this.forEach(iterator); 
@@ -156,45 +195,22 @@ module Common.Models {
 			// now remove all of them
 			this.removeAll();
 		}
-		public contains<T>(key: string | number): boolean {
+		public contains(key: string | number): boolean {
 			return this[key] != null && this[key] != undefined;
 		}
-		public getAll(): { any?: T } {
-			let obj = {};
-			for (let i = 0; i < this._keys.length; i++) {
-				let key = this._keys[i];				
-				// shitty way of hiding private properties
-				obj[key] = this.get(key);
-			}
-			return obj;
-		}
-
-		public getLast<T>(): T {
-			let key = this._keys[this._keys.length - 1];
-			return this.get<T>(key);
-		}
-		public toArray<T>(): T[] {
+		public toArray(): T[] {
 			let arr = [];
 			for (var i = 0; i < this._keys.length; i++) {
 				arr.push(this.get(this._keys[i]));
 			}
 			return arr;
 		}
-
-		public toJsonArray(): any[] {
+		public toJson(): any[] {
 			let results = [];
 			this.forEach(function(element, index) {
-				results.push(Common.Utilities.toJson(element));
+				results.push(element.toJson());
 			});
 			return results;
-		}
-		/**
-		 * Alias for toJsonArray, since the collection should be
-		 * represented as an array
-		 * @return {any} returns an array of objects
-		 */
-		public toJson(): any {
-			return this.toJsonArray();
 		}
 	}
 }

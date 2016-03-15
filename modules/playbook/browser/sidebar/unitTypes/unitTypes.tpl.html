@@ -1,0 +1,37 @@
+<div class='col'>
+
+	<div class='pad padBottom0 font-white'>
+		<!-- Private Playbooks -->
+		<h2>
+			Unit types						
+		</h2>
+	</div>
+
+	<ul ng-init='expandType = -1'>
+
+		<li class='row light-border-bottom-red red-bg-hover pointer'
+			ng-repeat='unitType in unitTypes.toArray()'
+			sliding-panel-nav ng-click='_slidingPanel.next(); selectUnitType(unitType)'>
+
+			<div class='col'>
+				<div class='row height3'>
+					<div class='pad'>
+					    {{unitType.name}}
+					</div>
+					<div class='row pad right0 height3 width7'>
+
+						<div class='padRight1 padLeft1'>
+							{{unitType.playbooks.size()}}
+						</div>
+						<!-- <div class='glyphicon glyphicon-remove'
+							ng-click='deletePlaybook(playbook)'></div> -->
+						<div class='glyphicon glyphicon-chevron-right'>
+						</div>
+					</div>
+				</div>
+			</div>
+
+		</li>
+	</ul>			
+
+</div>

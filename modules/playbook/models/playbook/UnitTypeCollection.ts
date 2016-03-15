@@ -11,70 +11,52 @@ module Playbook.Models {
 				Playbook.Editor.UnitTypes.Offense,
 				'offense'
 			);
-			this.add<Playbook.Models.UnitType>(
-				offense.guid,
-				offense
-			);
+			this.add(offense);
 
 			let defense = new Playbook.Models.UnitType(
 				Playbook.Editor.UnitTypes.Defense,
 				'defense'
 			);
-			this.add<Playbook.Models.UnitType>(
-				defense.guid,
-				defense
-			);
+			this.add(defense);
 
 			let specialTeams = new Playbook.Models.UnitType(
 				Playbook.Editor.UnitTypes.SpecialTeams,
 				'special teams'
 			);
-			this.add<Playbook.Models.UnitType>(
-				specialTeams.guid,
-				specialTeams
-			);
+			this.add(specialTeams);
 
 			let other = new Playbook.Models.UnitType(
 				Playbook.Editor.UnitTypes.Other,
 				'other'
 			);
-			this.add<Playbook.Models.UnitType>(
-				other.guid,
-				other
-			);
-
-			let mixed = new Playbook.Models.UnitType(
-				Playbook.Editor.UnitTypes.Mixed,
-				'mixed'
-			);
-			this.add<Playbook.Models.UnitType>(
-				mixed.guid,
-				mixed
-			);
+			this.add(other);
 		}
 
 		public getByUnitType(unitTypeValue: Playbook.Editor.UnitTypes)
 			: Playbook.Models.UnitType 
 		{
-			return this.filterFirst<Playbook.Models.UnitType>(
-				function(unitType: Playbook.Models.UnitType) {
-					return unitType.unitType == unitTypeValue;
-				});
+			return this.filterFirst(function(unitType: Playbook.Models.UnitType) {
+				return unitType.unitType == unitTypeValue;
+			});
 		}
 
-		public getAllPlaybooks(): Playbook.Models.PlaybookModelCollection {
+		public getAssociatedPlaybooks(): Playbook.Models.PlaybookModelCollection {
 			let collection = new Playbook.Models.PlaybookModelCollection();
 
-			this.forEach<Playbook.Models.UnitType>(
-				function(unitType: Playbook.Models.UnitType, index) {
+			this.forEach(function(unitType: Playbook.Models.UnitType, index) {
 
-					if(unitType && unitType.playbooks && unitType.playbooks.size()) {
+				if(unitType && unitType.associated && 
+					unitType.associated.playbooks && 
+					unitType.associated.playbooks.hasElements()) {
 
-						collection.append(
-							unitType.playbooks
-						);
+					unitType.associated.playbooks.forEach(function(guid, i) {
+						let playbookModel = impakt.context.Playbook.playbooks.get(guid);
+						if(playbookModel) {
+							collection.add(playbookModel);	
+						}							
+					});		
 
-					}
+				}
 
 			});
 

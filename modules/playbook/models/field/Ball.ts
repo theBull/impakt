@@ -1,19 +1,17 @@
 /// <reference path='../models.ts' />
 module Playbook.Models {
-	export class Ball extends Playbook.Models.FieldElement {	
-		
-		public width: number;
-		public height: number;
-		public offset: number;
-		public color: string;
-		public data: any;
+	
+	export class Ball 
+	extends Playbook.Models.FieldElement {
 
-		constructor(context: Playbook.Models.Field) {
+		public offset: number;
+
+		constructor(context: Playbook.Interfaces.IField) {
 			super(context);
 
 			this.color = 'brown';
-			this.x = this.grid.getCenter().x;
-			this.y = this.grid.getCenter().y;
+			this.x = 26;
+			this.y = 60;
 			var absCoords = this.grid.getPixelsFromCoordinates(
 				new Playbook.Models.Coordinate(this.x, this.y)
 			);
@@ -23,8 +21,8 @@ module Playbook.Models {
 			this.bx = 0;
 			this.by = 0;
 
-			this.width = this.grid.GRIDSIZE * 0.15;
-			this.height = this.grid.GRIDSIZE * 0.25;
+			this.width = this.grid.getSize() * 0.15;
+			this.height = this.grid.getSize() * 0.25;
 			this.offset = this.grid.getCenter().x;
 		}
 
@@ -50,8 +48,6 @@ module Playbook.Models {
 				this, 
 				this
 			);
-
-			console.log(this.raphael);
 
 			// constrain x/y directions
 			// move LOS and all players with ball
@@ -134,14 +130,6 @@ module Playbook.Models {
 
 		public isBelow(y: number): boolean {
 			return this.y <= y;
-		}
-
-		public getSaveData(): any {
-			// todo: attach additional data
-			var data = {
-				coordinates: new Playbook.Models.Coordinate(this.x, this.y)
-			};
-			return data;
 		}
 	}
 }

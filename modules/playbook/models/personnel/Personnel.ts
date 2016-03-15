@@ -8,7 +8,7 @@ module Playbook.Models {
 		public unitType: Playbook.Editor.UnitTypes;
 		public key: number;
 		public name: string;
-		public setType: Playbook.Editor.PlaybookSetTypes;
+		public setType: Playbook.Editor.SetTypes;
 
 		constructor() {
 			super(this);
@@ -17,7 +17,7 @@ module Playbook.Models {
 			this.key = -1;
 			this.positions = new Playbook.Models.PositionCollection();
 			this.setDefault();
-			this.setType = Playbook.Editor.PlaybookSetTypes.Personnel;
+			this.setType = Playbook.Editor.SetTypes.Personnel;
 
 			this.onModified(function(data: any) {
 				console.log('personnel changed', data);
@@ -39,7 +39,14 @@ module Playbook.Models {
 			this.guid = personnel.guid;
 		}
 
+		public copy(newPersonnel: Playbook.Models.Personnel): Playbook.Models.Personnel {
+			return <Playbook.Models.Personnel>super.copy(newPersonnel, this);
+		}
+
 		public fromJson(json: any) {
+			if (!json)
+				return null;
+
 			this.positions.removeAll();
 			this.positions.fromJson(json.positions);
 			this.unitType = json.unitType;
@@ -53,7 +60,7 @@ module Playbook.Models {
 				name: this.name,
 				unitType: this.unitType,
 				key: this.key,
-				positions: this.positions.toJsonArray(),
+				positions: this.positions.toJson(),
 				guid: this.guid
 			}
 		}

@@ -4,32 +4,52 @@ impakt.common.ui.controller('expandable.ctrl', [
 '$scope', function($scope: any) {
 	console.log('expandable.ctrl - loaded');
 	let directions = ['left', 'right', 'up', 'down'];
-	$scope.direction = '';
+	$scope.direction = 'left';
 	$scope.min = 3; // in em's
-	$scope.max = 34; // in em's
+	$scope.max = 32; // in em's
 	$scope.$element = null;
 	$scope.em = parseInt($('body').css('font-size'));
 
-	$scope.collapsed = false;
+	$scope.collapsed = true;
+	$scope.ready = false;
+
 	$scope.toggle = function() {
 		
 		$scope.collapsed = !$scope.collapsed;
-		let toWidth = 0;
+
 		if($scope.collapsed) {
-			toWidth = $scope.getWidth($scope.min);
-			$scope.$element.width(toWidth);
-			console.log('collapse panel', toWidth);
+			$scope.$element.removeClass($scope.getMaxClass()).addClass($scope.getMinClass());
+			console.log('collapse panel');
 		} else {
-			toWidth = $scope.getWidth($scope.max);
-			$scope.$element.width(toWidth);
-			console.log('expand panel', toWidth);
+			$scope.$element.removeClass($scope.getMinClass()).addClass($scope.getMaxClass());
+			console.log('expand panel');
 		}
 		
 	}
 
+	$scope.getMinClass = function() {
+		return 'width' + $scope.min;
+	}
+	$scope.getMaxClass = function() {
+		return 'width' + $scope.max;
+	}
+	$scope.getInitialClass = function() {
+		return $scope.collapsed ? $scope.getMinClass() : $scope.getMaxClass();
+	}
+	$scope.setInitialClass = function() {
+		$scope.$element.addClass($scope.getInitialClass());
+	}
+
+	/**
+	 * Deprecated
+	 * @param {[type]} value [description]
+	 */
 	$scope.getWidth = function(value) {
 		return $scope.em * parseInt(value);
 	}
+	/**
+	 * Deprecated
+	 */
 	$scope.getInitialWidth = function() {
 		return $scope.collapsed ? 
 			$scope.getWidth($scope.min) : 
@@ -42,11 +62,6 @@ function($timeout: any, $compile: any) {
 	return {
 		restrict: 'E',
 		controller: 'expandable.ctrl',
-		scope: {
-			direction: '@direction',
-			min: '@min',
-			max: '@max'
-		},
 		compile: function($element, attrs) {
 
 			return {
@@ -54,13 +69,58 @@ function($timeout: any, $compile: any) {
 
 				},
 				post: function($scope, $element, attrs, controller, transcludeFn) {
+					$element.hide();
+
 					$scope.$element = $element;
+					$scope.direction = attrs.direction || $scope.direction;
+					$scope.collapsed = attrs.collapsed == 'true' || 
+						attrs.collapsed == 'false' ? 
+							attrs.collapsed == 'true' : $scope.collapsed;
+
+					let multiplier = $scope.direction == 'left' ||
+						$scope.direction == 'bottom' ?
+						-1 : 1;
+					let position = '';
+					let collapseHandle = '';
+					let expandHandle = '';
+					switch ($scope.direction) {
+						case 'left':
+							position = 'top0 left0';
+							collapseHandle = 'glyphicon-chevron-right';
+							expandHandle = 'glyphicon-chevron-left';
+							break;
+						case 'right':
+							position = 'top0 right0';
+							collapseHandle = 'glyphicon-chevron-left';
+							expandHandle = 'glyphicon-chevron-right';
+							break;
+						case 'top':
+							position = 'top0 left0';
+							collapseHandle = 'glyphicon-chevron-up';
+							expandHandle = 'glyphicon-chevron-down';
+							break;
+						case 'bottom':
+							position = 'bottom0 left0';
+							collapseHandle = 'glyphicon-chevron-down';
+							expandHandle = 'glyphicon-chevron-up';
+							break;
+					}
+
 				 	var init = function() {
 						
-						$element.width($scope.getInitialWidth());
+						/**
+						 * Set initial class on the element for proper sizing
+						 */
+						$scope.setInitialClass();
 
 						let $handle = $('<div />', {
-							'class': 'expandable-handle expandable-handle-vertical'
+							'ng-show': '!collapsed',
+							'class': [
+								'expandable-handle ',
+								'expandable-handle-vertical ',
+								'expandable-', $scope.direction, ' ',
+								position
+							].join('')
 						});
 						let dragging = false;
 						let startX = 0;
@@ -71,7 +131,7 @@ function($timeout: any, $compile: any) {
 							let elementWidth = $element.width();
 							$('body').on('mousemove', function(e) {
 								let deltaX = e.pageX - startX;
-								let toWidth = elementWidth + deltaX;
+								let toWidth = elementWidth + (multiplier * deltaX);
 								if (dragging && toWidth > $scope.min) {
 									$element.width(toWidth);
 								}
@@ -87,25 +147,30 @@ function($timeout: any, $compile: any) {
 							$('body').off('mousemove').off('mouseup');
 						});
 
-						$element.append($handle);
+						$element.append($compile($handle[0])($scope));
 						
 				 	}
 					
 					$timeout(init, 0);
 
 					let toggleIcon = $compile([
-						"<div class='pad top0 right0 dark-bg-hover pointer font-white zIndexTop' ",
+						"<div class='pad ",
+						position,
+						" dark-bg-hover pointer font-white zIndexTop' ",
 						'ng-click="toggle()">',
 						'<div class="glyphicon"',
 						'ng-class="{',
-						"'glyphicon-chevron-left': !collapsed,",
-						"'glyphicon-chevron-right': collapsed",
+						"'", collapseHandle, "': !collapsed,",
+						"'", expandHandle, "': collapsed",
 						'}">',
 						'</div>',
 						'</div>'
 					].join(''))($scope);
 
 					$element.prepend(toggleIcon);
+
+					$scope.ready = true;
+					$element.show();
 				}
 			}
 		}
