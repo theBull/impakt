@@ -1,0 +1,627 @@
+/*
+*	FONT SIZES
+*/
+/* Note: the body base font size is what specifies what "1em" is. ("font-size: 10px" -> "1em == 10px") */
+
+html, body {
+	height: 100%;
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+}
+body { 
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+	font-size: 10px; 
+  	line-height: 1;
+  	color: #333333;
+  	background-color: #ffffff;
+	display: flex;
+    min-height: 100%;
+    height: 100vh;
+    width: 100%;
+	flex-flow: column nowrap;
+	justify-content: flex-start;
+	align-content: flex-start;
+	align-items: flex-start;
+	/*overflow: auto;*/
+	min-width: 100%; 
+	vertical-align: top;
+}
+input { font-size: 1.2em; }
+input[type="radio"], 
+input[type="checkbox"] {
+	margin: 0 !important;
+	padding: 0 !important;
+}
+
+input::-webkit-input-placeholder,
+input::-moz-placeholder,
+input:-ms-input-placeholder,
+input:-moz-placeholder,
+input::placeholder,
+input::input-placeholder {
+	line-height: 1em;
+}
+
+select {
+	width: auto;
+}
+span {
+	width: auto;
+	display: inline-block;
+}
+
+/*
+*	(Page title)
+*/
+h1 { font-size: 5.5em; line-height: 0.8em; margin-top: 0.16em; margin-bottom: 0.165em; }
+/*
+*	(Section headers, Grid pivots)
+*/
+h2 { font-size: 2.5em; line-height: 1.25em; margin-top: -0.2em; margin-bottom: 0.33em; }
+/*
+*	(Subheader, Entity title)
+*/
+h3 { font-size: 1.5em; line-height: 1.22em;  margin-top: -0.3em; margin-bottom: 0.35em; }
+/*
+*	(Standard page content, body text, list/row contents)
+*/
+h4 { font-size: 1.4em; line-height: 1.44em; margin-top: -0.25em; margin-bottom: 0.43em; }
+label { display: block; }
+/*
+*	(Secondary information & content)
+*/
+h5 { font-size: 1.2em; line-height: 1.7em; margin-top: -0.5em; margin-bottom: 0.45em; }
+/*
+*	(Section Titles, Column headers)
+*/
+h6 { font-size: 1.2em; text-transform: uppercase; line-height: 1.7em; margin-top: -0.5em; margin-bottom: 0.45em; }
+h1, h2, h3, h4, h5, h6 { 
+	font-weight: 100;
+	padding: 0em;
+}
+
+li, p  { 
+	/*font-size: 1.4em; 
+	line-height: 1.42em; 
+	margin-top: -0.42em; 
+	margin-bottom: 0.52em; */
+	padding: 0em;
+}
+
+/*
+*	ELEMENT RULES
+*/
+*, *:before, *:after {
+    box-sizing: border-box;
+}
+
+div {
+
+}
+label {
+	display: block;
+	flex: 1 0 auto;
+}
+input { /* same font-size as <h4> (standard body font) */
+	line-height: 0.8em;
+	padding: 0.6em;
+	display: block;
+}
+input[type="text"] {
+	width: 100%;
+}
+input[type="checkbox"] {
+	display: inline-block;
+}
+textarea {
+	padding: 0.6em;
+}
+
+code {
+	font-size: 12px;
+}
+img {
+	max-width: 100%;
+}
+a {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+/*
+*	MAIN CONTENT CONTAINER RULES
+*/
+.blueprint {
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	position: relative;
+}
+.blueprint > header { /* common header */
+	align-self: flex-start;
+	width: 100%;
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: row;
+}
+.blueprint > header h1 {
+	white-space: nowrap;
+}
+
+.blueprint.panoramic {
+	display: inline-flex;
+	flex-direction: row;
+	align-self: stretch;
+	align-content: flex-start;
+	align-items: flex-start;
+	flex: 1 1 auto;
+	flex-flow: row nowrap; 
+	justify-content: flex-start; 
+}
+.blueprint.col {
+	display: flex;
+	align-self: stretch;
+	align-content: flex-start;
+	align-items: flex-start;
+	flex: 1 1 auto;
+	flex-flow: row nowrap; 
+	justify-content: flex-start; 
+	flex-flow: column nowrap;
+}
+.blueprint.colReverse {
+	align-self: stretch;
+	align-content: flex-start;
+	align-items: flex-start;
+	display: flex;
+	flex: 1 1 auto;
+	flex-flow: row nowrap; 
+	justify-content: flex-start; 
+	flex-flow: column-reverse nowrap;
+}
+.blueprint.colWrap {
+	align-self: stretch;
+	align-content: flex-start;
+	align-items: flex-start;
+	display: flex;
+	flex: 1 1 auto;
+	flex-flow: row nowrap; 
+	justify-content: flex-start; 
+	flex-flow: column wrap;
+}
+.blueprint.colWrapReverse {
+	align-self: stretch;
+	align-content: flex-start;
+	align-items: flex-start;
+	display: flex;
+	flex: 1 1 auto;
+	flex-flow: row nowrap; 
+	justify-content: flex-start; 
+	flex-flow: column-reverse wrap;
+}
+.blueprint.row {
+	align-self: stretch;
+	align-content: flex-start;
+	align-items: flex-start;
+	display: flex;
+	flex: 1 1 auto;
+	flex-flow: row nowrap; 
+	justify-content: flex-start; 
+	width: 100%;
+	flex-flow: row nowrap;
+}
+.blueprint.rowWrap {
+	align-self: stretch;
+	align-content: flex-start;
+	align-items: flex-start;
+	display: flex;
+	flex: 1 1 auto;
+	flex-flow: row nowrap; 
+	justify-content: flex-start; 
+	width: 100%;
+	flex-flow: row wrap;
+}
+.blueprint.rowReverse {
+	align-self: stretch;
+	align-content: flex-start;
+	align-items: flex-start;
+	display: flex;
+	flex: 1 1 auto;
+	flex-flow: row nowrap; 
+	justify-content: flex-start; 
+	flex-flow: row-reverse nowrap;
+}
+.blueprint.rowWrapReverse {
+	align-self: stretch;
+	align-content: flex-start;
+	align-items: flex-start;
+	display: flex;
+	flex: 1 1 auto;
+	flex-flow: row nowrap; 
+	justify-content: flex-start; 
+	flex-flow: row-reverse wrap;
+}
+
+
+
+/*
+*	ROW RULES
+*/
+.row { 
+	display: flex; 
+	flex-direction: row;
+	flex-wrap: nowrap;
+	justify-content: flex-start; 
+	align-content: flex-start; 
+	align-items: flex-start;
+	align-self: stretch;
+	flex: 1 1 auto;
+	overflow-x: hidden;
+	overflow-y: hidden;
+	max-height: 100%;
+	/*min-height: 100%;*/
+}
+/*.row > div:not(.col) {
+	flex: 1 1 50%;
+}*/
+
+
+/*
+*	COLUMN RULES
+*/
+.col { 
+	display: flex; 
+	flex-direction: column;
+	flex-wrap: nowrap;
+	justify-content: flex-start; 
+	align-content: flex-start;
+	align-items: stretch;
+	align-self: stretch;
+	flex: 1 1 auto;
+	overflow-x: hidden;
+	overflow-y: hidden;
+	max-height: 100%;
+	/*min-height: 100%;*/
+}
+
+/*
+*	WRAP CONTENTS OF ROW OR COLUMN
+*/
+.wrap {
+	flex-wrap: wrap !important;
+	align-items: flex-start;
+}
+.nowrap {
+	flex-wrap: nowrap !important;
+	align-items: flex-start;
+}
+
+/*
+*	GRID LAYOUT RULES
+*/
+.grid { 
+	display: flex; 
+	flex-flow: row nowrap;
+	justify-content: flex-start; 
+	align-content: flex-start; 
+	align-items: flex-start;
+	align-self: stretch;
+	flex: 1 1 auto;
+	overflow-y: hidden;
+}
+.grid > div {
+	display: flex;
+	flex-flow: column wrap;
+	align-content: flex-start;
+	align-items: flex-start;
+	justify-content: flext-start;
+	align-self: stretch;
+	flex: 1 1 auto;
+	max-height: 100%;
+}
+
+
+/*
+*	PANORAMIC LAYOUT RULES
+*/
+.panoramic { 
+	display: inline-flex; 
+	flex-flow: row nowrap;
+	justify-content: flex-start; 
+	align-content: flex-start; 
+}
+
+/*
+*	BOX
+*/
+.box {
+	display: box;
+}
+.box > div {
+	box-flex: 1;
+	width: 0;
+}
+
+/*
+* POSITIONING
+ */
+.positionRelative {
+	position: relative;
+}
+.positionAbsolute {
+	position: absolute;
+}
+.positionFixed {
+	position: fixed;
+}
+
+/*
+*	CENTER LAYOUT RULES (HORIZONTAL / VERTICAL CENTERING)
+*/
+.center {
+	display: flex;
+    justify-content: center;
+    align-content: center;
+    align-items: center;
+	flex: 1 1 auto;
+	height: 100%;
+	width: 100%;
+}
+.center > div {
+	align-self: auto;
+}
+
+/*
+*	GUTTERS
+*/
+.gutter {
+	width: 4em;
+	height: 4em;
+	min-width: 4em;
+	min-height: 4em;
+}
+
+/*
+*	SHRINK & STRETCH
+*/
+.shrink { 
+	display: flex;
+    flex: 0 1 auto !important;
+	flex-flow: column nowrap;
+}
+.shrinkX {
+	display: flex;
+	
+}
+.shrinkY {
+	display: flex;
+	flex: 0 1 auto !important;
+}
+
+.stretch {
+	align-self: stretch;
+}
+.stretchX {
+	display: flex;
+	flex-direction: row;
+	align-self: stretch;
+}
+.stretchY {
+	display: flex;
+	flex-direction: column;
+	align-self: stretch;
+}
+
+/*
+*	FLOAT
+ */
+.float {
+	float: left;
+}
+
+
+
+/*
+*	UTILITY CLASSES
+*/
+.pad {
+	padding: 1em;
+}
+.margin {
+	margin: 1em;
+}
+
+.scroll { 
+	overflow-x: auto; 
+	overflow-y: auto; 
+}
+.scrollY { 
+	overflow-y: auto;
+}
+.scrollX { 
+	overflow-x: auto;
+}
+.overflowVisible {
+	overflow-x: visible;
+	overflow-y: visible;
+}
+.overflowXVisible {
+	overflow-x: visible;
+}
+.overflowYVisible {
+	overflow-y: visible;
+}
+.overflowXHidden {
+	overflow-x: hidden;
+}
+.overflowYHidden {
+	overflow-y: hidden;
+}
+
+.widthAuto {
+	flex: 1 1 auto;
+	width: auto;
+}
+.width100Percent {
+	width: 100%;
+}
+.heightAuto {
+	flex: 1 1 auto;
+	height: auto;
+}
+
+.hide { display: none; }
+
+.textLeft { text-align: left; }
+.textRight { text-align: right; }
+.textCenter { text-align: center; }
+.textJustify { text-align: justify; }
+
+
+.ratio h1, .ratio1 h1, .ratio2 h1, .ratio3 h1, .ratio4 h1, .ratio5 h1,
+.ratio h3, .ratio1 h3, .ratio2 h3, .ratio3 h3, .ratio4 h3, .ratio5 h3,
+.ratio h4, .ratio1 h4, .ratio2 h4, .ratio3 h4, .ratio4 h4, .ratio5 h4 {
+	text-overflow: ellipsis;
+	overflow: hidden;
+}
+.ratio {
+	flex: 1 1 auto !important;
+	overflow: hidden;
+}
+.ratio1 {
+	flex: 1 1 auto !important;
+	/*max-width: 10%;
+	min-width: 10%;*/
+	overflow: hidden;
+}
+.ratio2 {
+	flex: 2 2 auto !important;
+	/*max-width: 20%;
+	min-width: 20%;*/
+	overflow: hidden;
+}
+.ratio3 {
+	max-width: 30%;
+	min-width: 30%;
+	overflow: hidden;
+}
+.ratio4 {
+	max-width: 40%;
+	min-width: 40%;
+	overflow: hidden;
+}
+.ratio5 {
+	max-width: 50%;
+	min-width: 50%;
+	overflow: hidden;
+}
+.hide {
+	display: none !important;
+}
+.zIndexTop {
+	z-index: 1000;
+}
+
+@media (min-width : 1025px) {
+	.fragment {
+		color: #000000;
+	}
+	.collapsible { /* intentionally empty */ }
+}
+/* screen width under 1024px (portrait) */
+@media (max-width: 1024px) {
+	/*body {
+		color: #c03;
+	}*/
+
+    .collapsible {
+        display: none !important;
+    }
+	
+	.blueprint.panoramic, 
+	.blueprint.row {
+		overflow-y: auto;
+		/*overflow-x: hidden;*/
+		display: flex;
+		flex-direction: column;
+		flex-wrap: wrap;
+		height: auto;
+		align-self: auto;
+	}
+	.row.flip {
+		flex-direction: column;
+	}
+	.col.flip {
+		flex-direction: row;
+	}
+}
+
+.noScroll {
+	overflow: hidden;
+	overflow-x: hidden;
+	overflow-y: hidden;
+}
+
+/* Font rotation*/
+.rotate90 {
+	/* Safari */
+	-webkit-transform: rotate(90deg);
+	right: 0;
+
+	/* Firefox */
+	-moz-transform: rotate(90deg);
+
+	/* IE */
+	-ms-transform: rotate(90deg);
+
+	/* Opera */
+	-o-transform: rotate(90deg);
+
+	/* Internet Explorer */
+	filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);
+
+}
+.rotate-90 {
+	/* Safari */
+	-webkit-transform: rotate(-90deg);
+
+	/* Firefox */
+	-moz-transform: rotate(-90deg);
+
+	/* IE */
+	-ms-transform: rotate(-90deg);
+
+	/* Opera */
+	-o-transform: rotate(-90deg);
+
+	/* Internet Explorer */
+	filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);
+}
+
+
+/* DEBUGGING */
+#blueprint-debug-grid {
+	position: fixed;
+	z-index: 9999999;
+	pointer-events: none;
+	height: 100%;
+	width: 100%;
+	top: 0px;
+	left: 0px;
+}
+#blueprint-debug-grid .blueprint-debug-grid-row {
+	border-bottom: 1px solid blue;
+	width: 100%;
+	height: 1em;
+}
+#blueprint-debug-grid .blueprint-debug-grid-col {
+	border-right: 1px solid blue;
+	width: 1em;
+	height: 100%;
+}
+#blueprint-debug-grid .blueprint-debug-grid-row,
+#blueprint-debug-grid .blueprint-debug-grid-col {
+	opacity: 0.05;
+	position: absolute;
+}

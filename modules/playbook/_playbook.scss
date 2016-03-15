@@ -1,0 +1,12 @@
+/*
+*	PLAYBOOK MODULE
+*/
+#impakt-playbook-controls {
+	background-color: #333;
+}
+
+/* 
+========== PLAYBOOK MODULE IMPORTS ==========
+*/
+@import './editor/playbook-editor',
+'./browser/playbook-browser';

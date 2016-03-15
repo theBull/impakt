@@ -1,0 +1,18 @@
+
+<div class='col scrollY'>
+	<div class='row marginBottom2 height3'>
+		<!-- <div class='pad height3 width7 red-bg font-white pointer marginRight1'
+			ng-click='test()'>
+			<span class='glyphicon glyphicon-plus'></span> test
+		</div> -->
+		<div class='pad height3 width9 red-bg font-white pointer'
+			ng-click='clearAll()'>
+			<span class='glyphicon glyphicon-remove'></span> clear all
+		</div>
+	</div>
+	<notification-item ng-repeat='notification in notifications.toArray()'
+		class='pad height3 pointer'
+		type='notification.type'>
+		{{notification.message}}
+	</notification-item>
+</div>

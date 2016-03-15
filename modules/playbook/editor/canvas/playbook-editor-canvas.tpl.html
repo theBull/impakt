@@ -1,0 +1,103 @@
+
+
+<div ng-controller='playbook.editor.canvas.ctrl' 
+	class='playbook-editor-canvas-container col'>
+	
+	<!-- 
+		NOTE: `canvases` are located in playbook.editor.ctrl 
+		and inherited by playbook.editor.canvas.ctrl
+
+		TODO: this is convoluted...?
+	-->
+	<div class='col' 
+		ng-repeat='(key, canvas) in canvases'
+		ng-show='canvas.active'>
+	
+		<div class='playbook-editor-play-info row 
+			height3 font-white dark-blue-bg overflowVisible'>
+
+			<div class='dark-blue-bg dark-blue-bg-hover pointer positionRelative'
+				ng-init='formationDropdownVisible = false'>
+				<div class='row height3 pad'
+					ng-click='formationDropdownVisible = !formationDropdownVisible'>
+					<div class='marginRight1'>
+						Formation:  <strong>{{canvas.editorData.name}}</strong>
+					</div>
+					<div class='glyphicon glyphicon-chevron-down'>
+					</div>
+				</div>
+				<div class='col minWidth20 dropdown heightAuto'
+					ng-show='formationDropdownVisible'>
+					<!-- list of formations -->
+					<ul>
+						<li ng-repeat='(key, formation) in formations.getAll()'
+							class='pad pointer light-blue-bg light-blue-bg-hover'
+							ng-click='applyFormation(formation)'>
+							{{formation.name}}
+						</li>
+					</ul>
+				</div>
+			</div>
+
+			<div class='dark-blue-bg dark-blue-bg-hover pointer positionRelative'
+				ng-init='setDropdownVisible = false'>
+				<div class='row height3 pad'
+					ng-click='setDropdownVisible = !setDropdownVisible'>
+					<div class='marginRight1'>
+						Personnel:  <strong>{{canvas.editorData.personnel.name}}</strong>
+					</div>
+					<div class='glyphicon glyphicon-chevron-down'>
+					</div>
+				</div>
+				<div class='col minWidth20 dropdown heightAuto'
+					ng-show='setDropdownVisible'>
+					<!-- list of personnel -->
+					<ul>
+						<li ng-repeat='(guid, personnel) in personnelCollection.getAll()'
+							class='pad pointer light-blue-bg light-blue-bg-hover'
+							ng-click='applySet(personnel)'>
+							{{personnel.name}}
+						</li>
+					</ul>
+				</div>
+			</div>
+
+			<div class='dark-blue-bg dark-blue-bg-hover pointer positionRelative'
+				ng-init='playDropdownVisible = false'>
+				<div class='row height3 pad'
+					ng-click='playDropdownVisible = !playDropdownVisible'>
+					<div class='marginRight1'>
+						Assignments:  
+						<strong>
+							{{canvas.editorData.play.name}}
+						</strong>
+					</div>
+					<div class='glyphicon glyphicon-chevron-down'>
+					</div>
+				</div>
+				<div class='col minWidth20 dropdown heightAuto'
+					ng-show='playDropdownVisible'>
+					<!-- list of plays -->
+					<ul>
+						<li ng-repeat='(key, play) in plays.getAll()'
+							class='pad pointer light-blue-bg light-blue-bg-hover'
+							ng-click='applyPlay(play)'>
+							{{play.name}}
+						</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+
+		<playbook-editor-canvas
+			editortype='{{editorTypes["formation"]}}'
+			key='{{key}}'
+			scrollable
+			class='col playbook-editor-canvas marginBottom1 marginRight1'
+			oncontextmenu='return false;'>
+			
+		</playbook-editor-canvas>
+	
+	</div>
+
+</div>

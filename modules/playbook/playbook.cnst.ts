@@ -1,0 +1,34 @@
+/// <reference path='./playbook.mdl.ts' />
+/**
+ * Playbook constants defined here
+ */
+
+impakt.playbook.constant('PLAYBOOK', {
+    //GET_PLAYBOOKS: 'data/playbook.json',
+    ENDPOINT: '/playbook',
+    
+    // Playbooks
+    CREATE_PLAYBOOK: '/createPlaybook',
+    GET_PLAYBOOKS: '/getPlaybooks',
+    GET_PLAYBOOK: '/getPlaybook',
+    DELETE_PLAYBOOK: '/deletePlaybook',
+
+    // Formations
+    CREATE_FORMATION: '/createFormation',
+    GET_FORMATIONS: '/getFormations',
+    GET_FORMATION: '/getFormation',
+    DELETE_FORMATION: '/deleteFormation',
+    UPDATE_FORMATION: '/updateFormation',
+
+    // Sets
+    CREATE_SET: '/createSet',
+    GET_SETS: '/getSets',
+    UPDATE_SET: '/updateSet',
+    DELETE_SET: '/deleteSet',
+
+    // Plays
+    CREATE_PLAY: '/createPlay',
+    GET_PLAY: '/getPlay',
+    GET_PLAYS: '/getPlays'
+
+});

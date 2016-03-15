@@ -1,0 +1,57 @@
+/*
+*	PLAYBOOK EDITOR TABS
+*/
+#playbook-editor-tabs {
+	background-color: #434343;
+	border-bottom: 1px solid #333;
+}
+.playbook-editor-tab {
+	min-width: 30px;
+	text-align: left;
+	background-color: #616161;
+	color: #333;
+	border-right: 1px solid #333;
+	cursor: pointer;
+	position: relative;
+}
+.playbook-editor-tab:hover {
+	background-color: #888;
+}
+.playbook-editor-tab span {
+	display: inline-block;
+	/*max-width: 80%;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	white-space: nowrap;*/
+}
+.playbook-editor-tab .glyphicon-remove {
+	border-radius: 50%;
+	margin-left: 2em;
+}
+.playbook-editor-tab:not(.active) {
+	color: #ccc;
+	text-shadow: 0 1px #444;
+}
+.playbook-editor-tab.active {
+	background-color: #9f9f9f;
+	border-bottom: none;
+	text-shadow: 0 1px #aaa;
+}
+.playbook-editor-tab.active:hover {
+	background-color: #aaa;
+}
+.playbook-editor-tab.active .tab-title {
+}
+.playbook-editor-tab.playbook-editor-type-formation {
+	border-top: 2px solid #3377ff;
+}
+.playbook-editor-tab.playbook-editor-type-assignment,
+.playbook-editor-tab.playbook-editor-type-play {
+	border-top: 2px solid #ff7733;
+}
+#playbook-editor-new-tab {
+	color: #9d7;
+}
+#playbook-editor-new-tab:hover {
+
+}

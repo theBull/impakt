@@ -1,0 +1,54 @@
+<!-- browser drilldown -->
+<div ng-show='isVisibleLayer(2)'>
+
+	<div class='pad padBottom0 font-white'>
+		<!-- Private Playbooks -->
+		<h2>
+			Formations						
+		</h2>
+	</div>
+
+
+	<span 
+		class='marginBottom2 height3 pad pointer red-bg-hover widthAuto' 
+		sliding-panel-nav ng-click='to(0)'>
+			<span class='glyphicon glyphicon-chevron-left'></span>
+			{{selectedUnitType.name}}
+	</span>
+	<span 
+		class='marginBottom2 height3 pad pointer red-bg-hover widthAuto' 
+		sliding-panel-nav ng-click='prev()'>
+			<span class='glyphicon glyphicon-chevron-left'></span>
+			{{selectedPlaybook.name}}
+	</span>
+
+	<div ng-repeat='(guid, formation) in associatedFormations.getAll()' 
+		class='col pointer dark-bg-hover'>
+
+		<div class='row height3'>
+			<div class='row margin1'
+				ng-click='editFormation(formation)'>
+				<span class='glyphicon glyphicon-equalizer marginRight1'></span>
+				{{formation.name}}
+			</div>
+
+			<div class='pad right0 height3'>
+				<div class='glyphicon glyphicon-remove'
+					ng-click='deleteFormation(formation)'></div>
+				<div class='glyphicon glyphicon-chevron-right'></div>
+			</div> 
+		</div>
+
+	</div>
+	<div class='row pointer dark-bg-hover height3'
+		ng-click='createFormation(playbook)'>
+		<div class='pad1 width1 glyphicon glyphicon-plus'></div>
+		<div class='margin1'>New Formation</div>
+	</div>
+
+	<div class='row pointer dark-bg-hover height3'
+		ng-click='deletePlaybook(playbook)'>
+			<div class='pad1 width1 glyphicon glyphicon-remove'></div>
+			<div class='margin1'>Delete playbook</div>
+	</div>
+</div>

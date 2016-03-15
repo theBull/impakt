@@ -1,0 +1,49 @@
+
+<div class='col'>
+	<div id='playbook-editor-tabs' 
+		class='row height3'
+		ng-controller='playbook.editor.tabs.ctrl'>
+					
+		<!-- editor FORMATION tabs -->
+		<div class='playbook-editor-tab noselect height3 pad1 
+			playbook-editor-type-formation'
+			ng-repeat='(key, tab) in tabs.getAll()'
+			ng-attr-id='playbook-editor-tab-{{key}}'
+			ng-class='{ active : tab.active }'
+			ng-click='activate(tab)'>
+
+				<!-- editor tab title -->
+				<span class='tab-title' 
+					ng-model='tab.title'
+					ondblclick="this.contentEditable=true;" 
+					onblur="this.contentEditable=false;" 
+					contenteditable="false">
+						{{ tab.title }}
+				</span>
+
+				<!-- close button -->
+				<span class='glyphicon glyphicon-remove' 
+					ng-click='close(tab)'>
+				</span>
+
+		</div>
+
+		<!-- new editor tab button -->
+		<div id='playbook-editor-new-tab' 
+			class='playbook-editor-tab height3 pad1' 
+			ng-click='new()'>
+			
+			<!-- plus icon -->
+			<span class='glyphicon glyphicon-plus'></span>
+
+		</div>
+
+	</div>
+
+	<!-- canvas -->
+	<!-- <ng-include ng-repeat='tab in tabs'
+	 	class='col'
+		ng-attr-src='templates.canvas'>
+	</ng-include> -->
+
+</div>

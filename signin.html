@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html ng-app='impakt.signin'>
+<head>
+
+	<title>IMPAKT</title>
+
+	<!-- bootstrap -->
+	<link href='css/bootstrap.css' type='text/css' rel='stylesheet' />
+	<link href='css/bootstrap-theme.css' type='text/css' rel='stylesheet' />
+	<!-- blueprint -->
+	<link href='css/blueprint-grid.css' type='text/css' rel='stylesheet' />
+	<link href='css/blueprint-util.css' type='text/css' rel='stylesheet' />
+	<link href='css/app.css' type='text/css' rel='stylesheet' />
+
+	<!-- Libraries -->
+	<script src='js/jquery.min.js'></script>
+	<script src='js/angular.js'></script>
+	<script src='js/angular-ui-router.min.js'></script>
+	<script src='js/bootstrap.min.js'></script>
+	<script src='js/bootstrap-select.js'></script>
+	<!--<script src='js/ui-bootstrap-0.11.0.min.js'></script>-->
+	<script src='js/ui-bootstrap-tpls-0.14.3.min.js'></script>
+	<script src='js/jquery-ui.min.js'></script>
+	<script src='js/blueprint.js'></script>
+	<script src='js/raphael.min.js'></script>
+
+	<!-- Application -->
+	<script src='js/impakt.js'></script>
+
+
+</head>
+<body>
+
+	<div class='blueprint col black-bg'>
+		<div class='center' ng-controller='signin.ctrl'>
+			<div class='pad4 height32 width32 light-border-bottom-red light-bg'>
+				
+				<h1>Login</h1>
+				
+				<div class='marginTop2'>
+					
+					<input 
+						type='text'
+						placeholder='{{data.username}}'
+						name='data.username'
+						ng-model='data.username'
+						required />
+				</div>
+				
+				<div class='marginTop2'>
+				
+					<input 
+						type='password' 
+						placeholder='{{data.password}}'
+						name='data.password'
+						ng-model='data.password'
+						required />
+				</div>
+				
+				<div class='marginTop2'>
+					<button ng-click='signin()'>Signin</button>
+				</div>
+
+			</div>
+		</div>
+	</div>
+</body>
+</html>

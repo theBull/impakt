@@ -1,0 +1,45 @@
+notifications {
+	pad: 1em;
+	background-color: $gray-bg-2;
+	min-height: 3em;
+	color: $white;
+}
+notification-item {
+	position: relative;
+	margin-bottom: 1px;
+}
+notification-item:hover {
+
+}
+notification-item .notification-type {
+	top: 0;
+	left: 0;
+	width: 3px;
+	position: absolute;
+	height: 100%;
+	opacity: 0.5;
+}
+/* none */
+notification-item .notification-type.notification-type-0 {
+	background-color: #A5A5A5;
+}
+/* success */
+notification-item .notification-type.notification-type-1 {
+	background-color: #75AF5A;
+}
+/* error */
+notification-item .notification-type.notification-type-2 {
+	background-color: #AF3025;
+}
+/* warning */
+notification-item .notification-type.notification-type-3 {
+	background-color: #CCB753;
+}
+/* info */
+notification-item .notification-type.notification-type-4 {
+	background-color: #A5A5A5;
+}
+/* pending */
+notification-item .notification-type.notification-type-5 {
+	background-color: #4D88CC;
+}

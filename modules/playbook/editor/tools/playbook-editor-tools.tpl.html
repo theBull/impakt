@@ -1,0 +1,20 @@
+
+<div class='playbook-editor-tools col'
+	ng-class='{minWidth10: expanded, width3: !expanded}' 
+	ng-controller='playbook.editor.tools.ctrl'>
+	
+	<ul class='playbook-editor-tools-list'>
+		
+		<li class='playbook-editor-tool height3' 
+			ng-repeat='tool in tools'
+			ng-attr-title='{{ tool.tooltip }}'
+			ng-class='{"selected": tool.selected}'
+			ng-click='toolClick(tool)'>
+				
+				<span class='{{tool.glyphicon.name}}'></span>
+				<span class='padLeft1' ng-show='expanded'>{{tool.title}}</span>
+		</li>
+
+	</ul>
+
+</div>

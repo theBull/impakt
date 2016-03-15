@@ -1,0 +1,40 @@
+<div class='col dark-bg'>	
+	<div class='row'>
+		<nav class='col width6 positionRelative' 
+			id='impakt-navigator-nav'>
+			<ul>
+				<li class='height3 width6 pad1 font-white black-bg-hover row'
+					ng-click='menuVisibilityToggle()'>
+					<span class='height3 width6 padTop1 padBottom1'>
+						<span class='glyphicon glyphicon-bell'></span>
+						{{notifications.size()}}
+					</span>
+				</li>
+
+				<li ng-repeat-start='menuItem in menuItems' class='minHeight6 padTop1 padBottom2 pointer'
+					ng-class='{ active: menuItem.isActive }'
+					ng-click='menuItemClick(menuItem)'>
+					<div class='nav-item-icon height3 width4 marginLeft1 marginRight1'>
+						<span ng-attr-class='{{ "glyphicon glyphicon-" + menuItem.glyphicon }}'></span>
+					</div>
+					<!-- {{ menuItem.label }} -->
+				</li>
+				<li ng-repeat-end=''></li>
+			</ul>
+
+			<div ng-include='"modules/user/user.tpl.html"'></div>
+			
+			<div class='row pad1 font-white red-bg bottom0'
+				ng-show='!isOnline'>
+				OFFLINE
+			</div>
+			<div class='row pad1 font-white dark-green-bg bottom0'
+				ng-show='isOnline'>
+				ONLINE
+			</div>
+		</nav>
+		<div id='impakt-navigator-container' class='col'>
+			<notifications class='col width100Percent'></notifications>
+		</div>
+	</div>
+</div>
