@@ -2772,14 +2772,14 @@ impakt.common.signin.controller('signin.ctrl', ['$scope', '__signin', '__locale'
         $scope.showRegister = false;
         $scope.states = __locale.states;
         $scope.signinData = {
-            username: 'admin@impaktathletics.com',
-            password: 'Abc123!!'
+            username: '',
+            password: ''
         };
-        $scope.user = new User.Models.UserModel();
-        $scope.user.firstName = 'Danny';
-        $scope.user.lastName = 'Bullis';
-        $scope.user.email = 'daniel.p.bullis@gmail.com';
-        $scope.user.organizationName = 'Test organization';
+        // $scope.user = new User.Models.UserModel();
+        // $scope.user.firstName = 'Danny';
+        // $scope.user.lastName = 'Bullis';
+        // $scope.user.email = 'daniel.p.bullis@gmail.com';
+        // $scope.user.organizationName = 'Test organization';
         $scope.signinMessage = '';
         $scope.organization = new User.Models.Organization();
         $scope.account = new User.Models.Account();
