@@ -65,7 +65,7 @@ function($scope: any, __signin: any, __locale: any) {
 		).then(function(results) {
 			$scope.signinMessage = 'signin successful.';
 		}, function(err) {
-			$scope.signinMessage = err;
+			$scope.signinMessage = err && err.data && err.data.error_description || 'Login failed.';
 		});
 	}
 

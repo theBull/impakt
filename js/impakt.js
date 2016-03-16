@@ -2818,7 +2818,7 @@ impakt.common.signin.controller('signin.ctrl', ['$scope', '__signin', '__locale'
             __signin.signin($scope.signinData.username, $scope.signinData.password).then(function (results) {
                 $scope.signinMessage = 'signin successful.';
             }, function (err) {
-                $scope.signinMessage = err;
+                $scope.signinMessage = err && err.data && err.data.error_description || 'Login failed.';
             });
         };
         $scope.register = function () {
