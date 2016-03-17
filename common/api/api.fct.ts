@@ -21,11 +21,15 @@ function(
 	}
 
 	function post(endpointUrl, data) {
+		if (!data.OrganizationKey)
+			data.OrganizationKey = __localStorage.getOrganizationKey();
+
 		let d = $q.defer();
-		$http.post(
-			path(API.HOST_URL, API.ENDPOINT, endpointUrl),
-			JSON.stringify(data)
-		).then(function(data) {
+		$http({
+			method: 'POST',
+			url: path(API.HOST_URL, API.ENDPOINT, endpointUrl),
+			data: JSON.stringify(data)
+		}).then(function(data) {
 			// TODO: handle statuses manually
 			//console.log(data);
 			d.resolve(data);
@@ -39,10 +43,10 @@ function(
 	function get(endpointUrl) {
 		let d = $q.defer();
 		$http({
-			method: 'GET',
+			method: 'POST',
 			url: path(API.HOST_URL, API.ENDPOINT, endpointUrl),
 			headers: {
-			   'X-HTTP-Method-Override': 'POST'
+			   'X-HTTP-Method-Override': 'GET'
 			},
 			data: { 
 				"OrganizationKey": __localStorage.getOrganizationKey()
