@@ -1,0 +1,23 @@
+<div class="modal-header">
+    <h3 class="modal-title">
+        Get Started: Select an Organization
+    </h3>
+</div>
+<div class="modal-body col">
+
+    <div class='marginBottom1'>
+        <p>Select your organization access its data.</p>
+    </div>
+    <select 
+    	ng-options='organization as organization.companyName 
+    		for organization in organizations.toArray()'
+        ng-model='selectedOrganization'
+    	ng-change='organizationSelected()'>
+
+    </select>
+
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary" type="button" ng-click="ok()">select</button>
+    <button class="btn btn-default" type="button" ng-click="cancel()">cancel</button>
+</div>

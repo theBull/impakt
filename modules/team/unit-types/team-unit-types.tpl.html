@@ -1,0 +1,20 @@
+<div class='col' ng-controller='impakt.team.unitTypes.ctrl'>
+
+	<div ng-repeat='unitType in unitTypes'
+		class='pad1 gray-bg-5'>
+
+		<div>
+			<h5>{{unitType.name}}</h5>
+		</div>
+
+		<!-- <div
+			class='width7 text-center red-bg-hover font-white pad pointer'>
+			<span class='glyphicon glyphicon-ok'></span> save
+		</div> -->
+		
+		<div>
+			{{unitType.toJson()}}
+		</div>
+	</div>
+
+</div>

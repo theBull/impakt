@@ -1,0 +1,32 @@
+<div>
+	<div class='pad padBottom0 font-white'>
+		<!-- Associated -->
+		<h2>
+			Associated						
+		</h2>
+	</div>
+
+	<div>
+		<span 
+			class='marginBottom2 height3 pad pointer red-bg-hover widthAuto' 
+			sliding-panel-nav ng-click='to(0)'>
+				<span class='glyphicon glyphicon-chevron-left'></span>
+				{{selectedUnitType.name}}
+		</span>
+		<span 
+			class='marginBottom2 height3 pad pointer red-bg-hover widthAuto' 
+			sliding-panel-nav ng-click='prev()'>
+				<span class='glyphicon glyphicon-chevron-left'></span>
+				{{selectedPlaybook.name}}
+		</span>
+	</div>
+
+	<div class>
+		<ng-include src='"modules/playbook/browser/sidebar/play/plays.tpl.html"'>
+		</ng-include>
+
+		<ng-include src='"modules/playbook/browser/sidebar/formation/formations.tpl.html"'>
+		</ng-include>
+	</div>
+
+</div>

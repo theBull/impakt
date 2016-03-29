@@ -1,0 +1,44 @@
+/*
+*	PLAYBOOK EDITOR TABS
+*/
+#playbook-editor-tabs {
+}
+.playbook-editor-tab {
+	min-width: 30px;
+	text-align: left;
+	position: relative;
+}
+.playbook-editor-tab:hover {
+	background-color: #888;
+}
+.playbook-editor-tab span {
+	display: inline-block;
+	/*max-width: 80%;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	white-space: nowrap;*/
+}
+.playbook-editor-tab .glyphicon-remove {
+	border-radius: 50%;
+	margin-left: 1em;
+}
+.playbook-editor-tab:not(.active) {
+	color: #ccc;
+	text-shadow: 0 1px #444;
+}
+.playbook-editor-tab.active {
+	background-color: #9f9f9f;
+	border-bottom: none;
+	text-shadow: 0 1px #aaa;
+}
+.playbook-editor-tab.active:hover {
+	background-color: #aaa;
+}
+.playbook-editor-tab.active .tab-title {
+}
+#playbook-editor-new-tab {
+	color: #9d7;
+}
+#playbook-editor-new-tab:hover {
+
+}

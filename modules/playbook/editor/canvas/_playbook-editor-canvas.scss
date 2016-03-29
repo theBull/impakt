@@ -1,0 +1,24 @@
+
+/*
+*	PLAYBOOK EDITOR CANVAS STYLES
+*/
+.playbook-editor-canvas-container {
+	background-color: #616161;
+}
+.playbook-editor-canvas-container.inactive {
+	visibility: collapse;
+	flex: 0;
+}
+.playbook-editor-canvas-container.active {
+	visibility: visible;
+}
+playbook-editor-canvas {
+	display: block;
+	position: relative;
+	z-index: 0;
+	background-color: #000000;
+	resize: both;
+}
+playbook-editor-canvas svg * {
+	pointer-events: fill;
+}

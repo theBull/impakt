@@ -1,0 +1,23 @@
+stepper {
+	display: flex;
+	flex-direction: column;
+}
+stepper div[step] {
+	display: block;
+}
+
+stepper step-nav {
+	margin-top: 1em;
+	height: 3em;
+	width: 100%;
+}
+
+stepper step-nav step-nav-item {
+	height: 3em;
+	width: 3em;
+	padding: 1em;
+	color: $fontWhite;
+	cursor: pointer;
+	display: inline-block;
+	margin-right: 1em;
+}

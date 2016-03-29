@@ -1,0 +1,358 @@
+/* Main site styles */
+header {
+	width: 100%;
+	margin: 0;
+	padding: 0;
+}
+
+input {
+
+}
+a {
+	margin: 0;
+	padding: 0;
+	text-decoration: none;
+}
+a:hover {
+	text-decoration: none;
+}
+a > li {
+	margin: 0;
+}
+
+/* debugging */
+/*div {
+	border: 1px solid #000;
+}
+li {
+	border: 1px solid blue;
+}
+nav {
+	border: 1px solid red;
+}*/
+
+
+/* UTILITY CLASSES */
+.actionable {
+	color: rgb(170, 171, 172);
+	cursor: pointer;
+}
+.actionable:hover, .actionable:hover * {
+	color: rgb(200, 201, 202);
+	text-decoration: none;
+}
+.actionable.active {
+	color: #fff;
+}
+.list-icon {
+	font-size: 20px;
+}
+.noselect {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* COLOR CLASSES */
+.black-gradient-bg {
+	background: rgb(69,72,77); /* Old browsers */
+	background: -moz-linear-gradient(top,  rgba(69,72,77,1) 0%, rgba(0,0,0,1) 100%); /* FF3.6+ */
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(69,72,77,1)), color-stop(100%,rgba(0,0,0,1))); /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient(top,  rgba(69,72,77,1) 0%,rgba(0,0,0,1) 100%); /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(top,  rgba(69,72,77,1) 0%,rgba(0,0,0,1) 100%); /* Opera 11.10+ */
+	background: -ms-linear-gradient(top,  rgba(69,72,77,1) 0%,rgba(0,0,0,1) 100%); /* IE10+ */
+	background: linear-gradient(to bottom,  rgba(69,72,77,1) 0%,rgba(0,0,0,1) 100%); /* W3C */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#45484d', endColorstr='#000000',GradientType=0 ); /* IE6-9 */
+}
+.black-gradient-bg-hover:hover {
+	background-color: #010203;
+}
+
+/* ICONS */
+.impakt-folder-icon {
+	background: url(../images/folder.png) no-repeat;
+	background-size: contain;
+	background-position: center center;
+}
+.impakt-file-icon {
+	background: url(../images/file.png) no-repeat;
+	background-size: contain;
+	background-position: center center;	
+}
+
+/* ASSETS */
+.impakt-main-logo {
+	background: url(../images/impakt_logo.png) no-repeat;
+	background-size: contain;
+	background-position: center center;
+}
+
+/* BROWSER */
+#impakt-browser {
+}
+#impakt-browser header {
+	background-color: #000;
+}
+#impakt-browser nav {
+	background-color: #313131;
+	border-right: 1px solid #000;
+	color: #fff;
+}
+#impakt-browser-nav ul,
+#impakt-browser-nav li {
+	list-style-type: none;
+	list-style-position: inside;
+	margin: 0;
+	padding: 0;
+}
+#impakt-browser-nav li {
+	cursor: pointer;
+	text-align: center;
+}
+#impakt-browser-nav li.active,
+#impakt-browser-nav li.active:hover {
+	color: #fff;
+}
+#impakt-browser-nav li:hover {
+	background-color: #555;
+	color: #ddd;
+}
+#impakt-browser-nav .nav-item-icon {
+	border-radius: 50%;
+	/*background-color: #fff;*/
+}
+#impakt-browser-nav .nav-item-icon span {
+	font-size: 2.5em;
+}
+#impakt-browser-controls {
+	background-color: #434343;
+	color: #fff;
+	position: relative;
+}
+
+/* MAIN TOP NAV */
+#impakt-top-nav {
+	z-index: 1000;
+	box-shadow: 0 0 10px #333;
+}
+#impakt-top-nav header {
+	border-bottom: 1px solid #000;
+	color: #fff;
+}
+#impakt-top-nav ul {
+	padding: 0;
+	white-space: nowrap;
+}
+#impakt-top-nav ul > a {
+	margin: 0;
+	display: inline-block;
+	white-space: nowrap;
+}
+#impakt-top-nav ul,
+#impakt-top-nav li {
+	list-style-type: none;
+	list-style-position: inside;
+	margin: 0;
+}
+#impakt-top-nav li {
+	display: inline-block;
+	text-align: center;
+	cursor: pointer;
+	border-left: 1px solid #333;
+	background-color: rgba(30, 31, 32, 0.15);
+}
+#impakt-top-nav li.active {
+	color: #fff;
+	background-color: rgba(90, 91, 92, 0.25);
+}
+#impakt-top-nav li:hover {
+	background-color: rgba(60, 61, 62, 0.25);
+}
+
+/* TOP NAV PROFILE DETAILS */
+#impakt-top-nav #main-profile-controls {
+
+}
+#impakt-top-nav #main-profile-image {
+	border-radius: 50%;
+	background-color: #fff;
+	background: url(../images/user_blank.png) no-repeat;
+	background-size: contain;
+	cursor: pointer;
+}
+#impakt-top-nav #main-profile-image:hover {
+	border: 2px solid #fff;
+}
+
+
+/* PLAYBOOK */
+#impakt-playbook-controls {
+	background-color: #333;
+}
+/* PLAYBOOK BROWSER */
+#impakt-browser-container {
+	border-right: 4px solid #000;
+}
+#impakt-browser-view {
+	color: #505050;
+	background-color: #c8c8c8;
+}
+#impakt-browser-playbook .k-treeview .k-in {
+	padding: 5px;
+}
+
+/* PLAYBOOK EDITOR */
+#playbook-editor-main {
+	background-color: rgb(50, 52, 54);
+	height: 100%;
+}
+.playbook-editor-tabs {
+	background-color: #434343;
+}
+.playbook-editor-tab {
+	margin-top: 3px;
+	min-width: 30px;
+	padding: 5px 10px 0 10px;
+	height: 27px;
+	text-align: center;
+	background-color: #616161;
+	color: #333;
+	border: 1px solid rgb(20, 21, 22);
+	cursor: pointer;
+}
+.playbook-editor-tab:first-child {
+	margin-left: 8px;
+}
+.playbook-editor-tab:hover {
+	background-color: #515151;
+}
+.playbook-editor-tab span {
+	display: inline-block;
+}
+.playbook-editor-tab .glyphicon-remove {
+	padding: 2px;
+	border-radius: 50%;
+	height: 14px;
+	width: 14px;
+	margin-left: 8px;
+}
+.playbook-editor-tab .glyphicon-remove:hover {
+	background-color: rgba(50, 51, 52, 0.5);
+	text-shadow: none;
+	color: #ccc;
+}
+.playbook-editor-tab:not(.active) {
+	color: #ccc;
+	text-shadow: 0 1px #444;
+}
+.playbook-editor-tab.active {
+	background-color: rgb(140, 139, 138);
+	border-bottom: none;
+	text-shadow: 0 1px #aaa;
+}
+.playbook-editor-tab.active:hover {
+	background-color: rgb(150, 149, 148);
+}
+.playbook-editor-tab.active .tab-title {
+	font-weight: bold;	
+}
+#playbook-editor-new-tab {
+	color: #9d7;
+}
+#playbook-editor-new-tab:hover {
+
+}
+.playbook-editor-play-info {
+	background-color: #29506D;
+	color: #fff;
+}
+impakt-canvas {
+	display: block;
+	width: auto;
+	position: relative;
+}
+.playbook-editor-canvas {
+	margin: 2px;
+	border: 3px solid #132;
+	background-color: rgb(244, 250, 245);
+	resize: both;
+	position: relative;
+	height: 600px;
+	width: 600px;
+}
+.playbook-editor-canvas svg * {
+	pointer-events: fill;
+}
+.playbook-editor-canvas-container {
+	display: none;
+}
+.playbook-editor-canvas-container.active {
+	display: block;
+}
+.playbook-editor-tools {
+	background-color: #434343;
+	padding-top: 8px;
+	border-right: 1px solid #282828;
+	border-top: 1px solid #222;
+}
+.playbook-editor-tools-list {
+	margin: 0;
+	padding: 0;
+}
+.playbook-editor-tool {
+	color: #ccc;
+	text-shadow: 0px 1px #333;
+	text-align: center;
+	border-bottom: 1px solid #333;
+	border-left: 1px solid #333;
+	border-top: 1px solid #555;
+	border-right: 1px solid #555;
+	cursor: pointer;
+	width: calc(100% - 3px);
+	margin: 1px;
+	padding-top: 7px;
+}
+.playbook-editor-tool:hover {
+	background-color: #383838;
+}
+.playbook-editor-tools-list,
+.playbook-editor-tool {
+	list-style-type: none;
+	list-style-position: inside;
+}
+.playbook-editor-zoom-controls {
+	position: absolute;
+	bottom: 10px;
+	left: 10px;
+}
+.playbook-editor-zoom-controls .zoom-control {
+	height: 30px;
+	width: 30px;
+	border: 2px solid rgba(100, 101, 102, 0.75);
+	display: inline-block;
+	vertical-align: middle;
+	text-align: center;
+	padding-top: 7px;
+	cursor: pointer;
+}
+.playbook-editor-zoom-controls .zoom-control:hover {
+	border: 2px solid rgb(160, 161, 162);
+	background-color: rgba(190, 191, 192, 0.5);
+}
+.playbook-editor-zoom-controls .zoom-control span {
+	margin: 0;
+	padding: 0;
+}
+
+
+
+
+
+
+
+
+
+

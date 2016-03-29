@@ -1,0 +1,235 @@
+<div class="modal-header">
+    <h3 class="modal-title">
+        Save &quot;{{play.name}}&quot;
+    </h3>
+</div>
+<div class="modal-body col">
+
+    <div class='row'>
+        <div class='marginRight1 width30 center'>
+            <div class='height24 width30'>
+                <play-preview class='height24 width30' guid='{{play.guid}}' editor='1'></play-preview>
+            </div>
+        </div>
+
+        <div class='col'>
+
+            <div class='row marginBottom1'>
+                <div class='col'>
+                    <div>
+
+                    </div>
+                    <div class='row marginBottom1' ng-show='!play.modified && !copyPlay'>
+                        <div class='marginRight1'>
+                            <span class='glyphicon glyphicon-exclamation-sign'></span>
+                        </div>
+                        <div>
+                            No changes to save
+                        </div>
+                    </div>
+                    <div ng-show='play.modified && !copyPlay'>
+                        Play has been modified.
+                    </div>
+                    <div ng-show='copyPlay' class='marginBottom1'>
+                        
+                        <p>New play name:</p>
+                        
+                        <input type='text' ng-model='play.name' 
+                            placeholder='Play name?' />
+                    </div>
+                    <div class='row'>
+                        <input 
+                            type='checkbox' 
+                            ng-model='copyPlay' 
+                            ng-change='copyPlayChange()' />
+                        <span class='marginLeft1'>Save as a new copy</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class='col'>
+                <div class='row minHeight3'>
+                    <div class='pad shrink minWidth10'>
+                        <strong>Name:</strong>
+                    </div>
+                    <div class='pad'>
+                        {{play.name}}
+                    </div>
+                </div>
+                <div class='row minHeight3'>
+                    <div class='pad shrink minWidth10'>
+                        <strong>Unit type:</strong>
+                    </div>
+                    <div class='pad'>
+                        <type-formatter
+                            value='{{play.unitType}}'
+                            type='Playbook.Editor.UnitTypes'>                        
+                        </type-formatter>
+                    </div>
+                </div>
+                <div class='row minHeight3'>
+                    <div class='pad shrink minWidth10'>
+                        <strong>Key:</strong>
+                    </div>
+                    <div class='pad'>
+                        {{play.key}}
+                    </div>
+                </div>
+                <div class='row minHeight3'>
+                    <div class='pad shrink minWidth10'>
+                        <strong>Modified:</strong>
+                    </div>
+                    <div class='pad'>
+                        {{play.modified === true ? 'yes': 'no'}}
+                    </div>
+                </div>
+                <div class='row minHeight3'>
+                    <div class='pad shrink minWidth10'>
+                        <strong>Formation:</strong>
+                    </div>
+                    <div class='pad'>
+                        {{play.formation.name}}
+                    </div>
+                </div>
+                <div class='row minHeight3'>
+                    <div class='pad shrink minWidth10'>
+                        <strong>Assignments:</strong>
+                    </div>
+                    <div class='pad'>
+                        {{play.assignments.name}}
+                    </div>
+                </div>
+                <div class='row minHeight3'>
+                    <div class='pad shrink minWidth10'>
+                        <strong>Personnel:</strong>
+                    </div>
+                    <div class='pad'>
+                        {{play.personnel.name}}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+   <!--  <div class='marginTop2'>
+        <h3>Personnel</h3>
+        <div>
+            {{play.personnel.name}}
+        </div> 
+    </div>
+
+    <div class='marginTop2'>
+        <p ng-show='!play.formation'>
+            * There is no formation associated with this play.
+        </p>
+        <div ng-show='play.formation'>
+            <h3>Formation</h3> 
+            <h5><strong>{{play.formation.name}}</strong></h5>
+            
+            <div class='marginBottom1'>
+                <table>
+                    <tr>
+                        <td>name</td>
+                        <td>{{play.formation.name}}</td>
+                    </tr>
+                    <tr>
+                        <td>modified?</td>
+                        <td>{{play.formation.modified === true ? 'yes': 'no'}}</td>
+                    </tr>
+                    <tr>
+                        <td># placements</td>
+                        <td>{{play.formation.placements.size()}}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class='marginBottom1'>
+                <p ng-show='!play.formation.modified && !copyFormation'>
+                    No changes to save
+                </p>
+                <p ng-show='play.formation.modified && !copyFormation'>
+                    Formation &quot;<strong>{{play.formation.name}}</strong>&quot; has been modified; 
+                    clicking OK will overwrite the formation.
+                </p>
+                <div ng-show='copyFormation'>
+                    <p>Clicking OK will create a copy of
+                        &quot;<strong>{{play.formation.name}}</strong>&quot;
+                        and save it as a new formation.
+                    </p>
+                    <input type='text' ng-model='formationCopy.name'
+                        ng-disabled='!copyFormation'
+                        placeholder='formation name?' />    
+                </div>
+            </div>
+            
+            <div class='row'>
+                <input type='checkbox' 
+                    ng-model='copyFormation' 
+                    ng-change='copyFormationChange()' />
+                <span class='marginLeft1'>Save a new copy</span>
+            </div>
+
+        </div>
+    </div>
+
+    <div class='marginTop2'>
+        <h3>Assignments</h3>
+        <p ng-show='!play.assignments.hasElements()'>
+            There are no assignments associated with this play.
+        </p>
+        <div ng-show='play.assignments.hasElements()'>
+            <p ng-show='!play.assignments.modified'>
+                No changes to save
+            </p>
+            <p ng-show='play.assignments.modified'>
+                Play assignments have been modified. Clicking OK will update the assignments.
+            </p>
+            
+            <div ng-show='copyAssignments'>
+                <input type='text' 
+                    ng-model='assignmentsCopy.name' 
+                    ng-disabled='!copyAssignments'
+                    placeholder='assignment group name?' />
+            </div>
+
+            <div class='row'>
+                <input type='checkbox' 
+                    ng-model='copyAssignments' 
+                    ng-change='copyAssignmentsChange()' />
+                <span class='marginLeft1'>Save a new copy</span>
+            </div>
+        </div>
+    </div> -->
+
+    <!-- NOTE:
+        Purposely not allowing personnel to be saved / updated here.
+        This should be done in the team management module for now.
+    -->
+    <!-- <p class='marginTop2'>
+        <input type='text' ng-model='personnel.name' 
+            placeholder='personnel name?' />
+        <input type='checkbox' />
+            save personnel as &quot;{{personnel.name}}&quot;
+    </p> -->
+
+    <!-- <div class='marginTop2 row'>
+        <h4>NOTE:</h4>
+        <div class='marginBottom1'>
+            <p ng-show='copyFormation'>
+                * A new copy of this formation will be created.
+            </p>
+        </div>
+        <div class='marginBottom1'>
+            <p ng-show='copyAssignments'>
+                * A new copy of this assignment set will be created.
+            </p>
+        </div>
+    </div> -->
+
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary" type="button" ng-click="ok()">save</button>
+    <button class="btn btn-default" type="button" ng-click="cancel()">cancel</button>
+</div>

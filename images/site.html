@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<!-- saved from url=(0051)http://localhost:8888/impakt/site/#/playbook/editor -->
+<html ng-app="App" class="k-webkit k-webkit40 ng-scope"><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252"><style type="text/css">@charset "UTF-8";[ng\:cloak],[ng-cloak],[data-ng-cloak],[x-ng-cloak],.ng-cloak,.x-ng-cloak,.ng-hide:not(.ng-hide-animate){display:none !important;}ng\:form{display:block;}</style>
+	<!-- bootstrap -->
+	<link href="./site_files/bootstrap.css" type="text/css" rel="stylesheet">
+	<link href="./site_files/bootstrap-theme.css" type="text/css" rel="stylesheet">
+	<!-- kendo -->
+	<link href="./site_files/kendo.common.min.css" type="text/css" rel="stylesheet">
+	<link href="./site_files/kendo.default.min.css" type="text/css" rel="stylesheet">
+	<link href="./site_files/kendo.dataviz.min.css" type="text/css" rel="stylesheet">
+	<link href="./site_files/kendo.dataviz.default.min.css" type="text/css" rel="stylesheet">
+	<!-- blueprint -->
+	<link href="./site_files/grid.css" type="text/css" rel="stylesheet">
+	<link href="./site_files/util.css" type="text/css" rel="stylesheet">
+	<link href="./site_files/main.css" type="text/css" rel="stylesheet">
+
+
+	<script src="./site_files/jquery.min.js"></script>
+	<script src="./site_files/angular.min.js"></script>
+	<script src="./site_files/angular-route.min.js"></script>
+	<script src="./site_files/bootstrap.min.js"></script>
+	<script src="./site_files/bootstrap-select.js"></script>
+	<script src="./site_files/kendo.all.min.js"></script>
+	<script src="./site_files/kendo.angular.min.js"></script>
+	<script src="./site_files/impakt.js"></script>
+	<script src="./site_files/blueprint.js"></script>
+
+	<!-- controllers -->
+	<script src="./site_files/applicationController.js"></script>
+	<script src="./site_files/topNavController.js"></script>
+	<script src="./site_files/browserController.js"></script>
+	<script src="./site_files/playbookController.js"></script>
+	<script src="./site_files/playbookBrowserController.js"></script>
+	<script src="./site_files/playbookEditorController.js"></script>
+</head>
+<body>
+
+	<!-- main -->
+	<div class="blueprint col ng-scope" ng-controller="applicationController">
+		
+		<!-- ngInclude: "partials/topNav.html" --><div id="impakt-top-nav" class="row height5 ng-scope" ng-include="&quot;partials/topNav.html&quot;"><header class="row black-gradient-bg ng-scope" ng-controller="topNavController">
+
+	<div class="col maxWidth30">
+		<header class="row height5" id="impakt-browser-search">
+			<div class="impakt-main-logo height3 width3 margin"></div>
+			<div class="height5 pad row width25">
+				<div class="input-group">
+					
+					<input type="text" class="form-control" aria-label="...">
+					
+					<div class="input-group-btn">
+			            <button type="button" class="btn btn-default">
+			            	<span class="glyphicon glyphicon-search"></span>
+			            </button>
+			            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+			              <span class="caret"></span>
+			              <span class="sr-only">Toggle Dropdown</span>
+			            </button>
+			            <ul class="dropdown-menu dropdown-menu-right" role="menu">
+			              <li><a href="http://localhost:8888/impakt/site/#">Action</a></li>
+			              <li><a href="http://localhost:8888/impakt/site/#">Another action</a></li>
+			              <li><a href="http://localhost:8888/impakt/site/#">Something else here</a></li>
+			              <li class="divider"></li>
+			              <li><a href="http://localhost:8888/impakt/site/#">Separated link</a></li>
+			            </ul>
+					</div>
+				</div>
+			</div>
+		</header>
+	</div>
+
+	<nav class="col">
+		<ul>
+			<!-- ngRepeat: navItem in navItems --><a ng-repeat="navItem in navItems" href="http://localhost:8888/impakt/site/#/playbook/browser" ng-attr-href="{{navItem.href}}" class="actionable ng-scope">
+				<li class="height5 width10 pad2 black-gradient-bg-hover ng-binding">
+					Browser
+				</li>
+			</a><!-- end ngRepeat: navItem in navItems --><a ng-repeat="navItem in navItems" href="./site_files/site.html" ng-attr-href="{{navItem.href}}" class="actionable ng-scope">
+				<li class="height5 width10 pad2 black-gradient-bg-hover ng-binding">
+					Editor
+				</li>
+			</a><!-- end ngRepeat: navItem in navItems --><a ng-repeat="navItem in navItems" href="http://localhost:8888/impakt/site/#/playbook/plan" ng-attr-href="{{navItem.href}}" class="actionable ng-scope">
+				<li class="height5 width10 pad2 black-gradient-bg-hover ng-binding">
+					Plan
+				</li>
+			</a><!-- end ngRepeat: navItem in navItems -->
+		</ul>
+	</nav>
+	<div class="col">
+		<div id="main-profile-controls" class="row right0 top0 height5">
+			<div class="col pad1">
+				<div id="main-profile-user-fullname" class="marginBottom1 textRight">
+					<span class="actionable">
+						Coach Brown
+					</span>
+				</div>
+				<div id="main-profile-logout" class="textRight">
+					<span class="actionable">
+						Logout
+					</span>
+				</div>
+			</div>
+			<div class="col width5">
+				<div id="main-profile-image" class="height3 width3 margin"></div>
+			</div>
+		</div>
+	</div>
+</header></div>
+	
+		<div class="row">
+			<!-- ngInclude: "partials/browser.html" --><div id="impakt-browser" class="col width30 ng-scope" ng-include="&quot;partials/browser.html&quot;"><div class="col ng-scope" ng-controller="browserController">	
+	<div class="row">
+		<nav class="col width6" id="impakt-browser-nav">
+			<ul>
+				<li class="height4 width6 padTop1 padBottom1" ng-click="menuVisibilityToggle()">
+					<div class="height2 width2 marginLeft2">
+						<div class="fontSize20 glyphicon glyphicon-menu-hamburger"></div>
+					</div>
+				</li>
+
+				<!-- ngRepeat: menuItem in menuItems --><li ng-repeat-start="menuItem in menuItems" class="minHeight6 padTop1 padBottom2 ng-binding ng-scope">
+					<div class="nav-item-icon height3 width4 marginLeft1 marginRight1">
+						<span ng-attr-class="{{ &quot;glyphicon glyphicon-&quot; + menuItem.glyphicon }}" class="glyphicon glyphicon-book"></span>
+					</div>
+					Playbook
+				</li>
+				<li ng-repeat-end="" class="ng-scope"></li><!-- end ngRepeat: menuItem in menuItems --><li ng-repeat-start="menuItem in menuItems" class="minHeight6 padTop1 padBottom2 ng-binding ng-scope">
+					<div class="nav-item-icon height3 width4 marginLeft1 marginRight1">
+						<span ng-attr-class="{{ &quot;glyphicon glyphicon-&quot; + menuItem.glyphicon }}" class="glyphicon glyphicon-film"></span>
+					</div>
+					Film
+				</li>
+				<li ng-repeat-end="" class="ng-scope"></li><!-- end ngRepeat: menuItem in menuItems --><li ng-repeat-start="menuItem in menuItems" class="minHeight6 padTop1 padBottom2 ng-binding ng-scope">
+					<div class="nav-item-icon height3 width4 marginLeft1 marginRight1">
+						<span ng-attr-class="{{ &quot;glyphicon glyphicon-&quot; + menuItem.glyphicon }}" class="glyphicon glyphicon-signal"></span>
+					</div>
+					Stats
+				</li>
+				<li ng-repeat-end="" class="ng-scope"></li><!-- end ngRepeat: menuItem in menuItems --><li ng-repeat-start="menuItem in menuItems" class="minHeight6 padTop1 padBottom2 ng-binding ng-scope">
+					<div class="nav-item-icon height3 width4 marginLeft1 marginRight1">
+						<span ng-attr-class="{{ &quot;glyphicon glyphicon-&quot; + menuItem.glyphicon }}" class="glyphicon glyphicon-list-alt"></span>
+					</div>
+					Roster
+				</li>
+				<li ng-repeat-end="" class="ng-scope"></li><!-- end ngRepeat: menuItem in menuItems -->
+			</ul>
+		</nav>
+		<div id="impakt-browser-container" class="col">
+			<div id="impakt-browser-controls" class="row height3">
+				<!-- <div class='list-icon right1 height1 width1'>
+					<span class='glyphicon glyphicon-list'></span>
+				</div> -->
+			</div>
+			<div id="impakt-browser-view" class="col">
+				<!-- ngInclude: "views/playbookBrowser.html" --><div ng-include="&quot;views/playbookBrowser.html&quot;" class="ng-scope"><div id="impakt-playbook-browser" ng-controller="playbookBrowserController" class="ng-scope">
+
+	<div kendo-tree-view="tree" k-data-source="treeData" k-on-change="selectedItem = dataItem" data-role="treeview" class="k-widget k-treeview" tabindex="0"><ul class="k-group k-treeview-lines" role="tree"><li role="treeitem" class="k-item k-first" data-uid="482e0b86-39f7-4201-b561-1ac85a6fc629" aria-selected="false "><div class="k-top k-top ng-scope"><span class="k-in"><span class="ng-binding">
+				<!-- TODO: set icon dynamically based on content -->
+				<span class="glyphicon glyphicon-book"></span>
+				Playbook 1
+			</span></span></div></li><li role="treeitem" class="k-item" data-uid="8209c9f9-a693-4c6a-a040-db287a69ed0f" aria-selected="false "><div class="k-mid ng-scope"><span class="k-icon k-plus" role="presentation"></span><span class="k-in"><span class="ng-binding">
+				<!-- TODO: set icon dynamically based on content -->
+				<span class="glyphicon glyphicon-book"></span>
+				Playbook 2
+			</span></span></div></li><li role="treeitem" class="k-item k-last" data-uid="a642d571-abc7-4436-bb57-979798f03c17" aria-selected="false "><div class="k-bot ng-scope"><span class="k-in"><span class="ng-binding">
+				<!-- TODO: set icon dynamically based on content -->
+				<span class="glyphicon glyphicon-book"></span>
+				Playbook 3
+			</span></span></div></li></ul></div>
+</div></div>
+			</div>
+		</div>
+	</div>
+</div></div>	
+			<!-- ngView:  --><div class="col ng-scope" ng-view=""><div class="ng-scope">
+	
+	<div class="row height3 playbook-editor-controls">
+		<!-- tab well -->
+		<!-- ngRepeat: tab in tabs track by $index --><div ng-repeat="tab in tabs track by $index" class="playbook-editor-tab ng-scope" ng-attr-id="playbook-editor-tab-{{tab.id}}" ng-class="{ active : tab.isActive }" id="playbook-editor-tab-22475">
+			<span class="tab-title ng-pristine ng-untouched ng-valid ng-binding" ng-model="tab.title" ondblclick="this.contentEditable=true;" onblur="this.contentEditable=false;" contenteditable="false">
+					new*
+			</span>
+			<span class="glyphicon glyphicon-remove" ng-click="removeTab($index)"></span>
+		</div><!-- end ngRepeat: tab in tabs track by $index --><div ng-repeat="tab in tabs track by $index" class="playbook-editor-tab ng-scope active" ng-attr-id="playbook-editor-tab-{{tab.id}}" ng-class="{ active : tab.isActive }">
+			<span class="tab-title ng-pristine ng-untouched ng-valid ng-binding" ng-model="tab.title" ondblclick="this.contentEditable=true;" onblur="this.contentEditable=false;" contenteditable="false">
+					new*
+			</span>
+			<span class="glyphicon glyphicon-remove" ng-click="removeTab($index)"></span>
+		</div><!-- end ngRepeat: tab in tabs track by $index -->
+
+		<!-- new tab -->
+		<div id="playbook-editor-new-tab" class="playbook-editor-tab" ng-click="addTab()">
+			<span class="glyphicon glyphicon-plus"></span>
+		</div>
+
+	</div>
+
+	<div id="playbook-editor-tab-container">
+		<!-- ngRepeat: tab in tabs track by $index --><div ng-repeat="tab in tabs track by $index" class="playbook-editor-canvas-container ng-binding ng-scope" ng-class="{ active: tab.isActive }">
+			new*
+			<canvas id="playbook-editor-canvas">
+			</canvas>
+		</div><!-- end ngRepeat: tab in tabs track by $index --><div ng-repeat="tab in tabs track by $index" class="playbook-editor-canvas-container ng-binding ng-scope active" ng-class="{ active: tab.isActive }">
+			new*
+			<canvas id="playbook-editor-canvas">
+			</canvas>
+		</div><!-- end ngRepeat: tab in tabs track by $index -->
+	</div>
+</div></div>
+		</div>
+
+	</div>
+
+
+</body></html>

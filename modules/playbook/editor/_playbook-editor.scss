@@ -1,0 +1,20 @@
+/* 
+* PLAYBOOK EDITOR MODULE
+*/
+#playbook-editor-main {
+	height: 100%;
+}
+
+/*===============================
+*
+*
+*	MODULE-SPECIFIC CSS IMPORTS
+*
+*
+*===============================*/
+
+@import 
+	'./tabs/playbook-editor-tabs',
+	'./canvas/playbook-editor-canvas',
+	'./tools/playbook-editor-tools',
+	'./details/playbook-editor-details';

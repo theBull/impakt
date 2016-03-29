@@ -1,0 +1,49 @@
+
+<div class='font-white pad'>
+	
+	<h4>Plays</h4>
+
+	<div class='row'>
+		<div class='pad red-bg-hover pointer marginBottom1 width6'
+			 ng-click='createPlay()'>
+			<span class='glyphicon glyphicon-plus'></span>
+			new
+		</div>
+
+		<div class='pad height3'>
+			<span class='glyphicon glyphicon-refresh font-white-hover'
+				ng-click='refreshPlays()'>
+			</span>
+		</div>
+	</div>
+
+	<div class='col'>
+		<div 
+			ng-repeat='play in plays.toArray()'
+			class='positionRelative gray-bg-3-hover marginBottom1 height21 width18 pointer marginRight1'>
+			<div class='col'>
+				
+				<div class='pad marginBottom1'>
+					<h5>
+						{{play.name}}
+					</h5>
+
+					<div class='row height1'>
+						<div class='marginRight2 pointer' ng-click='openPlayInEditor(play)'>
+							<span class='glyphicon glyphicon-pencil' 
+								title='Edit play'>
+							</span>
+							edit
+						</div>
+					</div>
+				</div>
+				
+
+				<play-preview guid='{{play.guid}}'>
+				</play-preview>					
+
+			</div>
+			
+		</div>
+	</div>
+</div>

@@ -1,0 +1,32 @@
+<div class="modal-header">
+    <h3 class="modal-title">Create Playbook</h3>
+</div>
+<div class="modal-body">
+	<div class='marginBottom2'>
+	    <input type='text' ng-model='newPlaybookModel.name' 
+	        placeholder='Playbook name?' />
+    </div>	
+
+    <div ng-repeat='unitType in unitTypes.toArray()'>
+	    <label>
+	    	<div class='row marginBottom1'>
+		    	<div class='width1 marginRight1'>
+		    		<input type='radio' 
+		    			ng-model='selectedUnitTypeValue.unitType'
+		    			ng-value='unitType.unitType'
+		    			ng-change='selectUnitType(selectedUnitTypeValue.unitType)'
+		    			ng-checked='selectedUnitType.unitType == unitType.unitType'
+		    			name='unitType' />
+		    	</div>
+		    	<span>{{unitType.name}}</span>
+	    	</div>
+	    </label>
+    </div>
+ 	<!-- {{selectedUnitType.toJson()}} -->
+ 	<!-- {{newPlaybookModel.toJson()}} -->
+
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary" type="button" ng-click="ok()">OK</button>
+    <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+</div>

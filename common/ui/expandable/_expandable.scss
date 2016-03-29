@@ -1,0 +1,37 @@
+expandable {
+	position: relative;
+}
+.expandable-handle {
+	position: absolute;
+	background-color: $gray-bg-3;
+	border: 1px solid #222;
+}
+.expandable-handle-vertical {
+	height: 100%;
+	width: 7px;
+	cursor: col-resize;
+	background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAUCAYAAABF5ffbAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAABpJREFUeNpiYgCC/0CATDMxYAGjggMlCBBgAOQACCHaJlCQAAAAAElFTkSuQmCC');
+	background-position: center center;
+	background-repeat: no-repeat;
+}
+.expandable-handle-horizontal {
+	height: 7px;
+	width: 100%;
+	cursor: row-resize; 
+}
+.expandable-handle:hover {
+	background-color: $gray-bg-2;
+	box-shadow: 0 0 5px rgba(255, 255, 255, 0.15);
+}
+.expandable-left {
+	border-left: 1px solid #111;
+}
+.expandable-right {
+	border-right: 1px solid #111;
+}
+.expandable-top {
+	border-top: 1px solid #111;
+}
+.expandable-bottom {
+	border-bottom: 1px solid #111;
+}

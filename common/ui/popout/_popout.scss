@@ -1,0 +1,27 @@
+popout {
+	position: relative;
+	height: 3em;
+}
+
+popout .popout-toggle {
+	cursor: pointer;
+	padding: 1em;
+}
+
+popout .popout-contents {
+	z-index: 1000;
+	position: absolute;
+	top: 3em;
+	left: 0em;
+	min-width: 20em;
+	min-height: 3em;
+}
+body .popout-clickeater {
+	z-index: 999;
+	position: fixed;
+	height: 100%;
+	width: 100%;
+	top: 0;
+	left: 0;
+	background-color: rgba(0, 0, 0, 0.1);
+}
