@@ -12,7 +12,7 @@ function(
 ) {
 
 	$scope.canvas = _playbookEditor.canvas;
-	//_playbookEditor.init();
+	_playbookEditor.init();
 
 	var templatePrefix = 'modules/playbook/editor/';
 	$scope.templates = {

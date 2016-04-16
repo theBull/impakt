@@ -1,8 +1,9 @@
 /// <reference path='./playbook-modals.mdl.ts' />
 
 impakt.playbook.modals.service('_playbookModals', [
+'$q',
 '__modals',
-function(__modals: any) {
+function($q: any, __modals: any) {
 
 	/**
 	 * 
@@ -10,6 +11,7 @@ function(__modals: any) {
 	 * 
 	 */
 	this.createPlaybook = function() {
+		let d = $q.defer();
 		console.log('create playbook');
 		let modalInstance = __modals.open(
 			'',
@@ -20,11 +22,15 @@ function(__modals: any) {
 
 		modalInstance.result.then(function(createdPlaybook) {
 			console.log(createdPlaybook);
+			d.resolve();
 		}, function(results) {
 			console.log('dismissed');
+			d.reject();
 		});
+		return d.promise;
 	}
-	this.deletePlaybook = function(playbook: Playbook.Models.PlaybookModel) {
+	this.deletePlaybook = function(playbook: Common.Models.PlaybookModel) {
+		let d = $q.defer();
 		let modalInstance = __modals.open(
 			'',
 			'modules/playbook/modals/delete-playbook/delete-playbook.tpl.html',
@@ -38,9 +44,12 @@ function(__modals: any) {
 
 		modalInstance.result.then(function(results) {
 			console.log(results);
+			d.resolve();
 		}, function(results) {
 			console.log('dismissed');
+			d.reject();
 		});
+		return d.promise;
 	}
 
 	/**
@@ -49,6 +58,7 @@ function(__modals: any) {
 	 * 
 	 */
 	this.createPlay = function() {
+		let d = $q.defer();
 		console.log('create play');
 		let modalInstance = __modals.open(
 			'lg',
@@ -59,13 +69,18 @@ function(__modals: any) {
 
 		modalInstance.result.then(function(createdPlaybook) {
 			console.log(createdPlaybook);
+			d.resolve();
 		}, function(results) {
 			console.log('dismissed');
+			d.reject();
 		});
+
+		return d.promise;
 	}
-	this.savePlay = function(play: Playbook.Models.Play) {
+	this.savePlay = function(play: Common.Models.Play) {
+		let d = $q.defer();
 		let template, controller, data, size;
-		if (play.editorType == Playbook.Editor.EditorTypes.Play) {
+		if (play.editorType == Playbook.Enums.EditorTypes.Play) {
 			size = 'lg';
 			template = 'modules/playbook/modals/save-play/save-play.tpl.html';
 			controller = 'playbook.modals.savePlay.ctrl';
@@ -74,7 +89,7 @@ function(__modals: any) {
 					return play;
 				}
 			};
-		} else if (play.editorType == Playbook.Editor.EditorTypes.Formation) {
+		} else if (play.editorType == Playbook.Enums.EditorTypes.Formation) {
 			size = '';
 			template = 'modules/playbook/modals/save-formation/save-formation.tpl.html';
 			controller = 'playbook.modals.saveFormation.ctrl';
@@ -94,11 +109,16 @@ function(__modals: any) {
 
 		modalInstance.result.then(function(results) {
 			console.log(results);
+			d.resolve();
 		}, function(results) {
 			console.log('dismissed');
+			d.reject();
 		});
+
+		return d.promise;
 	}
-	this.deletePlay = function(play: Playbook.Models.PlaybookModel) {
+	this.deletePlay = function(play: Common.Models.PlaybookModel) {
+		let d = $q.defer();
 		let modalInstance = __modals.open(
 			'',
 			'modules/playbook/modals/delete-play/delete-play.tpl.html',
@@ -112,9 +132,13 @@ function(__modals: any) {
 
 		modalInstance.result.then(function(results) {
 			console.log(results);
+			d.resolve();
 		}, function(results) {
 			console.log('dismissed');
+			d.reject();
 		});
+
+		return d.promise;
 	}
 
 
@@ -124,7 +148,7 @@ function(__modals: any) {
 	 * 
 	 */
 	this.createFormation = function() {
-
+		let d = $q.defer();
 		let modalInstance = __modals.open(
 			'',
 			'modules/playbook/modals/create-formation/create-formation.tpl.html',
@@ -133,12 +157,15 @@ function(__modals: any) {
 		);
 
 		modalInstance.result.then(function(createdFormation) {
-
+			d.resolve();
 		}, function(results) {
-
+			d.reject();
 		});
+
+		return d.promise;
 	}
-	this.deleteFormation = function(formation: Playbook.Models.Formation) {
+	this.deleteFormation = function(formation: Common.Models.Formation) {
+		let d = $q.defer();
 		console.log('delete formation');
 		let modalInstance = __modals.open(
 			'',
@@ -152,13 +179,17 @@ function(__modals: any) {
 		);
 
 		modalInstance.result.then(function(results) {
-
+			d.resolve();			
 		}, function(results) {
 			console.log('dismissed');
+			d.reject();
 		});
+
+		return d.promise;
 	}
 
 	this.openNewEditorTab = function() {
+		let d = $q.defer();
 		console.log('new editor tab');
 		let modalInstance = __modals.open(
 			'',
@@ -173,9 +204,13 @@ function(__modals: any) {
 
 		modalInstance.result.then(function(data) {
 			console.log(data);
+			d.resolve();
 		}, function(results) {
 			console.log('dismissed');
+			d.reject();
 		});
+
+		return d.promise;
 	}
 
 }]);

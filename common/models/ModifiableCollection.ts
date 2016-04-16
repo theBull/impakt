@@ -2,15 +2,25 @@
 
 module Common.Models {
 
-	export class ModifiableCollection<T extends Common.Models.Modifiable>
-		implements Common.Interfaces.IModifiable {
+	export class ModifiableCollection<T extends Common.Models.Modifiable> {
 		
+		public callbacks: Function[];
+		public modified: boolean;
+		public checksum: string;
+		public original: string;
+		public lastModified: number;
+		public context: any;
+		public isContextSet: boolean;
+		public listening: boolean;
+
 		private _modifiable: Common.Models.Modifiable;
 		private _collection: Common.Models.Collection<T>;
 		public guid: string;
 
 		constructor() {
-			this._modifiable = new Common.Models.Modifiable(this);
+			this._modifiable = new Common.Models.Modifiable();
+			this._modifiable.setContext(this);
+			
 			this._collection = new Common.Models.Collection<T>();
 			this.guid = this._modifiable.guid;
 		}
@@ -66,36 +76,85 @@ module Common.Models {
 		public set(key: string | number, data: T) {
 			this._collection.set(key, data);
 			this._modifiable.setModified();
+
+			let self = this;
+			data.onModified(function() {
+				self._modifiable.setModified();
+			});
 			return this;
 		}
 		public replace(replaceKey: string | number, data: T) {
 			this._collection.replace(replaceKey, data);
 			this._modifiable.setModified();
+
+			let self = this;
+			data.onModified(function() {
+				self._modifiable.setModified();
+			});
 			return this;
 		}
 		public setAtIndex(index: number, data: T) {
 			this._collection.setAtIndex(index, data);
 			this._modifiable.setModified();
+
+			let self = this;
+			data.onModified(function() {
+				self._modifiable.setModified();
+			});
 			return this;
 		}
 		public add(data: T) {
 			this._collection.add(data);
 			this._modifiable.setModified();
+
+			let self = this;
+			data.onModified(function() {
+				self._modifiable.setModified();
+			});
 			return this;
 		}
 		public addAll(...args: T[]) {
+			if (!args || args.length == 0)
+				return this;
+
 			this._collection.addAll(...args);
 			this._modifiable.setModified();
+
+			let self = this;
+			for (let i = 0; i < args.length; i++) {
+				let modifiable = args[i];
+				modifiable.onModified(function() {
+					self._modifiable.setModified();
+				});
+			}
 			return this;
 		}
 		public addAtIndex(data: T, index: number) {
 			this._collection.addAtIndex(data, index);
 			this._modifiable.setModified();
+
+			let self = this;
+			data.onModified(function() {
+				self._modifiable.setModified();
+			});
 			return this;
 		}
-		public append(collection: Common.Models.Collection<T>) {
+		public append(collection: Common.Models.Collection<T>, clearListeners?: boolean) {
 			this._collection.append(collection);
 			this._modifiable.setModified();
+
+			let self = this;
+			collection.forEach(function(modifiable: Common.Models.Modifiable, index: number) {
+				// clear any existing listeners from the
+				// items in the appended collection and
+				// re-register new listeners
+				if(clearListeners)
+					modifiable.clearListeners();
+
+				modifiable.onModified(function() {
+					self._modifiable.setModified();
+				});
+			});
 			return this;
 		}
 		public forEach(iterator: Function): void {

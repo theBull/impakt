@@ -12,7 +12,8 @@
             <div class='row marginBottom1'>
                 <div class='width1 marginRight1'>
                     <input type='radio' 
-                        ng-model='formation.unitType'
+                        ng-model='$parent.selectedUnitType'
+                        ng-change='unitTypeSelected()'
                         ng-value='unitType.unitType'
                         name='unitType' />
                 </div>
@@ -20,7 +21,24 @@
             </div>
         </label>
     </div>
+
+    <div>
+        Playbook
+        <div ng-show='playbooks.hasElements()'>
+            <select ng-options='playbook as playbook.name for playbook in playbooks.toArray()'
+                ng-model='selectedPlaybook'
+                ng-change='selectPlaybook(selectedPlaybook)'>
+            </select>
+        </div>
+        <div ng-show='playbooks.isEmpty()'>
+            <span class='marginRight1'>
+                <span class='glyphicon glyphicon-exclamation-sign'></span>
+            </span>
+            <em>There are no playbooks to add this formation to.</em>
+        </div>
+    </div>
 </div>
+
 <div class="modal-footer">
     <button class="btn btn-primary" type="button" ng-click="ok()">OK</button>
     <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>

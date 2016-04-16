@@ -1,10 +1,19 @@
 <div class='col pad'>
-	<div class='red-bg-hover pointer height3 width6 textCenter pad'
+	<div class='red-bg-hover pointer height3 width6 textCenter pad marginBottom1'
 		ng-click='goToAll()'>
-		&lt;&nbsp;back
+		<span class='glyphicon glyphicon-chevron-left'></span>
+		back
 	</div>
-	<div class='marginTop1'>
+	<div class='marginBottom1 light-border-bottom'>
 		<h2>{{template.data.name}}</h2>
 		<p>{{template.data.unitType}}</p>
+	</div>
+	<div class=''>
+		<div class='pad marginBottom1'>TO DO! - This page is under development</div>
+
+		<div class='height3 width9 pad red-bg-hover pointer textCenter' ng-click='deletePlaybook(template.data)'>
+			<span class='glyphicon glyphicon-remove'></span>
+			delete
+		</div>
 	</div>
 </div>

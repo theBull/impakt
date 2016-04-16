@@ -1,3 +1,15 @@
-<div class='col font-white pad'>
+<div class='col font-white pad' ng-controller='home.ctrl'>
 	<h2>Home</h2>
+
+	<h4>Quick launch</h4>
+	<div class='grid'>
+		
+		<div
+			ng-repeat='menuItem in menuItems.toArray()' 
+			class='height10 width10 pad marginRight1 marginBottom1 gray-bg-3-hover pointer'
+			ng-click='goTo(menuItem)'>
+			<p>{{menuItem.label}}</p>
+		</div>
+		
+	</div>
 </div>

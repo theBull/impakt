@@ -38,7 +38,7 @@ function(
         __api.get(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.GET_PLAYBOOKS))
             .then(function(response: any) {
 
-                let collection = new Playbook.Models.PlaybookModelCollection();
+                let collection = new Common.Models.PlaybookModelCollection();
 
                 if (response && response.data && response.data.results) {
 
@@ -49,7 +49,7 @@ function(
                         let playbookResult = playbookResults[i];
 
                         if (playbookResult && playbookResult.data && playbookResult.data.model) {
-                            let playbookModel = new Playbook.Models.PlaybookModel();
+                            let playbookModel = new Common.Models.PlaybookModel();
                             playbookResult.data.model.key = playbookResult.key;
                             playbookModel.fromJson(playbookResult.data.model);
 
@@ -91,9 +91,9 @@ function(
 
     /**
      * Sends a playbook model to the server for storage
-     * @param {Playbook.Models.PlaybookModel} playbookModel The model to be created/saved
+     * @param {Common.Models.PlaybookModel} playbookModel The model to be created/saved
      */
-    this.createPlaybook = function(playbookModel: Playbook.Models.PlaybookModel) {
+    this.createPlaybook = function(playbookModel: Common.Models.PlaybookModel) {
         var d = $q.defer();
 
         // set key to -1 to ensure a new object is created server-side
@@ -115,7 +115,7 @@ function(
         )
         .then(function(response: any) {
             let results = Common.Utilities.parseData(response.data.results);
-            let playbook = new Playbook.Models.PlaybookModel();
+            let playbook = new Common.Models.PlaybookModel();
             
             if(results && results.data && results.data.model) {
                 playbook.fromJson(results.data.model);  
@@ -142,9 +142,9 @@ function(
 
     /**
      * Deletes the given playbook for the current user
-     * @param {Playbook.Models.PlaybookModel} playbook The playbook to be deleted
+     * @param {Common.Models.PlaybookModel} playbook The playbook to be deleted
      */
-    this.deletePlaybook = function(playbook: Playbook.Models.PlaybookModel) {
+    this.deletePlaybook = function(playbook: Common.Models.PlaybookModel) {
         var d = $q.defer();
 
         let notification = __notifications.pending(
@@ -171,9 +171,9 @@ function(
 
     /**
      * Creates the given formation for the current user
-     * @param {Playbook.Models.Formation} newFormation The formation to be created
+     * @param {Common.Models.Formation} newFormation The formation to be created
      */
-    this.createFormation = function(newFormation: Playbook.Models.Formation) {
+    this.createFormation = function(newFormation: Common.Models.Formation) {
         var d = $q.defer();
 
         if(newFormation.key > 0) {
@@ -201,15 +201,14 @@ function(
                     parentRK: 1,
                     formation: newFormation.toJson()
                 }
-            }
-        )
+            })
             .then(function(response: any) {
                 let result = Common.Utilities.parseData(response.data.results);
                 
                 if (!result || !result.data || !result.data.formation) {
                     d.reject('Create playbook result was invalid');
                 }
-                let formationModel = new Playbook.Models.Formation();
+                let formationModel = new Common.Models.Formation();
                 formationModel.fromJson(result.data.formation);
                 console.log(formationModel);
 
@@ -234,9 +233,9 @@ function(
 
     /**
      * Deletes the given formation for the current user
-     * @param {Playbook.Models.Formation} formation The formation to be deleted
+     * @param {Common.Models.Formation} formation The formation to be deleted
      */
-    this.deleteFormation = function(formation: Playbook.Models.Formation) {
+    this.deleteFormation = function(formation: Common.Models.Formation) {
         var d = $q.defer();
 
         let notification = __notifications.pending(
@@ -292,7 +291,7 @@ function(
             '?$filter=ParentRK gt 0'))
             .then(function(response: any) {
                 let results = Common.Utilities.parseData(response.data.results);
-                let collection = new Playbook.Models.FormationCollection();
+                let collection = new Common.Models.FormationCollection();
                 let formations = [];
                 for (let i = 0; i < results.length; i++) {
                     let result = results[i];
@@ -336,7 +335,7 @@ function(
                 let rawResults = Common.Utilities.parseData(response.data.results);
                 let formationRaw = (JSON.parse(rawResults.data)).formation;
 
-                let formationModel = new Playbook.Models.Formation()
+                let formationModel = new Common.Models.Formation()
                 formationModel.fromJson(formationRaw);
 
                 d.resolve(formationModel);
@@ -353,13 +352,15 @@ function(
 
     /**
      * Opens the given formation for editing / navigates to the play editor
-     * @param {Playbook.Models.Formation} formation The formation to be edited
+     * @param {Common.Models.Formation} formation The formation to be edited
      */
-    this.editFormation = function(formation: Playbook.Models.Formation, forceOpen?: boolean) {
+    this.editFormation = function(formation: Common.Models.Formation, forceOpen?: boolean) {
+        let notification = __notifications.info('Opened formation "', formation.name, '" for editing.');
+
         // determine whether the formation is already open            
         let formationOpen = forceOpen ? forceOpen : impakt.context.Playbook.editor.plays.hasElementWhich(
             function(play) {
-                return play.editorType == Playbook.Editor.EditorTypes.Formation &&
+                return play.editorType == Playbook.Enums.EditorTypes.Formation &&
                     play.formation.guid == formation.guid;
             });
 
@@ -373,12 +374,12 @@ function(
             // 4. add the working play to the editor context
         
             // Set Play to formation-only editing mode
-            let play = new Playbook.Models.PlayPrimary();
+            let play = new Common.Models.PlayPrimary();
 
             // need to make a copy of the formation here
             let formationCopy = formation.copy();
             play.setFormation(formationCopy);
-            play.editorType = Playbook.Editor.EditorTypes.Formation;
+            play.editorType = Playbook.Enums.EditorTypes.Formation;
             play.unitType = formation.unitType;
             play.name = formation.name;
 
@@ -388,14 +389,14 @@ function(
 
         // navigate to playbook editor
         //if(!$state.is('playbook.editor'))
-        $state.transitionTo('playbook.editor');        
+        return $state.transitionTo('playbook.editor');        
     }
 
     /**
      * Updates the given formation for the current user
-     * @param {Playbook.Models.Formation} formation The formation to update
+     * @param {Common.Models.Formation} formation The formation to update
      */
-    this.updateFormation = function(formation: Playbook.Models.Formation) {
+    this.updateFormation = function(formation: Common.Models.Formation) {
         var d = $q.defer();
 
         // update assignment collection to json object
@@ -420,7 +421,7 @@ function(
         )
         .then(function(response: any) {
             let results = Common.Utilities.parseData(response.data.results);
-            let formationModel = new Playbook.Models.Formation();
+            let formationModel = new Common.Models.Formation();
             if(results && results.data && results.data.formation) {
                 formationModel.fromJson(results.data.formation);
 
@@ -446,10 +447,10 @@ function(
      * Saves the given formation according to the options passed for the given user
      * TODO @theBull create Options model
      *
-     * @param {Playbook.Models.Formation} formation    Formation to save
+     * @param {Common.Models.Formation} formation    Formation to save
      * @param {any}                  options Save options
      */
-    this.saveFormation = function(formation: Playbook.Models.Formation, options: any) {
+    this.saveFormation = function(formation: Common.Models.Formation, options: any) {
         var d = $q.defer();
 
         let notification = __notifications.pending('Saving formation "', formation.name, '"...');
@@ -463,7 +464,7 @@ function(
                 formation.guid = Common.Utilities.guid();
                 
                 self.createFormation(formation)
-                .then(function(createdFormation: Playbook.Models.Formation) {
+                .then(function(createdFormation: Common.Models.Formation) {
                     notification.success(
                         'Successfully created and saved formation "', formation.name, '"');
                     d.resolve(createdFormation);                    
@@ -477,7 +478,7 @@ function(
             if(formation.modified) {
 
                 self.updateFormation(formation)
-                .then(function(updatedFormation: Playbook.Models.Formation) {
+                .then(function(updatedFormation: Common.Models.Formation) {
                     notification.success(
                         'Successfully saved formation "', formation.name, '"');
                     d.resolve(updatedFormation);
@@ -517,9 +518,9 @@ function(
                 let results = Common.Utilities.parseData(response.data.results);
 
                 let personnelResults = [];
-                let personnelCollection = new Playbook.Models.PersonnelCollection();
+                let personnelCollection = new Team.Models.PersonnelCollection();
                 let assignmentResults = [];
-                let assignmentCollection = new Playbook.Models.AssignmentCollection();
+                let assignmentCollection = new Common.Models.AssignmentCollection();
                 
                 // get personnel & assignments from `sets`
                 for (var i = 0; i < results.length; i++) {
@@ -527,11 +528,11 @@ function(
                     if (result && result.data) {
                         let data = result.data;
                         switch (data.setType) {
-                            case Playbook.Editor.SetTypes.Personnel:
+                            case Common.Enums.SetTypes.Personnel:
                                 data.personnel.key = result.key;
                                 personnelResults.push(data.personnel);
                                 break;
-                            case Playbook.Editor.SetTypes.Assignment:
+                            case Common.Enums.SetTypes.Assignment:
                                 data.assignment.key = result.key;
                                 assignmentResults.push(data.assignment);
                                 break;
@@ -541,13 +542,13 @@ function(
 
                 for (let i = 0; i < personnelResults.length; i++) {
                     let personnel = personnelResults[i];
-                    let personnelModel = new Playbook.Models.Personnel();
+                    let personnelModel = new Team.Models.Personnel();
                     personnelModel.fromJson(personnel);
                     personnelCollection.add(personnelModel);
                 }
                 for (let i = 0; i < assignmentResults.length; i++) {
                     let assignment = assignmentResults[i];
-                    let assignmentModel = new Playbook.Models.Assignment();
+                    let assignmentModel = new Common.Models.Assignment();
                     assignmentModel.fromJson(assignment);
                     assignmentCollection.add(assignmentModel);
                 }
@@ -607,8 +608,6 @@ function(
                 // );
                 // setModel.fromJson(set);
 
-                throw new Error('createSet not implemented');
-
                 notification.success(
                     'Successfully created set "', set.name, '"'
                 );
@@ -627,9 +626,9 @@ function(
 
     /**
      * Creates the given play for the current user
-     * @param {Playbook.Models.Play} play The play to create
+     * @param {Common.Models.Play} play The play to create
      */
-    this.createPlay = function(play: Playbook.Models.Play) {
+    this.createPlay = function(play: Common.Models.Play) {
 
         let playData = play.toJson();
 
@@ -662,7 +661,7 @@ function(
             let results = Common.Utilities.parseData(response.data.results);
             let playModel = null;
             if(results && results.data && results.data.play) {
-                playModel = new Playbook.Models.Play();
+                playModel = new Common.Models.Play();
                 playModel.fromJson(results.data.play);
                 playModel.key = results.key;
                 impakt.context.Playbook.plays.add(playModel);
@@ -689,10 +688,10 @@ function(
      * Saves the given play according to the options passed for the given user
      * TODO @theBull create Options model
      *
-     * @param {Playbook.Models.Play} play    [description]
+     * @param {Common.Models.Play} play    [description]
      * @param {any}                  options [description]
      */
-    this.savePlay = function(play: Playbook.Models.Play, options: any) {
+    this.savePlay = function(play: Common.Models.Play, options: any) {
         var d = $q.defer();
 
         let notification = __notifications.pending('Saving play "', play.name, '"...');
@@ -709,7 +708,7 @@ function(
                         // ensure playbook.formation has no key
                         play.formation.key = -1;
                         self.createFormation(play.formation)
-                        .then(function(createdFormation: Playbook.Models.Formation) {
+                        .then(function(createdFormation: Common.Models.Formation) {
                             play.formation = createdFormation;
                             callback(null, play);
                         }, function(err) {
@@ -720,7 +719,7 @@ function(
                     if(play.formation.modified) {
 
                         self.updateFormation(play.formation)
-                        .then(function(updatedFormation: Playbook.Models.Formation) {
+                        .then(function(updatedFormation: Common.Models.Formation) {
                             callback(null, play);
                         }, function(err) {
                             callback(err);
@@ -752,7 +751,7 @@ function(
                         // ensure play has no key
                         play.key = -1;
                         self.createPlay(play)
-                        .then(function(createdPlay: Playbook.Models.Play) {
+                        .then(function(createdPlay: Common.Models.Play) {
                             callback(null, createdPlay);
                         }, function(err) {
                             callback(err);
@@ -762,7 +761,7 @@ function(
                     if(play.modified) {
 
                         self.updatePlay(play)
-                        .then(function(updatedPlay: Playbook.Models.Play) {
+                        .then(function(updatedPlay: Common.Models.Play) {
                             callback(null, updatedPlay);
                         }, function(err) {
                             callback(err);
@@ -791,9 +790,9 @@ function(
 
     /**
      * Updates the given play for the current user
-     * @param {Playbook.Models.Play} play The play to update
+     * @param {Common.Models.Play} play The play to update
      */
-    this.updatePlay = function(play: Playbook.Models.Play) {
+    this.updatePlay = function(play: Common.Models.Play) {
         var d = $q.defer();
 
         let notification = __notifications.pending('Updating play "', play.name, '"...');
@@ -816,7 +815,7 @@ function(
         )
         .then(function(response: any) {
             let results = Common.Utilities.parseData(response.data.results);
-            let playModel = new Playbook.Models.Play();
+            let playModel = new Common.Models.Play();
             if(results && results.data && results.data.play) {
                 playModel.fromJson(results.data.play);
 
@@ -857,7 +856,7 @@ function(
         )
         .then(function(response: any) {
             
-            let playCollection = new Playbook.Models.PlayCollection();
+            let playCollection = new Common.Models.PlayCollection();
             
             if(response && response.data && response.data.results) {
                 let results = Common.Utilities.parseData(response.data.results);
@@ -866,7 +865,7 @@ function(
                     for (let i = 0; i < results.length; i++) {
                         let result = results[i];
                         if (result && result.data && result.data.play) {
-                            let playModel = new Playbook.Models.Play();
+                            let playModel = new Common.Models.Play();
                             playModel.fromJson(result.data.play);
                             playModel.key = result.key;
                             playCollection.add(playModel);
@@ -888,12 +887,13 @@ function(
 
     /**
      * Prepares the given play to be opened in the play editor
-     * @param {Playbook.Models.Play} play The play to be edited
+     * @param {Common.Models.Play} play The play to be edited
      */
-    this.editPlay = function(play: Playbook.Models.Play) {
+    this.editPlay = function(play: Common.Models.Play) {
+        let notification = __notifications.info('Opened play "', play.name, '" for editing.');
         
         // Set Play to play editing mode
-        play.editorType = Playbook.Editor.EditorTypes.Play;
+        play.editorType = Playbook.Enums.EditorTypes.Play;
 
         if(!play.formation) {
             let associatedFormation = play.associated.formations.primary();
@@ -904,7 +904,7 @@ function(
         if (!play.personnel) {
             let associatedPersonnel = play.associated.personnel.primary();
             if (associatedPersonnel) {
-                play.personnel = impakt.context.Playbook.personnel.get(associatedPersonnel);
+                play.personnel = impakt.context.Team.personnel.get(associatedPersonnel);
             }
         }
 
@@ -914,14 +914,14 @@ function(
 
         // navigate to playbook editor
         //if (!$state.is('playbook.editor'))
-            $state.transitionTo('playbook.editor');
+        return $state.transitionTo('playbook.editor');
     }
 
     /**
      * Deletes the given play for the current user
-     * @param {Playbook.Models.Play} play The play to be deleted
+     * @param {Common.Models.Play} play The play to be deleted
      */
-    this.deletePlay = function(play: Playbook.Models.Play) {
+    this.deletePlay = function(play: Common.Models.Play) {
         var d = $q.defer();
 
         let notification = __notifications.pending(
@@ -958,7 +958,7 @@ function(
      * Returns a list of all unit types
      */
     this.getUnitTypes = function() {
-        return new Playbook.Models.UnitTypeCollection();
+        return new Team.Models.UnitTypeCollection();
     }
 
     /**
@@ -966,29 +966,30 @@ function(
      */
     this.getUnitTypesEnum = function() {
         let typeEnums = {};
-        for (let unitType in Playbook.Editor.UnitTypes) {
-            if (unitType >= 0)
-                typeEnums[parseInt(unitType)]
+        for (let unitType in Team.Enums.UnitTypes) {
+            let unitTypeInt = parseInt(unitType);
+            if (unitTypeInt >= 0)
+                typeEnums[unitTypeInt]
                     = Common.Utilities.camelCaseToSpace(
-                        Playbook.Editor.UnitTypes[unitType], true);
+                        Team.Enums.UnitTypes[unitTypeInt], true);
         }
         return typeEnums;
     }
 
     /**
      * Returns a class for the given editorType
-     * @param {Playbook.Editor.EditorTypes} editorType Editor Type enum
+     * @param {Playbook.Enums.EditorTypes} editorType Editor Type enum
      */
-    this.getEditorTypeClass = function(editorType: Playbook.Editor.EditorTypes) {
+    this.getEditorTypeClass = function(editorType: Playbook.Enums.EditorTypes) {
         let editorTypeClass = '';
         switch (editorType) {
-            case Playbook.Editor.EditorTypes.Formation:
+            case Playbook.Enums.EditorTypes.Formation:
                 editorTypeClass = 'playbook-editor-type-formation';
                 break;
-            case Playbook.Editor.EditorTypes.Assignment:
+            case Playbook.Enums.EditorTypes.Assignment:
                 editorTypeClass = 'playbook-editor-type-assignment';
                 break;
-            case Playbook.Editor.EditorTypes.Play:
+            case Playbook.Enums.EditorTypes.Play:
                 editorTypeClass = 'playbook-editor-type-play';
                 break;
         }

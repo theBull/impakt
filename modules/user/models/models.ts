@@ -1,4 +1,3 @@
-/// <reference path='../../../common/common.ts' />
-/// <reference path='../../../common/models/models.ts' />
+/// <reference path='../user.ts' />
 /// <reference path='./Organization.ts' />
 module User.Models {}

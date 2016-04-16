@@ -1,6 +1,6 @@
 /// <reference path='./models.ts' />
 
-module Navigation {
+module Navigation.Models {
 	export class NavigationItem
 	extends Common.Models.Storable {
 		public name: string; // the name of the navigation item - used as a handle

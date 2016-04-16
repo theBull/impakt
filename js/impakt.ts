@@ -1,3 +1,4 @@
+/// <reference path='../modules/modules.ts' />
 
 // declare third-party libraries
 declare var $: any;
@@ -67,6 +68,10 @@ impakt.app = angular.module('impakt.app', [
 			.state('planning', {
 				url: '/planning',
 				templateUrl: 'modules/planning/planning.tpl.html'
+			})
+			.state('analysis', {
+				url: '/analysis',
+				templateUrl: 'modules/analysis/analysis.tpl.html'
 			})
 			.state('profile', {
 				url: '/profile',

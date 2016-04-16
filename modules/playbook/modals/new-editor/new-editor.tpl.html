@@ -1,10 +1,59 @@
 <div class="modal-header">
-    <h3 class="modal-title">What do you want to work on?</h3>
+    <h3 class="modal-title">Open</h3>
 </div>
 <div class="modal-body">
+	
+	<div class='marginBottom1'>
+		<div class='marginBottom1'>
+			What do you want to work on?
+		</div>
+		<div class='row'>
+			<div class='shrink height3 pad gray-bg-3-hover pointer marginRight1'
+				ng-click='editPlay()'>
+				Edit a Play
+			</div>
+			<div class='shrink height3 pad gray-bg-3-hover pointer'
+				ng-click='editFormation()'>
+				Edit a Formation
+			</div>
+		</div>
+	</div>
 
-	<p class='font-white'>To-do!</p>
-	This dialog appears when clicking the '+' icon inside the editor tab well
+	<div>
+		<div class='marginBottom1' ng-show='editPlaySelected'>
+	        Plays
+	        <div ng-show='plays.hasElements()'>
+	            <select ng-options='play as play.name for play in plays.toArray()'
+	                ng-model='selectedPlay'
+	                ng-change='selectPlay(selectedPlay)'>
+	                <option value=''>---</option>
+	            </select>
+	        </div>
+	        <div ng-show='plays.isEmpty()'>
+	            <span class='marginRight1'>
+	                <span class='glyphicon glyphicon-exclamation-sign'></span>
+	            </span>
+	            <em>No plays available.</em>
+	        </div>
+	    </div>
+
+	    <div ng-show='editFormationSelected'>
+	        Formations
+	        <div ng-show='formations.hasElements()'>
+	            <select ng-options='formation as formation.name for formation in formations.toArray()'
+	                ng-model='selectedFormation'
+	                ng-change='selectFormation()'>
+	                <option value=''>---</option>
+	            </select>
+	        </div>
+	        <div ng-show='formations.isEmpty()'>
+	            <span class='marginRight1'>
+	                <span class='glyphicon glyphicon-exclamation-sign'></span>
+	            </span>
+	            <em>No formations available.</em>
+	        </div>
+	    </div>
+    </div>
 
 </div>
 <div class="modal-footer">

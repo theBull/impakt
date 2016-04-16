@@ -40,31 +40,46 @@ function(
 		if (!context.Playbook)
 			context.Playbook = {};
 
+		if(!context.Team)
+			context.Team = {};
+
 		/**
+		 *
+		 * 
 		 * Application-wide context data
+		 *
+		 * 
 		 */
-		context.Playbook.playbooks = new Playbook.Models.PlaybookModelCollection();
-		context.Playbook.formations = new Playbook.Models.FormationCollection();
-		context.Playbook.personnel = new Playbook.Models.PersonnelCollection();
-		context.Playbook.assignments = new Playbook.Models.AssignmentCollection();
-		context.Playbook.plays = new Playbook.Models.PlayCollection();
-		context.Playbook.positionDefaults = new Playbook.Models.PositionDefault();
-		context.Playbook.unitTypes = _playbook.getUnitTypes();
-		context.Playbook.unitTypesEnum = _playbook.getUnitTypesEnum();
+		
+		/**
+		 * Playbook context
+		 */
+		context.Playbook.playbooks = new Common.Models.PlaybookModelCollection();
+		context.Playbook.formations = new Common.Models.FormationCollection();
+		context.Playbook.assignments = new Common.Models.AssignmentCollection();
+		context.Playbook.plays = new Common.Models.PlayCollection();
+
+		/**
+		 * Team context
+		 */
+		context.Team.personnel = new Team.Models.PersonnelCollection();
+		context.Team.positionDefaults = new Team.Models.PositionDefault();
+		context.Team.unitTypes = _playbook.getUnitTypes();
+		context.Team.unitTypesEnum = _playbook.getUnitTypesEnum();
 		
 		/**
 		 * Module-specific context data; plays currently open in the editor
 		 */
 		context.Playbook.editor = {
-			plays: new Playbook.Models.PlayCollection(),
-			tabs: new Playbook.Models.TabCollection()
+			plays: new Common.Models.PlayCollection(),
+			tabs: new Common.Models.TabCollection()
 		}
 
 		/**
 		 * A creation context for new plays and formations.
 		 */
 		context.Playbook.creation = {
-			plays: new Playbook.Models.PlayCollection()
+			plays: new Common.Models.PlayCollection()
 			// TODO @theBull - add formation support?
 		}
 
@@ -102,10 +117,10 @@ function(
 			function(callback) {
 				_playbook.getSets().then(function(results) {
 					
-					if(results.personnel)
-						context.Playbook.personnel = results.personnel;
+					if(!Common.Utilities.isNullOrUndefined(results.personnel))
+						context.Team.personnel = results.personnel;
 
-					if(results.assignments)
+					if (!Common.Utilities.isNullOrUndefined(results.assignments))
 						context.Playbook.assignments = results.assignments;
 
 					__notifications.success('Personnel successfully loaded');
@@ -129,7 +144,7 @@ function(
 						}
 						let primaryAssociatedPersonnel = play.associated.personnel.primary();
 						if(primaryAssociatedPersonnel) {
-							play.personnel = context.Playbook.personnel.get(primaryAssociatedPersonnel);
+							play.personnel = context.Team.personnel.get(primaryAssociatedPersonnel);
 						}
 					});
 					

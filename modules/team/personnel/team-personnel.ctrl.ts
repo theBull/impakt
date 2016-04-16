@@ -7,13 +7,13 @@ impakt.team.personnel.controller('impakt.team.personnel.ctrl', [
 		console.debug('impakt.team.personnel.ctrl');
 
 		$scope.personnelCollection = _team.personnel;
-		$scope.personnel = _team.personnel.getOne() || new Playbook.Models.Personnel();
+		$scope.personnel = _team.personnel.getOne() || new Team.Models.Personnel();
 		$scope.selectedPersonnel = { 
 			guid: $scope.personnel.guid,
 			unitType: $scope.personnel.unitType.toString()
 		};
-		$scope.unitTypes = Playbook.Models.UnitType.getUnitTypes();
-		let positionDefault = new Playbook.Models.PositionDefault();
+		$scope.unitTypes = Team.Models.UnitType.getUnitTypes();
+		let positionDefault = new Team.Models.PositionDefault();
 		$scope.positionOptions = positionDefault.getByUnitType(
 			$scope.personnel.unitType
 		);
@@ -25,7 +25,7 @@ impakt.team.personnel.controller('impakt.team.personnel.ctrl', [
 		}
 
 		$scope.createPersonnel = function() {
-			$scope.personnel = new Playbook.Models.Personnel();
+			$scope.personnel = new Team.Models.Personnel();
 			$scope.creating = true;
 			$scope.selectedPersonnel.unitType = $scope.personnel.unitType;
 			$scope.createNew = true;
@@ -50,7 +50,7 @@ impakt.team.personnel.controller('impakt.team.personnel.ctrl', [
 		}
 
 		$scope.update = function(position, index) {
-			let updated = impakt.context.Playbook.positionDefaults.switchPosition(
+			let updated = impakt.context.Team.positionDefaults.switchPosition(
 				position,
 				position.positionListValue
 			);

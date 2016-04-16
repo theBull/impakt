@@ -13,18 +13,38 @@ function(
 	data: number
 ) {
 
-	$scope.playbooks = impakt.context.Playbook.playbooks;
-	$scope.unitTypes = impakt.context.Playbook.unitTypes;
-	$scope.formationName = '';
-	console.log($scope.playbooks);
+	$scope.plays = impakt.context.Playbook.plays;
+	$scope.formations = impakt.context.Playbook.formations;
+	$scope.selectedPlay = null;
+	$scope.selectedFormation = null;
+	$scope.editPlaySelected = false;
+	$scope.editFormationSelected = false;
+
+	$scope.selectPlay = function() {}
+	$scope.selectFormation = function() {}
+	$scope.editPlay = function() {
+		$scope.editPlaySelected = true;
+		$scope.editFormationSelected = false;
+		$scope.selectedFormation = null;
+	}
+	$scope.editFormation = function() {
+		$scope.editPlaySelected = false;
+		$scope.editFormationSelected = true;
+		$scope.selectedPlay = null;
+	}
 
 	$scope.ok = function () {
-		_playbookEditorTabs.openNew();
+
+		if($scope.selectedPlay)
+			_playbookEditorTabs.editPlay($scope.selectedPlay);
+		if ($scope.selectedFormation)
+			_playbookEditorTabs.editFormation($scope.selectedFormation);		
+
 		$uibModalInstance.close();
-	};
+	}
 
 	$scope.cancel = function () {
 		$uibModalInstance.dismiss();
-	};
+	}
 
 }]);

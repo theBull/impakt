@@ -1,8 +1,8 @@
 /// <reference path='./models.ts' />
 
-module Navigation {
+module Navigation.Models {
 	export class NavigationItemCollection
-	extends Common.Models.Collection<Navigation.NavigationItem> {
+	extends Common.Models.Collection<Navigation.Models.NavigationItem> {
 
 		constructor() {
 			super();

@@ -18,7 +18,7 @@ function($scope: any, $rootScope: any, _playbookEditorTools: any) {
 
 	$scope.expanded = false;
 
-	$scope.toolClick = function(tool: Playbook.Editor.Tool) {
+	$scope.toolClick = function(tool: Playbook.Models.Tool) {
 		_playbookEditorTools.invoke(tool);
 	}
 

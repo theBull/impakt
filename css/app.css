@@ -14,7 +14,7 @@ html, h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 }
 
 table, tr, td {
-  border: 1px solid rgba(100, 100, 100, 0.1);
+  border: 1px solid rgba(100, 100, 100, 0.3);
   border-collapse: collapse;
 }
 
@@ -121,6 +121,7 @@ ol > li {
 
 details summary {
   outline: none;
+  cursor: pointer;
 }
 
 .parent-red,
@@ -355,15 +356,15 @@ details summary {
 }
 
 .light-border {
-  border: 1px solid rgba(100, 100, 100, 0.1);
+  border: 1px solid rgba(100, 100, 100, 0.3);
 }
 
 .light-border-top {
-  border-top: 1px solid rgba(100, 100, 100, 0.1);
+  border-top: 1px solid rgba(100, 100, 100, 0.3);
 }
 
 .light-border-bottom {
-  border-bottom: 1px solid rgba(100, 100, 100, 0.1);
+  border-bottom: 1px solid rgba(100, 100, 100, 0.3);
 }
 
 .light-border-bottom-red {
@@ -371,7 +372,7 @@ details summary {
 }
 
 .light-border-left {
-  border-left: 1px solid rgba(100, 100, 100, 0.1);
+  border-left: 1px solid rgba(100, 100, 100, 0.3);
 }
 
 .light-border-left-red {
@@ -408,6 +409,10 @@ details summary {
 
 .white-border {
   border: 1px solid rgba(255, 255, 255, 0.9);
+}
+
+.white-border-selected {
+  border: 3px solid rgba(255, 255, 255, 0.9);
 }
 
 .white-border-top {
@@ -530,6 +535,16 @@ path.painted-fill, rect.painted-fill, circle.painted-fill {
   cursor: grabbing;
   cursor: -webkit-grabbing;
   cursor: -moz-grabbing;
+}
+
+.ns-resize {
+  cursor: ns-resize;
+  cursor: -webkit-ns-resize;
+  cursor: -moz-ns-resize;
+}
+
+.pointer-events-none {
+  pointer-events: none;
 }
 
 /**
@@ -999,10 +1014,7 @@ playbook-editor-canvas svg * {
 }
 
 /*
-*	FILM MODULE
+*	ANALYSIS MODULE
 */
-#film {
-  background-color: #ccc;
-}
 
 /*# sourceMappingURL=app.css.map */

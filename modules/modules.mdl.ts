@@ -4,6 +4,7 @@ impakt.modules = angular.module('impakt.modules', [
 	'impakt.home',
 	'impakt.season',
 	'impakt.planning',
+	'impakt.analysis',
 	'impakt.playbook',
 	'impakt.nav',
 	'impakt.user',

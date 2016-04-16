@@ -35,12 +35,12 @@ impakt.nav.controller('nav.ctrl', [
 			$scope.menuVisibilityToggle($scope.notificationsMenuItem, false);
 		}
 
-		$scope.menuVisibilityToggle = function(navigationItem: Navigation.NavigationItem, propagate?: boolean) {
+		$scope.menuVisibilityToggle = function(navigationItem: Navigation.Models.NavigationItem, propagate?: boolean) {
 			$scope.isMenuCollapsed = !$scope.isMenuCollapsed;
 			propagate && $scope.menuItemClick(navigationItem);
 		}
 
-		$scope.menuItemClick = function(navigationItem: Navigation.NavigationItem) {
+		$scope.menuItemClick = function(navigationItem: Navigation.Models.NavigationItem) {
 			let activeNavItem = getActiveNavItem();
 			if(activeNavItem)
 				activeNavItem.isActive = false;
@@ -53,7 +53,7 @@ impakt.nav.controller('nav.ctrl', [
 			$scope.navigatorNavSelection = navigationItem.label;
 		}
 
-		function getActiveNavItem(): Navigation.NavigationItem {
+		function getActiveNavItem(): Navigation.Models.NavigationItem {
 			// pre-assumption, we can only have 1 active menu item
 			return $scope.menuItems.filterFirst(function(menuItem) {
 				return menuItem.isActive === true;

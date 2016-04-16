@@ -17,11 +17,70 @@
 /// <reference path='./Notification.ts' />
 /// <reference path='./NotificationCollection.ts' />
 
+/// <reference path='./Icon.ts' />
+
+/// <reference path='./Assignment.ts' />
+/// <reference path='./AssignmentCollection.ts' />
+/// <reference path='./Formation.ts' />
+/// <reference path='./FormationCollection.ts' />
+/// <reference path='./Play.ts' />
+/// <reference path='./PlayPrimary.ts' />
+/// <reference path='./PlayOpponent.ts' />
+/// <reference path='./PlayCollection.ts' />
+/// <reference path='./PlaybookModel.ts' />
+/// <reference path='./PlaybookModelCollection.ts' />
+/// <reference path='./Tab.ts' />
+/// <reference path='./TabCollection.ts' />
+
 /// <reference path='./Template.ts' />
 /// <reference path='./TemplateCollection.ts' />
 
-/// <reference path='./input/keyboard/KeyboardInput.ts' />
+/// <reference path='./Input.ts' />
+/// <reference path='./Listener.ts' />
 
-/// <referencer path='./Organization.ts' />
+/// <reference path='./Canvas.ts' />
+/// <reference path='./Drawing.ts' />
+/// <reference path='./Layer.ts' />
+/// <reference path='./LayerCollection.ts' />
+/// <reference path='./CanvasListener.ts' />
+/// <reference path='./Paper.ts' />
+/// <reference path='./Grid.ts' />
+/// <reference path='./Field.ts' />
+/// <reference path='./FieldElement.ts' />
+/// <reference path='./Ball.ts' />
+/// <reference path='./Ground.ts' />
+/// <reference path='./LineOfScrimmage.ts' />
+/// <reference path='./Endzone.ts' />
+/// <reference path='./Hashmark.ts' />
+/// <reference path='./Ground.ts' />
+/// <reference path='./Sideline.ts' />
+
+/// <reference path='./Player.ts' />
+/// <reference path='./PlayerCollection.ts' />
+/// <reference path='./PlayerSelectionBox.ts' />
+/// <reference path='./PlayerIcon.ts' />
+/// <reference path='./PlayerRelativeCoordinatesLabel.ts' />
+/// <reference path='./PlayerPersonnelLabel.ts' />
+/// <reference path='./PlayerIndexLabel.ts' />
+
+/// <reference path='./Route.ts' />
+/// <reference path='./RouteAction.ts' />
+/// <reference path='./RouteCollection.ts' />
+/// <reference path='./RouteControlPath.ts' />
+/// <reference path='./RouteNode.ts' />
+/// <reference path='./RoutePath.ts' />
+
+/// <reference path='./Placement.ts' />
+/// <reference path='./PlacementCollection.ts' />
+/// <reference path='./Coordinates.ts' />
+/// <reference path='./RelativeCoordinates.ts' />
+/// <reference path='./Location.ts' />
+/// <reference path='./Graphics.ts' />
+/// <reference path='./GraphicsSet.ts' />
+/// <reference path='./Dimensions.ts' />
+/// <reference path='./Offset.ts' />
+/// <reference path='./Containment.ts' />
+/// <reference path='./RelativeContainment.ts' />
+/// <reference path='./DrawingHandler.ts' />
 
 module Common.Models {}

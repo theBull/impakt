@@ -12,6 +12,7 @@ module Common.Models {
 		public original: string;
 		public lastModified: number;
 		public context: any;
+		public isContextSet: boolean;
 
 		/**
 		 * NOTE: Allows dynamically setting whether the given Modifiable
@@ -25,9 +26,8 @@ module Common.Models {
 		 */
 		public listening: boolean;
 
-		constructor(context: any) {
+		constructor() {
 			super();
-			this.context = context;
 			this.lastModified = Date.now();
 			this.modified = false;
 			this.checksum = null;
@@ -37,8 +37,19 @@ module Common.Models {
 			// an object, insert the .listen(false) method into the method chain prior
 			// to calling a method that will trigger a modification.
 			this.listening = true;
-
 			this.callbacks = [];
+
+			this.isContextSet = false;
+		}
+
+		public checkContextSet(): void {
+			if(!this.context || !this.isContextSet)
+				throw new Error('Modifiable: context is not set. Call setContext(context) before using this class');
+		}
+
+		public setContext(context: any): void {
+			this.context = context;
+			this.isContextSet = true;
 		}
 
 		/**
@@ -52,7 +63,7 @@ module Common.Models {
 			this.listening = startListening;
 			return this;
 		}
-		private _clearListeners() {
+		public clearListeners(): void {
 			// empty all callbacks
 			this.callbacks = [];
 		}
@@ -80,7 +91,7 @@ module Common.Models {
 				// invoke each of the modifiable's callbacks
 				for (let i = 0; i < this.callbacks.length; i++) {
 					let callback = this.callbacks[i];
-					callback(this);
+					callback(this.context);
 				}	
 			}			
 		}
@@ -101,7 +112,7 @@ module Common.Models {
 
 			// resort to comparing checksums to determine if mod. is made
 			else {
-				let cs = this._generateChecksum(); 
+				let cs = this.generateChecksum(); 
 				if (forciblyModify || cs !== this.checksum) {
 					// trigger all callbacks listening for changes
 					this.isModified();
@@ -117,7 +128,9 @@ module Common.Models {
 		 * Generates a new checksum from the current object
 		 * @return {string} the newly generated checksum
 		 */
-		private _generateChecksum(): string {
+		public generateChecksum(): string {
+			this.checkContextSet();
+
 			// determine current checksum
 			let json = this.context.toJson();
 			return Common.Utilities.generateChecksum(json);
@@ -127,6 +140,7 @@ module Common.Models {
 			newElement: Common.Models.Modifiable, 
 			context: Common.Models.Modifiable
 		): Common.Models.Modifiable {
+			this.checkContextSet();
 			
 			let copiedJson = context.toJson();
 

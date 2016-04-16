@@ -17,7 +17,9 @@ module Common.Models {
 		public guid: string;
 		
 		constructor() {
-			super(this);
+			super();
+			super.setContext(this);
+			
 			this.playbooks = new Common.Models.AssociationArray();
 			this.formations = new Common.Models.AssociationArray();
 			this.personnel = new Common.Models.AssociationArray();

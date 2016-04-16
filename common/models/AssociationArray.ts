@@ -5,7 +5,8 @@ module Common.Models {
 		private _array: string[];
 
 		constructor() {
-			super(this);
+			super();
+			super.setContext(this);
 			this._array = [];
 		}
 

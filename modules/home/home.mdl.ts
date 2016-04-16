@@ -1,6 +1,6 @@
 /// <reference path='../modules.mdl.ts' />
 
-impakt.modules = angular.module('impakt.home', [])
+impakt.home = angular.module('impakt.home', [])
 .config(
 [function() {
 	console.debug('impakt.home - config');

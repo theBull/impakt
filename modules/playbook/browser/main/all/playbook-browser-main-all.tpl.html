@@ -21,69 +21,82 @@
 		<div class='grid ratio1'>
 			<div 
 				ng-repeat='playbook in playbooks.toArray()'
-				class='inlineBlock pad gray-bg-3-hover marginBottom1 marginRight1 height12 width10 pointer'>
-				<h5>
-					{{playbook.name}}
-				</h5>
+				class='inlineBlock pad gray-bg-3-hover marginBottom1 marginRight1 height18 width14 pointer positionRelative'
+				ng-mouseover='viewVisible = true'
+				ng-mouseout='viewVisible = false'
+				ng-init='viewVisible = false'>
+
+				<div class='top0 right0 pad gray-bg-2-hover opacity09' 
+					ng-show='viewVisible'
+					ng-click='goToPlaybook(playbook)'>
+					view
+					<span class='glyphicon glyphicon-eye-open' 
+						title='Open playbook'>
+					</span>
+				</div>
+
+				<div class='row'>
+					<h5>
+						{{playbook.name}}
+					</h5>
+				</div>
 				<p>
 					<type-formatter 
-						value='{{playbook.unitType}}' 
-						type='Playbook.Editor.UnitTypes'>
+						value='playbook.unitType' 
+						type='Team.Enums.UnitTypes'>
 					</type-formatter>
 				</p>
-				<div>
-					<div class='marginRight2 pointer' ng-click='goToPlaybook(playbook)'>
-						<span class='glyphicon glyphicon-eye-open' 
-							title='Open playbook'>
-						</span>
-						view
-					</div>
-					<div class='pointer' ng-click='deletePlaybook(playbook)'>
-						<span class='glyphicon glyphicon-remove' 
-							title='Delete playbook'>
-						</span>
-						delete
-					</div>
-				</div>
 			</div>
 		</div>
 
 	</div>
 	<div class='pad'>
 		<h4>Plays</h4>
-		<div class='pad red-bg-hover pointer marginBottom1 width6'
-			 ng-click='createPlay()'>
-			<span class='glyphicon glyphicon-plus'></span>
-			new
+		<div ng-show='formations.hasElements()'>
+			<div class='pad red-bg-hover pointer marginBottom1 width6'
+				 ng-click='createPlay()'>
+				<span class='glyphicon glyphicon-plus'></span>
+				new
+			</div>
+		</div>
+		<div ng-show='formations.isEmpty()'>
+			<div class='pad gray-bg-3-hover pointer marginBottom1 width6' 
+				ng-click='alertNoFormations()'>
+				<strike>
+					<span class='glyphicon glyphicon-plus'></span>
+					new
+				</strike>
+			</div>
+			<div class='pad'>
+				<span class='glyphicon glyphicon-warning-sign'></span>
+				<span>Create a base formation to begin creating plays</span>
+			</div>
 		</div>
 		<div class='grid'>
 			<div 
 				ng-repeat='play in plays.toArray()'
-				class='positionRelative gray-bg-3-hover marginBottom1 height21 width18 pointer marginRight1'>
+				class='positionRelative gray-bg-3-hover marginBottom1 height21 width18 pointer marginRight1 positionRelative'
+				ng-mouseover='editVisible = true'
+				ng-mouseout='editVisible = false'
+				ng-init='editVisible = false'>
 				<div class='col'>
 					
-					<div class='pad marginBottom1'>
-						<h5>
-							{{play.name}}
-						</h5>
-
-						<div class='row height1'>
-							<div class='marginRight2 pointer' ng-click='openPlayInEditor(play)'>
-								<span class='glyphicon glyphicon-pencil' 
-									title='Edit play' 
-									 >
-								</span>
-								edit
-							</div>
-							<div class='pointer' ng-click='deletePlay(play)'>
-								<span class='glyphicon glyphicon-remove' 
-									title='Delete play'>
-								</span>
-								delete
-							</div>
-						</div>
+					<div class='right0 top0 pad gray-bg-2-hover opacity09' 
+						ng-show='editVisible'
+						ng-click='openPlayInEditor(play)'>
+						edit
+						<span class='glyphicon glyphicon-pencil' 
+							title='Edit play'>
+						</span>
 					</div>
 					
+					<div class='pad marginBottom1'>
+						<div class='row'>
+							<h5>
+								{{play.name}}
+							</h5>
+						</div>
+					</div>					
 
 					<play-preview guid='{{play.guid}}'>
 					</play-preview>					
@@ -103,23 +116,23 @@
 		<div class='grid'>
 			<div 
 				ng-repeat='formation in formations.toArray()'
-				class='positionRelative pad gray-bg-3-hover marginBottom1 height20 width18 pointer marginRight1'>
+				class='positionRelative pad gray-bg-3-hover marginBottom1 height20 width18 pointer marginRight1 positionRelative'
+				ng-mouseover='editVisible = true'
+				ng-mouseout='editVisible = false'
+				ng-init='editVisible = false'>
 				<div class='col'>
-					<h5>{{formation.name}}</h5>
+
+					<div class='top0 right0 pad gray-bg-2-hover opacity09' 
+						ng-show='editVisible'
+						ng-click='openFormationInEditor(formation)'>
+						edit
+						<span class='glyphicon glyphicon-pencil' 
+							title='Edit formation'>
+						</span>
+					</div>
 					
-					<div>
-						<div class='marginRight2 pointer padBottom1' ng-click='openFormationInEditor(formation)'>
-							<span class='glyphicon glyphicon-pencil' 
-								title='Edit formation'>
-							</span>
-							edit
-						</div>
-						<div class='pointer' ng-click='deleteFormation(formation)'>
-							<span class='glyphicon glyphicon-remove' 
-								title='Delete formation'>
-							</span>
-							delete
-						</div>
+					<div class='row'>
+						<h5>{{formation.name}}</h5>
 					</div>
 
 					<!-- TODO @theBull - implement; issue #98 -->

@@ -43,40 +43,43 @@ function(
 		$scope.template = __router.get(parent, 'playbook.browser.main.all');
 	}
 
-	$scope.goToPlaybook = function(playbook: Playbook.Models.PlaybookModel) {
+	$scope.goToPlaybook = function(playbook: Common.Models.PlaybookModel) {
 		$scope.template = __router.get(parent, 'playbook.browser.main.playbook');
 		$scope.template.data = playbook;
 	}
-	$scope.getEditorTypeClass = function(editorType: Playbook.Editor.EditorTypes) {
+	$scope.getEditorTypeClass = function(editorType: Playbook.Enums.EditorTypes) {
 		return _playbook.getEditorTypeClass(editorType);
 	}
 
 	$scope.openEditor = function() {
 		_playbook.toEditor();
 	}
-	$scope.openFormationInEditor = function(formation: Playbook.Models.Formation) {
+	$scope.openFormationInEditor = function(formation: Common.Models.Formation) {
 		_playbook.editFormation(formation);
 	}
-	$scope.openPlayInEditor = function(play: Playbook.Models.Play) {
+	$scope.openPlayInEditor = function(play: Common.Models.Play) {
 		_playbook.editPlay(play);
 	}
 
 	$scope.createPlaybook = function() {
 		_playbookModals.createPlaybook();
 	}
-	$scope.deletePlaybook = function(playbook: Playbook.Models.PlaybookModel) {
+	$scope.deletePlaybook = function(playbook: Common.Models.PlaybookModel) {
 		_playbookModals.deletePlaybook(playbook);
 	}
 	$scope.createPlay = function() {
 		_playbookModals.createPlay();
 	}
-	$scope.deletePlay = function(play: Playbook.Models.Play) {
+	$scope.alertNoFormations = function() {
+		alert("Please create a base formation in order to begin creating plays.");
+	}
+	$scope.deletePlay = function(play: Common.Models.Play) {
 		_playbookModals.deletePlay(play);
 	}
 	$scope.createFormation = function() {
 		_playbookModals.createFormation();
 	}
-	$scope.deleteFormation = function(formation: Playbook.Models.Formation) {
+	$scope.deleteFormation = function(formation: Common.Models.Formation) {
 		_playbookModals.deleteFormation(formation);
 	}
 

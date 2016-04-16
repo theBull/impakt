@@ -1,3 +1,5 @@
-/// <reference path='../../common/common.ts' />
+/// <reference path='../modules.ts' />
+/// <reference path='./models/models.ts' />
+
 
 module User {}

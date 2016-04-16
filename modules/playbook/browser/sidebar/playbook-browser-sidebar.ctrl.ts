@@ -34,7 +34,7 @@ function($scope: any, __router: any, _playbook: any, _playbookModals: any) {
 
 	$scope.template = {};
 
-	$scope.unitTypes = impakt.context.Playbook.unitTypes;
+	$scope.unitTypes = impakt.context.Team.unitTypes;
 	$scope.plays = impakt.context.Playbook.plays;
 	$scope.formations = impakt.context.Playbook.formations;
 
@@ -66,11 +66,11 @@ function($scope: any, __router: any, _playbook: any, _playbookModals: any) {
 	$scope.createFormation = function() {
 		_playbookModals.createFormation();
 	}
-	$scope.openFormationInEditor = function(formation: Playbook.Models.Formation) {
+	$scope.openFormationInEditor = function(formation: Common.Models.Formation) {
 		_playbook.editFormation(formation);
 		_playbook.refreshEditor();
 	}
-	$scope.openPlayInEditor = function(play: Playbook.Models.Play) {
+	$scope.openPlayInEditor = function(play: Common.Models.Play) {
 		_playbook.editPlay(play);
 		_playbook.refreshEditor();
 	}

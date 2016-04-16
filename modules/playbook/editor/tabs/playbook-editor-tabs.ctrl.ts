@@ -1,7 +1,5 @@
 /// <reference path='./playbook-editor-tabs.mdl.ts' />
-/// <reference path='../../models/canvas/Canvas.ts' />
 /// <reference path='../../../../common/common.ts' />
-/// <reference path='../../playbook.ts' />
 
 declare var impakt: any, angular: any;
 
@@ -35,14 +33,14 @@ impakt.playbook.editor.tabs.controller('playbook.editor.tabs.ctrl',
 		_playbookModals.openNewEditorTab();
 	}
 
-	$scope.close = function(tab: Playbook.Models.Tab) {
+	$scope.close = function(tab: Common.Models.Tab) {
 		let toClose = confirm('Are you sure you want to close?');
 		
 		if(toClose)
 			_playbookEditorTabs.close(tab);
 	}
 
-	$scope.activate = function(tab: Playbook.Models.Tab) {
+	$scope.activate = function(tab: Common.Models.Tab) {
 		_playbookEditorTabs.activate(tab, true);
 	}
 

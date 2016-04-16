@@ -23,6 +23,8 @@ impakt.common.scrollable.service('_scrollable',
 		this.range;
 		this.altKeyPressed;
 		this.speed;
+		this.thresholdX = 10;
+		this.thresholdY = 10;
 
 		this.readyCallback = function() {
 			console.log('scrollable ready');
@@ -150,6 +152,15 @@ impakt.common.scrollable.service('_scrollable',
 		}
 
 		this.scroll = function(deltaX: number, deltaY: number, altKeyPressed: boolean) {
+
+			/**
+			 * Seeks to prevent micro-scroll events during clicks / drags 
+			 * from causing glitchy field shifting 
+			 */
+			if (Math.abs(deltaX) < self.thresholdX && 
+				Math.abs(deltaY) < self.thresholdY)
+				return;
+
 			self.deltaX = deltaX
 			self.deltaY = deltaY;
 			self.altKeyPressed = altKeyPressed;

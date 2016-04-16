@@ -22,15 +22,15 @@
 	
 		<div class='playbook-editor-play-info row 
 			gray-bg-3
-			height3 font-white overflowVisible {{getEditorTypeClass(tab.playPrimary.editorType)}}'>
+			height3 font-white overflowVisible {{editorModeClass}}'>
 
 			<!-- Unit type -->
 			<div class='pad'>
 				<div>
 					Unit type:
 					<type-formatter
-						value='{{tab.playPrimary.unitType}}'
-						type='Playbook.Editor.UnitTypes'>
+						value='canvas.playPrimary.unitType'
+						type='Team.Enums.UnitTypes'>
 					</type-formatter>
 				</div>	
 			</div>
@@ -40,8 +40,8 @@
 				<div>
 					Mode:
 					<type-formatter 
-						value='{{tab.playPrimary.editorType}}'
-						type='Playbook.Editor.EditorTypes'>
+						value='canvas.playPrimary.editorType'
+						type='Playbook.Enums.EditorTypes'>
 					</type-formatter>
 					<!-- <span class='marginLeft1 actionable' ng-click='switchToPlayMode()'>
 						Switch to play mode
@@ -72,14 +72,14 @@
 			<!-- Formation dropdown -->
 			<div class='pointer positionRelative'
 				ng-init='formationDropdownVisible = false'
-				ng-show='isFormationVisible(tab.playPrimary.editorType)'>
+				ng-show='isFormationVisible(canvas.playPrimary.editorType)'>
 				<div class='row height3 pad'
 					ng-click='formationDropdownVisible = !formationDropdownVisible'>
 					<div class='marginRight1'>
 						Formation:  
 						<strong>
-							{{tab.playPrimary.formation.name}}
-							<span ng-show='tab.playPrimary.formation.modified'>*</span>
+							{{canvas.playPrimary.formation.name}}
+							<span ng-show='canvas.playPrimary.formation.modified'>*</span>
 						</strong>
 						
 					</div>
@@ -103,11 +103,11 @@
 			<!-- Personnel dropdown -->
 			<div class='pointer positionRelative'
 				ng-init='setDropdownVisible = false'
-				ng-show='isPersonnelVisible(tab.playPrimary.editorType)'>
+				ng-show='isPersonnelVisible(canvas.playPrimary.editorType)'>
 				<div class='row height3 pad'
 					ng-click='setDropdownVisible = !setDropdownVisible'>
 					<div class='marginRight1'>
-						Personnel:  <strong>{{tab.playPrimary.personnel.name}}</strong>
+						Personnel:  <strong>{{canvas.playPrimary.personnel.name}}</strong>
 					</div>
 					<div class='glyphicon glyphicon-chevron-down'>
 					</div>
@@ -128,13 +128,13 @@
 			<!-- Assignments dropdown -->
 			<div class='pointer positionRelative'
 				ng-init='playDropdownVisible = false'
-				ng-show='isAssignmentsVisible(tab.playPrimary.editorType)'>
+				ng-show='isAssignmentsVisible(canvas.playPrimary.editorType)'>
 				<div class='row height3 pad'
 					ng-click='playDropdownVisible = !playDropdownVisible'>
 					<div class='marginRight1'>
 						Assignments:  
 						<strong>
-							{{tab.playPrimary.assignments.name}}
+							{{canvas.playPrimary.assignments.name}}
 						</strong>
 					</div>
 					<div class='glyphicon glyphicon-chevron-down'>
@@ -166,11 +166,11 @@
 
 			<div class='col'>
 				<playbook-editor-canvas
-					editortype='{{tab.playPrimary.editorType}}'
+					editortype='{{canvas.playPrimary.editorType}}'
 					key='{{key}}'
 					scrollable
-					class='col playbook-editor-canvas'
-					oncontextmenu='return false;'>
+					class='col playbook-editor-canvas'>
+					<!-- oncontextmenu='return false;'> -->
 					
 				</playbook-editor-canvas>
 

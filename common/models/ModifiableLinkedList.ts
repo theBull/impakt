@@ -9,7 +9,8 @@ module Common.Models {
 
 		constructor() {
 			super();
-			this._modifiable = new Common.Models.Modifiable(this);
+			this._modifiable = new Common.Models.Modifiable();
+			this._modifiable.setContext(this);
 		}	
 
 		public add(node: Common.Models.LinkedListNode<T>) {

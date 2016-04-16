@@ -41,7 +41,7 @@ function(
 	// sets a default tab - this should be overwritten as soon as it becomes available
 	this.activeTab = null;
 	this.canvas = null;
-	this.toolMode = Playbook.Editor.ToolModes[Playbook.Editor.ToolModes.None];
+	this.toolMode = Playbook.Enums.ToolModes[Playbook.Enums.ToolModes.None];
 
 	$rootScope.$on('playbook-editor.refresh', 
 	function(e: any, formationKey: any) {
@@ -79,16 +79,16 @@ function(
 					return play.guid == tab.playPrimary.guid;
 				});
 
-				let opponentPlayTest = new Playbook.Models.PlayOpponent();
-				// initialize the default formation & personnel
-				opponentPlayTest.setDefault(tab.canvas.field);
+				// let opponentPlayTest = new Common.Models.PlayOpponent();
+				// // initialize the default formation & personnel
+				// opponentPlayTest.setDefault(tab.canvas.field);
 
 
 				if(initialPlay) {
 					if(!self.canvas) {
-						self.canvas = new Playbook.Models.Canvas(
+						self.canvas = new Playbook.Models.EditorCanvas(
 							initialPlay,
-							opponentPlayTest
+							null
 						);
 					}
 				}
@@ -132,15 +132,16 @@ function(
 				} 
 			});
 			if(!playExists) {
-				let tab = new Playbook.Models.Tab(play, null);
+				let tab = new Common.Models.Tab(play, null);
 				// Hmm...
 				tab.active = index == 0;
+				tab.unitType = play.unitType;
 				self.addTab(tab);
 			}				
 		});
 	}
 
-	this.addTab = function(tab: Playbook.Models.Tab) {
+	this.addTab = function(tab: Common.Models.Tab) {
 		// ignore if it is already open
 		if (this.tabs.contains(tab.guid)) {
 			this.activateTab(tab, true);
@@ -148,14 +149,10 @@ function(
 		} else {
 			// add the new tab...
 			this.tabs.add(tab);
-
-			if(tab.active) {
-				// ...and set it to active
-				this.activateTab(tab, false);	
-			}			
+			this.activateTab(tab, false);			
 		}		
 	}
-	this.activateTab = function(tab: Playbook.Models.Tab) {
+	this.activateTab = function(tab: Common.Models.Tab) {
 		this.inactivateOtherTabs(tab);
 
 		// for redundancy to ensure tab is explicitly set to active
@@ -169,7 +166,7 @@ function(
 			this.canvas.updatePlay(this.activeTab.playPrimary, null, true);			
 		}		
 	}
-	this.closeTab = function(tab: Playbook.Models.Tab) {
+	this.closeTab = function(tab: Common.Models.Tab) {
 		this.tabs.remove(tab.guid);
 
 		// remove play from editor context
@@ -182,12 +179,13 @@ function(
 		} else {
 			// no remaining tabs - nullify active Tab
 			this.activeTab = null;
+			this.canvas = null;
 		}
 
 		// tell tab to close (fire off close callbacks)
 		tab.close();
 	}
-	this.inactivateOtherTabs = function(tab: Playbook.Models.Tab) {
+	this.inactivateOtherTabs = function(tab: Common.Models.Tab) {
 		this.tabs.forEach(
 			function(currentTab, index) {
 				if (currentTab.guid != tab.guid)
@@ -198,7 +196,7 @@ function(
 		return this.tabs.hasElements();
 	}
 
-	this.getEditorTypeClass = function(editorType: Playbook.Editor.EditorTypes) {
+	this.getEditorTypeClass = function(editorType: Playbook.Enums.EditorTypes) {
 		return _playbook.getEditorTypeClass(editorType);
 	}
 
@@ -220,7 +218,6 @@ function(
 		let activeTab = this.activeTab;
 		console.log(activeTab);
 		if (activeTab) {
-
 			let play = activeTab.playPrimary;
 			_playbookModals.savePlay(play);
 		}
@@ -240,12 +237,12 @@ function(
 		}
 	}
 
-	this.setToolMode = function(toolMode: Playbook.Editor.ToolModes) {
+	this.setToolMode = function(toolMode: Playbook.Enums.ToolModes) {
 		console.log('Change editor tool mode: ',
-			toolMode, Playbook.Editor.ToolModes[toolMode]);
+			toolMode, Playbook.Enums.ToolModes[toolMode]);
 		if(this.canvas) {
 			this.canvas.toolMode = toolMode;
-			this.toolMode = Playbook.Editor.ToolModes[toolMode];
+			this.toolMode = Playbook.Enums.ToolModes[toolMode];
 		}
 	}
 
@@ -253,7 +250,23 @@ function(
 		_playbook.toBrowser();
 	}
 
-	this.init();
+	this.editFormation = function(formation: Common.Models.Formation) {
+		return _playbook.editFormation(formation);
+	}
+
+	this.editPlay = function(play: Common.Models.Play) {
+		return _playbook.editPlay(play);
+	}
+
+	/**
+	 * Receives broadcast command from other services;
+	 * loads all tabs according to any plays that have been
+	 * added to the editor context.
+	 */
+	$rootScope.$on('playbook-editor.loadTabs', function(e: any, data: any) {
+		self.loadTabs();
+	});
+
 
 }]);
 

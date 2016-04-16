@@ -1,6 +1,6 @@
 <expandable class='col'
 	direction='left'
-	collapsed='true'>
+	collapsed='false'>
 
   	<sliding-panel
 		class='col positionRelative scrollY gray-bg-3 font-white'>
@@ -12,18 +12,98 @@
 				<h2>Details</h2>
 			</div>
 			
+			<div class='pad light-border-bottom'>
+				<details>
+					<summary><strong>Primary play:</strong> &quot;{{canvas.playPrimary.name}}&quot;</summary>
+					<div class='pad'>
+						<div class='marginBottom1'>
+							<div><strong>Formation:</strong> {{playPrimary.formation.name}}</div>
+							<div><strong>Personnel:</strong> {{playPrimary.personnel.name}}</div>
+							<div><strong>Assignments:</strong> {{playPrimary.assignments.name}}</div>
+						</div>
+						<play-preview 
+							guid='{{canvas.playPrimary.guid}}'
+							class='width29 height24 play-preview-refresh'>
+						</play-preview>				
+					</div>
+				</details>
+			</div>
+
+			<div class='pad light-border-bottom'>
+				<details>
+					<summary><strong>Selected elements:</strong> ({{selected.size()}})</summary>
+					<div class='pad' ng-repeat='selection in selected.toArray()'>
+						* {{selection.guid}}
+					</div>
+				</details>
+			</div>
+
+			<div class='pad light-border-bottom'>
+				<details>
+					<summary><strong>Players:</strong> ({{players.size()}})</summary>
+					<div class='pad'>
+						<div ng-repeat='player in players.toArray()'
+							class='marginBottom1'>
+							<div>
+								<span><strong>Index: </strong></span>
+								<span>{{player.position.index}}</span>
+							</div>
+							<div>
+								<span><strong>Position: </strong></span>
+								<span>{{player.position.title}} ({{player.position.label}})</span>
+							</div>
+							<div>
+								<span><strong>Relative: </strong></span>
+								<span>({{player.icon.layer.graphics.placement.relative.rx}},
+								{{player.icon.layer.graphics.placement.relative.ry}})</span>
+							</div>
+							<div>
+								<span><strong>Coordinates: </strong></span>
+								<span>({{player.icon.layer.graphics.placement.coordinates.x}},{{
+								player.icon.layer.graphics.placement.coordinates.y}})</span>
+							</div>
+							<div>
+								<span><strong>Absolute: </strong></span>
+								<span>({{player.icon.layer.graphics.location.ax}},
+								{{player.icon.layer.graphics.location.ay}})</span>
+							</div>
+							<div>
+								<span><strong>Original: </strong></span>
+								<span>({{player.icon.layer.graphics.location.ox}},
+								{{player.icon.layer.graphics.location.oy}})</span>
+							</div>
+						</div>
+					</div>
+				</details>
+			</div>
+
+			<div class='pad light-border-bottom marginBottom1'>
+				<details>
+					<summary><strong>Layers</strong></summary>
+					<div>
+						<div ng-repeat='layer in layers.toArray()'>
+							<div class='pad row'>
+								<div class='marginRight1'>
+									<input type='checkbox' />
+								</div>
+								<div>
+									<type-formatter 
+										type='Common.Enums.LayerTypes' 
+										value='layer.type'>
+									</type-formatter>
+								</div>
+							</div>
+						</div>
+					</div>
+				</details>
+			</div>
+
 			<div class='pad'>
-
-				<div class='marginBottom1'>
-					<h3>&quot;{{canvas.playPrimary.name}}&quot;</h3>
+				<div class='height3 pad red-bg-hover pointer textCenter width9' 
+					ng-click='deletePrimary(canvas.playPrimary)'>
+					<span class='glyphicon glyphicon-remove'></span>
+					<span>delete</span>
 				</div>
-
-				<play-preview 
-					guid='{{canvas.playPrimary.guid}}'
-					class='width29 height24 play-preview-refresh'>
-				</play-preview>
-				
-
 			</div>
 
 		</div>

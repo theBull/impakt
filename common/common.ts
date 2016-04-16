@@ -1,4 +1,10 @@
 /// <reference path='../js/impakt.ts' />
+/// <reference path='../modules/modules.ts' />
+/// <reference path='./models/models.ts' />
+/// <reference path='./enums/enums.ts' />
+/// <reference path='./interfaces/interfaces.ts' />
+/// <reference path='./constants/constants.ts' />
+/// <reference path='./factories/factories.ts' />
 
 module Common {
 	export module API {
@@ -137,7 +143,11 @@ module Common {
 
 	export class Utilities {
 
-		public static exportToPng(canvas: Playbook.Interfaces.ICanvas, svgElement: HTMLElement)
+		public static notImplementedException() {
+			throw new Error('Exception: Method not implemented');
+		}
+
+		public static exportToPng(canvas: Common.Interfaces.ICanvas, svgElement: HTMLElement)
 		: string {
 			if(!svgElement)
 				throw new Error('play-preview: Corresponding SVG element not found');
@@ -386,6 +396,18 @@ module Common {
 				}
 			}
 		    return output;
+		}
+
+		public static isNullOrUndefined(obj: any): boolean {
+			return Common.Utilities.isNull(obj) || Common.Utilities.isUndefined(obj);
+		}
+
+		public static isNull(obj: any): boolean {
+			return obj === null;
+		}
+
+		public static isUndefined(obj: any): boolean {
+			return obj === undefined || obj === 'undefined';
 		}
 	}
 }

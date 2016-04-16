@@ -25,9 +25,10 @@ $fontRed: rgb(192, 35, 40);
 $fontGreen: #86BE75;
 
 $lightBackground: rgba(222, 225, 227, 0.9);
-$lightBorderColor: rgba(100, 100, 100, 0.1);
+$lightBorderColor: rgba(100, 100, 100, 0.3);
 $lightBorder: 1px solid $lightBorderColor;
 $whiteBorder: 1px solid $white;
+$whiteSelectedBorder: 3px solid $white;
 $lightBorderColorRed: rgba(205, 55, 55, 1);
 $darkBackground: rgba(30, 32, 34, 0.9);
 $lightBlueBackground: #3a617e;
@@ -161,6 +162,7 @@ ol > li {
 }
 details summary {
 	outline: none;
+	cursor: pointer;
 }
 .parent-red,
 .sub1-red,
@@ -387,6 +389,9 @@ details summary {
 .white-border {
 	border: $whiteBorder;
 }
+.white-border-selected {
+	border: $whiteSelectedBorder;
+}
 .white-border-top {
 	border-top: 1px solid $white;
 }
@@ -487,6 +492,14 @@ path.painted-fill, rect.painted-fill, circle.painted-fill {
 	cursor: -webkit-grabbing; 
 	cursor: -moz-grabbing;
 }
+.ns-resize {
+	cursor: ns-resize;
+	cursor: -webkit-ns-resize; 
+	cursor: -moz-ns-resize;
+}
+.pointer-events-none {
+	pointer-events: none;
+}
 
 /**
  *
@@ -521,7 +534,7 @@ path.painted-fill, rect.painted-fill, circle.painted-fill {
 	'../modules/user/user',
 	'../modules/nav/nav',
 	'../modules/playbook/playbook',
-	'../modules/film/film';
+	'../modules/analysis/analysis';
 
 
 

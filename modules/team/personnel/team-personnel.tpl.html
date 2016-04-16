@@ -28,7 +28,10 @@
 						{{personnelItem.key}}
 					</td>
 					<td class='light-border'>
-						<type-formatter value='{{personnelItem.unitType}}' type='Playbook.Editor.UnitTypes'></type-formatter>
+						<type-formatter 
+							value='personnelItem.unitType' 
+							type='Team.Enums.UnitTypes'>
+						</type-formatter>
 					</td>
 					<td class='light-border'>
 						{{personnelItem.positions.size()}}

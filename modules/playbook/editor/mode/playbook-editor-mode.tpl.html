@@ -1,7 +1,15 @@
-<div class='font-white height3 height3 gray-bg-2' 
+<div class='font-white height3 height3 gray-bg-2 row' 
 	ng-controller='playbook.editor.mode.ctrl'>
 
 	<div class='pad'>
-		Tool: {{canvas.getToolModeName()}}
+		<strong>Tool:</strong> {{canvas.getToolModeName()}}
+	</div>
+
+	<div class='pad'>
+		<strong>Grid:</strong> size {{canvas.paper.grid.size}}, cols {{canvas.paper.grid.cols}}, rows {{canvas.paper.grid.rows}}
+	</div>
+
+	<div class='pad'>
+		({{cursorCoordinates.x}}, {{cursorCoordinates.y}})
 	</div>
 </div>

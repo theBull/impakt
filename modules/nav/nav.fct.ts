@@ -4,11 +4,11 @@
 impakt.nav.factory('__nav', ['$http', '$q', function($http: any, $q: any) {
 	console.log('nav factory');
 
-	let menuItems = new Navigation.NavigationItemCollection();
+	let menuItems = new Navigation.Models.NavigationItemCollection();
 	
 	// Home
 	menuItems.add(
-		new Navigation.NavigationItem(
+		new Navigation.Models.NavigationItem(
 			'home',
 			'Home',
 			'home',
@@ -19,7 +19,7 @@ impakt.nav.factory('__nav', ['$http', '$q', function($http: any, $q: any) {
 
 	// Season
 	menuItems.add(
-		new Navigation.NavigationItem(
+		new Navigation.Models.NavigationItem(
 			'season',
 			'Season',
 			'calendar',
@@ -30,7 +30,7 @@ impakt.nav.factory('__nav', ['$http', '$q', function($http: any, $q: any) {
 
 	// Playbook
 	menuItems.add(
-		new Navigation.NavigationItem(
+		new Navigation.Models.NavigationItem(
 			'playbook',
 			'Playbook',
 			'book',
@@ -41,7 +41,7 @@ impakt.nav.factory('__nav', ['$http', '$q', function($http: any, $q: any) {
 
 	// Planning
 	menuItems.add(
-		new Navigation.NavigationItem(
+		new Navigation.Models.NavigationItem(
 			'planning',
 			'Planning',
 			'blackboard',
@@ -50,9 +50,20 @@ impakt.nav.factory('__nav', ['$http', '$q', function($http: any, $q: any) {
 		)
 	);
 
+	// Analysis
+	menuItems.add(
+		new Navigation.Models.NavigationItem(
+			'analysis',
+			'Analysis',
+			'facetime-video',
+			'/analysis',
+			false
+		)
+	);
+
 	// Team
 	menuItems.add(
-		new Navigation.NavigationItem(
+		new Navigation.Models.NavigationItem(
 			'team',
 			'Team Management',
 			'list-alt',
@@ -63,7 +74,7 @@ impakt.nav.factory('__nav', ['$http', '$q', function($http: any, $q: any) {
 
 	// Profile
 	menuItems.add(
-		new Navigation.NavigationItem(
+		new Navigation.Models.NavigationItem(
 			'profile',
 			'Profile',
 			'user',
@@ -73,7 +84,7 @@ impakt.nav.factory('__nav', ['$http', '$q', function($http: any, $q: any) {
 	);
 
 	// Search
-	let searchMenuItem = new Navigation.NavigationItem(
+	let searchMenuItem = new Navigation.Models.NavigationItem(
 		'search',
 		'Search',
 		'search',
@@ -82,7 +93,7 @@ impakt.nav.factory('__nav', ['$http', '$q', function($http: any, $q: any) {
 	);
 
 	// Notifications
-	let notificationsMenuItem = new Navigation.NavigationItem(
+	let notificationsMenuItem = new Navigation.Models.NavigationItem(
 		'notifications',
 		'Notifications',
 		'bell',

@@ -1,4 +1,3 @@
-/// <reference path='./Tool.ts' />
 /// <reference path='../../playbook.ts' />
 /// <reference path='./playbook-editor-tools.mdl.ts' />
 /// <reference path='../playbook-editor.srv.ts' />
@@ -8,13 +7,13 @@ declare var impakt: any;
 impakt.playbook.editor.tools.service('_playbookEditorTools',
 ['$rootScope', '_base', '_playbookEditor', 
 function($rootScope: any, _base: any, _playbookEditor: any) {
-	console.debug('service: impakt.playbook.editor.tools')
+	console.debug('service: impakt.Playbook.Models.tools')
 
 	this.component = new Common.Base.Component(
 		'_playbookEditorTools',
 		Common.Base.ComponentType.Service,
 		[
-			'playbook.editor.tools.ctrl'
+			'Playbook.Models.tools.ctrl'
 		]
 	);
 	function init(self) {
@@ -22,46 +21,46 @@ function($rootScope: any, _base: any, _playbookEditor: any) {
 	}
 
 	this.tools = [
-		new Playbook.Editor.Tool(
+		new Playbook.Models.Tool(
 			'Toggle menu',
-			Playbook.Editor.ToolActions.ToggleMenu,
+			Playbook.Enums.ToolActions.ToggleMenu,
 			'menu-hamburger'
 		),
-		new Playbook.Editor.Tool(
+		new Playbook.Models.Tool(
 			'Save',
-			Playbook.Editor.ToolActions.Save,
+			Playbook.Enums.ToolActions.Save,
 			'floppy-disk'
 		),
-		new Playbook.Editor.Tool(
+		new Playbook.Models.Tool(
 			'Select',
-			Playbook.Editor.ToolActions.Select,
+			Playbook.Enums.ToolActions.Select,
 			'hand-up',
 			'Select',
-			Playbook.Editor.CursorTypes.pointer,
-			Playbook.Editor.ToolModes.Select,
+			Common.Enums.CursorTypes.pointer,
+			Playbook.Enums.ToolModes.Select,
 			true
 		),
-		new Playbook.Editor.Tool(
+		new Playbook.Models.Tool(
 			'Assignment',
-			Playbook.Editor.ToolActions.Assignment,
+			Playbook.Enums.ToolActions.Assignment,
 			'screenshot',
 			'',
-			Playbook.Editor.CursorTypes.crosshair,
-			Playbook.Editor.ToolModes.Assignment
+			Common.Enums.CursorTypes.crosshair,
+			Playbook.Enums.ToolModes.Assignment
 		),
-		// new Playbook.Editor.Tool(
+		// new Playbook.Models.Tool(
 		// 	'Add player',
-		// 	Playbook.Editor.ToolActions.AddPlayer,
+		// 	Playbook.Enums.ToolActions.AddPlayer,
 		// 	'user'
 		// 	),
-		// new Playbook.Editor.Tool(
+		// new Playbook.Models.Tool(
 		// 	'Zoom in',
-		// 	Playbook.Editor.ToolActions.ZoomIn,
+		// 	Playbook.Enums.ToolActions.ZoomIn,
 		// 	'zoom-in'
 		// 	),
-		// new Playbook.Editor.Tool(
+		// new Playbook.Models.Tool(
 		// 	'Zoom out',
-		// 	Playbook.Editor.ToolActions.ZoomOut, 
+		// 	Playbook.Enums.ToolActions.ZoomOut, 
 		// 	'zoom-out'
 		// 	),
 	];
@@ -72,35 +71,36 @@ function($rootScope: any, _base: any, _playbookEditor: any) {
 		}
 	}
 
-	this.invoke = function(tool: Playbook.Editor.Tool) {
+	this.invoke = function(tool: Playbook.Models.Tool) {
 		this.deselectAll();
 		tool.selected = true;
 		switch (tool.action) {
 			
-			case Playbook.Editor.ToolActions.Select:
+			case Playbook.Enums.ToolActions.Select:
 				break;
 
-			case Playbook.Editor.ToolActions.ToggleMenu:
+			case Playbook.Enums.ToolActions.ToggleMenu:
 				this.toggleMenu();
 				break;
 
-			case Playbook.Editor.ToolActions.AddPlayer: 
+			case Playbook.Enums.ToolActions.AddPlayer: 
 				this.addPlayer();
 				break;
 
-			case Playbook.Editor.ToolActions.Save:
+			case Playbook.Enums.ToolActions.Save:
 				this.save();
 				break;
 
-			case Playbook.Editor.ToolActions.ZoomIn:
+			case Playbook.Enums.ToolActions.ZoomIn:
 				this.zoomIn();
 				break;
 
-			case Playbook.Editor.ToolActions.ZoomOut:
+			case Playbook.Enums.ToolActions.ZoomOut:
 				this.zoomOut();
 				break;
 
-			case Playbook.Editor.ToolActions.Assignment:
+			case Playbook.Enums.ToolActions.Assignment:
+				alert('NOTE: Assignment functionality is in development. Thanks for your patience!');
 				break;
 
 		}

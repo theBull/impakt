@@ -9,7 +9,7 @@ function(
 	$scope: any, 
 	$uibModalInstance: any, 
 	_playbook: any,
-	formation: Playbook.Models.Formation
+	formation: Common.Models.Formation
 ) {
 
 	$scope.formation = formation;
@@ -30,12 +30,15 @@ function(
 
 	$scope.ok = function () {
 
-		let options = {
+		let options = { 
 			formation: {
-				action: formation.modified ? 
-					Common.API.Actions.Overwrite : // overwrite if modified
-					Common.API.Actions.Nothing // do nothing if no changes
+				action: Common.API.Actions.Overwrite // overwrite if modified
+				//Common.API.Actions.Nothing // do nothing if no changes
 			}
+		}
+
+		if(Common.Utilities.isNullOrUndefined($scope.formation.key)) {
+			options.formation.action = Common.API.Actions.Create;
 		}
 
 		if($scope.copyFormation) {

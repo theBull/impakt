@@ -10,7 +10,7 @@ function(
 	$scope: any, 
 	$uibModalInstance: any, 
 	_playbook: any,
-	play: Playbook.Models.Play
+	play: Common.Models.Play
 ) {
 
 	$scope.play = play;

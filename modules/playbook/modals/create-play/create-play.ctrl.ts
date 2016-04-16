@@ -5,7 +5,7 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl',
 '$scope', '$uibModalInstance', '_playbook',
 	function($scope: any, $uibModalInstance: any, _playbook: any) {
 
-	$scope.newPlay = new Playbook.Models.Play();
+	$scope.newPlay = new Common.Models.Play();
 	$scope.playbooks = impakt.context.Playbook.playbooks;
 	$scope.formations = impakt.context.Playbook.formations;
 	$scope.assignments = impakt.context.Playbook.assignments;
@@ -13,11 +13,11 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl',
 	$scope.selectedPlaybook = $scope.playbooks.first();
 	$scope.selectedFormation = $scope.formations.first();
 	$scope.selectedAssignments = $scope.assignments.first();
-	$scope.personnelCollection = impakt.context.Playbook.personnel;
+	$scope.personnelCollection = impakt.context.Team.personnel;
 	$scope.selectedPersonnel = $scope.personnelCollection.first();
-	$scope.unitType = Playbook.Editor.UnitTypes.Other;
-	$scope.unitTypes = impakt.context.Playbook.unitTypes;
-	$scope.selectedUnitType = $scope.unitTypes.getByUnitType($scope.unitType);
+	$scope.unitType = Team.Enums.UnitTypes.Other;
+	$scope.unitTypes = impakt.context.Team.unitTypes;
+	$scope.selectedUnitType = Team.Enums.UnitTypes.Offense;
 
 	// Intialize new Play with data
 	$scope.newPlay.setFormation($scope.selectedFormation);
@@ -29,21 +29,21 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl',
 	// other parts of the application
 	impakt.context.Playbook.creation.plays.add($scope.newPlay);
 
-	$scope.selectUnitType = function(unitTypeValue: Playbook.Editor.UnitTypes) {
+	$scope.selectUnitType = function(unitTypeValue: Team.Enums.UnitTypes) {
 		$scope.selectedUnitType = $scope.unitTypes.getByUnitType(unitTypeValue);
 	}
 
-	$scope.selectPlaybook = function(playbook: Playbook.Models.PlaybookModel) {
+	$scope.selectPlaybook = function(playbook: Common.Models.PlaybookModel) {
 		$scope.newPlay.setPlaybook($scope.playbooks.get(playbook.guid));
 	}
 
-	$scope.selectFormation = function(formation: Playbook.Models.Formation) {
+	$scope.selectFormation = function(formation: Common.Models.Formation) {
 		$scope.newPlay.setFormation($scope.formations.get(formation.guid));
 	}
-	$scope.selectAssignments = function(assignments: Playbook.Models.AssignmentCollection) {
+	$scope.selectAssignments = function(assignments: Common.Models.AssignmentCollection) {
 		$scope.newPlay.setAssignments($scope.formations.get(assignments.guid));
 	}
-	$scope.selectPersonnel = function(personnel: Playbook.Models.Personnel) {
+	$scope.selectPersonnel = function(personnel: Team.Models.Personnel) {
 		$scope.newPlay.setPersonnel($scope.personnelCollection.get(personnel.guid));
 	}
 

@@ -6,7 +6,7 @@ impakt.playbook.editor.tabs.service('_playbookEditorTabs',
 '_base', 
 '_playbookEditor', 
 function(
-	$rootScope: any, 
+	$rootScope: any,
 	_base: any, 
 	_playbookEditor: any) {
 	
@@ -31,24 +31,35 @@ function(
 
 	this.openNew = function() {						
 		// Step 2: build a generic model from that response
-		_playbookEditor.addTab(new Playbook.Models.Play());
+		_playbookEditor.addTab(new Common.Models.Play());
 	}
 
-	this.close = function(tab: Playbook.Models.Tab) {
+	this.close = function(tab: Common.Models.Tab) {
 		// remove the tab from the array			
 		_playbookEditor.closeTab(tab);
 	}
 
-	this.activate = function(tab: Playbook.Models.Tab, activateCanvas: boolean) {
-		_playbookEditor.activateTab(tab, true);
+	this.activate = function(tab: Common.Models.Tab, activateCanvas: boolean) {
+		if(!tab.active)
+			_playbookEditor.activateTab(tab, true);
 	}
 
 	this.toBrowser = function() {
 		_playbookEditor.toBrowser();
 	}
 
-	this.getEditorTypeClass = function(editorType: Playbook.Editor.EditorTypes) {
+	this.getEditorTypeClass = function(editorType: Playbook.Enums.EditorTypes) {
 		return _playbookEditor.getEditorTypeClass(editorType);
+	}
+
+	this.editFormation = function(formation: Common.Models.Formation) {
+		_playbookEditor.editFormation(formation);
+        $rootScope.$broadcast('playbook-editor.loadTabs');
+	}
+
+	this.editPlay = function(play: Common.Models.Play) {
+		_playbookEditor.editPlay(play);
+        $rootScope.$broadcast('playbook-editor.loadTabs');
 	}
 
 	init();
