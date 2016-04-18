@@ -20,12 +20,12 @@ module Playbook.Models {
             this.los = new Playbook.Models.PreviewLineOfScrimmage(this);
             this.endzone_top = new Playbook.Models.PreviewEndzone(this, 0);
             this.endzone_bottom = new Playbook.Models.PreviewEndzone(this, 110);
-            this.sideline_left = new Playbook.Models.PreviewSideline(this, -26);
-            this.sideline_right = new Playbook.Models.PreviewSideline(this, 25);
-            this.hashmark_left = new Playbook.Models.PreviewHashmark(this, -3);
-            this.hashmark_right = new Playbook.Models.PreviewHashmark(this, 3);
-            this.hashmark_sideline_left = new Playbook.Models.PreviewHashmark(this, -25);
-            this.hashmark_sideline_right = new Playbook.Models.PreviewHashmark(this, 25);
+            this.sideline_left = new Playbook.Models.PreviewSideline(this, 0);
+            this.sideline_right = new Playbook.Models.PreviewSideline(this, 51);
+            this.hashmark_left = new Playbook.Models.PreviewHashmark(this, 22);
+            this.hashmark_right = new Playbook.Models.PreviewHashmark(this, 28);
+            this.hashmark_sideline_left = new Playbook.Models.PreviewHashmark(this, 2);
+            this.hashmark_sideline_right = new Playbook.Models.PreviewHashmark(this, 50);
 
             this.layers.add(this.ball.layer);
             this.layers.add(this.ground.layer);

@@ -16,8 +16,8 @@ module Playbook.Models {
             // NOTE: Grid size uses PREVIEW constants
             this.grid = new Common.Models.Grid(
                 this, 
-                Playbook.Constants.FIELD_COLS_PREVIEW, 
-                Playbook.Constants.FIELD_ROWS_PREVIEW
+                Playbook.Constants.FIELD_COLS_FULL, 
+                Playbook.Constants.FIELD_ROWS_FULL
             );
 
             this.drawing = new Common.Drawing.Utilities(this.canvas, this.grid);
@@ -29,6 +29,8 @@ module Playbook.Models {
                 this.canvas.playPrimary, 
                 this.canvas.playOpponent
             );
+
+            this.scroll(0, -(this.canvas.dimensions.height / 2));
         }
 
         public updatePlay(playPrimary, playOpponent) {

@@ -2335,6 +2335,7 @@ var Common;
                     - this.grid.dimensions.width) / 2);
             };
             Paper.prototype.draw = function () {
+                this.field.initialize();
             };
             Paper.prototype.resize = function () {
                 this.grid.resize(this.sizingMode);
@@ -6238,12 +6239,12 @@ var Playbook;
                 this.los = new Playbook.Models.PreviewLineOfScrimmage(this);
                 this.endzone_top = new Playbook.Models.PreviewEndzone(this, 0);
                 this.endzone_bottom = new Playbook.Models.PreviewEndzone(this, 110);
-                this.sideline_left = new Playbook.Models.PreviewSideline(this, -26);
-                this.sideline_right = new Playbook.Models.PreviewSideline(this, 25);
-                this.hashmark_left = new Playbook.Models.PreviewHashmark(this, -3);
-                this.hashmark_right = new Playbook.Models.PreviewHashmark(this, 3);
-                this.hashmark_sideline_left = new Playbook.Models.PreviewHashmark(this, -25);
-                this.hashmark_sideline_right = new Playbook.Models.PreviewHashmark(this, 25);
+                this.sideline_left = new Playbook.Models.PreviewSideline(this, 0);
+                this.sideline_right = new Playbook.Models.PreviewSideline(this, 51);
+                this.hashmark_left = new Playbook.Models.PreviewHashmark(this, 22);
+                this.hashmark_right = new Playbook.Models.PreviewHashmark(this, 28);
+                this.hashmark_sideline_left = new Playbook.Models.PreviewHashmark(this, 2);
+                this.hashmark_sideline_right = new Playbook.Models.PreviewHashmark(this, 50);
                 this.layers.add(this.ball.layer);
                 this.layers.add(this.ground.layer);
                 this.layers.add(this.los.layer);
@@ -6341,11 +6342,12 @@ var Playbook;
             }
             PreviewPaper.prototype.initialize = function () {
                 // NOTE: Grid size uses PREVIEW constants
-                this.grid = new Common.Models.Grid(this, Playbook.Constants.FIELD_COLS_PREVIEW, Playbook.Constants.FIELD_ROWS_PREVIEW);
+                this.grid = new Common.Models.Grid(this, Playbook.Constants.FIELD_COLS_FULL, Playbook.Constants.FIELD_ROWS_FULL);
                 this.drawing = new Common.Drawing.Utilities(this.canvas, this.grid);
                 // Paper methods within field are dependent on 
                 // this.Raphael
                 this.field = new Playbook.Models.PreviewField(this, this.canvas.playPrimary, this.canvas.playOpponent);
+                this.scroll(0, -(this.canvas.dimensions.height / 2));
             };
             PreviewPaper.prototype.updatePlay = function (playPrimary, playOpponent) {
                 throw new Error('PreviewPaper updatePlay(): not implemented');
@@ -8557,8 +8559,8 @@ impakt.common.api = angular.module('impakt.common.api', [])
 /// <reference path='./api.mdl.ts' />
 impakt.common.api.constant('API', {
     'VERSION': 0.01,
-    'HOST_URL': 'http://test.impaktathletics.com',
-    //'HOST_URL': 'https://test-impakt.azurewebsites.net',
+    //'HOST_URL': 'http://test.impaktathletics.com',
+    'HOST_URL': 'https://test-impakt.azurewebsites.net',
     'ENDPOINT': '/api',
 });
 /// <reference path='./api.mdl.ts' />
