@@ -461,6 +461,9 @@ a {
 .overflowYVisible {
 	overflow-y: visible;
 }
+.overflowHidden {
+	overflow: hidden;
+}
 .overflowXHidden {
 	overflow-x: hidden;
 }

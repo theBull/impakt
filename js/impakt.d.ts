@@ -217,6 +217,7 @@ declare module Common.Interfaces {
         deselectAll(): any;
         useAssignmentTool(coords: Common.Models.Coordinates): any;
         setCursorCoordinates(pageX: number, pageY: number): void;
+        getLOSAbsolute(): number;
     }
 }
 declare module Common.Interfaces {
@@ -1276,6 +1277,11 @@ declare module Common.Models {
          * @param {Common.Interfaces.IFieldElement} element [description]
          */
         toggleSelection(element: Common.Interfaces.IFieldElement): void;
+        /**
+         * Returns the absolute y-coordinate of the line of scrimmage
+         * @return {number} [description]
+         */
+        getLOSAbsolute(): number;
     }
 }
 declare module Common.Models {

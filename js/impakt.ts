@@ -37,10 +37,10 @@ impakt.app = angular.module('impakt.app', [
 		console.log('impakt - config');
 
 		//Reset headers to avoid OPTIONS request (aka preflight)
-		$httpProvider.defaults.headers.common = {};
-		$httpProvider.defaults.headers.post = {};
-		$httpProvider.defaults.headers.put = {};
-		$httpProvider.defaults.headers.patch = {};
+		// $httpProvider.defaults.headers.common = {};
+		// $httpProvider.defaults.headers.post = {};
+		// $httpProvider.defaults.headers.put = {};
+		// $httpProvider.defaults.headers.patch = {};
 
 		$sceDelegateProvider.resourceUrlWhitelist([
 			'self', 

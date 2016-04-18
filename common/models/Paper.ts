@@ -40,7 +40,7 @@ module Common.Models {
         }
 
         public draw(): void {
-
+            this.field.initialize();
         }
 
         public resize() {

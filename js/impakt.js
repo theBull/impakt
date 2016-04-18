@@ -2870,6 +2870,15 @@ var Common;
                     element.layer.graphics.select();
                 }
             };
+            /**
+             * Returns the absolute y-coordinate of the line of scrimmage
+             * @return {number} [description]
+             */
+            Field.prototype.getLOSAbsolute = function () {
+                if (!this.los)
+                    throw new Error('Field getLOSAbsolute(): los is null or undefined');
+                return this.los.layer.graphics.location.ay;
+            };
             return Field;
         })(Common.Models.Modifiable);
         Models.Field = Field;
@@ -6268,6 +6277,8 @@ var Playbook;
                 this.hashmark_right.draw();
                 this.sideline_left.draw();
                 this.sideline_right.draw();
+                this.endzone_top.draw();
+                this.endzone_bottom.draw();
                 this.los.draw();
                 this.ball.draw();
                 // draw the play data onto the field
@@ -6276,6 +6287,7 @@ var Playbook;
                 // draw the opponent play data onto the field
                 if (this.playOpponent)
                     this.playOpponent.draw(this);
+                this.paper.scroll(0, this.getLOSAbsolute() - (this.paper.canvas.dimensions.height / 2));
             };
             PreviewField.prototype.addPlayer = function (placement, position, assignment) {
                 // TODO @theBull - look into this
@@ -6338,7 +6350,7 @@ var Playbook;
                 _super.call(this, previewCanvas);
                 this.canvas = previewCanvas;
                 this.sizingMode = Common.Enums.PaperSizingModes.PreviewWidth;
-                this.showBorder = false;
+                this.showBorder = true;
             }
             PreviewPaper.prototype.initialize = function () {
                 // NOTE: Grid size uses PREVIEW constants
@@ -6347,7 +6359,6 @@ var Playbook;
                 // Paper methods within field are dependent on 
                 // this.Raphael
                 this.field = new Playbook.Models.PreviewField(this, this.canvas.playPrimary, this.canvas.playOpponent);
-                this.scroll(0, -(this.canvas.dimensions.height / 2));
             };
             PreviewPaper.prototype.updatePlay = function (playPrimary, playOpponent) {
                 throw new Error('PreviewPaper updatePlay(): not implemented');
@@ -8430,10 +8441,10 @@ impakt.app = angular.module('impakt.app', [
     function ($stateProvider, $urlRouterProvider, $httpProvider, $sceDelegateProvider) {
         console.log('impakt - config');
         //Reset headers to avoid OPTIONS request (aka preflight)
-        $httpProvider.defaults.headers.common = {};
-        $httpProvider.defaults.headers.post = {};
-        $httpProvider.defaults.headers.put = {};
-        $httpProvider.defaults.headers.patch = {};
+        // $httpProvider.defaults.headers.common = {};
+        // $httpProvider.defaults.headers.post = {};
+        // $httpProvider.defaults.headers.put = {};
+        // $httpProvider.defaults.headers.patch = {};
         $sceDelegateProvider.resourceUrlWhitelist([
             'self',
             'https://test-impakt.azurewebsites.net/**',

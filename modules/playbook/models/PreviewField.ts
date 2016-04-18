@@ -53,6 +53,8 @@ module Playbook.Models {
             this.hashmark_right.draw();
             this.sideline_left.draw();
             this.sideline_right.draw();
+            this.endzone_top.draw();
+            this.endzone_bottom.draw();
             this.los.draw();
             this.ball.draw();
             // draw the play data onto the field
@@ -61,6 +63,8 @@ module Playbook.Models {
             // draw the opponent play data onto the field
             if (this.playOpponent)
                 this.playOpponent.draw(this);
+
+            this.paper.scroll(0, this.getLOSAbsolute() - (this.paper.canvas.dimensions.height / 2));
         }
         public addPlayer(
             placement: Common.Models.Placement,

@@ -9,7 +9,7 @@ module Playbook.Models {
             super(previewCanvas);
             this.canvas = previewCanvas;
             this.sizingMode = Common.Enums.PaperSizingModes.PreviewWidth;
-            this.showBorder = false;
+            this.showBorder = true;
         }
 
         public initialize(): void {
@@ -29,8 +29,6 @@ module Playbook.Models {
                 this.canvas.playPrimary, 
                 this.canvas.playOpponent
             );
-
-            this.scroll(0, -(this.canvas.dimensions.height / 2));
         }
 
         public updatePlay(playPrimary, playOpponent) {

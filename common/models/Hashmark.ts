@@ -20,7 +20,7 @@ module Common.Models {
         public draw(): void {
             let hashmarkWidth = this.grid.getSize() / 2;
 
-            for (var i = this.start; i < this.yards; i++) {
+            for (let i = this.start; i < this.yards; i++) {
                 let hashmark = this.paper.drawing.rect(
                     this.layer.graphics.placement.coordinates.x,
                     i,

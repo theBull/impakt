@@ -270,5 +270,15 @@ module Common.Models {
                 element.layer.graphics.select();
             }
         }
+
+        /**
+         * Returns the absolute y-coordinate of the line of scrimmage
+         * @return {number} [description]
+         */
+        public getLOSAbsolute(): number {
+            if (!this.los)
+                throw new Error('Field getLOSAbsolute(): los is null or undefined');
+            return this.los.layer.graphics.location.ay;
+        }
     }
 }

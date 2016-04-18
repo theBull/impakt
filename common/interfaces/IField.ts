@@ -47,5 +47,6 @@ module Common.Interfaces {
 
         useAssignmentTool(coords: Common.Models.Coordinates);
         setCursorCoordinates(pageX: number, pageY: number): void;
+        getLOSAbsolute(): number;
 	}
 }
