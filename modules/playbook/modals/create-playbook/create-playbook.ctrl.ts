@@ -6,20 +6,15 @@ impakt.playbook.modals.controller('playbook.modals.createPlaybook.ctrl',
 	function($scope: any, $uibModalInstance: any, _playbook: any) {
 
 	$scope.newPlaybookModel = new Common.Models.PlaybookModel();
-	$scope.unitType = Team.Enums.UnitTypes.Other;
-	$scope.unitTypes = impakt.context.Team.unitTypes;
-	$scope.selectedUnitType = $scope.unitTypes.getByUnitType($scope.unitType);
-
-	$scope.selectUnitType = function(unitTypeValue: Team.Enums.UnitTypes) {
-		$scope.selectedUnitType = $scope.unitTypes.getByUnitType(unitTypeValue);
-	}
+	$scope.unitTypeCollection = impakt.context.Team.unitTypes;
+	$scope.selectedUnitType = $scope.unitTypeCollection.getByUnitType(Team.Enums.UnitTypes.Offense);
 
 	$scope.ok = function () {
 		
 		$scope.newPlaybookModel.unitType = $scope.selectedUnitType.unitType;
 		
 		_playbook.createPlaybook($scope.newPlaybookModel)
-		.then(function(createdPlaybook) {
+		.then(function(createdPlaybook: Common.Models.PlaybookModel) {
 			$uibModalInstance.close(createdPlaybook);
 		}, function(err) {
 			console.error(err);

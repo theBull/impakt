@@ -1433,6 +1433,7 @@ var Common;
                 if (!field.ball)
                     throw new Error('Play draw(): Ball is null or undefined');
                 this.field = field;
+                this.field.players.removeAll();
                 var self = this;
                 // set defaults, in case no assignments / personnel were assigned
                 if (!this.personnel) {
@@ -1595,10 +1596,10 @@ var Common;
             PlaybookModel.prototype.fromJson = function (json) {
                 if (!json)
                     return;
-                this.key = json.key || this.key;
-                this.name = json.name || this.name;
-                this.unitType = json.unitType || this.unitType;
-                this.guid = json.guid || this.guid;
+                this.key = json.key;
+                this.name = json.name;
+                this.unitType = json.unitType;
+                this.guid = json.guid;
                 if (json.associated)
                     this.associated.fromJson(json.associated);
             };
@@ -4374,7 +4375,6 @@ var Common;
                 this.placement.updateFromCoordinates(coords.x, coords.y);
                 // Transform (move to updateAbsolute/Coordinates methods?)
                 this.transform(this.location.dx, this.location.dy);
-                //this.setModified(true);
             };
             Graphics.prototype.moveByDeltaX = function (dx) {
                 if (this.canMoveByDeltaX(dx)) {
@@ -8519,16 +8519,16 @@ impakt.signin = angular.module('impakt.signin', [
     'ui.bootstrap',
     'impakt.common'
 ])
-    .config([
-    function () {
+    .config([function () {
         console.debug('impakt.signin - config');
     }])
     .run([
     '$http',
     '$window',
     '$location',
+    '$rootScope',
     '__signin',
-    function ($http, $window, $location, __signin) {
+    function ($http, $window, $location, $rootScope, __signin) {
         console.debug('impakt.signin - running');
         // TODO: Change to application/json?
         $http.defaults.headers.common =
@@ -9016,7 +9016,8 @@ impakt.common.localStorage.constant('LOCAL_STORAGE', {
     'DEFAULT_PLAYBOOK_UNIT_TYPE': 'default_playbook_unit_type',
     'DEFAULT_EDITOR_TYPE': 'default_editor_type',
     'DEFAULT_EDITOR_ITEM_KEY': 'default_editor_item_key',
-    'DEFAULT_EDITOR_ITEM_TYPE': 'default_editor_item_type'
+    'DEFAULT_EDITOR_ITEM_TYPE': 'default_editor_item_type',
+    'DEFAULT_PATH': 'default_path'
 });
 /// <reference path='./localStorage.mdl.ts' />
 impakt.common.localStorage.factory('__localStorage', [
@@ -9052,6 +9053,8 @@ impakt.common.localStorage.factory('__localStorage', [
             setDefaultEditorItemType: setDefaultEditorItemType,
             resetDefaultEditorItemType: resetDefaultEditorItemType,
             resetDefaultEditorItem: resetDefaultEditorItem,
+            getDefaultPath: getDefaultPath,
+            setDefaultPath: setDefaultPath,
             signout: signout
         };
         function signout() {
@@ -9195,6 +9198,12 @@ impakt.common.localStorage.factory('__localStorage', [
             self.resetDefaultEditorType();
             self.resetDefaultEditorItemKey();
             self.resetDefaultEditorItemType();
+        }
+        function getDefaultPath() {
+            return localStorage.getItem(LOCAL_STORAGE.DEFAULT_PATH);
+        }
+        function setDefaultPath(path) {
+            self.setItem(LOCAL_STORAGE.DEFAULT_PATH, path);
         }
         return self;
     }]);
@@ -10231,11 +10240,6 @@ impakt.common.ui.controller('typeFormatter.ctrl', [
                 if (enumLabel) {
                     $element.html(enumLabel);
                 }
-                else {
-                    throw new Error('type-formatter directive: \
-						Something went wrong when trying to find the label for the given enum \
-						"' + $scope.value + '" => "' + enumLabel + '"');
-                }
             }
         };
     }]).directive('typeFormatter', [function () {
@@ -10272,6 +10276,7 @@ impakt.common.ui.controller('playPreview.ctrl', [
         $scope.showRefresh = false;
         $scope.guid = '';
         $scope.$element;
+        $scope.isModified = true;
         $scope.refresh = function () {
             if (!$scope.play)
                 throw new Error('play-preview refresh(): Play is null or undefined');
@@ -10283,6 +10288,7 @@ impakt.common.ui.controller('playPreview.ctrl', [
             $scope.previewCanvas.refresh();
             $scope.play.png = $scope.previewCanvas.exportToPng();
             $scope.$element.find('svg').hide();
+            $scope.isModified = false;
         };
     }]).directive('playPreview', [
     '$compile',
@@ -10302,14 +10308,17 @@ impakt.common.ui.controller('playPreview.ctrl', [
              * @param {[type]} $element [description]
              * @param {[type]} attrs    [description]
              */
-            template: "<div class='positionRelative'>\
-					<div class='right0 top1 height2 width2'\
-						ng-show='showRefresh'>\
-						<span class='glyphicon glyphicon-refresh \
-							pointer font-white-hover' \
-							title='Refresh preview'\
-							ng-click='refresh()'>\
-						</span>\
+            template: "<div class='play-preview positionRelative maxWidth29 maxHeight24 overflowHidden'>\
+					<div class='play-preview-refresh-container center' ng-show='isModified && showRefresh'>\
+						<div class='play-preview-refresh-overlay'></div>\
+						<div class='textCenter play-preview-refresh-message'>\
+							<p class='glyphicon glyphicon-refresh \
+								pointer font-white-hover fontSize20'\
+								title='Refresh preview'\
+								ng-click='refresh()'>\
+							</p>\
+							<p class='font-white'>Data has been modified. Click to refresh.</p>\
+						</div>\
 					</div>\
 					<img ng-src='{{play.png}}' />\
 				</div>",
@@ -10320,7 +10329,7 @@ impakt.common.ui.controller('playPreview.ctrl', [
                     $scope.$element = $element;
                     // retrieve play data
                     $scope.guid = attrs.guid;
-                    $scope.showRefresh = $element.hasClass('play-preview-refresh');
+                    $scope.showRefresh = $element.hasClass('play-preview-refreshable');
                     // play MAY be only a temporary play used for editing a formation;
                     // in which case, the temporary play should have been added to
                     // the editor context...so check there...
@@ -10348,7 +10357,7 @@ impakt.common.ui.controller('playPreview.ctrl', [
                     $scope.$element.find('svg').hide();
                     $scope.play.onModified(function () {
                         console.log('play-preview play.onModified(): refreshing preview');
-                        $scope.refresh();
+                        $scope.isModified = true;
                     });
                 });
             }
@@ -11009,13 +11018,22 @@ impakt.playbook.browser.main.controller('playbook.browser.main.ctrl', [
             _playbookModals.createPlaybook();
         };
         $scope.deletePlaybook = function (playbook) {
-            _playbookModals.deletePlaybook(playbook);
+            _playbookModals.deletePlaybook(playbook).then(function (data) {
+                // navigate back to the main browser view
+                $scope.goToAll();
+            }, function (err) {
+            });
         };
         $scope.createPlay = function () {
             _playbookModals.createPlay();
         };
-        $scope.alertNoFormations = function () {
-            alert("Please create a base formation in order to begin creating plays.");
+        $scope.alertDataRequired = function (dataType) {
+            if ($scope.formations.isEmpty() && $scope.playbooks.hasElements()) {
+                alert("Please create a base formation in order to begin creating " + dataType + ".");
+            }
+            else if ($scope.playbooks.isEmpty()) {
+                alert("Please create a playbook in order to begin creating " + dataType + ".");
+            }
         };
         $scope.deletePlay = function (play) {
             _playbookModals.deletePlay(play);
@@ -11030,6 +11048,27 @@ impakt.playbook.browser.main.controller('playbook.browser.main.ctrl', [
          * Navigates to the main browser 'all' view
          */
         $scope.goToAll();
+    }]);
+/// <reference path='../playbook-browser-main.mdl.ts' />
+impakt.playbook.browser.main.controller('playbook.browser.playbook.ctrl', [
+    '$scope',
+    function ($scope) {
+        $scope.playbook = $scope.template.data;
+        $scope.associatedFormationCollection = new Common.Models.FormationCollection();
+        $scope.associatedPlayCollection = new Common.Models.PlayCollection();
+        function init() {
+            $scope.playbook.associated.formations.forEach(function (formationGuid, index) {
+                var matchingFormation = impakt.context.Playbook.formations.get(formationGuid);
+                if (!Common.Utilities.isNullOrUndefined(matchingFormation))
+                    $scope.associatedFormationCollection.add(matchingFormation);
+            });
+            $scope.playbook.associated.plays.forEach(function (playGuid, index) {
+                var matchingPlay = impakt.context.Playbook.formations.get(playGuid);
+                if (!Common.Utilities.isNullOrUndefined(matchingPlay))
+                    $scope.associatedFormationCollection.add(matchingPlay);
+            });
+        }
+        init();
     }]);
 /// <reference path='./playbook-browser.mdl.ts' />
 impakt.playbook.browser.controller('playbook.browser.ctrl', ['$scope',
@@ -12219,12 +12258,8 @@ impakt.playbook.modals.controller('playbook.modals.createPlaybook.ctrl', [
     '$scope', '$uibModalInstance', '_playbook',
     function ($scope, $uibModalInstance, _playbook) {
         $scope.newPlaybookModel = new Common.Models.PlaybookModel();
-        $scope.unitType = Team.Enums.UnitTypes.Other;
-        $scope.unitTypes = impakt.context.Team.unitTypes;
-        $scope.selectedUnitType = $scope.unitTypes.getByUnitType($scope.unitType);
-        $scope.selectUnitType = function (unitTypeValue) {
-            $scope.selectedUnitType = $scope.unitTypes.getByUnitType(unitTypeValue);
-        };
+        $scope.unitTypeCollection = impakt.context.Team.unitTypes;
+        $scope.selectedUnitType = $scope.unitTypeCollection.getByUnitType(Team.Enums.UnitTypes.Offense);
         $scope.ok = function () {
             $scope.newPlaybookModel.unitType = $scope.selectedUnitType.unitType;
             _playbook.createPlaybook($scope.newPlaybookModel)
@@ -12406,7 +12441,7 @@ impakt.playbook.modals.service('_playbookModals', [
                 };
             }
             else if (play.editorType == Playbook.Enums.EditorTypes.Formation) {
-                size = '';
+                size = 'lg';
                 template = 'modules/playbook/modals/save-formation/save-formation.tpl.html';
                 controller = 'playbook.modals.saveFormation.ctrl';
                 data = {
@@ -12760,17 +12795,18 @@ impakt.playbook.service('_playbook', [
             })
                 .then(function (response) {
                 var results = Common.Utilities.parseData(response.data.results);
-                var playbook = new Common.Models.PlaybookModel();
+                var playbookModel = new Common.Models.PlaybookModel();
                 if (results && results.data && results.data.model) {
-                    playbook.fromJson(results.data.model);
+                    results.data.model.key = results.key;
+                    playbookModel.fromJson(results.data.model);
                     // update the context
-                    impakt.context.Playbook.playbooks.add(playbook);
+                    impakt.context.Playbook.playbooks.add(playbookModel);
                 }
                 else {
                     throw new Error('CreatePlaybook did not return a valid playbook model');
                 }
-                notification.success('Successfully created playbook "', playbook.name, '"');
-                d.resolve(playbook);
+                notification.success('Successfully created playbook "', playbookModel.name, '"');
+                d.resolve(playbookModel);
             }, function (error) {
                 notification.error('Failed to create playbook "', playbookModel.name, '"');
                 d.reject(error);
@@ -12829,7 +12865,7 @@ impakt.playbook.service('_playbook', [
                 console.log(formationModel);
                 impakt.context.Playbook.formations.add(formationModel);
                 notification.success('Successfully created formation "', formationModel.name, '"');
-                self.editFormation(formationModel);
+                //self.editFormation(formationModel);
                 d.resolve(formationModel);
             }, function (error) {
                 notification.error('Failed to create formation "', newFormation.name, '"');
@@ -12945,7 +12981,7 @@ impakt.playbook.service('_playbook', [
             }
             // navigate to playbook editor
             //if(!$state.is('playbook.editor'))
-            return $state.transitionTo('playbook.editor');
+            $state.transitionTo('playbook.editor');
         };
         /**
          * Updates the given formation for the current user
@@ -13358,7 +13394,7 @@ impakt.playbook.service('_playbook', [
             impakt.context.Playbook.editor.plays.add(play);
             // navigate to playbook editor
             //if (!$state.is('playbook.editor'))
-            return $state.transitionTo('playbook.editor');
+            $state.transitionTo('playbook.editor');
         };
         /**
          * Deletes the given play for the current user

@@ -136,35 +136,33 @@ impakt.signin = angular.module('impakt.signin', [
 	'ui.bootstrap',
 	'impakt.common'
 ])
-	.config(
-	[
-		function() {
+.config([function() {
+	console.debug('impakt.signin - config');
+}])
+.run([
+'$http', 
+'$window', 
+'$location',
+'$rootScope',
+'__signin',
+function(
+	$http: any, 
+	$window: any, 
+	$location: any,
+	$rootScope: any,
+	__signin: any
+) {
 
-			console.debug('impakt.signin - config');
+	console.debug('impakt.signin - running');
 
-		}])
-	.run([
-		'$http', 
-		'$window', 
-		'$location', 
-		'__signin',
-		function(
-			$http: any, 
-			$window: any, 
-			$location: any, 
-			__signin: any
-		) {
+	// TODO: Change to application/json?
+	$http.defaults.headers.common =
+		{ 'Content-Type': 'application/json' };
 
-			console.debug('impakt.signin - running');
+	// attempt login
+	//__signin.signin();
 
-			// TODO: Change to application/json?
-			$http.defaults.headers.common =
-				{ 'Content-Type': 'application/json' };
-
-			// attempt login
-			//__signin.signin();
-
-		}]);
+}]);
 
 
 

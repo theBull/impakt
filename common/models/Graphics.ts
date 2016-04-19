@@ -442,8 +442,6 @@ module Common.Models {
 
             // Transform (move to updateAbsolute/Coordinates methods?)
             this.transform(this.location.dx, this.location.dy);
-
-            //this.setModified(true);
         }
 
         public moveByDeltaX(dx: number): void {

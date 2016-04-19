@@ -45,11 +45,12 @@ impakt.common.ui.controller('typeFormatter.ctrl', [
 			let enumLabel = enumList[$scope.value];
 			if (enumLabel) {
 				$element.html(enumLabel);
-			} else {
-				throw new Error('type-formatter directive: \
-						Something went wrong when trying to find the label for the given enum \
-						"' + $scope.value + '" => "' + enumLabel + '"');
-			}
+			} 
+			// else {
+			// 	throw new Error('type-formatter directive: \
+			// 			Something went wrong when trying to find the label for the given enum \
+			// 			"' + $scope.value + '" => "' + enumLabel + '"');
+			// }
 		}
 	}
 

@@ -1,6 +1,6 @@
 <expandable class='col'
 	direction='left'
-	collapsed='false'>
+	collapsed='true'>
 
   	<sliding-panel
 		class='col positionRelative scrollY gray-bg-3 font-white'>
@@ -21,9 +21,8 @@
 							<div><strong>Personnel:</strong> {{playPrimary.personnel.name}}</div>
 							<div><strong>Assignments:</strong> {{playPrimary.assignments.name}}</div>
 						</div>
-						<play-preview 
-							guid='{{canvas.playPrimary.guid}}'
-							class='width29 height24 play-preview-refresh'>
+						<play-preview guid='{{canvas.playPrimary.guid}}' 
+							class='play-preview-refreshable'>
 						</play-preview>				
 					</div>
 				</details>

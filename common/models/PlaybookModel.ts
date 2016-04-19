@@ -8,6 +8,7 @@ module Common.Models {
         public name: string;
         public associated: Common.Models.Association;
         public unitType: Team.Enums.UnitTypes;
+        
         constructor() {
             super();
             super.setContext(this);
@@ -29,10 +30,11 @@ module Common.Models {
         public fromJson(json: any): any {
             if (!json)
                 return;
-            this.key = json.key || this.key;
-            this.name = json.name || this.name;
-            this.unitType = json.unitType || this.unitType;
-            this.guid = json.guid || this.guid;
+
+            this.key = json.key;
+            this.name = json.name;
+            this.unitType = json.unitType;
+            this.guid = json.guid;
             if (json.associated)
                 this.associated.fromJson(json.associated);
         }

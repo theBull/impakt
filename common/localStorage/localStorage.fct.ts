@@ -40,6 +40,9 @@ impakt.common.localStorage.factory('__localStorage', [
 			resetDefaultEditorItemType: resetDefaultEditorItemType,
 			resetDefaultEditorItem: resetDefaultEditorItem,
 
+			getDefaultPath: getDefaultPath,
+			setDefaultPath: setDefaultPath,
+
 			signout: signout
 			
 		}
@@ -203,6 +206,13 @@ impakt.common.localStorage.factory('__localStorage', [
 			self.resetDefaultEditorType();
 			self.resetDefaultEditorItemKey();
 			self.resetDefaultEditorItemType();
+		}
+
+		function getDefaultPath() {
+			return localStorage.getItem(LOCAL_STORAGE.DEFAULT_PATH);
+		}
+		function setDefaultPath(path: string) {
+			self.setItem(LOCAL_STORAGE.DEFAULT_PATH, path);
 		}
 
 		return self;

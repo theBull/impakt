@@ -115,23 +115,24 @@ function(
         )
         .then(function(response: any) {
             let results = Common.Utilities.parseData(response.data.results);
-            let playbook = new Common.Models.PlaybookModel();
+            let playbookModel = new Common.Models.PlaybookModel();
             
             if(results && results.data && results.data.model) {
-                playbook.fromJson(results.data.model);  
+                results.data.model.key = results.key;
+                playbookModel.fromJson(results.data.model);
 
                 // update the context
-                impakt.context.Playbook.playbooks.add(playbook);
+                impakt.context.Playbook.playbooks.add(playbookModel);
 
             } else {
                 throw new Error('CreatePlaybook did not return a valid playbook model');
             }
 
             notification.success(
-                'Successfully created playbook "', playbook.name, '"'
+                'Successfully created playbook "', playbookModel.name, '"'
             );
             
-            d.resolve(playbook);
+            d.resolve(playbookModel);
         }, function(error: any) {
             notification.error('Failed to create playbook "', playbookModel.name, '"');
             d.reject(error);
@@ -218,7 +219,7 @@ function(
                     'Successfully created formation "', formationModel.name, '"'
                 );
 
-                self.editFormation(formationModel);
+                //self.editFormation(formationModel);
 
                 d.resolve(formationModel);
             }, function(error: any) {
@@ -389,7 +390,7 @@ function(
 
         // navigate to playbook editor
         //if(!$state.is('playbook.editor'))
-        return $state.transitionTo('playbook.editor');        
+        $state.transitionTo('playbook.editor');        
     }
 
     /**
@@ -914,7 +915,7 @@ function(
 
         // navigate to playbook editor
         //if (!$state.is('playbook.editor'))
-        return $state.transitionTo('playbook.editor');
+        $state.transitionTo('playbook.editor');
     }
 
     /**

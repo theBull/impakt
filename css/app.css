@@ -33,7 +33,7 @@ span, strong {
 }
 
 input, input:-webkit-autofill, textarea {
-  border: 1px solid #111111;
+  border: 1px solid #333333;
   margin-right: 1px;
   margin-bottom: 1px;
   background-color: #222222;
@@ -44,7 +44,7 @@ input, input:-webkit-autofill, textarea {
 
 input:focus, textarea:focus {
   outline: 0;
-  border: 1px solid #000;
+  border: 1px solid #444444;
 }
 
 input[disabled], textarea[disabled], select[disabled] {
@@ -70,7 +70,7 @@ label {
 select {
   font-size: 12px;
   margin: 1px;
-  border: 1px solid #111111;
+  border: 1px solid #333333;
   outline: 0;
   height: 3em;
   background-color: #222222;
@@ -79,7 +79,7 @@ select {
 }
 
 select:focus {
-  outline: 1px solid #000;
+  outline: 1px solid #444444;
   padding: 1px;
   height: 3em;
   margin: 1px;
@@ -765,12 +765,36 @@ expandable {
   border-bottom: 1px solid #111;
 }
 
-play-preview {
+.play-preview {
   display: inline-block !important;
   min-width: 10em;
   min-height: 8em;
   max-width: 100em;
   max-height: 80em;
+}
+
+.play-preview .play-preview-refresh-container {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  top: 0;
+  left: 0;
+  border: 3px solid #777777;
+}
+
+.play-preview .play-preview-refresh-overlay {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  font-color: rgba(255, 255, 255, 0.9);
+  top: 0;
+  left: 0;
+  z-index: 10;
+}
+
+.play-preview .play-preview-refresh-message {
+  z-index: 11;
 }
 
 stepper {

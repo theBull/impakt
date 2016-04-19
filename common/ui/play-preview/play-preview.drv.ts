@@ -8,6 +8,7 @@ impakt.common.ui.controller('playPreview.ctrl', [
 	$scope.showRefresh = false;
 	$scope.guid = '';
 	$scope.$element;
+	$scope.isModified = true;
 
 	$scope.refresh = function() {
 		if (!$scope.play)
@@ -21,6 +22,8 @@ impakt.common.ui.controller('playPreview.ctrl', [
 		$scope.previewCanvas.refresh();
 		$scope.play.png = $scope.previewCanvas.exportToPng();
 		$scope.$element.find('svg').hide();		
+
+		$scope.isModified = false;
 	}
 	
 }]).directive('playPreview', [
@@ -46,14 +49,17 @@ function(
 		 * @param {[type]} $element [description]
 		 * @param {[type]} attrs    [description]
 		 */
-		template: "<div class='positionRelative'>\
-					<div class='right0 top1 height2 width2'\
-						ng-show='showRefresh'>\
-						<span class='glyphicon glyphicon-refresh \
-							pointer font-white-hover' \
-							title='Refresh preview'\
-							ng-click='refresh()'>\
-						</span>\
+		template: "<div class='play-preview positionRelative maxWidth29 maxHeight24 overflowHidden'>\
+					<div class='play-preview-refresh-container center' ng-show='isModified && showRefresh'>\
+						<div class='play-preview-refresh-overlay'></div>\
+						<div class='textCenter play-preview-refresh-message'>\
+							<p class='glyphicon glyphicon-refresh \
+								pointer font-white-hover fontSize20'\
+								title='Refresh preview'\
+								ng-click='refresh()'>\
+							</p>\
+							<p class='font-white'>Data has been modified. Click to refresh.</p>\
+						</div>\
 					</div>\
 					<img ng-src='{{play.png}}' />\
 				</div>",
@@ -66,7 +72,7 @@ function(
 				$scope.$element = $element;
 				// retrieve play data
 				$scope.guid = attrs.guid;
-				$scope.showRefresh = $element.hasClass('play-preview-refresh');
+				$scope.showRefresh = $element.hasClass('play-preview-refreshable');
 
 				// play MAY be only a temporary play used for editing a formation;
 				// in which case, the temporary play should have been added to
@@ -101,7 +107,7 @@ function(
 
 				$scope.play.onModified(function() {
 					console.log('play-preview play.onModified(): refreshing preview');
-					$scope.refresh();
+					$scope.isModified = true;
 				});	
 			});
 		}

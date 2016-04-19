@@ -10,5 +10,7 @@ impakt.common.localStorage.constant('LOCAL_STORAGE', {
 	'DEFAULT_PLAYBOOK_UNIT_TYPE': 'default_playbook_unit_type',
 	'DEFAULT_EDITOR_TYPE': 'default_editor_type',
 	'DEFAULT_EDITOR_ITEM_KEY': 'default_editor_item_key',
-	'DEFAULT_EDITOR_ITEM_TYPE': 'default_editor_item_type'
+	'DEFAULT_EDITOR_ITEM_TYPE': 'default_editor_item_type',
+
+	'DEFAULT_PATH': 'default_path'
 });

@@ -1,4 +1,4 @@
-<div class='col pad'>
+<div class='col pad' ng-controller='playbook.browser.playbook.ctrl'>
 	<div class='red-bg-hover pointer height3 width6 textCenter pad marginBottom1'
 		ng-click='goToAll()'>
 		<span class='glyphicon glyphicon-chevron-left'></span>
@@ -6,10 +6,26 @@
 	</div>
 	<div class='marginBottom1 light-border-bottom'>
 		<h2>{{template.data.name}}</h2>
-		<p>{{template.data.unitType}}</p>
+		<type-formatter value='template.data.unitType' type='Team.Enums.UnitTypes'></type-formatter>
 	</div>
-	<div class=''>
-		<div class='pad marginBottom1'>TO DO! - This page is under development</div>
+	<div>
+
+		
+		<div class='marginBottom1'>
+			<p>Plays ({{associatedPlayCollection.size()}})</p>
+			<div ng-repeat='play in associatedPlayCollection.toArray()' 
+				class='height5 pad row gray-bg-4-hover pointer'>
+				{{play.name}}
+			</div>
+		</div>
+
+		<div class='marginBottom1'>
+			<p>Formations ({{associatedFormationCollection.size()}})</p>
+			<div ng-repeat='formation in associatedFormationCollection.toArray()' 
+				class='height5 pad row gray-bg-4-hover pointer'>
+				{{formation.name}}
+			</div>
+		</div>
 
 		<div class='height3 width9 pad red-bg-hover pointer textCenter' ng-click='deletePlaybook(template.data)'>
 			<span class='glyphicon glyphicon-remove'></span>

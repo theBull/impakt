@@ -65,13 +65,22 @@ function(
 		_playbookModals.createPlaybook();
 	}
 	$scope.deletePlaybook = function(playbook: Common.Models.PlaybookModel) {
-		_playbookModals.deletePlaybook(playbook);
+		_playbookModals.deletePlaybook(playbook).then(function(data) {
+			// navigate back to the main browser view
+			$scope.goToAll();
+		}, function(err) {
+
+		});
 	}
 	$scope.createPlay = function() {
 		_playbookModals.createPlay();
 	}
-	$scope.alertNoFormations = function() {
-		alert("Please create a base formation in order to begin creating plays.");
+	$scope.alertDataRequired = function(dataType: string) {
+		if($scope.formations.isEmpty() && $scope.playbooks.hasElements()) {
+			alert("Please create a base formation in order to begin creating " + dataType + ".");
+		} else if($scope.playbooks.isEmpty()) {
+			alert("Please create a playbook in order to begin creating " + dataType + ".");
+		}
 	}
 	$scope.deletePlay = function(play: Common.Models.Play) {
 		_playbookModals.deletePlay(play);

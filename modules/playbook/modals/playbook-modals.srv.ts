@@ -90,7 +90,7 @@ function($q: any, __modals: any) {
 				}
 			};
 		} else if (play.editorType == Playbook.Enums.EditorTypes.Formation) {
-			size = '';
+			size = 'lg';
 			template = 'modules/playbook/modals/save-formation/save-formation.tpl.html';
 			controller = 'playbook.modals.saveFormation.ctrl';
 			data = {

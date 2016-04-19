@@ -82,6 +82,7 @@ module Common.Models {
             if (!field.ball)
                 throw new Error('Play draw(): Ball is null or undefined');
             this.field = field;
+            this.field.players.removeAll();
             var self = this;
             // set defaults, in case no assignments / personnel were assigned
             if (!this.personnel) {
