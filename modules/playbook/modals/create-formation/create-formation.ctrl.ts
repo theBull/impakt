@@ -21,9 +21,7 @@ function(
 	 * Check to ensure there are formations to select as a base formation;
 	 * Add a new empty formation if there are no others to select from
 	 */
-	if($scope.formations.isEmpty()) {
-		$scope.formations.add($scope.formation);
-	}
+	$scope.formations.add($scope.formation);
 
 	/** 
 	 * If there are no other formations, the selected base formation
