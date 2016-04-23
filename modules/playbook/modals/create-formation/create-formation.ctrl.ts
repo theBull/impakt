@@ -27,7 +27,7 @@ function(
 	 * If there are no other formations, the selected base formation
 	 * will be the current, new formation
 	 */
-	$scope.selectedBaseFormation = $scope.formations.first();
+	$scope.selectedBaseFormation = $scope.formation;
 	impakt.context.Playbook.creation.formations.add($scope.formation);
 
 	/**
