@@ -6,9 +6,7 @@ module Common.Models {
         constructor() {
             super();
 
-            this.onModified(function() {
-				console.log('player collection modified');
-            });
+            this.onModified(function() {});
         }
     }
 }

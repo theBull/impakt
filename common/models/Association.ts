@@ -51,5 +51,15 @@ module Common.Models {
 			this.guid = json.guid || this.guid;
 		}
 
+		/**
+		 * Returns the sum count of all associated elements
+		 * @return {number} [description]
+		 */
+		public size(): number {
+			return this.playbooks.size() + this.formations.size() +
+				this.personnel.size() + this.assignments.size() +
+				this.plays.size();
+		}
+
 	}
 }

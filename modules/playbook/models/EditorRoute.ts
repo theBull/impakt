@@ -28,7 +28,7 @@ module Playbook.Models {
             }
 
             this.routePath = new Playbook.Models.EditorRoutePath(this);
-            this.layer.type = Common.Enums.LayerTypes.Route;
+            this.layer.type = Common.Enums.LayerTypes.PlayerRoute;
             this.layer.addLayer(this.routePath.layer);
         }
 

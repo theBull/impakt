@@ -12,7 +12,7 @@
 	</div>
 
 	<div class='pad'>
-		<h4>Playbooks</h4>
+		<h4>Playbooks ({{playbooks.size()}})</h4>
 		<div class='pad red-bg-hover pointer marginBottom1 width6'
 			ng-click='createPlaybook()'>
 			<span class='glyphicon glyphicon-plus'></span>
@@ -46,12 +46,15 @@
 						type='Team.Enums.UnitTypes'>
 					</type-formatter>
 				</p>
+				<p>
+					({{playbook.associated.size()}} associated)
+				</p>
 			</div>
 		</div>
 
 	</div>
 	<div class='pad'>
-		<h4>Plays</h4>
+		<h4>Plays ({{plays.size()}})</h4>
 		<div ng-show='formations.hasElements()'>
 			<div class='pad red-bg-hover pointer marginBottom1 width6'
 				 ng-click='createPlay()'>
@@ -80,7 +83,7 @@
 		<div class='grid'>
 			<div 
 				ng-repeat='play in plays.toArray()'
-				class='positionRelative gray-bg-3-hover marginBottom1 height21 width18 pointer marginRight1 positionRelative'
+				class='positionRelative gray-bg-3-hover marginBottom1 height21 width18 pointer marginRight1 positionRelative overflowHidden'
 				ng-mouseover='editVisible = true'
 				ng-mouseout='editVisible = false'
 				ng-init='editVisible = false'>
@@ -103,8 +106,7 @@
 						</div>
 					</div>					
 
-					<play-preview guid='{{play.guid}}'>
-					</play-preview>					
+					<play-thumbnail play='play' class='height18'></play-thumbnail>			
 
 				</div>
 				
@@ -112,7 +114,7 @@
 		</div>
 	</div>
 	<div class='pad'>
-		<h4>Formations</h4>
+		<h4>Formations ({{formations.size()}})</h4>
 		
 		<div class='pad red-bg-hover pointer marginBottom1 width6'
 			ng-click='createFormation()'
@@ -138,7 +140,7 @@
 		<div class='grid'>
 			<div 
 				ng-repeat='formation in formations.toArray()'
-				class='positionRelative pad gray-bg-3-hover marginBottom1 height20 width18 pointer marginRight1 positionRelative'
+				class='positionRelative gray-bg-3-hover marginBottom1 height21 width18 pointer marginRight1 positionRelative overflowHidden'
 				ng-mouseover='editVisible = true'
 				ng-mouseout='editVisible = false'
 				ng-init='editVisible = false'>
@@ -152,13 +154,20 @@
 							title='Edit formation'>
 						</span>
 					</div>
-					
-					<div class='row'>
-						<h5>{{formation.name}}</h5>
-					</div>
 
-					<!-- TODO @theBull - implement; issue #98 -->
-					<!-- <play-preview guid='{{formation.guid}}'></play-preview> -->
+					<div class='pad'>
+						<div class='row'>
+							<p>
+								{{formation.name}}
+							</p>
+						</div>
+					</div>
+					
+					<formation-thumbnail 
+						formation='formation' 
+						class='height18'>
+					</formation-thumbnail>	
+
 				</div>
 			</div>
 		</div>

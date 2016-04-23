@@ -162,17 +162,17 @@ module Common.Models {
 			if(this.cols <= 0)
 				throw new Error('Grid cols must be defined and greater than 0');
 
-			if(this.paper.canvas.dimensions.width <= 0) 
-				throw new Error('Canvas width must be greater than 0');
+			let canvasWidth = this.paper.canvas.dimensions.width;
+
+			if (canvasWidth == 0)
+				throw new Error('Grid canvas width must be greater than 0');
 
 			switch(this.paper.sizingMode) {
 				case Common.Enums.PaperSizingModes.TargetGridWidth:					
 					this.size = Playbook.Constants.GRID_SIZE;
 					break;
 				case Common.Enums.PaperSizingModes.MaxCanvasWidth:
-					this.size = Math.floor(
-						this.paper.canvas.dimensions.width / this.cols
-					);
+					this.size = Math.floor(this.paper.canvas.dimensions.width / this.cols);
 					break;
 				case Common.Enums.PaperSizingModes.PreviewWidth:
 					this.size = this.paper.canvas.dimensions.width / this.cols // don't round

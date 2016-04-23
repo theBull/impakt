@@ -23,12 +23,8 @@ module Team.Models {
             this.positions = new Team.Models.PositionCollection();
             this.setDefault();
             this.setType = Common.Enums.SetTypes.Personnel;
-            this.onModified(function(data) {
-                console.log('personnel changed', data);
-            });
-            this.positions.onModified(function(data) {
-                console.log('personnel positions changed', data);
-            });
+            this.onModified(function(data) {});
+            this.positions.onModified(function(data) {});
         }
         public hasPositions(): boolean {
             return this.positions && this.positions.size() > 0;

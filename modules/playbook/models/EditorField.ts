@@ -25,7 +25,7 @@ module Playbook.Models {
                 self.debug(self);
             }, 1000);
             this.onModified(function() {
-                console.log('field modified');
+                //console.log('field modified');
             });
         }
 

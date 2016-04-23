@@ -18,10 +18,20 @@ module Playbook.Models {
 			super.draw();
 			this.layer.graphics.setAttribute('class', 'pointer');
 
-			// Attach event handlers
-			this.layer.graphics.onclick(super.click, this);
-			this.layer.graphics.onhover(super.hoverIn, super.hoverOut, this);
-			this.layer.graphics.onmousedown(super.mousedown, this);
+			/**
+			 * 
+			 * Attach event handlers to the player icon, but defer the functionality and
+			 * scope to the actual player object itself, not to this icon.
+			 * 
+			 */
+			this.layer.graphics.onclick(this.click, this);
+			this.layer.graphics.onhover(this.player.hoverIn, this.player.hoverOut, this.player);
+			this.layer.graphics.onmousedown(this.player.mousedown, this.player);
+		}
+
+		public click(e: any) {
+			super.click(e);
+			this.player.click(e);
 		}
 	}
 }

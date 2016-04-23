@@ -34,8 +34,6 @@ impakt.app = angular.module('impakt.app', [
 		$httpProvider: any,
 		$sceDelegateProvider: any) {
 
-		console.log('impakt - config');
-
 		//Reset headers to avoid OPTIONS request (aka preflight)
 		// $httpProvider.defaults.headers.common = {};
 		// $httpProvider.defaults.headers.post = {};
@@ -89,7 +87,7 @@ impakt.app = angular.module('impakt.app', [
 
 		
 
-		console.debug('impakt - config');
+		console.debug('impakt.app - config');
 
 }])
 .run([

@@ -58,8 +58,8 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas',
 					_playPreview.setViewBox(
 						canvas.paper.x,
 						canvas.paper.y,
-						canvas.paper.canvas.width, 
-						canvas.paper.canvas.height
+						canvas.dimensions.width, 
+						canvas.dimensions.height
 					);
 				});
 

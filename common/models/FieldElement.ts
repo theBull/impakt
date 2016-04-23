@@ -95,36 +95,36 @@ module Common.Models {
          */
         public abstract draw(): void;
 
-        public hoverIn(e: any, context: Common.Interfaces.IFieldElement): void {
+        public hoverIn(e: any): void {
 
         }
-        public hoverOut(e: any, context: Common.Interfaces.IFieldElement): void {
+        public hoverOut(e: any): void {
 
         }
-        public click(e: any, context: Common.Interfaces.IFieldElement): void {
+        public click(e: any): void {
             console.log('fieldelement click');
-            if (context.layer.graphics.disabled)
+            if (this.layer.graphics.disabled)
                 return;
 
-            context.layer.graphics.toggleSelect();
+            this.layer.graphics.toggleSelect();
             if(e.metaKey) {
-                context.field.toggleSelection(context);    
+                this.field.toggleSelection(this);    
             } else {
-                context.field.setSelection(context);
+                this.field.setSelection(this);
             }
         }
-        public mouseup(e: any, context: Common.Interfaces.IFieldElement): void {
+        public mouseup(e: any): void {
 
         }
-        public mousedown(e: any, context: Common.Interfaces.IFieldElement): void {
+        public mousedown(e: any): void {
             if(e.keyCode == Common.Input.Which.RightClick) {
-                context.contextmenu(e, context);
+                this.contextmenu(e);
             }
         }
-        public mousemove(e: any, context: Common.Interfaces.IFieldElement): void {
+        public mousemove(e: any): void {
             // TODO @theBull - implement
         }
-		public contextmenu(e: any, context: Common.Interfaces.IFieldElement): void {
+		public contextmenu(e: any): void {
             // TODO @theBull - handle contextmenu
         }
 		public dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void {

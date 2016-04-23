@@ -20,16 +20,14 @@ module Common.Models {
             this.unitType = Team.Enums.UnitTypes.Other;
             this.parentRK = 1;
             this.editorType = Playbook.Enums.EditorTypes.Formation;
-            this.name = name || 'untitled';
+            this.name = name || 'New formation';
             this.associated = new Common.Models.Association();
             this.placements = new Common.Models.PlacementCollection();
             this.png = null;
             //this.setDefault();
             
             let self = this;
-            this.onModified(function() {
-                console.log('formation modified');
-            });
+            this.onModified(function() {});
             this.placements.onModified(function() {
                 self.setModified(true);
             });
@@ -99,6 +97,7 @@ module Common.Models {
         }
         public setPlacements(placements: Common.Models.PlacementCollection) {
             this.placements = placements;
+            this.setModified(true);
         }
     }
 }

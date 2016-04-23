@@ -1,14 +1,13 @@
 /// <reference path='../ui.mdl.ts' />
 
 impakt.common.ui.controller('playPreview.ctrl', [
-'$scope', function($scope: any) {
+'$scope', '$timeout', function($scope: any, $timeout: any) {
 
 	$scope.previewCanvas;
 	$scope.play;
-	$scope.showRefresh = false;
-	$scope.guid = '';
 	$scope.$element;
 	$scope.isModified = true;
+	$scope.modificationTimer;
 
 	$scope.refresh = function() {
 		if (!$scope.play)
@@ -21,95 +20,78 @@ impakt.common.ui.controller('playPreview.ctrl', [
 		$scope.$element.find('svg').show();
 		$scope.previewCanvas.refresh();
 		$scope.play.png = $scope.previewCanvas.exportToPng();
-		$scope.$element.find('svg').hide();		
-
 		$scope.isModified = false;
+
+		let scrollTop = $scope.previewCanvas.paper.field.getLOSAbsolute() - ($scope.$element.height() / 2);
+		$scope.$element.scrollTop(scrollTop);
+
+		if ($scope.modificationTimer)
+			$timeout.cancel($scope.modificationTimer);
 	}
 	
 }]).directive('playPreview', [
-'$compile',
 '$timeout',
-'_playPreview',
 function(
-	$compile: any, 
-	$timeout: any,
-	_playPreview: any
+	$timeout: any
 ) {
+	/**
+	 * play-preview directive renders an SVG preview canvas
+	 * with the given play data.
+	 */
 	return {
 		restrict: 'E',
 		controller: 'playPreview.ctrl',
+		scope: {
+			play: '='
+		},
+		compile: function compile(tElement, tAttrs, transclude) {
+			return {
+				pre: function preLink($scope, $element, attrs, controller) { },
+				post: function postLink($scope, $element, attrs, controller) {
+					$scope.$element = $element;				
 
-		/**
-		 * play-preview directive renders a PNG with the given
-		 * play or formation* data. 
-		 *
-		 * TODO @theBull - *handle formations as well
-		 * 
-		 * @param {[type]} $scope   [description]
-		 * @param {[type]} $element [description]
-		 * @param {[type]} attrs    [description]
-		 */
-		template: "<div class='play-preview positionRelative maxWidth29 maxHeight24 overflowHidden'>\
-					<div class='play-preview-refresh-container center' ng-show='isModified && showRefresh'>\
-						<div class='play-preview-refresh-overlay'></div>\
-						<div class='textCenter play-preview-refresh-message'>\
-							<p class='glyphicon glyphicon-refresh \
-								pointer font-white-hover fontSize20'\
-								title='Refresh preview'\
-								ng-click='refresh()'>\
-							</p>\
-							<p class='font-white'>Data has been modified. Click to refresh.</p>\
-						</div>\
-					</div>\
-					<img ng-src='{{play.png}}' />\
-				</div>",
-		transclude: true,
-		replace: true,
-		link: function($scope, $element, attrs) {
+					// create a previewCanvas to handle preview creation. Creating
+					// a previewCanvas will insert a SVG into the <play-preview/> element
+					// after the intialization phase.
+					if (!Common.Utilities.isNullOrUndefined($scope.play)) {
+						$scope.previewCanvas = new Playbook.Models.PreviewCanvas($scope.play, null);
+					} else {
+						// if there's no play at this point, there's a problem
+						throw new Error('play-preview link(): Unable to find play');
+					}
 
-			$timeout(function() {
+					$scope.play.onModified(function() {
+						$scope.isModified = true;
 
-				$scope.$element = $element;
-				// retrieve play data
-				$scope.guid = attrs.guid;
-				$scope.showRefresh = $element.hasClass('play-preview-refreshable');
+						if ($scope.modificationTimer)
+							$timeout.cancel($scope.modificationTimer);
 
-				// play MAY be only a temporary play used for editing a formation;
-				// in which case, the temporary play should have been added to
-				// the editor context...so check there...
-				// ...if it's not there, check the creation context to see if
-				// it's a play that's currently being created
-				$scope.play = impakt.context.Playbook.plays.get($scope.guid) ||
-					impakt.context.Playbook.editor.plays.get($scope.guid) ||
-					impakt.context.Playbook.creation.plays.get($scope.guid);
+						$scope.modificationTimer = $timeout(function() {
+							console.log('auto refresh based on user changes');
+							$scope.refresh();
+						}, 500);
+					});
 
-				// if there's no play at this point, there's a problem
-				if(!$scope.play) {
-					throw new Error('play-preview link(): Unable to find play');
+					/**
+					 * 
+					 * NOTE: Due to the way angular renders directives,
+					 * we have to wrap DOM-dependent code in a $timeout.
+					 * 
+					 */
+					$timeout(function() {
+						if($scope.previewCanvas) {
+							$scope.previewCanvas.onready(function() {
+								let scrollTop = $scope.previewCanvas.paper.field.getLOSAbsolute()
+									- ($scope.$element.height() / 2);
+								$scope.$element.scrollTop(scrollTop);
+							});
+
+							$scope.previewCanvas.initialize($element);
+							$scope.play.png = $scope.previewCanvas.exportToPng();
+						}						
+					}, 0);
 				}
-
-				// create a previewCanvas to handle preview creation. Creating
-				// a previewCanvas will insert a SVG into the <play-preview/> element
-				// after the intialization phase.
-				$scope.previewCanvas = new Playbook.Models.PreviewCanvas($scope.play, null);
-				$scope.previewCanvas.initialize($element);
-				
-				if(!$scope.previewCanvas)
-					throw new Error('play-preview link(): Creation of previewCanvas failed');
-
-				// if the play has an existing png, skip the previewCanvas creation
-				// step.
-				if($scope.play.png == null) {
-					$scope.refresh();
-				}
-
-				$scope.$element.find('svg').hide();
-
-				$scope.play.onModified(function() {
-					console.log('play-preview play.onModified(): refreshing preview');
-					$scope.isModified = true;
-				});	
-			});
+			}
 		}
 	}
 }]);

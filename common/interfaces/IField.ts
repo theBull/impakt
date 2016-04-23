@@ -32,7 +32,8 @@ module Common.Interfaces {
 			position: Team.Models.Position,
 			assignment: Common.Models.Assignment
 		): Common.Interfaces.IPlayer;
-		
+		clearPlay(): void;
+		clearPlayers(): void;
 		updatePlay(
 			playPrimary: Common.Models.PlayPrimary, 
 			playOpponent: Common.Models.PlayOpponent

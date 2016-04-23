@@ -57,14 +57,7 @@ module Playbook.Models {
             this.endzone_bottom.draw();
             this.los.draw();
             this.ball.draw();
-            // draw the play data onto the field
-            if (this.playPrimary)
-                this.playPrimary.draw(this);
-            // draw the opponent play data onto the field
-            if (this.playOpponent)
-                this.playOpponent.draw(this);
-
-            this.paper.scroll(0, this.getLOSAbsolute() - (this.paper.canvas.dimensions.height / 2));
+            this.drawPlay();
         }
         public addPlayer(
             placement: Common.Models.Placement,

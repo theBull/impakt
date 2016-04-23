@@ -34,6 +34,7 @@ module Common.Models {
 		) {
 			super(field, field.ball);
 
+			this.layer.type = Common.Enums.LayerTypes.Player;
 			this.layer.graphics.setPlacement(placement);
 			this.position = position;
 			this.assignment = assignment || new Common.Models.Assignment();
@@ -49,6 +50,10 @@ module Common.Models {
 			this.layer.onModified(function() {
 				self.setModified(true);
 			});
+		}
+
+		public remove(): void {
+			this.layer.remove();
 		}
 
 		public abstract draw(): void;

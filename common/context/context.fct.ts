@@ -30,7 +30,7 @@ function(
 
 	var self = {
 		initialize: initialize,
-		onReady: onReady,
+		onReady: onReady
 	}
 
 	function initialize(context) {
@@ -79,8 +79,8 @@ function(
 		 * A creation context for new plays and formations.
 		 */
 		context.Playbook.creation = {
-			plays: new Common.Models.PlayCollection()
-			// TODO @theBull - add formation support?
+			plays: new Common.Models.PlayCollection(),
+			formations: new Common.Models.FormationCollection()
 		}
 
 		async.parallel([

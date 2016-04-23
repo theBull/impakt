@@ -1,0 +1,5 @@
+{	
+	"VERSION": 0.01,
+	"HOST_URL": "https://test-impakt.azurewebsites.net",
+	"ENDPOINT": "/api"
+}

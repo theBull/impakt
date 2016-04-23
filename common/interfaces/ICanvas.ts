@@ -17,8 +17,10 @@ module Common.Interfaces {
         scrollable: any;
         playPrimary: Common.Models.PlayPrimary;
         playOpponent: Common.Models.PlayOpponent;
+        listener: Common.Models.CanvasListener;
 
 		exportToPng(): string;
+		setDimensions(): void;
 	}
 }
 

@@ -11,6 +11,7 @@ module Common.Models {
 			super(player.field, player.ball);
 
 			this.player = player;
+			this.layer.type = Common.Enums.LayerTypes.PlayerSelectionBox;
 			this.layer.graphics.selectable = false;
 			this.layer.graphics.setOriginalOpacity(1);
 			this.layer.graphics.setOriginalFill('');

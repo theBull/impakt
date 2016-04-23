@@ -15,7 +15,7 @@ module Common.Models {
 			this.routeNode = routeNode;
 			this.action = action;
 			this.actionable = !(this.routeNode.type == Common.Enums.RouteNodeTypes.CurveControl);
-            this.layer.type = Common.Enums.LayerTypes.RouteAction;
+            this.layer.type = Common.Enums.LayerTypes.PlayerRouteAction;
 		}			
 
         public draw(): void {

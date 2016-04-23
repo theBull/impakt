@@ -43,11 +43,10 @@ module Playbook.Models {
             var self = this;
             this.container = $container[0]; // jquery lite converted to raw html
             this.$container = $container; // jquery lite object
-            this.dimensions.width = this.$container.width();
-            this.dimensions.height = this.$container.height();
+            this.setDimensions();
             this.paper = new Playbook.Models.EditorPaper(this);
-            this.paper.initialize();
             this.paper.draw();
+
             // TODO @theBull - stop / pause this timer if the canvas is not
             // visible...
             // this.widthChangeInterval = setInterval(function() {
@@ -59,7 +58,13 @@ module Playbook.Models {
             // 		self.resize();
             // 	}
             // }, 1);
+
             this._ready();
+        }
+
+        public setDimensions(): void {
+            this.dimensions.width = this.$container.width();
+            this.dimensions.height = this.$container.height();
         }
 
         public updatePlay(
@@ -76,34 +81,8 @@ module Playbook.Models {
             this.setModified(true);
         }
 
-        public resize() {
-            var self = this;
-            this.dimensions.width = this.$container.width();
-            this.dimensions.height = this.$container.height();
-            this.paper.resize();
-            if (this.scrollable) {
-                this.scrollable.initialize(this.$container, this.paper);
-                this.scrollable.onready(function (content) {
-                    self.scrollable.scrollToPercentY(0.5);
-                });
-            }
-        }
-
-        public setScrollable(scrollable: any) {
-            this.scrollable = scrollable;
-        }
-
         public resetHeight() {
             //this.height = this.$container.height(this.$container.height());
-        }
-
-        public setListener(actionId, fn) {
-            this.listener.listen(actionId, fn);
-        }
-
-        public invoke(actionId, data, context) {
-            console.log('invoking action: ', actionId);
-            this.listener.invoke(actionId, data, context);
         }
 
         public zoomIn() {

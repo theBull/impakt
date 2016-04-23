@@ -27,27 +27,30 @@ module Playbook.Models {
             );
         }
 
-        public mousemove(e: any, context: Common.Interfaces.IFieldElement) {
+        public mousemove(e: any) {
             // get current coordinates
-            context.field.setCursorCoordinates(e.offsetX, e.offsetY);
+            this.field.setCursorCoordinates(e.offsetX, e.offsetY);
             //console.log(context.field.cursorCoordinates);
         }
 
-        public click(e: any, context: Common.Interfaces.IGround): void {
-            let coords = context.getClickCoordinates(e.offsetX, e.offsetY);
+        public click(e: any): void {
+            let coords = this.getClickCoordinates(e.offsetX, e.offsetY);
             console.log('ground clicked', coords);
-            let toolMode = context.paper.canvas.toolMode;
+            let toolMode = this.paper.canvas.toolMode;
+            
             switch (toolMode) {
                 case Playbook.Enums.ToolModes.Select:
                     console.log('selection mode');
-                    context.field.deselectAll();
+                    this.field.deselectAll();
                     break;
+
                 case Playbook.Enums.ToolModes.None:
                     console.log('no mode');
-                    context.field.deselectAll();
+                    this.field.deselectAll();
                     break;
+
                 case Playbook.Enums.ToolModes.Assignment:
-                    context.field.useAssignmentTool(coords);
+                    this.field.useAssignmentTool(coords);
                     break;
             }
         }

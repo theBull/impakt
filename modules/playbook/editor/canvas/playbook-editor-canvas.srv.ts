@@ -102,9 +102,9 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 
 			// 	});
 
-			canvas.setListener(
+			canvas.listener.listen(
 				Playbook.Enums.Actions.RouteNodeContextmenu, 
-				function(message: any, node: Common.Models.RouteNode) {
+				function(node: Common.Models.RouteNode) {
 
 					console.log('action commanded: route node contextmenu');
 
@@ -113,7 +113,7 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 					$rootScope.$broadcast(
 						'playbook-editor-canvas.routeNodeContextmenu', 
 						{ 
-							message: message,
+							message: 'contextmenu opened',
 							node: node,
 							left: absCoords.left,
 							top: absCoords.top
@@ -193,7 +193,7 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 
 		this.scrollTo = function(x: number, y: number) {
 			console.log(x, y);
-			this.canvas.paper.scroll(x, y);
+			this.canvas.paper.scroll(x, y, true);
 		}
 
 		this.getEditorTypeClass = function(editorType: Playbook.Enums.EditorTypes) {

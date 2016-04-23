@@ -86,8 +86,8 @@ module Common.Models {
 			if (Common.Utilities.isNullOrUndefined(this.relativeElement))
 				return;
 
-			this.rx += this.relativeElement.layer.graphics.placement.coordinates.x - x;
-			this.ry -= this.relativeElement.layer.graphics.placement.coordinates.y - y;			
+			this.rx = (this.relativeElement.layer.graphics.placement.coordinates.x - x);
+			this.ry = (this.relativeElement.layer.graphics.placement.coordinates.y - y);			
 		}
 		public updateFromAbsoluteCoordinates(ax: number, ay: number) {
 			// snap absolute coordinates to grid coordinates first...

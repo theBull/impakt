@@ -29,7 +29,7 @@ module Common.Models {
             
             this.type = type;
             this.node = new Common.Models.LinkedListNode(this, null);            
-            this.layer.type = Common.Enums.LayerTypes.RouteNode;
+            this.layer.type = Common.Enums.LayerTypes.PlayerRouteNode;
         }
 
         public draw() {

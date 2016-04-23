@@ -9,6 +9,8 @@ module Playbook.Models {
 
         constructor(canvas: Common.Interfaces.ICanvas) {
             super(canvas);
+
+            this.initialize();
         }
 
         public initialize(): void {
@@ -31,13 +33,6 @@ module Playbook.Models {
                     this.canvas.playPrimary,
                     this.canvas.playOpponent
                 );
-        }
-        public draw() {
-            this.clear();
-            if (this.showBorder)
-                this.drawOutline();
-
-            this.field.initialize();
         }
         public updatePlay(playPrimary: Common.Models.PlayPrimary, playOpponent: Common.Models.PlayOpponent) {
             this.field.updatePlay(playPrimary, playOpponent);

@@ -5,8 +5,8 @@ impakt.nav = angular.module('impakt.nav', [
 	'impakt.playbook.nav'
 ])
 .config(function() {
-	console.log('nav - config');
+	console.debug('impakt.nav - config');
 })
 .run(function() {
-	console.log('nav - run');
+	console.debug('impakt.nav - run');
 });

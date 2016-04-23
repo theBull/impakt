@@ -9,6 +9,7 @@ module Common.Models {
 		public active: boolean = true;
 		public playPrimary: Common.Models.PlayPrimary;
 		public playOpponent: Common.Models.PlayOpponent;
+		public editorType: Playbook.Enums.EditorTypes;
 		public unitType: Team.Enums.UnitTypes;
 		public canvas: Common.Models.Canvas;
 
@@ -20,6 +21,7 @@ module Common.Models {
 		) {
 			super();
 			this.playPrimary = playPrimary;
+			this.editorType = this.playPrimary.editorType;
 			this.key = this.playPrimary.key;
 			this.unitType = this.playPrimary.unitType;
 			this.title = this.playPrimary.name;

@@ -40,7 +40,6 @@ function($compile: any, __notifications: any) {
 		templateUrl: 'common/notifications/notification-item.tpl.html',
 		controller: 'notifications.ctrl',
 		link: function($scope: any, $element: any, attrs) {
-			console.log('notifications type', attrs.type);
 			let css = '';
 			switch(attrs.type) {
 

@@ -5,8 +5,8 @@ impakt.user = angular.module('impakt.user', [
 	'impakt.user.modals'
 ])
 .config(function() {
-	console.log('impakt.user -- config');
+	console.debug('impakt.user -- config');
 })
 .run(function() {
-	console.log('impakt.user -- run');
+	console.debug('impakt.user -- run');
 });	

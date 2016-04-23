@@ -48,7 +48,7 @@ module Common.Models {
             });
 
             this.players.onModified(function() {
-                self.updatePlacements();
+                //self.updatePlacements();
                 self.setModified(true);
             });
 
@@ -75,22 +75,25 @@ module Common.Models {
             this.layers.add(layer);
         }
 
-        public draw () {
+        public draw(): void {
             this.ground.draw();
             this.grid.draw();
             this.los.draw();
             this.ball.draw();
             this.drawPlay();
         }
-        public clearPlay () {
+        public clearPlayers(): void {
             this.players.forEach(function(player, index) {
                 player.layer.remove();
             });
             this.players.removeAll();
+        }
+        public clearPlay(): void {
+            this.clearPlayers();
             this.playPrimary = null;
             this.playOpponent = null;
         }
-        public drawPlay () {
+        public drawPlay(): void {
             // draw the play data onto the field
             if (this.playPrimary)
                 this.playPrimary.draw(this);
@@ -98,16 +101,19 @@ module Common.Models {
             if (this.playOpponent)
                 this.playOpponent.draw(this);
 
-            this.updatePlacements();
+            //this.updatePlacements();
         }
-        public updatePlay (playPrimary, playOpponent) {
+        public updatePlay(
+            playPrimary: Common.Models.PlayPrimary, 
+            playOpponent: Common.Models.PlayOpponent
+        ): void {
             this.clearPlay();
             this.playPrimary = playPrimary;
             this.playOpponent = playOpponent;
             this.drawPlay();
             this.updatePlacements();
         }
-        public updatePlacements() {
+        public updatePlacements(): void {
             let self = this;
             let placementCollection = new Common.Models.PlacementCollection();
             this.players.forEach(function(player: Common.Interfaces.IPlayer, index: number) {
@@ -121,18 +127,18 @@ module Common.Models {
             this.setModified(true);
         }
         
-        public getPlayerWithPositionIndex (index) {
+        public getPlayerWithPositionIndex(index: number): Common.Interfaces.IPlayer {
             let matchingPlayer = this.players.filterFirst(function(player) {
                 return player.hasPosition() && (player.position.index == index);
             });
             return matchingPlayer;
         }
 
-        public applyPrimaryPlay (play) {
+        public applyPrimaryPlay(play: any): void {
             throw new Error('field applyPrimaryPlay() not implemented');
         }
 
-        public applyPrimaryFormation (formation) {
+        public applyPrimaryFormation(formation: Common.Models.Formation): void {
             //console.log(formation);
             // the order of placements within the formation get applied straight across
             // to the order of personnel and positions.
@@ -157,7 +163,7 @@ module Common.Models {
             // TODO @theBull - implement set formation for opponent formation
         }
 
-        public applyPrimaryAssignments (assignments) {
+        public applyPrimaryAssignments(assignments: Common.Models.AssignmentCollection): void {
             let self = this;
             if (assignments.hasElements()) {
                 assignments.forEach(function(assignment, index) {
@@ -173,7 +179,7 @@ module Common.Models {
                 this.playPrimary.setAssignments(assignments);
             }
         }
-        public applyPrimaryPersonnel (personnel) {
+        public applyPrimaryPersonnel(personnel: Team.Models.Personnel): void {
             let self = this;
             if (personnel && personnel.hasPositions()) {
                 this.players.forEach(function(player, index) {

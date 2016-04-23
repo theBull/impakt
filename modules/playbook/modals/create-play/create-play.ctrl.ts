@@ -15,22 +15,21 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl',
 	$scope.selectedAssignments = $scope.assignments.first();
 	$scope.personnelCollection = impakt.context.Team.personnel;
 	$scope.selectedPersonnel = $scope.personnelCollection.first();
-	$scope.unitType = Team.Enums.UnitTypes.Other;
-	$scope.unitTypes = impakt.context.Team.unitTypes;
-	$scope.selectedUnitType = Team.Enums.UnitTypes.Offense;
+	$scope.unitTypeCollection = impakt.context.Team.unitTypes;
+	$scope.selectedUnitType =
+		$scope.unitTypeCollection.getByUnitType(Team.Enums.UnitTypes.Offense).toJson();
 
 	// Intialize new Play with data
 	$scope.newPlay.setFormation($scope.selectedFormation);
 	$scope.newPlay.setAssignments($scope.selectedAssignments);
 	$scope.newPlay.setPersonnel($scope.selectedPersonnel);
-	$scope.newPlay.unittype = $scope.unitType;
 
 	// Add the new play onto the creation context, to access from
 	// other parts of the application
 	impakt.context.Playbook.creation.plays.add($scope.newPlay);
 
 	$scope.selectUnitType = function(unitTypeValue: Team.Enums.UnitTypes) {
-		$scope.selectedUnitType = $scope.unitTypes.getByUnitType(unitTypeValue);
+		$scope.selectedUnitType = $scope.unitTypeCollection.getByUnitType(unitTypeValue);
 	}
 
 	$scope.selectPlaybook = function(playbook: Common.Models.PlaybookModel) {
@@ -78,9 +77,9 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl',
 	}
 
 	function removePlayFromCreationContext() {
-		// Remove the play from the creation context, since we aren't
-		// going to proceed with creating the play
-		if($scope.newPlay)
+		// Remove the play from the creation context
+		// after creating the new play or cancelling
+		if(!Common.Utilities.isNullOrUndefined($scope.newPlay))
 			impakt.context.Playbook.creation.plays.remove($scope.newPlay.guid);
 	}
 }]);

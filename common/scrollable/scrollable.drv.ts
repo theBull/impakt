@@ -8,9 +8,7 @@ impakt.common.scrollable.directive('scrollable',
 		restrict: 'A',
 		link: function($scope: any, $element: any, attrs: any) {
 			console.log('scrollable element');
-
 		}
 	}
-
 }]);
 

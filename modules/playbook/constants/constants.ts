@@ -3,8 +3,6 @@
 module Playbook.Constants {
 	export const FIELD_COLS_FULL = 52; 
 	export const FIELD_ROWS_FULL = 120;
-	export const FIELD_COLS_PREVIEW = 52;
-	export const FIELD_ROWS_PREVIEW = 40;
 	export const FIELD_COLOR = '#638148';
 	export const GRID_SIZE = 15;
 	export const GRID_BASE = 10;

@@ -11,6 +11,7 @@ module Common.Models {
 			super(player.field, player);
 
 			this.player = player;
+			this.layer.type = Common.Enums.LayerTypes.PlayerRelativeCoordinatesLabel;
 			this.layer.graphics.selectable = false;
 			this.layer.graphics.dimensions.offset.y = 8;
 			this.layer.graphics.updateLocation(

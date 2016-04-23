@@ -175,8 +175,11 @@ module Common.Models {
 			return results && results.length > 0 ? results[0] : null;
 		}
 		public remove(key: string | number): T {
-			if (!this[key])
-				throw Error('Object at key ' + key + ' does not exist');
+			if (!this[key]) {
+				console.warn('Collection remove(): Tried to remove item, \
+					but item with guid does not exist: ', key);
+				return;
+			}
 
 			let obj = this[key];
 			delete this[key];

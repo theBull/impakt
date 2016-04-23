@@ -699,10 +699,10 @@ module Common.Models {
             let self = this;
             this.raphael.hover(
                 function(e: any) {
-                    hoverIn(e, context);
+                    hoverIn.call(context, e);
                 },
                 function(e: any) {
-                    hoverOut(e, context);
+                    hoverOut.call(context, e);
                 }
             )
         }
@@ -734,11 +734,10 @@ module Common.Models {
             
             //console.log('fieldElement click');
             this.raphael.click(function(e: any) {
-                fn(e, context);
+                fn.call(context, e);
             });
         }
         public click(e: any, context: Common.Interfaces.IFieldElement): void {
-            console.log('graphics click');
         }
 
         public oncontextmenu(fn: any, context: Common.Interfaces.IFieldElement): void {
@@ -747,12 +746,12 @@ module Common.Models {
 
             this.raphael.mousedown(function(e: any) {
                 if (e.which == Common.Input.Which.RightClick) {
-                    fn(e, context);
+                    fn.call(context, e);
                 }
             });
         }
         public contextmenu(e: any, context: Common.Interfaces.IFieldElement): void {
-            console.log('graphics contextmenu');
+        
         }
 
         /**
@@ -765,7 +764,7 @@ module Common.Models {
                 return;
 
             this.raphael.mousedown(function(e: any) {
-                fn(e, context);
+                fn.call(context, e);
             })
         }
         /**
@@ -778,7 +777,7 @@ module Common.Models {
                 return;
             
             this.raphael.mouseup(function(e: any) {
-                fn(e, context);
+                fn.call(context, e);
             })
         }
         /**
@@ -790,8 +789,6 @@ module Common.Models {
         public mousedown(e: any, context: Common.Interfaces.IFieldElement): void {
             if (!this.hasRaphael())
                 return;
-
-            console.log('graphics mousedown');
         }
 
         /**
@@ -805,7 +802,7 @@ module Common.Models {
                 return;
             
             this.raphael.mousemove(function(e: any) {
-                fn(e, context);
+                fn.call(context, e);
             })
         }
         /**
@@ -817,8 +814,6 @@ module Common.Models {
         public mousemove(e: any, context: Common.Interfaces.IFieldElement): void {
             if (!this.hasRaphael())
                 return;
-
-            console.log('graphics mousemove');
         }
 
         public ondrag(

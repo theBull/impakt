@@ -14,9 +14,7 @@ module Common.Models {
             super();
             this.parentRK = -1;
             this.unitType = Team.Enums.UnitTypes.Other;
-            this.onModified(function() {
-                console.log('formation collection modified');
-            });
+            this.onModified(function() {});
         }
         public toJson() {
             return {

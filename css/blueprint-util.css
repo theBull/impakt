@@ -28,7 +28,9 @@ body {
 	min-width: 100%; 
 	vertical-align: top;
 }
-input { font-size: 1.2em; }
+input { 
+	font-size: 1.2em;
+}
 input[type="radio"], 
 input[type="checkbox"] {
 	margin: 0 !important;
@@ -48,6 +50,7 @@ input::placeholder {
 
 select {
 	width: auto;
+	cursor: pointer;
 }
 span {
 	width: auto;
@@ -84,12 +87,12 @@ h1, h2, h3, h4, h5, h6 {
 	padding: 0em;
 }
 
-li, p  { 
-	/*font-size: 1.4em; 
-	line-height: 1.42em; 
-	margin-top: -0.42em; 
-	margin-bottom: 0.52em; */
-	padding: 0em;
+p  {
+	line-height: 1.42em;
+	padding: 0;
+}
+li {
+	padding: 0;
 }
 
 /*
@@ -481,6 +484,9 @@ a {
 .heightAuto {
 	flex: 1 1 auto;
 	height: auto;
+}
+.height100Percent {
+	height: 100%;
 }
 
 .hide { display: none; }

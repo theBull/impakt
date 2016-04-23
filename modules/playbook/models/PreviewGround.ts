@@ -11,16 +11,16 @@ module Playbook.Models {
         public draw(): void {
             super.draw();
         }
-        public hoverIn(e: any, self: any): void { 
+        public hoverIn(e: any): void { 
             // hover not implemented in preview
         }
-        public hoverOut(e: any, self: any): void { 
+        public hoverOut(e: any): void { 
             // hover not implemented in preview
         }
-        public click(e: any, self: any): void {
+        public click(e: any): void {
             // click not implemented in preview
         }
-        public mouseDown(e: any, self: any): void {
+        public mousedown(e: any): void {
             // mousedown not implemented in preview
         }
         public dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void {

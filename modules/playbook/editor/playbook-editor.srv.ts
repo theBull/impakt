@@ -104,6 +104,7 @@ function(
 				no active tabs / play data to start with.');
 		}
 		
+		self.canvas.clearListeners();
 		self.canvas.onready(function() {
 			self.loadTabs();
 			self.ready();
@@ -179,6 +180,8 @@ function(
 		} else {
 			// no remaining tabs - nullify active Tab
 			this.activeTab = null;
+
+			this.canvas.clearListeners();
 			this.canvas = null;
 		}
 
@@ -218,8 +221,17 @@ function(
 		let activeTab = this.activeTab;
 		console.log(activeTab);
 		if (activeTab) {
+			
 			let play = activeTab.playPrimary;
-			_playbookModals.savePlay(play);
+			
+			switch(play.editorType) {
+				case Playbook.Enums.EditorTypes.Formation:
+					_playbookModals.saveFormation(play);
+					break;
+				case Playbook.Enums.EditorTypes.Play:
+					_playbookModals.savePlay(play);
+					break;
+			}
 		}
 	}
 

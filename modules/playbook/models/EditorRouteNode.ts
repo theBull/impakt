@@ -48,7 +48,7 @@ module Playbook.Models {
             );
 
             this.layer.graphics.oncontextmenu(
-                this.contextmenuHandler, 
+                this.contextmenu, 
                 this
             );
 
@@ -57,15 +57,14 @@ module Playbook.Models {
             }
         }
 
-        public click(e, self) {
+        public click(e: any) {
             console.log('route node clicked');
         }
 
-        public contextmenuHandler(e, self) {
-            self.paper.canvas.invoke(
+        public contextmenu(e: any) {
+            this.paper.canvas.listener.invoke(
                 Playbook.Enums.Actions.RouteNodeContextmenu, 
-                'open route node context menu...', 
-                self
+                this
             );
         }
 

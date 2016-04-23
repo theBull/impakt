@@ -4,19 +4,20 @@ impakt.playbook.modals.controller('playbook.modals.saveFormation.ctrl',
 ['$scope', 
 '$uibModalInstance', 
 '_playbook', 
-'formation', 
+'play', 
 function(
 	$scope: any, 
 	$uibModalInstance: any, 
 	_playbook: any,
-	formation: Common.Models.Formation
+	play: Common.Models.Play
 ) {
 
-	$scope.formation = formation;
+	$scope.play = play;
+	$scope.formation = play.formation;
 	$scope.copyFormation = false;
-	var originalFormationKey = formation.key;
-	var originalFormationName = formation.name;
-	var originalFormationGuid = formation.guid;
+	var originalFormationKey = $scope.formation.key;
+	var originalFormationName = $scope.formation.name;
+	var originalFormationGuid = $scope.formation.guid;
 
 	$scope.copyFormationChange = function() {
 		$scope.formation.key = $scope.copyFormation ? -1 : originalFormationKey;

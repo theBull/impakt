@@ -13,6 +13,7 @@ module Common.Models {
             // hash marks should be -x- grid units from center
             this.layer.type = Common.Enums.LayerTypes.Hashmark;
             this.layer.graphics.dimensions.offset.x = -0.25 * this.grid.getSize();
+            this.layer.graphics.dimensions.offset.y = 0;
             this.layer.graphics.placement.coordinates.x = x;
             this.start = 11;
             this.yards = 110;

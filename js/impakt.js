@@ -400,8 +400,11 @@ var Common;
                 return results && results.length > 0 ? results[0] : null;
             };
             Collection.prototype.remove = function (key) {
-                if (!this[key])
-                    throw Error('Object at key ' + key + ' does not exist');
+                if (!this[key]) {
+                    console.warn('Collection remove(): Tried to remove item, \
+					but item with guid does not exist: ', key);
+                    return;
+                }
                 var obj = this[key];
                 delete this[key];
                 this._keys.splice(this._keys.indexOf(key), 1);
@@ -975,6 +978,15 @@ var Common;
                 this.plays.addAll(json.plays);
                 this.guid = json.guid || this.guid;
             };
+            /**
+             * Returns the sum count of all associated elements
+             * @return {number} [description]
+             */
+            Association.prototype.size = function () {
+                return this.playbooks.size() + this.formations.size() +
+                    this.personnel.size() + this.assignments.size() +
+                    this.plays.size();
+            };
             return Association;
         })(Common.Models.Modifiable);
         Models.Association = Association;
@@ -1239,15 +1251,13 @@ var Common;
                 this.unitType = Team.Enums.UnitTypes.Other;
                 this.parentRK = 1;
                 this.editorType = Playbook.Enums.EditorTypes.Formation;
-                this.name = name || 'untitled';
+                this.name = name || 'New formation';
                 this.associated = new Common.Models.Association();
                 this.placements = new Common.Models.PlacementCollection();
                 this.png = null;
                 //this.setDefault();
                 var self = this;
-                this.onModified(function () {
-                    console.log('formation modified');
-                });
+                this.onModified(function () { });
                 this.placements.onModified(function () {
                     self.setModified(true);
                 });
@@ -1304,6 +1314,7 @@ var Common;
             };
             Formation.prototype.setPlacements = function (placements) {
                 this.placements = placements;
+                this.setModified(true);
             };
             return Formation;
         })(Common.Models.Modifiable);
@@ -1324,9 +1335,7 @@ var Common;
                 _super.call(this);
                 this.parentRK = -1;
                 this.unitType = Team.Enums.UnitTypes.Other;
-                this.onModified(function () {
-                    console.log('formation collection modified');
-                });
+                this.onModified(function () { });
             }
             FormationCollection.prototype.toJson = function () {
                 return {
@@ -1372,7 +1381,7 @@ var Common;
                 _super.call(this);
                 _super.prototype.setContext.call(this, this);
                 this.field = null;
-                this.name = 'Default';
+                this.name = 'New play';
                 this.associated = new Common.Models.Association();
                 this.assignments = null;
                 this.formation = null;
@@ -1433,7 +1442,8 @@ var Common;
                 if (!field.ball)
                     throw new Error('Play draw(): Ball is null or undefined');
                 this.field = field;
-                this.field.players.removeAll();
+                // Clear the players
+                this.field.clearPlayers();
                 var self = this;
                 // set defaults, in case no assignments / personnel were assigned
                 if (!this.personnel) {
@@ -1653,6 +1663,7 @@ var Common;
                 this.title = 'Untitled';
                 this.active = true;
                 this.playPrimary = playPrimary;
+                this.editorType = this.playPrimary.editorType;
                 this.key = this.playPrimary.key;
                 this.unitType = this.playPrimary.unitType;
                 this.title = this.playPrimary.name;
@@ -1872,6 +1883,8 @@ var Common;
                 // Maintains a window interval timer which checks every 1ms for
                 // a change in container width; will fire a resize() if necessary
                 this.widthChangeInterval = null;
+                this.readyCallbacks = [];
+                this.listener = new Common.Models.CanvasListener(this);
             }
             Canvas.prototype.remove = function () {
                 this.playOpponent = null;
@@ -1905,6 +1918,8 @@ var Common;
                 return svg_blob;
             };
             Canvas.prototype.refresh = function () {
+                if (Common.Utilities.isNullOrUndefined(this.paper))
+                    throw new Error('Canvas refresh(): paper is null or undefined');
                 this.paper.draw();
             };
             Canvas.prototype.onready = function (callback) {
@@ -1913,9 +1928,29 @@ var Common;
                 this.readyCallbacks.push(callback);
             };
             Canvas.prototype._ready = function () {
+                if (Common.Utilities.isNullOrUndefined(this.readyCallbacks))
+                    return;
                 for (var i = 0; i < this.readyCallbacks.length; i++) {
                     this.readyCallbacks.pop()();
                 }
+            };
+            Canvas.prototype.clearListeners = function () {
+                this.readyCallbacks = [];
+            };
+            Canvas.prototype.resize = function () {
+                var self = this;
+                this.dimensions.width = this.$container.width();
+                this.dimensions.height = this.$container.height();
+                this.paper.resize();
+                if (this.scrollable) {
+                    this.scrollable.initialize(this.$container, this.paper);
+                    this.scrollable.onready(function (content) {
+                        self.scrollable.scrollToPercentY(0.5);
+                    });
+                }
+            };
+            Canvas.prototype.setScrollable = function (scrollable) {
+                this.scrollable = scrollable;
             };
             return Canvas;
         })(Common.Models.Modifiable);
@@ -2290,6 +2325,7 @@ var Common;
     (function (Models) {
         var CanvasListener = (function () {
             function CanvasListener(context) {
+                this.context = context;
                 this.actions = {};
             }
             CanvasListener.prototype.listen = function (actionId, fn) {
@@ -2297,11 +2333,11 @@ var Common;
                     this.actions[actionId] = [];
                 this.actions[actionId].push(fn);
             };
-            CanvasListener.prototype.invoke = function (actionId, data, context) {
+            CanvasListener.prototype.invoke = function (actionId, data) {
                 if (!this.actions[actionId])
                     return;
                 for (var i = 0; i < this.actions[actionId].length; i++) {
-                    this.actions[actionId][i](data, context);
+                    this.actions[actionId][i](data, this.context);
                 }
             };
             return CanvasListener;
@@ -2323,7 +2359,7 @@ var Common;
                 this.y = 0;
                 this.scrollSpeed = 0.5;
                 this.zoomSpeed = 100;
-                this.showBorder = this.showBorder === true;
+                this.showBorder = false;
             }
             Paper.prototype.getWidth = function () {
                 return this.grid.dimensions.width;
@@ -2337,6 +2373,8 @@ var Common;
             };
             Paper.prototype.draw = function () {
                 this.field.initialize();
+                if (this.showBorder)
+                    this.drawOutline();
             };
             Paper.prototype.resize = function () {
                 this.grid.resize(this.sizingMode);
@@ -2346,7 +2384,8 @@ var Common;
             Paper.prototype.clear = function () {
                 return this.drawing.clear();
             };
-            Paper.prototype.setViewBox = function () {
+            Paper.prototype.setViewBox = function (center) {
+                center = center === true;
                 this.drawing.setAttribute('width', this.grid.dimensions.width);
                 //this.x = this.getXOffset();
                 var setting = this.drawing.setViewBox(this.x, this.y, this.grid.dimensions.width, this.grid.dimensions.height, true);
@@ -2356,20 +2395,29 @@ var Common;
                 if (this.showBorder) {
                     // paper view port
                     if (!this.viewOutline) {
-                        this.viewOutline = this.drawing.rect(this.x, this.y, this.canvas.dimensions.width - 10, this.canvas.dimensions.height - 10, true, 5, 5);
+                        this.viewOutline = this.drawing.rect(this.x, this.y, this.canvas.dimensions.width, this.canvas.dimensions.height, true);
                     }
                     this.viewOutline.attr({
-                        x: self.x + 5,
-                        y: self.y + 5,
-                        width: self.canvas.dimensions.width - 10,
-                        height: self.canvas.dimensions.height - 10,
+                        x: self.x + 1,
+                        y: self.y + 1,
+                        width: self.canvas.dimensions.width - 1,
+                        height: self.canvas.dimensions.height - 1,
                         stroke: 'red'
                     });
                 }
             };
-            Paper.prototype.scroll = function (scrollToX, scrollToY) {
-                this.y = scrollToY;
-                return this.setViewBox();
+            /**
+             * Scrolls to the given x/y pixels (top/left). If center is set to true,
+             * centers the scroll on the x/y pixels.
+             *
+             * @param {number}  scrollToX [description]
+             * @param {number}  scrollToY [description]
+             * @param {boolean} center    [description]
+             */
+            Paper.prototype.scroll = function (scrollToX, scrollToY, center) {
+                center = center === true;
+                this.y = center ? this.field.getLOSAbsolute() : scrollToY;
+                return this.setViewBox(center);
             };
             return Paper;
         })();
@@ -2496,8 +2544,9 @@ var Common;
             Grid.prototype.resize = function (sizingMode) {
                 if (this.cols <= 0)
                     throw new Error('Grid cols must be defined and greater than 0');
-                if (this.paper.canvas.dimensions.width <= 0)
-                    throw new Error('Canvas width must be greater than 0');
+                var canvasWidth = this.paper.canvas.dimensions.width;
+                if (canvasWidth == 0)
+                    throw new Error('Grid canvas width must be greater than 0');
                 switch (this.paper.sizingMode) {
                     case Common.Enums.PaperSizingModes.TargetGridWidth:
                         this.size = Playbook.Constants.GRID_SIZE;
@@ -2686,7 +2735,7 @@ var Common;
                     self.setModified(true);
                 });
                 this.players.onModified(function () {
-                    self.updatePlacements();
+                    //self.updatePlacements();
                     self.setModified(true);
                 });
                 this.onModified(function () {
@@ -2702,11 +2751,14 @@ var Common;
                 this.ball.draw();
                 this.drawPlay();
             };
-            Field.prototype.clearPlay = function () {
+            Field.prototype.clearPlayers = function () {
                 this.players.forEach(function (player, index) {
                     player.layer.remove();
                 });
                 this.players.removeAll();
+            };
+            Field.prototype.clearPlay = function () {
+                this.clearPlayers();
                 this.playPrimary = null;
                 this.playOpponent = null;
             };
@@ -2717,7 +2769,7 @@ var Common;
                 // draw the opponent play data onto the field
                 if (this.playOpponent)
                     this.playOpponent.draw(this);
-                this.updatePlacements();
+                //this.updatePlacements();
             };
             Field.prototype.updatePlay = function (playPrimary, playOpponent) {
                 this.clearPlay();
@@ -2937,33 +2989,33 @@ var Common;
                     }
                 }
             };
-            FieldElement.prototype.hoverIn = function (e, context) {
+            FieldElement.prototype.hoverIn = function (e) {
             };
-            FieldElement.prototype.hoverOut = function (e, context) {
+            FieldElement.prototype.hoverOut = function (e) {
             };
-            FieldElement.prototype.click = function (e, context) {
+            FieldElement.prototype.click = function (e) {
                 console.log('fieldelement click');
-                if (context.layer.graphics.disabled)
+                if (this.layer.graphics.disabled)
                     return;
-                context.layer.graphics.toggleSelect();
+                this.layer.graphics.toggleSelect();
                 if (e.metaKey) {
-                    context.field.toggleSelection(context);
+                    this.field.toggleSelection(this);
                 }
                 else {
-                    context.field.setSelection(context);
+                    this.field.setSelection(this);
                 }
             };
-            FieldElement.prototype.mouseup = function (e, context) {
+            FieldElement.prototype.mouseup = function (e) {
             };
-            FieldElement.prototype.mousedown = function (e, context) {
+            FieldElement.prototype.mousedown = function (e) {
                 if (e.keyCode == Common.Input.Which.RightClick) {
-                    context.contextmenu(e, context);
+                    this.contextmenu(e);
                 }
             };
-            FieldElement.prototype.mousemove = function (e, context) {
+            FieldElement.prototype.mousemove = function (e) {
                 // TODO @theBull - implement
             };
-            FieldElement.prototype.contextmenu = function (e, context) {
+            FieldElement.prototype.contextmenu = function (e) {
                 // TODO @theBull - handle contextmenu
             };
             FieldElement.prototype.dragMove = function (dx, dy, posx, posy, e) {
@@ -3024,7 +3076,7 @@ var Common;
                 this.layer.graphics.rect();
                 this.layer.graphics.onclick(this.click, this);
             };
-            Ground.prototype.click = function (e, context) {
+            Ground.prototype.click = function (e) {
                 // Do nothing
                 console.log('ground clicked');
             };
@@ -3057,9 +3109,11 @@ var Common;
             function LineOfScrimmage(field) {
                 _super.call(this, field, null);
                 this.layer.type = Common.Enums.LayerTypes.LineOfScrimmage;
-                this.layer.graphics.fill = 'yellow';
-                this.layer.graphics.strokeWidth = 0;
-                this.layer.graphics.dimensions.setWidth(this.grid.dimensions.width - (this.grid.getSize()) * 2);
+                this.layer.graphics.setOriginalFill('yellow');
+                this.layer.graphics.setOriginalStrokeWidth(0);
+                this.layer.graphics.setOriginalOpacity(1);
+                this.layer.graphics.dimensions.width = this.grid.dimensions.width - (this.grid.getSize() * 2);
+                this.layer.graphics.dimensions.height = 1;
                 this.layer.graphics.updateFromCoordinates(1, this.field.ball.layer.graphics.placement.coordinates.y);
             }
             return LineOfScrimmage;
@@ -3103,6 +3157,7 @@ var Common;
                 // hash marks should be -x- grid units from center
                 this.layer.type = Common.Enums.LayerTypes.Hashmark;
                 this.layer.graphics.dimensions.offset.x = -0.25 * this.grid.getSize();
+                this.layer.graphics.dimensions.offset.y = 0;
                 this.layer.graphics.placement.coordinates.x = x;
                 this.start = 11;
                 this.yards = 110;
@@ -3155,6 +3210,7 @@ var Common;
             __extends(Player, _super);
             function Player(field, placement, position, assignment) {
                 _super.call(this, field, field.ball);
+                this.layer.type = Common.Enums.LayerTypes.Player;
                 this.layer.graphics.setPlacement(placement);
                 this.position = position;
                 this.assignment = assignment || new Common.Models.Assignment();
@@ -3169,6 +3225,9 @@ var Common;
                     self.setModified(true);
                 });
             }
+            Player.prototype.remove = function () {
+                this.layer.remove();
+            };
             Player.prototype.getPositionRelativeToBall = function () {
                 return this.layer.graphics.placement.relative;
             };
@@ -3238,9 +3297,7 @@ var Common;
             __extends(PlayerCollection, _super);
             function PlayerCollection() {
                 _super.call(this);
-                this.onModified(function () {
-                    console.log('player collection modified');
-                });
+                this.onModified(function () { });
             }
             return PlayerCollection;
         })(Common.Models.ModifiableCollection);
@@ -3257,6 +3314,7 @@ var Common;
             function PlayerSelectionBox(player) {
                 _super.call(this, player.field, player.ball);
                 this.player = player;
+                this.layer.type = Common.Enums.LayerTypes.PlayerSelectionBox;
                 this.layer.graphics.selectable = false;
                 this.layer.graphics.setOriginalOpacity(1);
                 this.layer.graphics.setOriginalFill('');
@@ -3286,6 +3344,7 @@ var Common;
             function PlayerIcon(player) {
                 _super.call(this, player.field, player);
                 this.player = player;
+                this.layer.type = Common.Enums.LayerTypes.PlayerIcon;
                 this.layer.graphics.setPlacement(this.player.layer.graphics.placement);
                 this.layer.graphics.dimensions.offset.x = -this.layer.graphics.dimensions.getRadius();
                 this.layer.graphics.dimensions.offset.y = -this.layer.graphics.dimensions.getRadius();
@@ -3309,6 +3368,7 @@ var Common;
             function PlayerRelativeCoordinatesLabel(player) {
                 _super.call(this, player.field, player);
                 this.player = player;
+                this.layer.type = Common.Enums.LayerTypes.PlayerRelativeCoordinatesLabel;
                 this.layer.graphics.selectable = false;
                 this.layer.graphics.dimensions.offset.y = 8;
                 this.layer.graphics.updateLocation(this.player.layer.graphics.location.ax, this.player.layer.graphics.location.ay + this.layer.graphics.dimensions.offset.y);
@@ -3336,6 +3396,7 @@ var Common;
             function PlayerPersonnelLabel(player) {
                 _super.call(this, player.field, player);
                 this.player = player;
+                this.layer.type = Common.Enums.LayerTypes.PlayerPersonnelLabel;
                 this.layer.graphics.selectable = false;
                 this.layer.graphics.dimensions.offset.y =
                     -(this.player.layer.graphics.dimensions.getHeight() / 2) * 0.4;
@@ -3360,6 +3421,7 @@ var Common;
             function PlayerIndexLabel(player) {
                 _super.call(this, player.field, player);
                 this.player = player;
+                this.layer.type = Common.Enums.LayerTypes.PlayerIndexLabel;
                 this.layer.graphics.selectable = false;
                 this.layer.graphics.dimensions.offset.y =
                     (this.player.layer.graphics.dimensions.getHeight() / 2) * 0.4;
@@ -3550,7 +3612,7 @@ var Common;
                 this.routeNode = routeNode;
                 this.action = action;
                 this.actionable = !(this.routeNode.type == Common.Enums.RouteNodeTypes.CurveControl);
-                this.layer.type = Common.Enums.LayerTypes.RouteAction;
+                this.layer.type = Common.Enums.LayerTypes.PlayerRouteAction;
             }
             RouteAction.prototype.draw = function () {
                 Common.Factories.RouteActionFactory.draw(this);
@@ -3618,7 +3680,7 @@ var Common;
             function RouteControlPath(routeNode) {
                 _super.call(this, routeNode.field, routeNode);
                 this.routeNode = routeNode;
-                this.layer.type = Common.Enums.LayerTypes.RouteControlPath;
+                this.layer.type = Common.Enums.LayerTypes.PlayerRouteControlPath;
                 this.layer.graphics.setStroke('grey');
                 this.layer.graphics.setStrokeWidth(1);
                 this.layer.graphics.setOpacity(0.2);
@@ -3688,7 +3750,7 @@ var Common;
                 this.layer.graphics.dimensions.height = this.layer.graphics.dimensions.radius * 2;
                 this.type = type;
                 this.node = new Common.Models.LinkedListNode(this, null);
-                this.layer.type = Common.Enums.LayerTypes.RouteNode;
+                this.layer.type = Common.Enums.LayerTypes.PlayerRouteNode;
             }
             RouteNode.prototype.draw = function () {
                 this.layer.graphics.circle();
@@ -3956,8 +4018,8 @@ var Common;
             RelativeCoordinates.prototype.updateFromGridCoordinates = function (x, y) {
                 if (Common.Utilities.isNullOrUndefined(this.relativeElement))
                     return;
-                this.rx += this.relativeElement.layer.graphics.placement.coordinates.x - x;
-                this.ry -= this.relativeElement.layer.graphics.placement.coordinates.y - y;
+                this.rx = (this.relativeElement.layer.graphics.placement.coordinates.x - x);
+                this.ry = (this.relativeElement.layer.graphics.placement.coordinates.y - y);
             };
             RelativeCoordinates.prototype.updateFromAbsoluteCoordinates = function (ax, ay) {
                 // snap absolute coordinates to grid coordinates first...
@@ -4545,9 +4607,9 @@ var Common;
                     return;
                 var self = this;
                 this.raphael.hover(function (e) {
-                    hoverIn(e, context);
+                    hoverIn.call(context, e);
                 }, function (e) {
-                    hoverOut(e, context);
+                    hoverOut.call(context, e);
                 });
             };
             Graphics.prototype.hoverIn = function (e, context) {
@@ -4574,23 +4636,21 @@ var Common;
                     return;
                 //console.log('fieldElement click');
                 this.raphael.click(function (e) {
-                    fn(e, context);
+                    fn.call(context, e);
                 });
             };
             Graphics.prototype.click = function (e, context) {
-                console.log('graphics click');
             };
             Graphics.prototype.oncontextmenu = function (fn, context) {
                 if (!this.hasRaphael())
                     return;
                 this.raphael.mousedown(function (e) {
                     if (e.which == Common.Input.Which.RightClick) {
-                        fn(e, context);
+                        fn.call(context, e);
                     }
                 });
             };
             Graphics.prototype.contextmenu = function (e, context) {
-                console.log('graphics contextmenu');
             };
             /**
              * Mouse down event handler registration method
@@ -4601,7 +4661,7 @@ var Common;
                 if (!this.hasRaphael())
                     return;
                 this.raphael.mousedown(function (e) {
-                    fn(e, context);
+                    fn.call(context, e);
                 });
             };
             /**
@@ -4613,7 +4673,7 @@ var Common;
                 if (!this.hasRaphael())
                     return;
                 this.raphael.mouseup(function (e) {
-                    fn(e, context);
+                    fn.call(context, e);
                 });
             };
             /**
@@ -4625,7 +4685,6 @@ var Common;
             Graphics.prototype.mousedown = function (e, context) {
                 if (!this.hasRaphael())
                     return;
-                console.log('graphics mousedown');
             };
             /**
              * Mouse move event handler registration method; attaches listeners
@@ -4637,7 +4696,7 @@ var Common;
                 if (!this.hasRaphael())
                     return;
                 this.raphael.mousemove(function (e) {
-                    fn(e, context);
+                    fn.call(context, e);
                 });
             };
             /**
@@ -4649,7 +4708,6 @@ var Common;
             Graphics.prototype.mousemove = function (e, context) {
                 if (!this.hasRaphael())
                     return;
-                console.log('graphics mousemove');
             };
             Graphics.prototype.ondrag = function (dragMove, dragStart, dragEnd, context) {
                 if (!this.hasRaphael())
@@ -5268,51 +5326,52 @@ var Common;
             LayerTypes[LayerTypes["Generic"] = 0] = "Generic";
             LayerTypes[LayerTypes["FieldElement"] = 1] = "FieldElement";
             LayerTypes[LayerTypes["Player"] = 2] = "Player";
-            LayerTypes[LayerTypes["Icon"] = 3] = "Icon";
-            LayerTypes[LayerTypes["Label"] = 4] = "Label";
-            LayerTypes[LayerTypes["Coordinates"] = 5] = "Coordinates";
-            LayerTypes[LayerTypes["RelativeCoordinates"] = 6] = "RelativeCoordinates";
-            LayerTypes[LayerTypes["SelectionBox"] = 7] = "SelectionBox";
-            LayerTypes[LayerTypes["Route"] = 8] = "Route";
-            LayerTypes[LayerTypes["SecondaryRoutes"] = 9] = "SecondaryRoutes";
-            LayerTypes[LayerTypes["AlternateRoutes"] = 10] = "AlternateRoutes";
-            LayerTypes[LayerTypes["RouteAction"] = 11] = "RouteAction";
-            LayerTypes[LayerTypes["RouteNode"] = 12] = "RouteNode";
-            LayerTypes[LayerTypes["RoutePath"] = 13] = "RoutePath";
-            LayerTypes[LayerTypes["RouteControlPath"] = 14] = "RouteControlPath";
-            LayerTypes[LayerTypes["PrimaryPlayer"] = 15] = "PrimaryPlayer";
-            LayerTypes[LayerTypes["PrimaryPlayerIcon"] = 16] = "PrimaryPlayerIcon";
-            LayerTypes[LayerTypes["PrimaryPlayerLabel"] = 17] = "PrimaryPlayerLabel";
-            LayerTypes[LayerTypes["PrimaryPlayerCoordinates"] = 18] = "PrimaryPlayerCoordinates";
-            LayerTypes[LayerTypes["PrimaryPlayerRelativeCoordinates"] = 19] = "PrimaryPlayerRelativeCoordinates";
-            LayerTypes[LayerTypes["PrimaryPlayerSelectionBox"] = 20] = "PrimaryPlayerSelectionBox";
-            LayerTypes[LayerTypes["PrimaryPlayerRoute"] = 21] = "PrimaryPlayerRoute";
-            LayerTypes[LayerTypes["PrimaryPlayerSecondaryRoutes"] = 22] = "PrimaryPlayerSecondaryRoutes";
-            LayerTypes[LayerTypes["PrimaryPlayerAlternateRoutes"] = 23] = "PrimaryPlayerAlternateRoutes";
-            LayerTypes[LayerTypes["PrimaryPlayerRouteAction"] = 24] = "PrimaryPlayerRouteAction";
-            LayerTypes[LayerTypes["PrimaryPlayerRouteNode"] = 25] = "PrimaryPlayerRouteNode";
-            LayerTypes[LayerTypes["PrimaryPlayerRoutePath"] = 26] = "PrimaryPlayerRoutePath";
-            LayerTypes[LayerTypes["PrimaryPlayerRouteControlPath"] = 27] = "PrimaryPlayerRouteControlPath";
-            LayerTypes[LayerTypes["OpponentPlayer"] = 28] = "OpponentPlayer";
-            LayerTypes[LayerTypes["OpponentPlayerIcon"] = 29] = "OpponentPlayerIcon";
-            LayerTypes[LayerTypes["OpponentPlayerLabel"] = 30] = "OpponentPlayerLabel";
-            LayerTypes[LayerTypes["OpponentPlayerCoordinates"] = 31] = "OpponentPlayerCoordinates";
-            LayerTypes[LayerTypes["OpponentPlayerRelativeCoordinates"] = 32] = "OpponentPlayerRelativeCoordinates";
-            LayerTypes[LayerTypes["OpponentPlayerSelectionBox"] = 33] = "OpponentPlayerSelectionBox";
-            LayerTypes[LayerTypes["OpponentPlayerRoute"] = 34] = "OpponentPlayerRoute";
-            LayerTypes[LayerTypes["OpponentPlayerSecondaryRoutes"] = 35] = "OpponentPlayerSecondaryRoutes";
-            LayerTypes[LayerTypes["OpponentPlayerAlternateRoutes"] = 36] = "OpponentPlayerAlternateRoutes";
-            LayerTypes[LayerTypes["OpponentPlayerRouteAction"] = 37] = "OpponentPlayerRouteAction";
-            LayerTypes[LayerTypes["OpponentPlayerRouteNode"] = 38] = "OpponentPlayerRouteNode";
-            LayerTypes[LayerTypes["OpponentPlayerRoutePath"] = 39] = "OpponentPlayerRoutePath";
-            LayerTypes[LayerTypes["OpponentPlayerRouteControlPath"] = 40] = "OpponentPlayerRouteControlPath";
-            LayerTypes[LayerTypes["Ball"] = 41] = "Ball";
-            LayerTypes[LayerTypes["Field"] = 42] = "Field";
-            LayerTypes[LayerTypes["Sideline"] = 43] = "Sideline";
-            LayerTypes[LayerTypes["Hashmark"] = 44] = "Hashmark";
-            LayerTypes[LayerTypes["SidelineHashmark"] = 45] = "SidelineHashmark";
-            LayerTypes[LayerTypes["Endzone"] = 46] = "Endzone";
-            LayerTypes[LayerTypes["LineOfScrimmage"] = 47] = "LineOfScrimmage";
+            LayerTypes[LayerTypes["PlayerIcon"] = 3] = "PlayerIcon";
+            LayerTypes[LayerTypes["PlayerPersonnelLabel"] = 4] = "PlayerPersonnelLabel";
+            LayerTypes[LayerTypes["PlayerIndexLabel"] = 5] = "PlayerIndexLabel";
+            LayerTypes[LayerTypes["PlayerCoordinates"] = 6] = "PlayerCoordinates";
+            LayerTypes[LayerTypes["PlayerRelativeCoordinatesLabel"] = 7] = "PlayerRelativeCoordinatesLabel";
+            LayerTypes[LayerTypes["PlayerSelectionBox"] = 8] = "PlayerSelectionBox";
+            LayerTypes[LayerTypes["PlayerRoute"] = 9] = "PlayerRoute";
+            LayerTypes[LayerTypes["PlayerSecondaryRoutes"] = 10] = "PlayerSecondaryRoutes";
+            LayerTypes[LayerTypes["PlayerAlternateRoutes"] = 11] = "PlayerAlternateRoutes";
+            LayerTypes[LayerTypes["PlayerRouteAction"] = 12] = "PlayerRouteAction";
+            LayerTypes[LayerTypes["PlayerRouteNode"] = 13] = "PlayerRouteNode";
+            LayerTypes[LayerTypes["PlayerRoutePath"] = 14] = "PlayerRoutePath";
+            LayerTypes[LayerTypes["PlayerRouteControlPath"] = 15] = "PlayerRouteControlPath";
+            LayerTypes[LayerTypes["PrimaryPlayer"] = 16] = "PrimaryPlayer";
+            LayerTypes[LayerTypes["PrimaryPlayerIcon"] = 17] = "PrimaryPlayerIcon";
+            LayerTypes[LayerTypes["PrimaryPlayerLabel"] = 18] = "PrimaryPlayerLabel";
+            LayerTypes[LayerTypes["PrimaryPlayerCoordinates"] = 19] = "PrimaryPlayerCoordinates";
+            LayerTypes[LayerTypes["PrimaryPlayerRelativeCoordinatesLabel"] = 20] = "PrimaryPlayerRelativeCoordinatesLabel";
+            LayerTypes[LayerTypes["PrimaryPlayerSelectionBox"] = 21] = "PrimaryPlayerSelectionBox";
+            LayerTypes[LayerTypes["PrimaryPlayerRoute"] = 22] = "PrimaryPlayerRoute";
+            LayerTypes[LayerTypes["PrimaryPlayerSecondaryRoutes"] = 23] = "PrimaryPlayerSecondaryRoutes";
+            LayerTypes[LayerTypes["PrimaryPlayerAlternateRoutes"] = 24] = "PrimaryPlayerAlternateRoutes";
+            LayerTypes[LayerTypes["PrimaryPlayerRouteAction"] = 25] = "PrimaryPlayerRouteAction";
+            LayerTypes[LayerTypes["PrimaryPlayerRouteNode"] = 26] = "PrimaryPlayerRouteNode";
+            LayerTypes[LayerTypes["PrimaryPlayerRoutePath"] = 27] = "PrimaryPlayerRoutePath";
+            LayerTypes[LayerTypes["PrimaryPlayerRouteControlPath"] = 28] = "PrimaryPlayerRouteControlPath";
+            LayerTypes[LayerTypes["OpponentPlayer"] = 29] = "OpponentPlayer";
+            LayerTypes[LayerTypes["OpponentPlayerIcon"] = 30] = "OpponentPlayerIcon";
+            LayerTypes[LayerTypes["OpponentPlayerLabel"] = 31] = "OpponentPlayerLabel";
+            LayerTypes[LayerTypes["OpponentPlayerCoordinates"] = 32] = "OpponentPlayerCoordinates";
+            LayerTypes[LayerTypes["OpponentPlayerRelativeCoordinatesLabel"] = 33] = "OpponentPlayerRelativeCoordinatesLabel";
+            LayerTypes[LayerTypes["OpponentPlayerSelectionBox"] = 34] = "OpponentPlayerSelectionBox";
+            LayerTypes[LayerTypes["OpponentPlayerRoute"] = 35] = "OpponentPlayerRoute";
+            LayerTypes[LayerTypes["OpponentPlayerSecondaryRoutes"] = 36] = "OpponentPlayerSecondaryRoutes";
+            LayerTypes[LayerTypes["OpponentPlayerAlternateRoutes"] = 37] = "OpponentPlayerAlternateRoutes";
+            LayerTypes[LayerTypes["OpponentPlayerRouteAction"] = 38] = "OpponentPlayerRouteAction";
+            LayerTypes[LayerTypes["OpponentPlayerRouteNode"] = 39] = "OpponentPlayerRouteNode";
+            LayerTypes[LayerTypes["OpponentPlayerRoutePath"] = 40] = "OpponentPlayerRoutePath";
+            LayerTypes[LayerTypes["OpponentPlayerRouteControlPath"] = 41] = "OpponentPlayerRouteControlPath";
+            LayerTypes[LayerTypes["Ball"] = 42] = "Ball";
+            LayerTypes[LayerTypes["Field"] = 43] = "Field";
+            LayerTypes[LayerTypes["Sideline"] = 44] = "Sideline";
+            LayerTypes[LayerTypes["Hashmark"] = 45] = "Hashmark";
+            LayerTypes[LayerTypes["SidelineHashmark"] = 46] = "SidelineHashmark";
+            LayerTypes[LayerTypes["Endzone"] = 47] = "Endzone";
+            LayerTypes[LayerTypes["LineOfScrimmage"] = 48] = "LineOfScrimmage";
         })(Enums.LayerTypes || (Enums.LayerTypes = {}));
         var LayerTypes = Enums.LayerTypes;
         (function (RouteTypes) {
@@ -5987,7 +6046,7 @@ var Playbook;
                     self.debug(self);
                 }, 1000);
                 this.onModified(function () {
-                    console.log('field modified');
+                    //console.log('field modified');
                 });
             }
             EditorField.prototype.debug = function (context) {
@@ -6129,10 +6188,8 @@ var Playbook;
                 var self = this;
                 this.container = $container[0]; // jquery lite converted to raw html
                 this.$container = $container; // jquery lite object
-                this.dimensions.width = this.$container.width();
-                this.dimensions.height = this.$container.height();
+                this.setDimensions();
                 this.paper = new Playbook.Models.EditorPaper(this);
-                this.paper.initialize();
                 this.paper.draw();
                 // TODO @theBull - stop / pause this timer if the canvas is not
                 // visible...
@@ -6147,6 +6204,10 @@ var Playbook;
                 // }, 1);
                 this._ready();
             };
+            EditorCanvas.prototype.setDimensions = function () {
+                this.dimensions.width = this.$container.width();
+                this.dimensions.height = this.$container.height();
+            };
             EditorCanvas.prototype.updatePlay = function (playPrimary, playOpponent, redraw) {
                 this.playPrimary = playPrimary || this.playPrimary;
                 this.playOpponent = playOpponent || this.playOpponent;
@@ -6155,30 +6216,8 @@ var Playbook;
                 this.paper.updatePlay(this.playPrimary, this.playOpponent);
                 this.setModified(true);
             };
-            EditorCanvas.prototype.resize = function () {
-                var self = this;
-                this.dimensions.width = this.$container.width();
-                this.dimensions.height = this.$container.height();
-                this.paper.resize();
-                if (this.scrollable) {
-                    this.scrollable.initialize(this.$container, this.paper);
-                    this.scrollable.onready(function (content) {
-                        self.scrollable.scrollToPercentY(0.5);
-                    });
-                }
-            };
-            EditorCanvas.prototype.setScrollable = function (scrollable) {
-                this.scrollable = scrollable;
-            };
             EditorCanvas.prototype.resetHeight = function () {
                 //this.height = this.$container.height(this.$container.height());
-            };
-            EditorCanvas.prototype.setListener = function (actionId, fn) {
-                this.listener.listen(actionId, fn);
-            };
-            EditorCanvas.prototype.invoke = function (actionId, data, context) {
-                console.log('invoking action: ', actionId);
-                this.listener.invoke(actionId, data, context);
             };
             EditorCanvas.prototype.zoomIn = function () {
                 throw new Error('canvas zoomIn() not implemented');
@@ -6206,6 +6245,7 @@ var Playbook;
             __extends(EditorPaper, _super);
             function EditorPaper(canvas) {
                 _super.call(this, canvas);
+                this.initialize();
             }
             EditorPaper.prototype.initialize = function () {
                 // Grid will help the paper determine its sizing
@@ -6217,12 +6257,6 @@ var Playbook;
                 // this.Raphael
                 this.field = this.field ||
                     new Playbook.Models.EditorField(this, this.canvas.playPrimary, this.canvas.playOpponent);
-            };
-            EditorPaper.prototype.draw = function () {
-                this.clear();
-                if (this.showBorder)
-                    this.drawOutline();
-                this.field.initialize();
             };
             EditorPaper.prototype.updatePlay = function (playPrimary, playOpponent) {
                 this.field.updatePlay(playPrimary, playOpponent);
@@ -6281,13 +6315,7 @@ var Playbook;
                 this.endzone_bottom.draw();
                 this.los.draw();
                 this.ball.draw();
-                // draw the play data onto the field
-                if (this.playPrimary)
-                    this.playPrimary.draw(this);
-                // draw the opponent play data onto the field
-                if (this.playOpponent)
-                    this.playOpponent.draw(this);
-                this.paper.scroll(0, this.getLOSAbsolute() - (this.paper.canvas.dimensions.height / 2));
+                this.drawPlay();
             };
             PreviewField.prototype.addPlayer = function (placement, position, assignment) {
                 // TODO @theBull - look into this
@@ -6320,19 +6348,22 @@ var Playbook;
                 this.playOpponent = playOpponent;
                 this.dimensions.setMinWidth(250);
                 this.dimensions.setMinHeight(200);
-                this.$exportCanvas = $('<canvas/>', {
-                    id: 'exportCanvas' + this.guid
-                }).width(500).height(400);
-                this.exportCanvas = this.$exportCanvas[0];
             }
             PreviewCanvas.prototype.initialize = function ($container) {
                 this.container = $container[0]; // jquery lite converted to raw html
                 this.$container = $container;
-                this.dimensions.width = 500; //this.$container.width();
-                this.dimensions.height = 400; //this.$container.height();
+                this.setDimensions();
                 this.paper = new Playbook.Models.PreviewPaper(this);
-                this.paper.initialize();
                 this.paper.draw();
+                this.$exportCanvas = $('<canvas/>', {
+                    id: 'exportCanvas' + this.guid
+                }).width(this.dimensions.width).height(this.dimensions.height);
+                this.exportCanvas = this.$exportCanvas[0];
+                this._ready();
+            };
+            PreviewCanvas.prototype.setDimensions = function () {
+                this.dimensions.width = Math.min(500, this.$container.width());
+                this.dimensions.height = Math.min(400, this.$container.height());
             };
             return PreviewCanvas;
         })(Common.Models.Canvas);
@@ -6350,7 +6381,8 @@ var Playbook;
                 _super.call(this, previewCanvas);
                 this.canvas = previewCanvas;
                 this.sizingMode = Common.Enums.PaperSizingModes.PreviewWidth;
-                this.showBorder = true;
+                this.showBorder = false;
+                this.initialize();
             }
             PreviewPaper.prototype.initialize = function () {
                 // NOTE: Grid size uses PREVIEW constants
@@ -6379,10 +6411,12 @@ var Playbook;
                 _super.call(this, field);
                 this.layer.graphics.setOffsetXY(0, 2);
                 this.layer.graphics.dimensions.setHeight(1);
+                this.layer.graphics.hoverable = false;
+                this.layer.graphics.selectable = false;
             }
             PreviewLineOfScrimmage.prototype.draw = function () {
                 this.layer.graphics.rect();
-                this.layer.graphics.disable();
+                //this.layer.graphics.disable();
             };
             return PreviewLineOfScrimmage;
         })(Common.Models.LineOfScrimmage);
@@ -6469,16 +6503,16 @@ var Playbook;
             PreviewGround.prototype.draw = function () {
                 _super.prototype.draw.call(this);
             };
-            PreviewGround.prototype.hoverIn = function (e, self) {
+            PreviewGround.prototype.hoverIn = function (e) {
                 // hover not implemented in preview
             };
-            PreviewGround.prototype.hoverOut = function (e, self) {
+            PreviewGround.prototype.hoverOut = function (e) {
                 // hover not implemented in preview
             };
-            PreviewGround.prototype.click = function (e, self) {
+            PreviewGround.prototype.click = function (e) {
                 // click not implemented in preview
             };
-            PreviewGround.prototype.mouseDown = function (e, self) {
+            PreviewGround.prototype.mousedown = function (e) {
                 // mousedown not implemented in preview
             };
             PreviewGround.prototype.dragMove = function (dx, dy, posx, posy, e) {
@@ -6511,26 +6545,26 @@ var Playbook;
                 this.layer.graphics.ondrag(this.dragMove, this.dragStart, this.dragEnd, this);
                 this.layer.graphics.onmousemove(this.mousemove, this);
             };
-            EditorGround.prototype.mousemove = function (e, context) {
+            EditorGround.prototype.mousemove = function (e) {
                 // get current coordinates
-                context.field.setCursorCoordinates(e.offsetX, e.offsetY);
+                this.field.setCursorCoordinates(e.offsetX, e.offsetY);
                 //console.log(context.field.cursorCoordinates);
             };
-            EditorGround.prototype.click = function (e, context) {
-                var coords = context.getClickCoordinates(e.offsetX, e.offsetY);
+            EditorGround.prototype.click = function (e) {
+                var coords = this.getClickCoordinates(e.offsetX, e.offsetY);
                 console.log('ground clicked', coords);
-                var toolMode = context.paper.canvas.toolMode;
+                var toolMode = this.paper.canvas.toolMode;
                 switch (toolMode) {
                     case Playbook.Enums.ToolModes.Select:
                         console.log('selection mode');
-                        context.field.deselectAll();
+                        this.field.deselectAll();
                         break;
                     case Playbook.Enums.ToolModes.None:
                         console.log('no mode');
-                        context.field.deselectAll();
+                        this.field.deselectAll();
                         break;
                     case Playbook.Enums.ToolModes.Assignment:
-                        context.field.useAssignmentTool(coords);
+                        this.field.useAssignmentTool(coords);
                         break;
                 }
             };
@@ -6548,8 +6582,6 @@ var Playbook;
             __extends(PreviewHashmark, _super);
             function PreviewHashmark(field, x) {
                 _super.call(this, field, x);
-                this.start = 0;
-                this.yards = 40;
             }
             return PreviewHashmark;
         })(Common.Models.Hashmark);
@@ -6670,14 +6702,14 @@ var Playbook;
                 this.layer.remove();
                 this.assignment.remove();
             };
-            EditorPlayer.prototype.mousedown = function (e, self) {
+            EditorPlayer.prototype.mousedown = function (e) {
                 // TODO: enumerate e.which (Event.SHIFT_)
                 if (e.which == Common.Input.Which.RightClick) {
                     //console.log('right click');
-                    self.canvas.invoke(Playbook.Enums.Actions.PlayerContextmenu, 'open player context menu...', self);
+                    this.canvas.listener.invoke(Playbook.Enums.Actions.PlayerContextmenu, this);
                 }
             };
-            EditorPlayer.prototype.click = function (e, self) {
+            EditorPlayer.prototype.click = function (e) {
                 if (e.ctrlKey) {
                     e.preventDefault();
                     if (e.isDefaultPrevented()) {
@@ -6686,8 +6718,10 @@ var Playbook;
                         e.returnValue = false;
                     }
                 }
-                self.field.togglePlayerSelection(self);
-                var toolMode = self.canvas.toolMode;
+                // Toggle the selection of this player
+                this.field.toggleSelection(this);
+                // determine the tool currently selected
+                var toolMode = this.canvas.toolMode;
                 switch (toolMode) {
                     case Playbook.Enums.ToolModes.Select:
                         //console.log('Select player');
@@ -6844,6 +6878,7 @@ var Playbook;
                 _super.call(this, context, placement, position, assignment);
                 // the set acts as a group for the other graphical elements
                 this.icon = new Playbook.Models.PreviewPlayerIcon(this);
+                this.layer.addLayer(this.icon.layer);
             }
             PreviewPlayer.prototype.draw = function () {
                 this.icon.draw();
@@ -6879,10 +6914,19 @@ var Playbook;
             EditorPlayerIcon.prototype.draw = function () {
                 _super.prototype.draw.call(this);
                 this.layer.graphics.setAttribute('class', 'pointer');
-                // Attach event handlers
-                this.layer.graphics.onclick(_super.prototype.click, this);
-                this.layer.graphics.onhover(_super.prototype.hoverIn, _super.prototype.hoverOut, this);
-                this.layer.graphics.onmousedown(_super.prototype.mousedown, this);
+                /**
+                 *
+                 * Attach event handlers to the player icon, but defer the functionality and
+                 * scope to the actual player object itself, not to this icon.
+                 *
+                 */
+                this.layer.graphics.onclick(this.click, this);
+                this.layer.graphics.onhover(this.player.hoverIn, this.player.hoverOut, this.player);
+                this.layer.graphics.onmousedown(this.player.mousedown, this.player);
+            };
+            EditorPlayerIcon.prototype.click = function (e) {
+                _super.prototype.click.call(this, e);
+                this.player.click(e);
             };
             return EditorPlayerIcon;
         })(Common.Models.PlayerIcon);
@@ -7056,7 +7100,7 @@ var Playbook;
                     this.addNode(rootNode, false);
                 }
                 this.routePath = new Playbook.Models.PreviewRoutePath(this);
-                this.layer.type = Common.Enums.LayerTypes.Route;
+                this.layer.type = Common.Enums.LayerTypes.PlayerRoute;
                 this.layer.addLayer(this.routePath.layer);
             }
             PreviewRoute.prototype.draw = function () {
@@ -7110,7 +7154,7 @@ var Playbook;
                     this.addNode(rootNode, false);
                 }
                 this.routePath = new Playbook.Models.EditorRoutePath(this);
-                this.layer.type = Common.Enums.LayerTypes.Route;
+                this.layer.type = Common.Enums.LayerTypes.PlayerRoute;
                 this.layer.addLayer(this.routePath.layer);
             }
             EditorRoute.prototype.setContext = function (player) {
@@ -7244,15 +7288,15 @@ var Playbook;
                 this.layer.graphics.ondrag(this.dragMove, this.dragStart, this.dragEnd, this // drag end context
                 );
                 this.layer.graphics.onhover(this.hoverIn, this.hoverOut, this);
-                this.layer.graphics.oncontextmenu(this.contextmenuHandler, this);
+                this.layer.graphics.oncontextmenu(this.contextmenu, this);
                 if (this.type == Common.Enums.RouteNodeTypes.CurveControl) {
                 }
             };
-            EditorRouteNode.prototype.click = function (e, self) {
+            EditorRouteNode.prototype.click = function (e) {
                 console.log('route node clicked');
             };
-            EditorRouteNode.prototype.contextmenuHandler = function (e, self) {
-                self.paper.canvas.invoke(Playbook.Enums.Actions.RouteNodeContextmenu, 'open route node context menu...', self);
+            EditorRouteNode.prototype.contextmenu = function (e) {
+                this.paper.canvas.listener.invoke(Playbook.Enums.Actions.RouteNodeContextmenu, this);
             };
             EditorRouteNode.prototype.dragMove = function (dx, dy, posx, posy, e) {
                 if (this.layer.graphics.disabled) {
@@ -7498,8 +7542,6 @@ var Playbook;
     (function (Constants) {
         Constants.FIELD_COLS_FULL = 52;
         Constants.FIELD_ROWS_FULL = 120;
-        Constants.FIELD_COLS_PREVIEW = 52;
-        Constants.FIELD_ROWS_PREVIEW = 40;
         Constants.FIELD_COLOR = '#638148';
         Constants.GRID_SIZE = 15;
         Constants.GRID_BASE = 10;
@@ -7531,12 +7573,8 @@ var Team;
                 this.positions = new Team.Models.PositionCollection();
                 this.setDefault();
                 this.setType = Common.Enums.SetTypes.Personnel;
-                this.onModified(function (data) {
-                    console.log('personnel changed', data);
-                });
-                this.positions.onModified(function (data) {
-                    console.log('personnel positions changed', data);
-                });
+                this.onModified(function (data) { });
+                this.positions.onModified(function (data) { });
             }
             Personnel.prototype.hasPositions = function () {
                 return this.positions && this.positions.size() > 0;
@@ -8439,7 +8477,6 @@ impakt.app = angular.module('impakt.app', [
     '$httpProvider',
     '$sceDelegateProvider',
     function ($stateProvider, $urlRouterProvider, $httpProvider, $sceDelegateProvider) {
-        console.log('impakt - config');
         //Reset headers to avoid OPTIONS request (aka preflight)
         // $httpProvider.defaults.headers.common = {};
         // $httpProvider.defaults.headers.post = {};
@@ -8487,7 +8524,7 @@ impakt.app = angular.module('impakt.app', [
         // 	url: '/stats',
         // 	templateUrl: 'modules/stats/stats.tpl.html'
         // });
-        console.debug('impakt - config');
+        console.debug('impakt.app - config');
     }])
     .run([
     '$http',
@@ -8766,7 +8803,7 @@ impakt.common.context.factory('__context', ['$q',
         }
         var self = {
             initialize: initialize,
-            onReady: onReady,
+            onReady: onReady
         };
         function initialize(context) {
             var d = $q.defer();
@@ -8807,7 +8844,8 @@ impakt.common.context.factory('__context', ['$q',
              * A creation context for new plays and formations.
              */
             context.Playbook.creation = {
-                plays: new Common.Models.PlayCollection()
+                plays: new Common.Models.PlayCollection(),
+                formations: new Common.Models.FormationCollection()
             };
             async.parallel([
                 // Retrieve playbooks
@@ -9543,7 +9581,6 @@ impakt.common.notifications.controller('notifications.ctrl', [
             templateUrl: 'common/notifications/notification-item.tpl.html',
             controller: 'notifications.ctrl',
             link: function ($scope, $element, attrs) {
-                console.log('notifications type', attrs.type);
                 var css = '';
                 switch (attrs.type) {
                 }
@@ -10197,6 +10234,159 @@ impakt.common.ui.controller('expandable.ctrl', [
         };
     }]);
 /// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('formationPreview.ctrl', [
+    '$scope', '$timeout', function ($scope, $timeout) {
+        $scope.previewCanvas;
+        $scope.play;
+        $scope.formation;
+        $scope.$element;
+        $scope.isModified = true;
+        $scope.modificationTimer;
+        $scope.refresh = function () {
+            if (!$scope.formation)
+                throw new Error('formation-preview refresh(): Formation is null or undefined');
+            if (!$scope.previewCanvas)
+                throw new Error('formation-preview refresh(): PreviewCanvas is null or undefined');
+            if (!$scope.$element)
+                throw new Error('formation-preview refresh(): $element is null or undefined');
+            $scope.$element.find('svg').show();
+            $scope.previewCanvas.refresh();
+            $scope.formation.png = $scope.previewCanvas.exportToPng();
+            $scope.isModified = false;
+            var scrollTop = $scope.previewCanvas.paper.field.getLOSAbsolute()
+                - ($scope.$element.height() / 2);
+            $scope.$element.scrollTop(scrollTop);
+            if ($scope.modificationTimer)
+                $timeout.cancel($scope.modificationTimer);
+        };
+    }]).directive('formationPreview', [
+    '$timeout',
+    function ($timeout) {
+        /**
+         * formation-preview directive renders an SVG preview canvas
+         * with the given formation data.
+         */
+        return {
+            restrict: 'E',
+            controller: 'formationPreview.ctrl',
+            scope: {
+                formation: '='
+            },
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                        /**
+                         *
+                         * Set up the play data to render the formation
+                         *
+                         */
+                        if (!Common.Utilities.isNullOrUndefined($scope.formation)) {
+                            // check to see if the formation is being edited; 
+                            // in which case a temporary play has already been constructed
+                            // 
+                            // NOTE: if the play does not exist in the formations context,
+                            // it SHOULD NOT exist in the editor context.
+                            var editorPlay = impakt.context.Playbook.editor.plays.filterFirst(function (play, index) {
+                                // - the play must have editorType: formation
+                                // - the play must have a formation
+                                // - the play formation guid must match the scope guid
+                                return play.editorType == Playbook.Enums.EditorTypes.Formation &&
+                                    !Common.Utilities.isNullOrUndefined(play.formation) &&
+                                    play.formation.guid == $scope.formation.guid;
+                            });
+                            if (!Common.Utilities.isNullOrUndefined(editorPlay)) {
+                                // there is a temp. play existing in the editor context,
+                                // so let's use that play to render the preview
+                                $scope.play = editorPlay;
+                            }
+                            else {
+                                // no play has been found to contain the formation,
+                                // draw a new play to render the preview
+                                $scope.play = new Common.Models.Play();
+                                $scope.play.setFormation($scope.formation);
+                            }
+                            if (Common.Utilities.isNullOrUndefined($scope.play))
+                                throw new Error('formation-preview post(): Play is null or undefined');
+                            $scope.play.editorType = Playbook.Enums.EditorTypes.Formation;
+                            // create a previewCanvas to handle preview creation. Creating
+                            // a previewCanvas will insert a SVG into the <formation-preview/> element
+                            // after the intialization phase.
+                            $scope.previewCanvas = new Playbook.Models.PreviewCanvas($scope.play, null);
+                        }
+                        else {
+                            // if there's no formation at this point, there's a problem
+                            throw new Error('formation-preview post(): Unable to find formation');
+                        }
+                        $scope.formation.onModified(function () {
+                            $scope.isModified = true;
+                            if ($scope.modificationTimer)
+                                $timeout.cancel($scope.modificationTimer);
+                            $scope.modificationTimer = $timeout(function () {
+                                console.log('auto refresh based on user changes');
+                                $scope.refresh();
+                            }, 500);
+                        });
+                        /**
+                         *
+                         * NOTE: Due to the way angular renders directives,
+                         * we have to wrap DOM-dependent code in a $timeout.
+                         *
+                         */
+                        $timeout(function () {
+                            if ($scope.previewCanvas) {
+                                $scope.previewCanvas.onready(function () {
+                                    var scrollTop = $scope.previewCanvas.paper.field.getLOSAbsolute()
+                                        - ($scope.$element.height() / 2);
+                                    $scope.$element.scrollTop(scrollTop);
+                                });
+                                $scope.previewCanvas.initialize($element);
+                                /**
+                                 * Set the base64 encoded PNG string on the formation
+                                 */
+                                $scope.formation.png = $scope.previewCanvas.exportToPng();
+                            }
+                        }, 0);
+                    }
+                };
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('formationThumbnail.ctrl', [
+    '$scope', function ($scope) {
+        $scope.formation;
+    }]).directive('formationThumbnail', [
+    function () {
+        return {
+            restrict: 'E',
+            controller: 'formationThumbnail.ctrl',
+            scope: {
+                formation: '='
+            },
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                        // get height of $element
+                        var elementHeight = $element.height();
+                        var img = document.createElement('img');
+                        img.src = $scope.formation.png;
+                        var $img = $(img);
+                        $scope.$element.append($img);
+                        img.addEventListener('load', function () {
+                            var imgHeight = $img.height();
+                            var imgOffsetTop = (-(imgHeight * 0.5) + (elementHeight / 2)) + 'px';
+                            $img.css({ 'top': imgOffsetTop });
+                        }, false);
+                    }
+                };
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
 /**
  * DESCRIPTION:
  * will take the enumerated "value" and the
@@ -10270,13 +10460,12 @@ impakt.common.ui.controller('typeFormatter.ctrl', [
     }]);
 /// <reference path='../ui.mdl.ts' />
 impakt.common.ui.controller('playPreview.ctrl', [
-    '$scope', function ($scope) {
+    '$scope', '$timeout', function ($scope, $timeout) {
         $scope.previewCanvas;
         $scope.play;
-        $scope.showRefresh = false;
-        $scope.guid = '';
         $scope.$element;
         $scope.isModified = true;
+        $scope.modificationTimer;
         $scope.refresh = function () {
             if (!$scope.play)
                 throw new Error('play-preview refresh(): Play is null or undefined');
@@ -10287,79 +10476,68 @@ impakt.common.ui.controller('playPreview.ctrl', [
             $scope.$element.find('svg').show();
             $scope.previewCanvas.refresh();
             $scope.play.png = $scope.previewCanvas.exportToPng();
-            $scope.$element.find('svg').hide();
             $scope.isModified = false;
+            var scrollTop = $scope.previewCanvas.paper.field.getLOSAbsolute() - ($scope.$element.height() / 2);
+            $scope.$element.scrollTop(scrollTop);
+            if ($scope.modificationTimer)
+                $timeout.cancel($scope.modificationTimer);
         };
     }]).directive('playPreview', [
-    '$compile',
     '$timeout',
-    '_playPreview',
-    function ($compile, $timeout, _playPreview) {
+    function ($timeout) {
+        /**
+         * play-preview directive renders an SVG preview canvas
+         * with the given play data.
+         */
         return {
             restrict: 'E',
             controller: 'playPreview.ctrl',
-            /**
-             * play-preview directive renders a PNG with the given
-             * play or formation* data.
-             *
-             * TODO @theBull - *handle formations as well
-             *
-             * @param {[type]} $scope   [description]
-             * @param {[type]} $element [description]
-             * @param {[type]} attrs    [description]
-             */
-            template: "<div class='play-preview positionRelative maxWidth29 maxHeight24 overflowHidden'>\
-					<div class='play-preview-refresh-container center' ng-show='isModified && showRefresh'>\
-						<div class='play-preview-refresh-overlay'></div>\
-						<div class='textCenter play-preview-refresh-message'>\
-							<p class='glyphicon glyphicon-refresh \
-								pointer font-white-hover fontSize20'\
-								title='Refresh preview'\
-								ng-click='refresh()'>\
-							</p>\
-							<p class='font-white'>Data has been modified. Click to refresh.</p>\
-						</div>\
-					</div>\
-					<img ng-src='{{play.png}}' />\
-				</div>",
-            transclude: true,
-            replace: true,
-            link: function ($scope, $element, attrs) {
-                $timeout(function () {
-                    $scope.$element = $element;
-                    // retrieve play data
-                    $scope.guid = attrs.guid;
-                    $scope.showRefresh = $element.hasClass('play-preview-refreshable');
-                    // play MAY be only a temporary play used for editing a formation;
-                    // in which case, the temporary play should have been added to
-                    // the editor context...so check there...
-                    // ...if it's not there, check the creation context to see if
-                    // it's a play that's currently being created
-                    $scope.play = impakt.context.Playbook.plays.get($scope.guid) ||
-                        impakt.context.Playbook.editor.plays.get($scope.guid) ||
-                        impakt.context.Playbook.creation.plays.get($scope.guid);
-                    // if there's no play at this point, there's a problem
-                    if (!$scope.play) {
-                        throw new Error('play-preview link(): Unable to find play');
+            scope: {
+                play: '='
+            },
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                        // create a previewCanvas to handle preview creation. Creating
+                        // a previewCanvas will insert a SVG into the <play-preview/> element
+                        // after the intialization phase.
+                        if (!Common.Utilities.isNullOrUndefined($scope.play)) {
+                            $scope.previewCanvas = new Playbook.Models.PreviewCanvas($scope.play, null);
+                        }
+                        else {
+                            // if there's no play at this point, there's a problem
+                            throw new Error('play-preview link(): Unable to find play');
+                        }
+                        $scope.play.onModified(function () {
+                            $scope.isModified = true;
+                            if ($scope.modificationTimer)
+                                $timeout.cancel($scope.modificationTimer);
+                            $scope.modificationTimer = $timeout(function () {
+                                console.log('auto refresh based on user changes');
+                                $scope.refresh();
+                            }, 500);
+                        });
+                        /**
+                         *
+                         * NOTE: Due to the way angular renders directives,
+                         * we have to wrap DOM-dependent code in a $timeout.
+                         *
+                         */
+                        $timeout(function () {
+                            if ($scope.previewCanvas) {
+                                $scope.previewCanvas.onready(function () {
+                                    var scrollTop = $scope.previewCanvas.paper.field.getLOSAbsolute()
+                                        - ($scope.$element.height() / 2);
+                                    $scope.$element.scrollTop(scrollTop);
+                                });
+                                $scope.previewCanvas.initialize($element);
+                                $scope.play.png = $scope.previewCanvas.exportToPng();
+                            }
+                        }, 0);
                     }
-                    // create a previewCanvas to handle preview creation. Creating
-                    // a previewCanvas will insert a SVG into the <play-preview/> element
-                    // after the intialization phase.
-                    $scope.previewCanvas = new Playbook.Models.PreviewCanvas($scope.play, null);
-                    $scope.previewCanvas.initialize($element);
-                    if (!$scope.previewCanvas)
-                        throw new Error('play-preview link(): Creation of previewCanvas failed');
-                    // if the play has an existing png, skip the previewCanvas creation
-                    // step.
-                    if ($scope.play.png == null) {
-                        $scope.refresh();
-                    }
-                    $scope.$element.find('svg').hide();
-                    $scope.play.onModified(function () {
-                        console.log('play-preview play.onModified(): refreshing preview');
-                        $scope.isModified = true;
-                    });
-                });
+                };
             }
         };
     }]);
@@ -10413,6 +10591,39 @@ impakt.common.ui.service('_playPreview', [function () {
         /**
          * TO-DO: store in local db
          */
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('playThumbnail.ctrl', [
+    '$scope', function ($scope) {
+        $scope.play;
+    }]).directive('playThumbnail', [
+    function () {
+        return {
+            restrict: 'E',
+            controller: 'playThumbnail.ctrl',
+            scope: {
+                play: '='
+            },
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                        // get height of $element
+                        var elementHeight = $element.height();
+                        var img = document.createElement('img');
+                        img.src = $scope.play.png;
+                        var $img = $(img);
+                        $scope.$element.append($img);
+                        img.addEventListener('load', function () {
+                            var imgHeight = $img.height();
+                            var imgOffsetTop = (-(imgHeight * 0.5) + (elementHeight / 2)) + 'px';
+                            $img.css({ 'top': imgOffsetTop });
+                        }, false);
+                    }
+                };
+            }
+        };
     }]);
 /// <reference path='../ui.mdl.ts' />
 impakt.common.ui.directive('popout', [
@@ -10783,10 +10994,10 @@ impakt.nav = angular.module('impakt.nav', [
     'impakt.playbook.nav'
 ])
     .config(function () {
-    console.log('nav - config');
+    console.debug('impakt.nav - config');
 })
     .run(function () {
-    console.log('nav - run');
+    console.debug('impakt.nav - run');
 });
 /// <reference path='./nav.mdl.ts' />
 impakt.nav.controller('nav.ctrl', [
@@ -11366,7 +11577,7 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas', ['$rootScope',
                     canvas.setScrollable(_scrollable);
                     _scrollable.onready(function (content) {
                         _scrollable.scrollToPercentY(0.5);
-                        _playPreview.setViewBox(canvas.paper.x, canvas.paper.y, canvas.paper.canvas.width, canvas.paper.canvas.height);
+                        _playPreview.setViewBox(canvas.paper.x, canvas.paper.y, canvas.dimensions.width, canvas.dimensions.height);
                     });
                     _scrollable.initialize($element, canvas.paper);
                 });
@@ -11489,11 +11700,11 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas', [
             // 			}
             // 		);
             // 	});
-            canvas.setListener(Playbook.Enums.Actions.RouteNodeContextmenu, function (message, node) {
+            canvas.listener.listen(Playbook.Enums.Actions.RouteNodeContextmenu, function (node) {
                 console.log('action commanded: route node contextmenu');
                 var absCoords = getAbsolutePosition(node);
                 $rootScope.$broadcast('playbook-editor-canvas.routeNodeContextmenu', {
-                    message: message,
+                    message: 'contextmenu opened',
                     node: node,
                     left: absCoords.left,
                     top: absCoords.top
@@ -11551,7 +11762,7 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas', [
         };
         this.scrollTo = function (x, y) {
             console.log(x, y);
-            this.canvas.paper.scroll(x, y);
+            this.canvas.paper.scroll(x, y, true);
         };
         this.getEditorTypeClass = function (editorType) {
             return _playbookEditor.getEditorTypeClass(editorType);
@@ -11778,6 +11989,7 @@ impakt.playbook.editor.service('_playbookEditor', [
 				Trying to create a new canvas but there are \
 				no active tabs / play data to start with.');
             }
+            self.canvas.clearListeners();
             self.canvas.onready(function () {
                 self.loadTabs();
                 self.ready();
@@ -11846,6 +12058,7 @@ impakt.playbook.editor.service('_playbookEditor', [
             else {
                 // no remaining tabs - nullify active Tab
                 this.activeTab = null;
+                this.canvas.clearListeners();
                 this.canvas = null;
             }
             // tell tab to close (fire off close callbacks)
@@ -11880,7 +12093,14 @@ impakt.playbook.editor.service('_playbookEditor', [
             console.log(activeTab);
             if (activeTab) {
                 var play = activeTab.playPrimary;
-                _playbookModals.savePlay(play);
+                switch (play.editorType) {
+                    case Playbook.Enums.EditorTypes.Formation:
+                        _playbookModals.saveFormation(play);
+                        break;
+                    case Playbook.Enums.EditorTypes.Play:
+                        _playbookModals.savePlay(play);
+                        break;
+                }
             }
         };
         this.zoomIn = function () {
@@ -12147,9 +12367,23 @@ impakt.playbook.modals.controller('playbook.modals.createFormation.ctrl', ['$sco
         $scope.selectedUnitType = Team.Enums.UnitTypes.Offense;
         $scope.playbooks = impakt.context.Playbook.playbooks;
         $scope.formation = new Common.Models.Formation();
+        $scope.formations = impakt.context.Playbook.formations;
         $scope.formation.unitType = $scope.selectedUnitType;
         $scope.unitTypes = impakt.context.Team.unitTypes;
         $scope.selectedPlaybook = $scope.playbooks.first();
+        /**
+         * Check to ensure there are formations to select as a base formation;
+         * Add a new empty formation if there are no others to select from
+         */
+        if ($scope.formations.isEmpty()) {
+            $scope.formations.add($scope.formation);
+        }
+        /**
+         * If there are no other formations, the selected base formation
+         * will be the current, new formation
+         */
+        $scope.selectedBaseFormation = $scope.formations.first();
+        impakt.context.Playbook.creation.formations.add($scope.formation);
         /**
          * If there is a selected playbook available, add an association to
          * the new formation to that playbook.
@@ -12171,17 +12405,49 @@ impakt.playbook.modals.controller('playbook.modals.createFormation.ctrl', ['$sco
             // Add the formation to the newly selected playbook
             $scope.selectedPlaybook = playbook;
         };
+        $scope.selectBaseFormation = function (formation) {
+            if ($scope.selectedBaseFormation != '' &&
+                !Common.Utilities.isNullOrUndefined($scope.selectedBaseFormation)) {
+                $scope.formation.setPlacements($scope.selectedBaseFormation.placements);
+            }
+        };
         $scope.unitTypeSelected = function () {
             $scope.formation.unitType = $scope.selectedUnitType;
         };
         $scope.ok = function () {
             $scope.formation.parentRK = 1; // TODO @theBull - deprecate parentRK
-            _playbook.editFormation($scope.formation);
-            $uibModalInstance.close();
+            _playbook.createFormation($scope.formation)
+                .then(function (createdFormation) {
+                removeFormationFromCreationContext();
+                $uibModalInstance.close(createdFormation);
+            }, function (err) {
+                removeFormationFromCreationContext();
+                removeFormationFromCollectionContext();
+                $uibModalInstance.close(err);
+            });
         };
         $scope.cancel = function () {
+            removeFormationFromCreationContext();
+            removeFormationFromCollectionContext();
             $uibModalInstance.dismiss();
         };
+        function removeFormationFromCreationContext() {
+            // Remove the formation from the creation context
+            // after creating the new formation or cancelling
+            if (!Common.Utilities.isNullOrUndefined($scope.formation)) {
+                impakt.context.Playbook.creation.formations.remove($scope.formation.guid);
+            }
+        }
+        function removeFormationFromCollectionContext() {
+            // Removes the formation from the formation collection context;
+            // call this if you cancel / dismiss the dialog without invoking
+            // the createFormation request, since the formation is temporarily
+            // added to the formation collection in the situation where
+            // there are 0 formations in the user's collection.
+            if (!Common.Utilities.isNullOrUndefined($scope.formation)) {
+                $scope.formations.remove($scope.formation.guid);
+            }
+        }
     }]);
 /// <reference path='../playbook-modals.mdl.ts' />
 impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl', [
@@ -12196,19 +12462,18 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl', [
         $scope.selectedAssignments = $scope.assignments.first();
         $scope.personnelCollection = impakt.context.Team.personnel;
         $scope.selectedPersonnel = $scope.personnelCollection.first();
-        $scope.unitType = Team.Enums.UnitTypes.Other;
-        $scope.unitTypes = impakt.context.Team.unitTypes;
-        $scope.selectedUnitType = Team.Enums.UnitTypes.Offense;
+        $scope.unitTypeCollection = impakt.context.Team.unitTypes;
+        $scope.selectedUnitType =
+            $scope.unitTypeCollection.getByUnitType(Team.Enums.UnitTypes.Offense).toJson();
         // Intialize new Play with data
         $scope.newPlay.setFormation($scope.selectedFormation);
         $scope.newPlay.setAssignments($scope.selectedAssignments);
         $scope.newPlay.setPersonnel($scope.selectedPersonnel);
-        $scope.newPlay.unittype = $scope.unitType;
         // Add the new play onto the creation context, to access from
         // other parts of the application
         impakt.context.Playbook.creation.plays.add($scope.newPlay);
         $scope.selectUnitType = function (unitTypeValue) {
-            $scope.selectedUnitType = $scope.unitTypes.getByUnitType(unitTypeValue);
+            $scope.selectedUnitType = $scope.unitTypeCollection.getByUnitType(unitTypeValue);
         };
         $scope.selectPlaybook = function (playbook) {
             $scope.newPlay.setPlaybook($scope.playbooks.get(playbook.guid));
@@ -12247,9 +12512,9 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl', [
             }
         };
         function removePlayFromCreationContext() {
-            // Remove the play from the creation context, since we aren't
-            // going to proceed with creating the play
-            if ($scope.newPlay)
+            // Remove the play from the creation context
+            // after creating the new play or cancelling
+            if (!Common.Utilities.isNullOrUndefined($scope.newPlay))
                 impakt.context.Playbook.creation.plays.remove($scope.newPlay.guid);
         }
     }]);
@@ -12429,28 +12694,11 @@ impakt.playbook.modals.service('_playbookModals', [
         };
         this.savePlay = function (play) {
             var d = $q.defer();
-            var template, controller, data, size;
-            if (play.editorType == Playbook.Enums.EditorTypes.Play) {
-                size = 'lg';
-                template = 'modules/playbook/modals/save-play/save-play.tpl.html';
-                controller = 'playbook.modals.savePlay.ctrl';
-                data = {
-                    play: function () {
-                        return play;
-                    }
-                };
-            }
-            else if (play.editorType == Playbook.Enums.EditorTypes.Formation) {
-                size = 'lg';
-                template = 'modules/playbook/modals/save-formation/save-formation.tpl.html';
-                controller = 'playbook.modals.saveFormation.ctrl';
-                data = {
-                    formation: function () {
-                        return play.formation;
-                    }
-                };
-            }
-            var modalInstance = __modals.open(size, template, controller, data);
+            var modalInstance = __modals.open('lg', 'modules/playbook/modals/save-play/save-play.tpl.html', 'playbook.modals.savePlay.ctrl', {
+                play: function () {
+                    return play;
+                }
+            });
             modalInstance.result.then(function (results) {
                 console.log(results);
                 d.resolve();
@@ -12483,10 +12731,26 @@ impakt.playbook.modals.service('_playbookModals', [
          */
         this.createFormation = function () {
             var d = $q.defer();
-            var modalInstance = __modals.open('', 'modules/playbook/modals/create-formation/create-formation.tpl.html', 'playbook.modals.createFormation.ctrl', {});
+            var modalInstance = __modals.open('lg', 'modules/playbook/modals/create-formation/create-formation.tpl.html', 'playbook.modals.createFormation.ctrl', {});
             modalInstance.result.then(function (createdFormation) {
                 d.resolve();
             }, function (results) {
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.saveFormation = function (play) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('lg', 'modules/playbook/modals/save-formation/save-formation.tpl.html', 'playbook.modals.saveFormation.ctrl', {
+                play: function () {
+                    return play;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
                 d.reject();
             });
             return d.promise;
@@ -12529,13 +12793,14 @@ impakt.playbook.modals.service('_playbookModals', [
 impakt.playbook.modals.controller('playbook.modals.saveFormation.ctrl', ['$scope',
     '$uibModalInstance',
     '_playbook',
-    'formation',
-    function ($scope, $uibModalInstance, _playbook, formation) {
-        $scope.formation = formation;
+    'play',
+    function ($scope, $uibModalInstance, _playbook, play) {
+        $scope.play = play;
+        $scope.formation = play.formation;
         $scope.copyFormation = false;
-        var originalFormationKey = formation.key;
-        var originalFormationName = formation.name;
-        var originalFormationGuid = formation.guid;
+        var originalFormationKey = $scope.formation.key;
+        var originalFormationName = $scope.formation.name;
+        var originalFormationGuid = $scope.formation.guid;
         $scope.copyFormationChange = function () {
             $scope.formation.key = $scope.copyFormation ? -1 : originalFormationKey;
             $scope.formation.name = $scope.copyFormation ?
@@ -13760,10 +14025,10 @@ impakt.user = angular.module('impakt.user', [
     'impakt.user.modals'
 ])
     .config(function () {
-    console.log('impakt.user -- config');
+    console.debug('impakt.user -- config');
 })
     .run(function () {
-    console.log('impakt.user -- run');
+    console.debug('impakt.user -- run');
 });
 /// <reference path='../user.mdl.ts' />
 impakt.user.login = angular.module('impakt.user.login', [])

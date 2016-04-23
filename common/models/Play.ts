@@ -21,7 +21,7 @@ module Common.Models {
             super.setContext(this);
             
             this.field = null;
-            this.name = 'Default';
+            this.name = 'New play';
             this.associated = new Common.Models.Association();
             this.assignments = null;
             this.formation = null;
@@ -30,7 +30,7 @@ module Common.Models {
             this.editorType = Playbook.Enums.EditorTypes.Play;
             this.png = null;
         }
-        public setPlaybook(playbook) {
+        public setPlaybook(playbook: Common.Models.PlaybookModel): void {
             // Unit type is key.
             if (playbook) {
                 this.associated.playbooks.only(playbook.guid);
@@ -44,7 +44,7 @@ module Common.Models {
             // - what happens when changing to playbooks of different unit types? 
             this.setModified(true);
         }
-        public setFormation(formation) {
+        public setFormation(formation: Common.Models.Formation): void {
             if (formation) {
                 this.associated.formations.only(formation.guid);
             }
@@ -56,7 +56,7 @@ module Common.Models {
             this.formation = formation;
             this.setModified(true);
         }
-        public setAssignments(assignments) {
+        public setAssignments(assignments: Common.Models.AssignmentCollection): void {
             if (assignments) {
                 this.associated.assignments.only(assignments.guid);
             }
@@ -66,7 +66,7 @@ module Common.Models {
             this.assignments = assignments;
             this.setModified(true);
         }
-        public setPersonnel(personnel) {
+        public setPersonnel(personnel: Team.Models.Personnel): void {
             if (personnel) {
                 this.associated.personnel.only(personnel.guid);
             }
@@ -82,7 +82,10 @@ module Common.Models {
             if (!field.ball)
                 throw new Error('Play draw(): Ball is null or undefined');
             this.field = field;
-            this.field.players.removeAll();
+
+            // Clear the players
+            this.field.clearPlayers();
+            
             var self = this;
             // set defaults, in case no assignments / personnel were assigned
             if (!this.personnel) {

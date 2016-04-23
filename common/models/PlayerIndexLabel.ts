@@ -11,6 +11,7 @@ module Common.Models {
 			super(player.field, player);
 
 			this.player = player;
+			this.layer.type = Common.Enums.LayerTypes.PlayerIndexLabel;
 			this.layer.graphics.selectable = false;
 			this.layer.graphics.dimensions.offset.y = 
 				(this.player.layer.graphics.dimensions.getHeight() / 2) * 0.4;

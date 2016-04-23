@@ -136,7 +136,7 @@ declare module Common.Interfaces {
         drawOutline(): void;
         resize(): void;
         setViewBox(): void;
-        scroll(scrollToX: number, scrollToY: number): void;
+        scroll(scrollToX: number, scrollToY: number, center?: boolean): void;
         updatePlay(playPrimary: Common.Models.PlayPrimary, playOpponent: Common.Models.PlayOpponent): any;
     }
 }
@@ -182,7 +182,9 @@ declare module Common.Interfaces {
         scrollable: any;
         playPrimary: Common.Models.PlayPrimary;
         playOpponent: Common.Models.PlayOpponent;
+        listener: Common.Models.CanvasListener;
         exportToPng(): string;
+        setDimensions(): void;
     }
 }
 declare module Common.Interfaces {
@@ -209,6 +211,8 @@ declare module Common.Interfaces {
         draw(): void;
         registerLayer(layer: Common.Models.Layer): any;
         addPlayer(placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment): Common.Interfaces.IPlayer;
+        clearPlay(): void;
+        clearPlayers(): void;
         updatePlay(playPrimary: Common.Models.PlayPrimary, playOpponent: Common.Models.PlayOpponent): void;
         getSelectedByLayerType(layerType: Common.Enums.LayerTypes): Common.Models.Collection<Common.Interfaces.IFieldElement>;
         toggleSelectionByLayerType(layerType: Common.Enums.LayerTypes): void;
@@ -230,12 +234,12 @@ declare module Common.Interfaces {
         layer: Common.Models.Layer;
         contextmenuTemplateUrl: string;
         draw(): void;
-        hoverIn(e: any, context: Common.Interfaces.IFieldElement): void;
-        hoverOut(e: any, context: Common.Interfaces.IFieldElement): void;
-        click(e: any, context: Common.Interfaces.IFieldElement): void;
-        mousedown(e: any, context: Common.Interfaces.IFieldElement): void;
-        mousemove(e: any, context: Common.Interfaces.IFieldElement): void;
-        contextmenu(e: any, context: Common.Interfaces.IFieldElement): void;
+        hoverIn(e: any): void;
+        hoverOut(e: any): void;
+        click(e: any): void;
+        mousedown(e: any): void;
+        mousemove(e: any): void;
+        contextmenu(e: any): void;
         dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void;
         dragStart(x: number, y: number, e: any): void;
         dragEnd(e: any): void;
@@ -629,6 +633,11 @@ declare module Common.Models {
         constructor();
         toJson(): any;
         fromJson(json: any): void;
+        /**
+         * Returns the sum count of all associated elements
+         * @return {number} [description]
+         */
+        size(): number;
     }
 }
 declare module Common.Models {
@@ -770,10 +779,10 @@ declare module Common.Models {
         png: string;
         key: number;
         constructor();
-        setPlaybook(playbook: any): void;
-        setFormation(formation: any): void;
-        setAssignments(assignments: any): void;
-        setPersonnel(personnel: any): void;
+        setPlaybook(playbook: Common.Models.PlaybookModel): void;
+        setFormation(formation: Common.Models.Formation): void;
+        setAssignments(assignments: Common.Models.AssignmentCollection): void;
+        setPersonnel(personnel: Team.Models.Personnel): void;
         draw(field: Common.Interfaces.IField): void;
         fromJson(json: any): any;
         toJson(): any;
@@ -826,6 +835,7 @@ declare module Common.Models {
         active: boolean;
         playPrimary: Common.Models.PlayPrimary;
         playOpponent: Common.Models.PlayOpponent;
+        editorType: Playbook.Enums.EditorTypes;
         unitType: Team.Enums.UnitTypes;
         canvas: Common.Models.Canvas;
         private _closeCallbacks;
@@ -969,8 +979,12 @@ declare module Common.Models {
         exportToPng(): any;
         getSvg(): string;
         refresh(): void;
+        abstract setDimensions(): void;
         onready(callback: any): void;
         _ready(): void;
+        clearListeners(): void;
+        resize(): void;
+        setScrollable(scrollable: any): void;
     }
 }
 declare module Common.Drawing {
@@ -1061,10 +1075,11 @@ declare module Common.Models {
 }
 declare module Common.Models {
     class CanvasListener {
+        context: Common.Interfaces.ICanvas;
         actions: any;
         constructor(context: Common.Interfaces.ICanvas);
         listen(actionId: string | number, fn: Function): void;
-        invoke(actionId: string | number, data: any, context: Common.Interfaces.ICanvas): void;
+        invoke(actionId: string | number, data: any): void;
     }
 }
 declare module Common.Models {
@@ -1081,15 +1096,24 @@ declare module Common.Models {
         showBorder: boolean;
         viewOutline: any;
         constructor(canvas: Common.Interfaces.ICanvas);
+        abstract initialize(): void;
         getWidth(): number;
         getHeight(): number;
         getXOffset(): number;
         draw(): void;
         resize(): void;
         clear(): void;
-        setViewBox(): void;
+        setViewBox(center?: boolean): void;
         drawOutline(): void;
-        scroll(scrollToX: number, scrollToY: number): void;
+        /**
+         * Scrolls to the given x/y pixels (top/left). If center is set to true,
+         * centers the scroll on the x/y pixels.
+         *
+         * @param {number}  scrollToX [description]
+         * @param {number}  scrollToY [description]
+         * @param {boolean} center    [description]
+         */
+        scroll(scrollToX: number, scrollToY: number, center?: boolean): void;
     }
 }
 declare module Common.Models {
@@ -1251,16 +1275,17 @@ declare module Common.Models {
         abstract useAssignmentTool(coords: Common.Models.Coordinates): any;
         registerLayer(layer: Common.Models.Layer): void;
         draw(): void;
+        clearPlayers(): void;
         clearPlay(): void;
         drawPlay(): void;
-        updatePlay(playPrimary: any, playOpponent: any): void;
+        updatePlay(playPrimary: Common.Models.PlayPrimary, playOpponent: Common.Models.PlayOpponent): void;
         updatePlacements(): void;
         setCursorCoordinates(offsetX: number, offsetY: number): void;
-        getPlayerWithPositionIndex(index: any): Interfaces.IPlayer;
+        getPlayerWithPositionIndex(index: number): Common.Interfaces.IPlayer;
         applyPrimaryPlay(play: any): void;
-        applyPrimaryFormation(formation: any): void;
-        applyPrimaryAssignments(assignments: any): void;
-        applyPrimaryPersonnel(personnel: any): void;
+        applyPrimaryFormation(formation: Common.Models.Formation): void;
+        applyPrimaryAssignments(assignments: Common.Models.AssignmentCollection): void;
+        applyPrimaryPersonnel(personnel: Team.Models.Personnel): void;
         deselectAll(): void;
         getSelectedByLayerType(layerType: Common.Enums.LayerTypes): Common.Models.Collection<Common.Interfaces.IFieldElement>;
         toggleSelectionByLayerType(layerType: Common.Enums.LayerTypes): void;
@@ -1326,13 +1351,13 @@ declare module Common.Models {
          * each field element must implement a draw method.
          */
         abstract draw(): void;
-        hoverIn(e: any, context: Common.Interfaces.IFieldElement): void;
-        hoverOut(e: any, context: Common.Interfaces.IFieldElement): void;
-        click(e: any, context: Common.Interfaces.IFieldElement): void;
-        mouseup(e: any, context: Common.Interfaces.IFieldElement): void;
-        mousedown(e: any, context: Common.Interfaces.IFieldElement): void;
-        mousemove(e: any, context: Common.Interfaces.IFieldElement): void;
-        contextmenu(e: any, context: Common.Interfaces.IFieldElement): void;
+        hoverIn(e: any): void;
+        hoverOut(e: any): void;
+        click(e: any): void;
+        mouseup(e: any): void;
+        mousedown(e: any): void;
+        mousemove(e: any): void;
+        contextmenu(e: any): void;
         dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void;
         dragStart(x: number, y: number, e: any): void;
         dragEnd(e: any): void;
@@ -1350,7 +1375,7 @@ declare module Common.Models {
     abstract class Ground extends Common.Models.FieldElement {
         constructor(field: Common.Interfaces.IField);
         draw(): void;
-        click(e: any, context: Common.Interfaces.IFieldElement): void;
+        click(e: any): void;
         dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void;
         dragStart(x: number, y: number, e: any): void;
         dragEnd(e: any): void;
@@ -1403,6 +1428,7 @@ declare module Common.Models {
         personnelLabel: Common.Interfaces.IPlayerPersonnelLabel;
         indexLabel: any;
         constructor(field: Common.Interfaces.IField, placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment);
+        remove(): void;
         abstract draw(): void;
         getPositionRelativeToBall(): Common.Models.RelativeCoordinates;
         getCoordinatesFromAbsolute(): Common.Models.Coordinates;
@@ -2058,51 +2084,52 @@ declare module Common.Enums {
         Generic = 0,
         FieldElement = 1,
         Player = 2,
-        Icon = 3,
-        Label = 4,
-        Coordinates = 5,
-        RelativeCoordinates = 6,
-        SelectionBox = 7,
-        Route = 8,
-        SecondaryRoutes = 9,
-        AlternateRoutes = 10,
-        RouteAction = 11,
-        RouteNode = 12,
-        RoutePath = 13,
-        RouteControlPath = 14,
-        PrimaryPlayer = 15,
-        PrimaryPlayerIcon = 16,
-        PrimaryPlayerLabel = 17,
-        PrimaryPlayerCoordinates = 18,
-        PrimaryPlayerRelativeCoordinates = 19,
-        PrimaryPlayerSelectionBox = 20,
-        PrimaryPlayerRoute = 21,
-        PrimaryPlayerSecondaryRoutes = 22,
-        PrimaryPlayerAlternateRoutes = 23,
-        PrimaryPlayerRouteAction = 24,
-        PrimaryPlayerRouteNode = 25,
-        PrimaryPlayerRoutePath = 26,
-        PrimaryPlayerRouteControlPath = 27,
-        OpponentPlayer = 28,
-        OpponentPlayerIcon = 29,
-        OpponentPlayerLabel = 30,
-        OpponentPlayerCoordinates = 31,
-        OpponentPlayerRelativeCoordinates = 32,
-        OpponentPlayerSelectionBox = 33,
-        OpponentPlayerRoute = 34,
-        OpponentPlayerSecondaryRoutes = 35,
-        OpponentPlayerAlternateRoutes = 36,
-        OpponentPlayerRouteAction = 37,
-        OpponentPlayerRouteNode = 38,
-        OpponentPlayerRoutePath = 39,
-        OpponentPlayerRouteControlPath = 40,
-        Ball = 41,
-        Field = 42,
-        Sideline = 43,
-        Hashmark = 44,
-        SidelineHashmark = 45,
-        Endzone = 46,
-        LineOfScrimmage = 47,
+        PlayerIcon = 3,
+        PlayerPersonnelLabel = 4,
+        PlayerIndexLabel = 5,
+        PlayerCoordinates = 6,
+        PlayerRelativeCoordinatesLabel = 7,
+        PlayerSelectionBox = 8,
+        PlayerRoute = 9,
+        PlayerSecondaryRoutes = 10,
+        PlayerAlternateRoutes = 11,
+        PlayerRouteAction = 12,
+        PlayerRouteNode = 13,
+        PlayerRoutePath = 14,
+        PlayerRouteControlPath = 15,
+        PrimaryPlayer = 16,
+        PrimaryPlayerIcon = 17,
+        PrimaryPlayerLabel = 18,
+        PrimaryPlayerCoordinates = 19,
+        PrimaryPlayerRelativeCoordinatesLabel = 20,
+        PrimaryPlayerSelectionBox = 21,
+        PrimaryPlayerRoute = 22,
+        PrimaryPlayerSecondaryRoutes = 23,
+        PrimaryPlayerAlternateRoutes = 24,
+        PrimaryPlayerRouteAction = 25,
+        PrimaryPlayerRouteNode = 26,
+        PrimaryPlayerRoutePath = 27,
+        PrimaryPlayerRouteControlPath = 28,
+        OpponentPlayer = 29,
+        OpponentPlayerIcon = 30,
+        OpponentPlayerLabel = 31,
+        OpponentPlayerCoordinates = 32,
+        OpponentPlayerRelativeCoordinatesLabel = 33,
+        OpponentPlayerSelectionBox = 34,
+        OpponentPlayerRoute = 35,
+        OpponentPlayerSecondaryRoutes = 36,
+        OpponentPlayerAlternateRoutes = 37,
+        OpponentPlayerRouteAction = 38,
+        OpponentPlayerRouteNode = 39,
+        OpponentPlayerRoutePath = 40,
+        OpponentPlayerRouteControlPath = 41,
+        Ball = 42,
+        Field = 43,
+        Sideline = 44,
+        Hashmark = 45,
+        SidelineHashmark = 46,
+        Endzone = 47,
+        LineOfScrimmage = 48,
     }
     enum RouteTypes {
         None = 0,
@@ -2360,12 +2387,9 @@ declare module Playbook.Models {
     class EditorCanvas extends Common.Models.Canvas implements Common.Interfaces.ICanvas {
         constructor(playPrimary: Common.Models.PlayPrimary, playOpponent: Common.Models.PlayOpponent, width?: number, height?: number);
         initialize($container: any): void;
+        setDimensions(): void;
         updatePlay(playPrimary: Common.Models.PlayPrimary, playOpponent: Common.Models.PlayOpponent, redraw?: boolean): void;
-        resize(): void;
-        setScrollable(scrollable: any): void;
         resetHeight(): void;
-        setListener(actionId: any, fn: any): void;
-        invoke(actionId: any, data: any, context: any): void;
         zoomIn(): void;
         zoomOut(): void;
         getToolMode(): Enums.ToolModes;
@@ -2377,7 +2401,6 @@ declare module Playbook.Models {
         drawing: Common.Drawing.Utilities;
         constructor(canvas: Common.Interfaces.ICanvas);
         initialize(): void;
-        draw(): void;
         updatePlay(playPrimary: Common.Models.PlayPrimary, playOpponent: Common.Models.PlayOpponent): void;
     }
 }
@@ -2394,6 +2417,7 @@ declare module Playbook.Models {
     class PreviewCanvas extends Common.Models.Canvas implements Common.Interfaces.ICanvas {
         constructor(playPrimary: Common.Models.PlayPrimary, playOpponent: Common.Models.PlayOpponent);
         initialize($container: any): void;
+        setDimensions(): void;
     }
 }
 declare module Playbook.Models {
@@ -2422,10 +2446,10 @@ declare module Playbook.Models {
     class PreviewGround extends Common.Models.Ground {
         constructor(field: Common.Interfaces.IField);
         draw(): void;
-        hoverIn(e: any, self: any): void;
-        hoverOut(e: any, self: any): void;
-        click(e: any, self: any): void;
-        mouseDown(e: any, self: any): void;
+        hoverIn(e: any): void;
+        hoverOut(e: any): void;
+        click(e: any): void;
+        mousedown(e: any): void;
         dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void;
         dragStart(x: number, y: number, e: any): void;
         dragEnd(e: any): void;
@@ -2435,8 +2459,8 @@ declare module Playbook.Models {
     class EditorGround extends Common.Models.Ground {
         constructor(field: Common.Interfaces.IField);
         draw(): void;
-        mousemove(e: any, context: Common.Interfaces.IFieldElement): void;
-        click(e: any, context: Common.Interfaces.IGround): void;
+        mousemove(e: any): void;
+        click(e: any): void;
     }
 }
 declare module Playbook.Models {
@@ -2469,8 +2493,8 @@ declare module Playbook.Models {
         constructor(field: Common.Interfaces.IField, placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment);
         draw(): void;
         remove(): void;
-        mousedown(e: any, self: any): void;
-        click(e: any, self: any): any;
+        mousedown(e: any): void;
+        click(e: any): any;
         dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void;
         dragStart(x: number, y: number, e: any): void;
         dragEnd(e: any): void;
@@ -2499,6 +2523,7 @@ declare module Playbook.Models {
     class EditorPlayerIcon extends Common.Models.PlayerIcon {
         constructor(player: Common.Interfaces.IPlayer);
         draw(): void;
+        click(e: any): void;
     }
 }
 declare module Playbook.Models {
@@ -2579,8 +2604,8 @@ declare module Playbook.Models {
     class EditorRouteNode extends Common.Models.RouteNode implements Common.Interfaces.IRouteNode {
         constructor(context: Common.Interfaces.IPlayer, relativeCoordinates: Common.Models.RelativeCoordinates, type: Common.Enums.RouteNodeTypes);
         draw(): void;
-        click(e: any, self: any): void;
-        contextmenuHandler(e: any, self: any): void;
+        click(e: any): void;
+        contextmenu(e: any): void;
         dragMove(dx: any, dy: any, posx: any, posy: any, e: any): void;
         dragStart(x: any, y: any, e: any): void;
         dragEnd(e: any): void;
@@ -2669,8 +2694,6 @@ declare module Playbook.Enums {
 declare module Playbook.Constants {
     const FIELD_COLS_FULL: number;
     const FIELD_ROWS_FULL: number;
-    const FIELD_COLS_PREVIEW: number;
-    const FIELD_ROWS_PREVIEW: number;
     const FIELD_COLOR: string;
     const GRID_SIZE: number;
     const GRID_BASE: number;

@@ -9,7 +9,9 @@ module Playbook.Models {
             super(previewCanvas);
             this.canvas = previewCanvas;
             this.sizingMode = Common.Enums.PaperSizingModes.PreviewWidth;
-            this.showBorder = true;
+            this.showBorder = false;
+            
+            this.initialize();
         }
 
         public initialize(): void {

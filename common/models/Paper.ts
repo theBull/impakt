@@ -23,8 +23,10 @@ module Common.Models {
             this.y = 0;
             this.scrollSpeed = 0.5;
             this.zoomSpeed = 100;
-            this.showBorder = this.showBorder === true;
+            this.showBorder = false;
         }
+
+        public abstract initialize(): void;
 
         public getWidth() {
             return this.grid.dimensions.width;
@@ -39,8 +41,10 @@ module Common.Models {
             );
         }
 
-        public draw(): void {
+        public draw() {
             this.field.initialize();
+            if (this.showBorder)
+                this.drawOutline();
         }
 
         public resize() {
@@ -53,7 +57,8 @@ module Common.Models {
             return this.drawing.clear();
         }
 
-        public setViewBox() {
+        public setViewBox(center?: boolean) {
+            center = center === true;
             this.drawing.setAttribute('width', this.grid.dimensions.width);
 
             //this.x = this.getXOffset();
@@ -74,26 +79,33 @@ module Common.Models {
                     this.viewOutline = this.drawing.rect(
                         this.x,
                         this.y,
-                        this.canvas.dimensions.width - 10,
-                        this.canvas.dimensions.height - 10,
-                        true,
-                        5, 
-                        5
+                        this.canvas.dimensions.width,
+                        this.canvas.dimensions.height,
+                        true
                     );
                 }
                 this.viewOutline.attr({
-                    x: self.x + 5,
-                    y: self.y + 5,
-                    width: self.canvas.dimensions.width - 10,
-                    height: self.canvas.dimensions.height - 10,
+                    x: self.x + 1,
+                    y: self.y + 1,
+                    width: self.canvas.dimensions.width - 1,
+                    height: self.canvas.dimensions.height - 1,
                     stroke: 'red'
                 });
             }
         }
         
-        public scroll(scrollToX: number, scrollToY: number) {
-            this.y = scrollToY;
-            return this.setViewBox();
-        }     
+        /**
+         * Scrolls to the given x/y pixels (top/left). If center is set to true,
+         * centers the scroll on the x/y pixels.
+         * 
+         * @param {number}  scrollToX [description]
+         * @param {number}  scrollToY [description]
+         * @param {boolean} center    [description]
+         */
+        public scroll(scrollToX: number, scrollToY: number, center?: boolean) {
+            center = center === true;
+            this.y = center ? this.field.getLOSAbsolute() : scrollToY;
+            return this.setViewBox(center);
+        }
     }
 }

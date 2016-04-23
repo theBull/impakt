@@ -45,6 +45,9 @@ module Common.Models {
             // Maintains a window interval timer which checks every 1ms for
             // a change in container width; will fire a resize() if necessary
             this.widthChangeInterval = null;
+            this.readyCallbacks = [];
+
+            this.listener = new Common.Models.CanvasListener(this);
         }
 
         public remove() {
@@ -81,8 +84,13 @@ module Common.Models {
         }
 
         public refresh() {
+            if (Common.Utilities.isNullOrUndefined(this.paper))
+                throw new Error('Canvas refresh(): paper is null or undefined');
+            
             this.paper.draw();
         }
+
+        public abstract setDimensions(): void;
         
         public onready(callback) {
             if (this.readyCallbacks && this.readyCallbacks.length > 1000)
@@ -90,9 +98,33 @@ module Common.Models {
             this.readyCallbacks.push(callback);
         }
         public _ready() {
+            if (Common.Utilities.isNullOrUndefined(this.readyCallbacks))
+                return;
+
             for (var i = 0; i < this.readyCallbacks.length; i++) {
                 this.readyCallbacks.pop()();
             }
+        }
+        
+        public clearListeners(): void {
+            this.readyCallbacks = [];
+        }
+
+        public resize() {
+            var self = this;
+            this.dimensions.width = this.$container.width();
+            this.dimensions.height = this.$container.height();
+            this.paper.resize();
+            if (this.scrollable) {
+                this.scrollable.initialize(this.$container, this.paper);
+                this.scrollable.onready(function(content) {
+                    self.scrollable.scrollToPercentY(0.5);
+                });
+            }
+        }
+
+        public setScrollable(scrollable: any) {
+            this.scrollable = scrollable;
         }
     }
 }

@@ -79,32 +79,16 @@ function($q: any, __modals: any) {
 	}
 	this.savePlay = function(play: Common.Models.Play) {
 		let d = $q.defer();
-		let template, controller, data, size;
-		if (play.editorType == Playbook.Enums.EditorTypes.Play) {
-			size = 'lg';
-			template = 'modules/playbook/modals/save-play/save-play.tpl.html';
-			controller = 'playbook.modals.savePlay.ctrl';
-			data = {
+		
+		let modalInstance = __modals.open(
+			'lg',
+			'modules/playbook/modals/save-play/save-play.tpl.html',
+			'playbook.modals.savePlay.ctrl',
+			{
 				play: function() {
 					return play;
 				}
-			};
-		} else if (play.editorType == Playbook.Enums.EditorTypes.Formation) {
-			size = 'lg';
-			template = 'modules/playbook/modals/save-formation/save-formation.tpl.html';
-			controller = 'playbook.modals.saveFormation.ctrl';
-			data = {
-				formation: function() {
-					return play.formation;
-				}
 			}
-		}
-
-		let modalInstance = __modals.open(
-			size,
-			template,
-			controller,
-			data
 		);
 
 		modalInstance.result.then(function(results) {
@@ -150,7 +134,7 @@ function($q: any, __modals: any) {
 	this.createFormation = function() {
 		let d = $q.defer();
 		let modalInstance = __modals.open(
-			'',
+			'lg',
 			'modules/playbook/modals/create-formation/create-formation.tpl.html',
 			'playbook.modals.createFormation.ctrl',
 			{}
@@ -159,6 +143,30 @@ function($q: any, __modals: any) {
 		modalInstance.result.then(function(createdFormation) {
 			d.resolve();
 		}, function(results) {
+			d.reject();
+		});
+
+		return d.promise;
+	}
+	this.saveFormation = function(play: Common.Models.Play) {
+		let d = $q.defer();
+		
+		let modalInstance = __modals.open(
+			'lg',
+			'modules/playbook/modals/save-formation/save-formation.tpl.html',
+			'playbook.modals.saveFormation.ctrl',
+			{
+				play: function() {
+				return play;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(results) {
+			console.log(results);
+			d.resolve();
+		}, function(results) {
+			console.log('dismissed');
 			d.reject();
 		});
 

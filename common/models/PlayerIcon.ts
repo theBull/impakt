@@ -11,6 +11,7 @@ module Common.Models {
 			super(player.field, player);
 			this.player = player;
 
+			this.layer.type = Common.Enums.LayerTypes.PlayerIcon;
 			this.layer.graphics.setPlacement(this.player.layer.graphics.placement);
 			this.layer.graphics.dimensions.offset.x = -this.layer.graphics.dimensions.getRadius();
 			this.layer.graphics.dimensions.offset.y = -this.layer.graphics.dimensions.getRadius();

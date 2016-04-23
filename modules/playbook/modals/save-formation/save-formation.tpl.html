@@ -4,72 +4,79 @@
     </h3>
 </div>
 <div class="modal-body">
-	
-    <div class='marginBottom1'>
-        <span ng-show='formation.modified && !copyFormation && formation.key > 0'>
-            <div>
-                <span class='glyphicon glyphicon-exclamation-sign'></span>
-                &quot;{{formation.name}}&quot; has been modified. 
-                Clicking save will update the formation <em>anywhere</em> it is used.
-            </div>
-        </span>
-        <span ng-show='!formation.key || formation.key == 0'>
-            <div>
-                <span class='glyphicon glyphicon-ok'></span>
-                &quot;{{formation.name}}&quot; will be created as a new formation.
-            </div>
-        </span>
-        <span ng-show='!formation.modified && !copyFormation && formation.key > 0'>
-            No changes
-        </span>
-        <span ng-show='copyFormation && formation.key > 0'>
-            Clicking save will create a new copy of this formation as &quot;{{formation.name}}&quot;
-        </span>
-    </div>
 
-    <div class='marginBottom1 light-border-bottom'>
-        <div>
-            <strong>Name</strong>
-            <input type='text' ng-model='formation.name' />
+    <div class='row'>
+        <div class='marginRight1 width30 center'>
+            <formation-preview 
+                class='height35 width30' 
+                formation='formation'>
+            </formation-preview>
         </div>
-        <div class='padTop1' ng-show='formation.key > 0'>
-            <input type='checkbox' 
-                ng-model='copyFormation' 
-                ng-change='copyFormationChange()' />
-            <span>
-                Save as a new copy
-            </span>
-        </div>
-    </div>  
-    
-    <div class='marginBottom1 light-border-bottom'>
-        <span>
-            Unit type:
-            <type-formatter value='formation.unitType' 
-                type='Team.Enums.UnitTypes'>
-            </type-formatter>
-        </span>
-    </div>
-
-    <div class='marginBottom1'>
-        <details>
-            <summary>
-                <span class='glyphicon glyphicon-ok'></span>
-                <span><strong>Placements:</strong> {{formation.placements.size()}}</span>
-            </summary>
-            <div>
-                <ul>
-                    <li ng-repeat='placement in formation.placements.toArray()' class='pad'>
-                        <span>{{placement.index}} - ({{placement.coordinates.x}}, {{placement.coordinates.y}})</span>
-                    </li>
-                </ul>
+        
+        <div class='col'>
+            <div class='marginBottom1'>
+                <span ng-show='formation.modified && !copyFormation && formation.key > 0'>
+                    <div>
+                        <span class='glyphicon glyphicon-exclamation-sign'></span>
+                        &quot;{{formation.name}}&quot; has been modified. 
+                        Clicking save will update the formation <em>anywhere</em> it is used.
+                    </div>
+                </span>
+                <span ng-show='!formation.key || formation.key == 0'>
+                    <div>
+                        <span class='glyphicon glyphicon-ok'></span>
+                        &quot;{{formation.name}}&quot; will be created as a new formation.
+                    </div>
+                </span>
+                <span ng-show='!formation.modified && !copyFormation && formation.key > 0'>
+                    No changes
+                </span>
+                <span ng-show='copyFormation && formation.key > 0'>
+                    Clicking save will create a new copy of this formation as &quot;{{formation.name}}&quot;
+                </span>
             </div>
-        </details>
-    </div>
-    <div class='padBottom1'>
-        <play-preview></play-preview>
-    </div>
 
+            <div class='marginBottom1 light-border-bottom'>
+                <div>
+                    <strong>Name</strong>
+                    <input type='text' ng-model='formation.name' />
+                </div>
+                <div class='padTop1' ng-show='formation.key > 0'>
+                    <input type='checkbox' 
+                        ng-model='copyFormation' 
+                        ng-change='copyFormationChange()' />
+                    <span>
+                        Save as a new copy
+                    </span>
+                </div>
+            </div>  
+            
+            <div class='marginBottom1 light-border-bottom'>
+                <span>
+                    Unit type:
+                    <type-formatter value='formation.unitType' 
+                        type='Team.Enums.UnitTypes'>
+                    </type-formatter>
+                </span>
+            </div>
+
+            <div class='marginBottom1'>
+                <details>
+                    <summary>
+                        <span class='glyphicon glyphicon-ok'></span>
+                        <span><strong>Placements:</strong> {{formation.placements.size()}}</span>
+                    </summary>
+                    <div>
+                        <ul>
+                            <li ng-repeat='placement in formation.placements.toArray()' class='pad'>
+                                <span>{{placement.index}} - ({{placement.coordinates.x}}, {{placement.coordinates.y}})</span>
+                            </li>
+                        </ul>
+                    </div>
+                </details>
+            </div>
+        </div>
+    </div>
 </div>
 <div class="modal-footer">
     <button class="btn btn-primary" type="button" ng-click="ok()">save</button>

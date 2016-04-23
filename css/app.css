@@ -765,36 +765,36 @@ expandable {
   border-bottom: 1px solid #111;
 }
 
-.play-preview {
-  display: inline-block !important;
-  min-width: 10em;
-  min-height: 8em;
-  max-width: 100em;
-  max-height: 80em;
+play-preview {
+  position: relative;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  /* for now */
 }
 
-.play-preview .play-preview-refresh-container {
+play-thumbnail {
+  overflow: hidden;
+  position: relative;
+}
+
+play-thumbnail img {
   position: absolute;
-  height: 100%;
-  width: 100%;
-  top: 0;
-  left: 0;
-  border: 3px solid #777777;
 }
 
-.play-preview .play-preview-refresh-overlay {
+formation-preview {
+  position: relative;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  /* for now */
+}
+
+formation-thumbnail {
+  overflow: hidden;
+  position: relative;
+}
+
+formation-thumbnail img {
   position: absolute;
-  height: 100%;
-  width: 100%;
-  background-color: rgba(0, 0, 0, 0.7);
-  font-color: rgba(255, 255, 255, 0.9);
-  top: 0;
-  left: 0;
-  z-index: 10;
-}
-
-.play-preview .play-preview-refresh-message {
-  z-index: 11;
 }
 
 stepper {

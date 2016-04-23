@@ -7,9 +7,6 @@ module Playbook.Models {
 
         constructor(field: Common.Interfaces.IField, x: number) {
             super(field, x);
-
-            this.start = 0;
-            this.yards = 40;
         }
     }
 }

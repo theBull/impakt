@@ -14,26 +14,22 @@
 
             <div class='marginBottom2'>
                 <p>Unit type</p>
-                <div ng-repeat='unitType in unitTypes.toArray()'>
-            	    <label>
-            	    	<div class='row marginBottom1'>
-            		    	<div class='width1 marginRight1'>
-            		    		<input type='radio' 
-            		    			ng-model='selectedUnitTypeValue.unitType'
-            		    			ng-value='unitType.unitType'
-            		    			ng-change='selectUnitType(selectedUnitTypeValue.unitType)'
-            		    			ng-checked='selectedUnitType.unitType == unitType.unitType'
-            		    			name='unitType' />
-            		    	</div>
-            		    	<span>{{unitType.name}}</span>
-            	    	</div>
+                <div ng-repeat='unitType in unitTypeCollection.toArray()'>
+            	    <label class='pad pointer gray-bg-0-hover row'>
+        		    	<div class='width1 marginRight1'>
+        		    		<input type='radio' 
+        		    			ng-model='selectedUnitType.unitType'
+        		    			ng-value='unitType.unitType'
+        		    			name='unitType' />
+        		    	</div>
+        		    	<span>{{unitType.name}} ({{unitType.unitType}})</span>
             	    </label>
                 </div>
             </div>
 
             <div class='marginBottom2'>
 
-                <div>
+                <div class='marginBottom1'>
                     Playbook
                     <div ng-show='playbooks.hasElements()'>
                         <select ng-options='playbook as playbook.name for playbook in playbooks.toArray()'
@@ -49,7 +45,7 @@
                     </div>
                 </div>
 
-                <div class='marginTop1'>
+                <div class='marginBottom1'>
                     Formation
                     <div ng-show='formations.hasElements()'>
                         <select ng-options='formation as formation.name for formation in formations.toArray()'
@@ -64,7 +60,7 @@
                         <em>There are no saved formations to apply.</em>
                     </div>
                 </div>
-            	<div class='marginTop1'>
+            	<div class='marginBottom1'>
             		Assignments
                     <div ng-show='assignments.hasElements()'>
                 		<select ng-options='assignmentSet as assignmentSet.name for assignmentSet in assignments.toArray()'
@@ -79,7 +75,7 @@
                         <em>There are no saved assignment sets to apply.</em>
                     </div>
             	</div>
-            	<div class='marginTop1'>
+            	<div class='marginBottom1'>
             		Personnel
                     <div ng-show='personnelCollection.hasElements()'>
                 		<select ng-options='personnel as personnel.name for personnel in personnelCollection.toArray()'
@@ -105,10 +101,10 @@
         <!-- Play preview -->
         <div class='col shrink'>
             <div class='center'>
-                <div class='width35 height28 overflowHidden'>
-                    <play-preview guid='{{newPlay.guid}}'>
-                    </play-preview>
-                </div>
+                <play-preview 
+                    play='newPlay' 
+                    class='width35 height40'>
+                </play-preview>
             </div>
         </div>
     </div>

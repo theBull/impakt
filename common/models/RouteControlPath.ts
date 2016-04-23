@@ -12,7 +12,7 @@ module Common.Models {
 			super(routeNode.field, routeNode);
 
 			this.routeNode = routeNode;
-            this.layer.type = Common.Enums.LayerTypes.RouteControlPath;
+            this.layer.type = Common.Enums.LayerTypes.PlayerRouteControlPath;
 
             this.layer.graphics.setStroke('grey');
             this.layer.graphics.setStrokeWidth(1);

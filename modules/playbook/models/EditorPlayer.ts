@@ -96,20 +96,19 @@ module Playbook.Models {
 			this.assignment.remove();
 		}
 
-		public mousedown(e: any, self: any) {
+		public mousedown(e: any) {
 
 			// TODO: enumerate e.which (Event.SHIFT_)
 			if (e.which == Common.Input.Which.RightClick) {
 				//console.log('right click');
-				self.canvas.invoke(
+				this.canvas.listener.invoke(
 					Playbook.Enums.Actions.PlayerContextmenu,
-					'open player context menu...',
-					self
+					this
 				);
 			}
 		}
 
-		public click(e: any, self: any) {
+		public click(e: any) {
 			if (e.ctrlKey) {
 				e.preventDefault();
 				if (e.isDefaultPrevented()) {
@@ -119,9 +118,12 @@ module Playbook.Models {
 				}
 			}
 			
-			self.field.togglePlayerSelection(self);
+			// Toggle the selection of this player
+			this.field.toggleSelection(this);
 
-			let toolMode = self.canvas.toolMode;
+			// determine the tool currently selected
+			let toolMode = this.canvas.toolMode;
+
 			switch(toolMode) {
 				case Playbook.Enums.ToolModes.Select:
 					//console.log('Select player');

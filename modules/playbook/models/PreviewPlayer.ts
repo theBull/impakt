@@ -18,6 +18,8 @@ module Playbook.Models {
 
 			// the set acts as a group for the other graphical elements
 			this.icon = new Playbook.Models.PreviewPlayerIcon(this);
+
+			this.layer.addLayer(this.icon.layer);
 		}
 
 		public draw() {

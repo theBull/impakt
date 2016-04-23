@@ -15,20 +15,25 @@ module Playbook.Models {
             this.playOpponent = playOpponent;
             this.dimensions.setMinWidth(250);
             this.dimensions.setMinHeight(200);
-            this.$exportCanvas = $('<canvas/>', {
-                id: 'exportCanvas' + this.guid
-            }).width(500).height(400);
-            this.exportCanvas = this.$exportCanvas[0];
         }
 
         public initialize($container: any) {
             this.container = $container[0]; // jquery lite converted to raw html
             this.$container = $container;
-            this.dimensions.width = 500; //this.$container.width();
-            this.dimensions.height = 400; //this.$container.height();
+            this.setDimensions();
             this.paper = new Playbook.Models.PreviewPaper(this);
-            this.paper.initialize();
             this.paper.draw();
+            this.$exportCanvas = $('<canvas/>', {
+                id: 'exportCanvas' + this.guid
+            }).width(this.dimensions.width).height(this.dimensions.height);
+            this.exportCanvas = this.$exportCanvas[0];
+
+            this._ready();
+        }
+
+        public setDimensions() {
+            this.dimensions.width = Math.min(500, this.$container.width());
+            this.dimensions.height = Math.min(400, this.$container.height());
         }
     }
 }

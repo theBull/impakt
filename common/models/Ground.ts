@@ -27,7 +27,7 @@ module Common.Models {
                 this
             );
         }
-        public click(e: any, context: Common.Interfaces.IFieldElement): void {
+        public click(e: any): void {
             // Do nothing
             console.log('ground clicked');
         }
