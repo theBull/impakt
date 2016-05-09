@@ -22,7 +22,7 @@
 
 			<div class='maxWidth20 marginBottom1'>
 				Choose an organization
-				<select ng-options='organization as organization.companyName for organization in organizations.toArray()' 
+				<select ng-options='organization as organization.name for organization in organizations.toArray()' 
 					ng-model='selectedOrganization'
 					ng-change='selectOrganization()'>
 

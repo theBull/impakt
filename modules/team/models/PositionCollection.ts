@@ -3,10 +3,13 @@
 
 module Team.Models {
     export class PositionCollection
-        extends Common.Models.ModifiableCollection<Team.Models.Position> {
+    extends Common.Models.ModifiableCollection<Team.Models.Position> {
 
-        constructor() {
+        public unitType: Team.Enums.UnitTypes;
+
+        constructor(unitType: Team.Enums.UnitTypes) {
             super();
+            this.unitType = unitType;
             this.setDefault();
         }
         public listPositions() {
@@ -25,7 +28,13 @@ module Team.Models {
 
             for (var i = 0; i < positions.length; i++) {
                 var rawPosition = positions[i];
-                var positionModel = new Team.Models.Position();
+                if (Common.Utilities.isNullOrUndefined(rawPosition))
+                    continue;
+
+                rawPosition.unitType = !Common.Utilities.isNullOrUndefined(rawPosition.unitType) &&
+                    rawPosition.unitType >= 0 ? rawPosition.unitType : Team.Enums.UnitTypes.Other;
+
+                var positionModel = new Team.Models.Position(rawPosition.unitType);
                 positionModel.fromJson(rawPosition);
                 this.add(positionModel);
             }

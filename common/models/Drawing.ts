@@ -71,6 +71,20 @@ module Common.Drawing {
             return rect;
         }
 
+        public rhombus(
+            x: number,
+            y: number,
+            width: number,
+            height: number,
+            absolute: boolean,
+            offsetX?: number,
+            offsetY?: number            
+        ) {
+            let rect = this.rect(x, y, width, height, absolute, offsetX, offsetY);
+            rect.transform('r-45');
+            return rect;
+        }
+
         public ellipse(x, y, width, height, absolute: boolean, offsetX?: number, offsetY?: number) {
             let pixels = this.alignToGrid(x, y, absolute);
             offsetX = offsetX || 0;
@@ -87,7 +101,7 @@ module Common.Drawing {
             return ellipse;
         }
 
-        public circle(x, y, radius: number, absolute: boolean, offsetX?: number, offsetY?: number) {
+        public circle(x: number, y: number, radius: number, absolute: boolean, offsetX?: number, offsetY?: number) {
             let pixels = this.alignToGrid(x, y, absolute);
             offsetX = offsetX || 0;
             offsetY = offsetY || 0;
@@ -100,6 +114,29 @@ module Common.Drawing {
                 cy: pixels.y + offsetY
             });
             return circle;
+        }
+
+        public triangle(x: number, y: number, height: number, absolute: boolean, offsetX?: number, offsetY?: number) {
+            let pixels = this.alignToGrid(x, y, absolute);
+            offsetX = offsetX || 0;
+            offsetY = offsetY || 0;
+
+            // get height of center
+            let centerHeight = height / 2;
+
+            // get side length
+            let sideLength = (2 * height) / Math.sqrt(3);
+
+            // create path string
+            let pathString = Common.Drawing.Utilities.getClosedPathString(
+                true,[
+                    ((pixels.x + offsetX) - (sideLength / 2)), ((pixels.y + offsetY) + centerHeight),
+                    (pixels.x + offsetX), ((pixels.y + offsetY) - centerHeight),
+                    ((pixels.x + offsetX) + (sideLength / 2)), ((pixels.y + offsetY) + centerHeight)
+                ]
+            );
+
+            return this.Raphael.path(pathString);
         }
 
         public text(x: number, y: number, text: string, absolute: boolean, offsetX?: number, offsetY?: number) {

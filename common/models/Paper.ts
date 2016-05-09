@@ -53,8 +53,8 @@ module Common.Models {
             this.draw();
         }
 
-        public clear() {
-            return this.drawing.clear();
+        public clear(): void {
+            this.field.clearPlay();   
         }
 
         public setViewBox(center?: boolean) {

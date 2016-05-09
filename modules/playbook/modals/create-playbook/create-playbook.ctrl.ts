@@ -5,9 +5,9 @@ impakt.playbook.modals.controller('playbook.modals.createPlaybook.ctrl',
 '$scope', '$uibModalInstance', '_playbook',
 	function($scope: any, $uibModalInstance: any, _playbook: any) {
 
-	$scope.newPlaybookModel = new Common.Models.PlaybookModel();
 	$scope.unitTypeCollection = impakt.context.Team.unitTypes;
 	$scope.selectedUnitType = $scope.unitTypeCollection.getByUnitType(Team.Enums.UnitTypes.Offense);
+	$scope.newPlaybookModel = new Common.Models.PlaybookModel($scope.selectedUnitType);
 
 	$scope.ok = function () {
 		

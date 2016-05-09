@@ -21,6 +21,7 @@ module Common.Models {
         public listener: Common.Models.CanvasListener;
         public readyCallbacks: Function[];
         public widthChangeInterval: any;
+        public active: boolean;
 
         constructor(
             width?: number, 
@@ -46,13 +47,14 @@ module Common.Models {
             // a change in container width; will fire a resize() if necessary
             this.widthChangeInterval = null;
             this.readyCallbacks = [];
-
             this.listener = new Common.Models.CanvasListener(this);
         }
 
-        public remove() {
+        public clear(): void {
             this.playOpponent = null;
             this.playPrimary = null;
+            this.paper.clear();
+            this.clearListeners();
             this.setModified(true);
         }
 

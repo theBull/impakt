@@ -20,7 +20,8 @@ impakt.app = angular.module('impakt.app', [
 	'ui.router', 
 	'ui.bootstrap',
 	'impakt.common',
-	'impakt.modules'
+	'impakt.modules',
+	'ngTagsInput'
 ])
 .config(
 	[

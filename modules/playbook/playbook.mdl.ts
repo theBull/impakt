@@ -7,32 +7,28 @@ impakt.playbook = angular.module('impakt.playbook', [
 	'impakt.playbook.contextmenus',
 	'impakt.playbook.modals',
 	'impakt.playbook.browser',
+	'impakt.playbook.drilldown',
 	'impakt.playbook.editor',
 	'impakt.playbook.layout',
 	'impakt.playbook.nav',
 ])
-.config(
-	['$stateProvider', 
-	'$urlRouterProvider',
-	function($stateProvider: any, 
-		$urlRouterProvider: any) {
+.config([
+'$stateProvider', 
+'$urlRouterProvider',
+function($stateProvider: any, 
+	$urlRouterProvider: any) {
 
-		console.debug('impakt.playbook - config');
+	console.debug('impakt.playbook - config');
 
-		// impakt module states
-		$stateProvider.state('playbook', {
-			url: '/playbook',
-			templateUrl: 'modules/playbook/playbook.tpl.html',
-			controller: 'playbook.ctrl'
-		});
+	// impakt module states
+	$stateProvider.state('playbook', {
+		url: '/playbook',
+		templateUrl: 'modules/playbook/playbook.tpl.html',
+		controller: 'playbook.ctrl'
+	});
+	
 }])
-.run([
-	'$stateParams', 
-	'__localStorage', 
-	function(
-		$stateParams: any, 
-		__localStorage: any) {
-
-			console.debug('impakt.playbook - run');
+.run([function() {
+	console.debug('impakt.playbook - run');
 }]);
 

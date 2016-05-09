@@ -80,7 +80,7 @@ function(
 						} else {
 							// no play has been found to contain the formation,
 							// draw a new play to render the preview
-							$scope.play = new Common.Models.Play();
+							$scope.play = new Common.Models.Play($scope.formation.unitType);
 							$scope.play.setFormation($scope.formation);
 						}
 

@@ -13,11 +13,18 @@ function(
 ) {
 
 	$scope.play = play;
+	$scope.playbooks = impakt.context.Playbook.playbooks;
 	$scope.formation = play.formation;
 	$scope.copyFormation = false;
+	$scope.associatedPlaybook;
 	var originalFormationKey = $scope.formation.key;
 	var originalFormationName = $scope.formation.name;
 	var originalFormationGuid = $scope.formation.guid;
+
+	function init() {
+		// look for first associated playbook in formation
+		let associatedPlaybook = false;
+	}
 
 	$scope.copyFormationChange = function() {
 		$scope.formation.key = $scope.copyFormation ? -1 : originalFormationKey;
@@ -70,5 +77,7 @@ function(
 		$scope.formation.name = originalFormationName;
 		$uibModalInstance.dismiss();
 	};
+
+	init();
 
 }]);

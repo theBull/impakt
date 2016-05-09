@@ -69,7 +69,7 @@ function(
 						$scope.modificationTimer = $timeout(function() {
 							console.log('auto refresh based on user changes');
 							$scope.refresh();
-						}, 500);
+						}, 200);
 					});
 
 					/**

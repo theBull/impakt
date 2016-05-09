@@ -12,29 +12,39 @@ function(
 	_playbookEditorCanvas: any
 ) {
 
+	$scope.unitTypes = _playbookEditorCanvas.unitTypes;
 	$scope.formations = _playbookEditorCanvas.formations;
 	$scope.personnelCollection = _playbookEditorCanvas.personnelCollection;
 	$scope.plays = _playbookEditorCanvas.plays;
 	$scope.tab = _playbookEditorCanvas.getActiveTab();
-	$scope.hasOpenTabs = $scope.tab != null;
+	$scope.tabs = _playbookEditorCanvas.tabs;
+	$scope.hasOpenTabs = _playbookEditorCanvas.hasTabs();
 	$scope.canvas = _playbookEditorCanvas.canvas;
 	$scope.editorModeClass = '';
 
 	// check if there are any open tabs; if not, hide the canvas and
 	// clear the canvas data.
-	if($scope.tab) {
+	if(!Common.Utilities.isNullOrUndefined($scope.tab)) {
 		$scope.tab.onclose(function() {
 			$scope.hasOpenTabs = _playbookEditorCanvas.hasTabs();
 		});
 		$scope.canvas.onready(function() {
 			$scope.editorModeClass = $scope.getEditorTypeClass($scope.canvas.playPrimary.editorType);
 			$scope.canvas.onModified(function() {
+				if (Common.Utilities.isNullOrUndefined($scope.canvas.playPrimary))
+					return;
+
 				$scope.editorModeClass = $scope.getEditorTypeClass($scope.canvas.playPrimary.editorType);
 				$timeout(function() {
 					console.log('timeout running');
 					$scope.$apply();
 				}, 1);					
 			});
+		});
+	}
+	if(!Common.Utilities.isNullOrUndefined($scope.tabs)) {
+		$scope.tabs.onModified(function(tabs: Common.Models.TabCollection) {
+			$scope.hasOpenTabs = tabs.hasElements();
 		});
 	}
 
@@ -65,12 +75,21 @@ function(
 	$scope.applyFormation = function(formation: Common.Models.Formation) {
 		console.log('apply formation to editor');
 		_playbookEditorCanvas.applyPrimaryFormation(formation);
+		$scope.formationDropdownVisible = false;
 	}
 	$scope.applyPersonnel = function(personnel: Team.Models.Personnel) {
 		_playbookEditorCanvas.applyPrimaryPersonnel(personnel);
+		$scope.setDropdownVisible = false;
 	}
 	$scope.applyPlay = function(play: Common.Models.Play) {
 		_playbookEditorCanvas.applyPrimaryPlay(play);
+	}
+	$scope.applyUnitType = function(unitType: Team.Models.UnitType) {
+		if (unitType.unitType == $scope.canvas.playPrimary.unitType)
+			return;
+		
+		_playbookEditorCanvas.applyPrimaryUnitType(unitType.unitType);
+		$scope.unitTypeDropdownVisible = false;
 	}
 
 	/**

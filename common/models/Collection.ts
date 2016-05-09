@@ -3,7 +3,8 @@
 module Common.Models {
 
 	export class Collection<T extends Common.Models.Storable>
-	extends Common.Models.Storable {
+	extends Common.Models.Storable
+	implements Common.Interfaces.ICollection<T> {
 		
 		private _count: number;
 		private _keys: Array<string | number>;
@@ -134,6 +135,10 @@ module Common.Models {
 				].join(''));
 			}
 		}
+		public only(data: T): void {
+			this.removeAll();
+			this.add(data);
+		}
 		public append(collection: Common.Models.Collection<T>) {
 			// adds the given collection onto the end of this collection
 			// E.g.
@@ -223,6 +228,10 @@ module Common.Models {
 				results.push(element.toJson());
 			});
 			return results;
+		}
+
+		public getGuids(): Array<string | number> {
+			return this._keys;
 		}
 	}
 }

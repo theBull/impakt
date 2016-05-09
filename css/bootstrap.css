@@ -2234,8 +2234,8 @@ select[multiple].form-group-lg .form-control {
   border: 1px solid transparent;
   white-space: nowrap;
   padding: 2px 5px 1px 5px;
-  font-size: 14px;
-  line-height: 1.42857143;
+  /*font-size: 14px;
+  line-height: 1.42857143;*/
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;

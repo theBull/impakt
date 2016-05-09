@@ -12,7 +12,12 @@
 /// <reference path='./ModifiableLinkedList.ts' />
 /// <reference path='./ModifiableLinkedListNode.ts' />
 
-/// <reference path='./AssociationArray.ts' />
+/// <reference path='./Actionable.ts' />
+/// <reference path='./ActionableCollection.ts' />
+
+/// <reference path='./AssociableEntity.ts' />
+/// <reference path='./AssociableCollectionEntity.ts' />
+/// <reference path='./AssociationCollection.ts' />
 /// <reference path='./Association.ts' />
 /// <reference path='./Notification.ts' />
 /// <reference path='./NotificationCollection.ts' />

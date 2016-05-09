@@ -1,10 +1,6 @@
 /// <reference path='../playbook.mdl.ts' />
 
-impakt.playbook.browser = angular.module('impakt.playbook.browser', [
-	'impakt.playbook.browser.sidebar',
-	'impakt.playbook.browser.main',
-	'impakt.playbook.browser.details'
-])
+impakt.playbook.browser = angular.module('impakt.playbook.browser', [])
 .config([
 	'$stateProvider',
 	function($stateProvider: any) {	
@@ -13,20 +9,8 @@ impakt.playbook.browser = angular.module('impakt.playbook.browser', [
 
 	$stateProvider.state('playbook.browser', {
 		url: '/browser',
-		views: {
-			'sidebar': {
-				templateUrl: 'modules/playbook/browser/sidebar/playbook-browser-sidebar.tpl.html',
-				controller: 'playbook.browser.sidebar.ctrl'
-			},
-			'main': {
-				templateUrl: 'modules/playbook/browser/main/playbook-browser-main.tpl.html',
-				controller: 'playbook.browser.main.ctrl',
-			},
-			'details': {
-				templateUrl: 'modules/playbook/browser/details/playbook-browser-details.tpl.html',
-				controller: 'playbook.browser.details.ctrl'
-			},
-		}
+		templateUrl: 'modules/playbook/browser/playbook-browser.tpl.html',
+		controller: 'playbook.browser.ctrl'
 	});
 }])
 .run(function() {

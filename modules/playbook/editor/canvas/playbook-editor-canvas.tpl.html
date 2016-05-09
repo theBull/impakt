@@ -3,8 +3,8 @@
 <div ng-controller='playbook.editor.canvas.ctrl' 
 	class='playbook-editor-canvas-container col'>
 
-	<div class='col font-white pad'
-		ng-if='!hasOpenTabs'>
+	<!-- <div class='col font-white pad'
+		ng-show='!hasOpenTabs'>
 		<div class='center'>
 			<div class='height6 textCenter'>
 				<div class='marginBottom1'>
@@ -16,23 +16,44 @@
 				</h4>
 			</div>
 		</div>
-	</div>
+	</div> -->
 	
-	<div class='col' ng-if='hasOpenTabs'>
+	<div class='col'>
 	
 		<div class='playbook-editor-play-info row 
 			gray-bg-3
 			height3 font-white overflowVisible {{editorModeClass}}'>
 
 			<!-- Unit type -->
-			<div class='pad'>
-				<div>
-					Unit type:
-					<type-formatter
-						value='canvas.playPrimary.unitType'
-						type='Team.Enums.UnitTypes'>
-					</type-formatter>
-				</div>	
+			<div class='pointer positionRelative'
+				ng-init='unitTypeDropdownVisible = false'>
+				<div class='row height3 pad'
+					ng-click='unitTypeDropdownVisible = !unitTypeDropdownVisible'>
+					<div class='marginRight1'>
+						Unit type:  
+						<type-formatter
+							value='canvas.playPrimary.unitType'
+							type='Team.Enums.UnitTypes'>
+						</type-formatter>
+						
+					</div>
+					<div class='glyphicon glyphicon-chevron-down'>
+					</div>
+				</div>
+				<div class='col minWidth20 dropdown heightAuto'
+					ng-show='unitTypeDropdownVisible'>
+					<!-- list of formations -->
+					<ul>
+						<li ng-repeat='unitType in unitTypes.toArray()'
+							class='pad pointer gray-bg-4-hover'
+							ng-click='applyUnitType(unitType)'>
+							<type-formatter
+								value='unitType.unitType'
+								type='Team.Enums.UnitTypes'>
+							</type-formatter>
+						</li>
+					</ul>
+				</div>
 			</div>
 
 			<!-- Editor type message -->
@@ -90,7 +111,7 @@
 					ng-show='formationDropdownVisible'>
 					<!-- list of formations -->
 					<ul>
-						<li ng-repeat='(key, formation) in formations.getAll()'
+						<li ng-repeat='formation in formations.toArray() | filter:{unitType: canvas.playPrimary.unitType}'
 							class='pad pointer gray-bg-4-hover'
 							ng-click='applyFormation(formation)'>
 							{{formation.name}}
@@ -116,7 +137,7 @@
 					ng-show='setDropdownVisible'>
 					<!-- list of personnel -->
 					<ul>
-						<li ng-repeat='(guid, personnel) in personnelCollection.getAll()'
+						<li ng-repeat='personnel in personnelCollection.toArray() | filter:{unitType: canvas.playPrimary.unitType}'
 							class='pad pointer gray-bg-4-hover'
 							ng-click='applyPersonnel(personnel)'>
 							{{personnel.name}}
@@ -171,7 +192,6 @@
 					scrollable
 					class='col playbook-editor-canvas'>
 					<!-- oncontextmenu='return false;'> -->
-					
 				</playbook-editor-canvas>
 
 				<!-- canvas info -->

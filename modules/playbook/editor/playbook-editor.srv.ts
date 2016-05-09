@@ -7,11 +7,13 @@ declare var impakt: any;
 impakt.playbook.editor.service('_playbookEditor',
 [
 '$rootScope',
+'$q',
 '_base', 
 '_playbook',
 '_playbookModals',
 function(
 	$rootScope: any,
+	$q: any,
 	_base: any, 
 	_playbook: any,
 	_playbookModals: any) {
@@ -68,7 +70,7 @@ function(
 
 		let initialPlay = null;
 
-		if(self.tabs.isEmpty()) {
+		if(self.tabs.isEmpty() || self.tabs.size() != self.plays.size()) {
 			self.loadTabs();
 		}
 
@@ -168,7 +170,7 @@ function(
 		}		
 	}
 	this.closeTab = function(tab: Common.Models.Tab) {
-		this.tabs.remove(tab.guid);
+		this.tabs.close(tab);
 
 		// remove play from editor context
 		this.plays.remove(tab.playPrimary.guid);
@@ -180,9 +182,7 @@ function(
 		} else {
 			// no remaining tabs - nullify active Tab
 			this.activeTab = null;
-
-			this.canvas.clearListeners();
-			this.canvas = null;
+			this.canvas.clear();
 		}
 
 		// tell tab to close (fire off close callbacks)
@@ -263,11 +263,13 @@ function(
 	}
 
 	this.editFormation = function(formation: Common.Models.Formation) {
-		return _playbook.editFormation(formation);
+		_playbook.editFormation(formation);
+		this.loadTabs();
 	}
 
 	this.editPlay = function(play: Common.Models.Play) {
-		return _playbook.editPlay(play);
+		_playbook.editPlay(play);
+		this.loadTabs();
 	}
 
 	/**

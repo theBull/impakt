@@ -1,0 +1,47 @@
+<div class='col pad'>
+	
+	
+	<h5>{{playbook.name}}</h5>
+
+	<div class='marginBottom1'>
+		<type-formatter 
+			value='playbook.unitType' 
+			type='Team.Enums.UnitTypes'>
+		</type-formatter>
+	</div>
+		
+	<!-- Plays -->
+	<div class='marginBottom1'>
+		<p>Plays (0)</p>
+		<div class='grid'>
+				
+			<play-item
+				ng-repeat='play in plays.toArray()'
+				play='play'>
+			</play-item>
+
+		</div>
+	</div>
+
+	<!-- Formations -->
+	<div class='marginBottom1'>
+		<p>Formations (0)</p>
+		<div class='grid'>
+				
+			<formation-item
+				ng-repeat='formation in formations.toArray()'
+				formation='formation'>
+			</formation-item>
+
+		</div>
+	</div>
+
+	<div class='row marginBottom1'>
+		<div class='width7 red-bg-hover pointer pad'
+			ng-click='delete()'>
+			<span class='glyphicon glyphicon-remove'></span>
+			delete
+		</div>
+	</div>
+	
+</div>

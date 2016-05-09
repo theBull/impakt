@@ -1,0 +1,58 @@
+<div ng-controller='details.ctrl'>
+	
+	<div class='marginLeft3 pad padBottom0'>
+		<h4>
+			<span class='glyphicon glyphicon-info-sign'></span>
+			Details
+		</h4>
+	</div>
+
+	<div>
+
+		<!-- Manage associations -->
+		<div class='pad' 
+			ng-repeat='element in selectedElements.toArray()'>
+			
+			<div class='marginBottom1'>
+				<h4>
+					<strong>
+						<type-formatter
+							value='element.impaktDataType'
+							type='Common.Enums.ImpaktDataTypes'>
+						</type-formatter>
+					</strong>: {{element.name}}
+				</h4>
+			</div>
+			
+			<div class='light-border-bottom marginBottom1'>
+				<p>Associate to playbooks</p>
+
+				<tags-input 
+					ng-model='associatedPlaybooks' 
+					display-property='name'
+					placeholder='Add to playbook'
+					add-from-autocomplete-only='true'
+					add-on-enter='true'
+					on-tag-added='associatePlaybook($tag, element, _details)'
+					on-tag-removed='unassociatePlaybook($tag, element, _details)'>
+					<auto-complete 
+						source='loadPlaybooks($query)'
+						display-property='name'
+						load-on-focus='true'
+						select-first-match='true'
+						min-length='1'>
+					</auto-complete>
+				</tags-input>
+			</div>
+
+			<!-- delete entity -->
+			<div class='height3 pad red-bg-hover pointer width7' 
+				ng-click='delete(element)'>
+				<span class='glyphicon glyphicon-remove'></span>
+				<span>delete</span>
+			</div>
+		</div>
+
+	</div>
+	
+</div>

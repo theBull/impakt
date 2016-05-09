@@ -1,4 +1,38 @@
 declare module Common.Interfaces {
+    interface ICollection<T extends Common.Interfaces.IStorable> {
+        size(): number;
+        isEmpty(): boolean;
+        hasElements(): boolean;
+        get(key: string | number): T;
+        exists(key: string | number): boolean;
+        first(): T;
+        getOne(): T;
+        getIndex(index: number): T;
+        getAll(): {
+            any?: T;
+        };
+        getLast(): T;
+        set(key: string | number, data: T): void;
+        replace(replaceKey: string | number, data: T): void;
+        setAtIndex(index: number, data: T): void;
+        add(data: T): void;
+        addAll(...args: T[]): void;
+        addAtIndex(data: T, index: number): void;
+        only(data: T): void;
+        append(collection: Common.Models.Collection<T>): void;
+        forEach(iterator: Function): void;
+        hasElementWhich(predicate: Function): boolean;
+        filter(predicate: Function): T[];
+        filterFirst(predicate: Function): T;
+        removeAll(): void;
+        removeEach(iterator: any): void;
+        contains(key: string | number): boolean;
+        toArray(): T[];
+        toJson(): any[];
+        getGuids(): Array<string | number>;
+    }
+}
+declare module Common.Interfaces {
     interface ICollectionItem {
         guid: string;
     }
@@ -18,7 +52,7 @@ declare module Common.Interfaces {
         context: any;
         isContextSet: boolean;
         listening: boolean;
-        copy(newElement: Common.Models.Modifiable, context: Common.Models.Modifiable): Common.Models.Modifiable;
+        copy(newElement: Common.Interfaces.IModifiable, context: Common.Interfaces.IModifiable): Common.Interfaces.IModifiable;
         checkContextSet(): void;
         setContext(context: any): void;
         onModified(callback: Function): void;
@@ -30,10 +64,39 @@ declare module Common.Interfaces {
     }
 }
 declare module Common.Interfaces {
+    interface IModifiableCollection<T extends Common.Models.Modifiable> extends Common.Interfaces.ICollection<T> {
+    }
+}
+declare module Common.Interfaces {
     interface IStorable {
         guid: string;
         toJson(): any;
         fromJson(json: any): any;
+    }
+}
+declare module Common.Interfaces {
+    interface IActionable extends Common.Interfaces.IModifiable {
+        impaktDataType: Common.Enums.ImpaktDataTypes;
+        disabled: boolean;
+        clickable: boolean;
+        hoverable: boolean;
+        selected: boolean;
+        selectable: boolean;
+        draggable: boolean;
+        select(): void;
+        deselect(): void;
+        toggleSelect(): void;
+        disable(): void;
+        enable(): void;
+    }
+}
+declare module Common.Interfaces {
+    interface IActionableCollection extends Common.Interfaces.IModifiableCollection<Common.Interfaces.IActionable> {
+        toggleSelect(element: Common.Interfaces.IActionable): void;
+        deselectAll(): void;
+        selectAll(): void;
+        select(element: Common.Interfaces.IActionable): void;
+        deselect(element: Common.Interfaces.IActionable): void;
     }
 }
 declare module Common.Interfaces {
@@ -54,20 +117,10 @@ declare module Common.Interfaces {
     }
 }
 declare module Common.Interfaces {
-    interface ISelectable extends Common.Interfaces.IStorable {
-        disabled: boolean;
-        clickable: boolean;
-        hoverable: boolean;
-        selected: boolean;
+    interface ISelectable extends Common.Interfaces.IStorable, Common.Interfaces.IActionable {
         selectedFill: string;
         selectedStroke: string;
         selectedOpacity: number;
-        selectable: boolean;
-        select(): void;
-        deselect(): void;
-        toggleSelect(): void;
-        disable(): void;
-        enable(): void;
         onhover(hoverIn: any, hoverOut: any, context: any): void;
         hoverIn(e: any, context?: any): void;
         hoverOut(e: any, context?: any): void;
@@ -81,11 +134,10 @@ declare module Common.Interfaces {
     }
 }
 declare module Common.Interfaces {
-    interface IDraggable {
+    interface IDraggable extends Common.Interfaces.IActionable {
         dragging: boolean;
-        draggable: boolean;
         dragged: boolean;
-        ondrag(dragStart: Function, dragMove: Function, dragEnd: Function, context: Common.Interfaces.IDraggable): void;
+        ondrag(dragStart: Function, dragMove: Function, dragEnd: Function, context: Common.Interfaces.IFieldElement): void;
         dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void;
         dragStart(x: number, y: number, e: any): void;
         dragEnd(e: any): void;
@@ -111,10 +163,17 @@ declare module Common.Interfaces {
     }
 }
 declare module Common.Interfaces {
-    interface IHoverable {
-        hoverable: boolean;
+    interface IHoverable extends Common.Interfaces.IActionable {
         hoverIn(e: any, context?: any): void;
         hoverOut(e: any, context?: any): void;
+    }
+}
+declare module Common.Interfaces {
+    interface IAssociable {
+        key: number;
+        impaktDataType: Common.Enums.ImpaktDataTypes;
+        guid: string;
+        associationKey: string;
     }
 }
 declare module Common.Interfaces {
@@ -134,6 +193,7 @@ declare module Common.Interfaces {
         initialize(): void;
         draw(): void;
         drawOutline(): void;
+        clear(): void;
         resize(): void;
         setViewBox(): void;
         scroll(scrollToX: number, scrollToY: number, center?: boolean): void;
@@ -185,6 +245,7 @@ declare module Common.Interfaces {
         listener: Common.Models.CanvasListener;
         exportToPng(): string;
         setDimensions(): void;
+        clear(): void;
     }
 }
 declare module Common.Interfaces {
@@ -386,11 +447,14 @@ declare module Common.Models {
         /**
          * Allows for switching the listening mechanism on or off
          * within a method chain. listen(false) would prevent
-         * any mutation from triggering a rehash.
+         * any mutation from triggering a rehash. Does not
+         * trigger a modification event when setting to true,
+         * you must invoke the modification event directly and
+         * separately if needed.
          *
          * @param {boolean} startListening true or false
          */
-        listen(startListening: boolean): Modifiable;
+        listen(startListening: boolean): Common.Interfaces.IModifiable;
         clearListeners(): void;
         /**
          * Register listeners to be fired when this object is modified.
@@ -422,7 +486,7 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
-    class Collection<T extends Common.Models.Storable> extends Common.Models.Storable {
+    class Collection<T extends Common.Models.Storable> extends Common.Models.Storable implements Common.Interfaces.ICollection<T> {
         private _count;
         private _keys;
         constructor();
@@ -450,6 +514,7 @@ declare module Common.Models {
         add(data: T): void;
         addAll(...args: T[]): void;
         addAtIndex(data: T, index: number): void;
+        only(data: T): void;
         append(collection: Common.Models.Collection<T>): void;
         forEach(iterator: Function): void;
         hasElementWhich(predicate: Function): boolean;
@@ -466,6 +531,7 @@ declare module Common.Models {
         contains(key: string | number): boolean;
         toArray(): T[];
         toJson(): any[];
+        getGuids(): Array<string | number>;
     }
 }
 declare module Common.Models {
@@ -521,6 +587,7 @@ declare module Common.Models {
         size(): number;
         isEmpty(): boolean;
         hasElements(): boolean;
+        exists(key: string | number): boolean;
         get(key: string | number): T;
         first(): T;
         getOne(): T;
@@ -531,6 +598,7 @@ declare module Common.Models {
         add(data: T): ModifiableCollection<T>;
         addAll(...args: T[]): ModifiableCollection<T>;
         addAtIndex(data: T, index: number): ModifiableCollection<T>;
+        only(data: T): ModifiableCollection<T>;
         append(collection: Common.Models.Collection<T>, clearListeners?: boolean): ModifiableCollection<T>;
         forEach(iterator: Function): void;
         hasElementWhich(predicate: Function): boolean;
@@ -552,7 +620,9 @@ declare module Common.Models {
         getLast(): T;
         toArray(): T[];
         toJson(): any;
+        fromJson(json: any): void;
         copy(newElement: Common.Models.ModifiableCollection<T>, context: Common.Models.ModifiableCollection<T>): Common.Models.ModifiableCollection<T>;
+        getGuids(): Array<string | number>;
     }
 }
 declare module Common.Models {
@@ -578,30 +648,145 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
-    class AssociationArray extends Common.Models.Modifiable {
-        private _array;
-        constructor();
-        size(): number;
-        add(guid: string): void;
-        addAll(guids: string[]): void;
-        addAtIndex(guid: string, index: number): void;
-        primary(): string;
-        getAtIndex(index: number): string;
-        first(guid: string): void;
-        only(guid: string): void;
-        empty(): void;
-        remove(guid: string): string;
+    abstract class Actionable extends Common.Models.Modifiable implements Common.Interfaces.IActionable {
+        impaktDataType: Common.Enums.ImpaktDataTypes;
+        disabled: boolean;
+        clickable: boolean;
+        hoverable: boolean;
+        selected: boolean;
+        selectable: boolean;
+        dragging: boolean;
+        draggable: boolean;
+        dragged: boolean;
+        constructor(impaktDataType: Common.Enums.ImpaktDataTypes);
+        toJson(): any;
+        fromJson(json: any): void;
         /**
-         * Returns whether the given guid exists
-         * @param  {string}  guid the guid to check
-         * @return {boolean}      true if it exists, otherwise false
+         * Generic selection toggle
          */
-        exists(guid: string): boolean;
+        toggleSelect(): void;
+        /**
+         * Generic selection method
+         */
+        select(): void;
+        /**
+         * Generic deselection method
+         */
+        deselect(): void;
+        /**
+         * Generic disable method
+         */
+        disable(): void;
+        /**
+         * Generic enable method
+         */
+        enable(): void;
+        oncontextmenu(fn: any, context: any): void;
+        contextmenu(e: any, context: any): void;
+    }
+}
+declare module Common.Models {
+    class ActionableCollection<T extends Common.Models.Actionable> extends Common.Models.ModifiableCollection<T> implements Common.Interfaces.IActionableCollection {
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        deselectAll(): void;
+        selectAll(): void;
+        select(element: Common.Interfaces.IActionable): void;
+        deselect(element: Common.Interfaces.IActionable): void;
+        toggleSelect(element: Common.Interfaces.IActionable): void;
+    }
+}
+declare module Common.Models {
+    class AssociableEntity extends Common.Models.Actionable implements Common.Interfaces.IAssociable {
+        key: number;
+        impaktDataType: Common.Enums.ImpaktDataTypes;
+        associationKey: string;
+        constructor(impaktDataType: Common.Enums.ImpaktDataTypes);
+        generateAssociationKey(): void;
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Common.Models {
+    abstract class AssociableCollectionEntity<T extends Common.Models.AssociableEntity> extends Common.Models.ModifiableCollection<T> {
+        private _associableEntity;
+        constructor(impaktDataType: Common.Enums.ImpaktDataTypes);
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Common.Models {
+    class AssociationCollection extends Common.Models.Modifiable {
+        private _data;
+        private _size;
+        contextId: number;
+        constructor(contextId: number);
+        /**
+         * Returns the size of the association collection
+         * @return {number} size
+         */
+        size(): number;
+        /**
+         * Returns whether the association collection has elements
+         * @return {boolean} true or false
+         */
+        isEmpty(): boolean;
         /**
          * Returns whether the array has elements
          * @return {boolean} true or false
          */
         hasElements(): boolean;
+        /**
+         * Creates an association, and an inverse association, between
+         * the two given entities.
+         *
+         * @param {Common.Interfaces.IAssociable} fromEntity [description]
+         * @param {Common.Interfaces.IAssociable} toEntity   [description]
+         */
+        add(fromEntity: Common.Interfaces.IAssociable, toEntity: Common.Interfaces.IAssociable): void;
+        /**
+         * Creates an association between the given entity and all of the
+         * given array of entities.
+         *
+         * @param {Common.Interfaces.IAssociable}   fromEntity [description]
+         * @param {Common.Interfaces.IAssociable[]} entities   [description]
+         */
+        addAll(fromEntity: Common.Interfaces.IAssociable, entities: Common.Interfaces.IAssociable[]): void;
+        /**
+         * Creates an 'inverse' association with the given association, and
+         * adds both to the association collection
+         *
+         * @param {Common.Models.Association} association the 'from' association
+         */
+        addAssociation(association: Common.Models.Association): void;
+        addInternalKey(internalKey: string, associations: string[]): void;
+        /**
+         * Merges another association collection into this association collection;
+         * ignores any duplicate entries.
+         *
+         * @param {Common.Models.AssociationCollection} associationCollection association collection to merge
+         */
+        merge(associationCollection: Common.Models.AssociationCollection): void;
+        getByInternalKey(internalKey: string): string[];
+        hasAssociations(internalKey: string): boolean;
+        empty(): void;
+        delete(internalKey: string): Common.Models.AssociationCollection;
+        /**
+         * Removes the association ONLY between the two entities, and only
+         * completely removes them if their respective association arrays
+         * are empty as a result.
+         *
+         * @param {Common.Interfaces.IAssociable} fromEntity [description]
+         * @param {Common.Interfaces.IAssociable} toEntity   [description]
+         */
+        disassociate(fromEntity: Common.Interfaces.IAssociable, toEntity: Common.Interfaces.IAssociable): void;
+        /**
+         * Returns whether the given guid exists
+         * @param  {string}  guid the guid to check
+         * @return {boolean}      true if it exists, otherwise false
+         */
+        exists(internalKey: string): boolean;
         /**
          * Replaces guid1, if found, with guid2
          * @param  {string} guid1 guid to be replaced
@@ -613,9 +798,10 @@ declare module Common.Models {
          * @param {Function} iterator the iterator function to call per element
          */
         forEach(iterator: Function): void;
-        toArray(): any;
+        toArray(toJson?: boolean): any[];
         toJson(): any;
         fromJson(json: any): void;
+        getInternalKeys(): string[];
     }
 }
 declare module Common.Models {
@@ -624,24 +810,33 @@ declare module Common.Models {
      * by guid.
      */
     class Association extends Common.Models.Modifiable {
-        playbooks: Common.Models.AssociationArray;
-        formations: Common.Models.AssociationArray;
-        personnel: Common.Models.AssociationArray;
-        assignments: Common.Models.AssociationArray;
-        plays: Common.Models.AssociationArray;
-        guid: string;
-        constructor();
+        fromKey: number;
+        fromType: Common.Enums.ImpaktDataTypes;
+        fromGuid: string;
+        toKey: number;
+        toType: Common.Enums.ImpaktDataTypes;
+        toGuid: string;
+        contextId: number;
+        internalKey: string;
+        version: number;
+        data: any;
+        associationType: Common.Enums.AssociationTypes;
+        protected static KEY_PART_LENGTH: number;
+        constructor(fromKey: number, fromType: Common.Enums.ImpaktDataTypes, fromGuid: string, toKey: number, toType: Common.Enums.ImpaktDataTypes, toGuid: string, contextId: number);
+        static buildKey(association: Common.Models.Association): string;
+        static parse(internalKey: string): Common.Models.AssociationParts;
         toJson(): any;
         fromJson(json: any): void;
-        /**
-         * Returns the sum count of all associated elements
-         * @return {number} [description]
-         */
-        size(): number;
+    }
+    class AssociationParts {
+        entityKey: number;
+        entityType: Common.Enums.ImpaktDataTypes;
+        entityGuid: string;
+        constructor(entityType: Common.Enums.ImpaktDataTypes, entityKey: number, guid: string);
     }
 }
 declare module Common.Models {
-    class Notification extends Common.Models.Storable implements Common.Interfaces.ICollectionItem {
+    class Notification extends Common.Models.Modifiable {
         message: string;
         type: Common.Models.NotificationType;
         constructor(message: string, type: Common.Models.NotificationType);
@@ -694,7 +889,7 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
-    class NotificationCollection extends Common.Models.Collection<Common.Models.Notification> {
+    class NotificationCollection extends Common.Models.ModifiableCollection<Common.Models.Notification> {
         constructor();
     }
 }
@@ -707,44 +902,38 @@ declare module Common.Icons {
     }
 }
 declare module Common.Models {
-    class Assignment extends Common.Models.Modifiable {
+    class Assignment extends Common.Models.AssociableEntity {
         routes: Common.Models.RouteCollection;
         positionIndex: number;
         setType: Common.Enums.SetTypes;
-        constructor();
+        unitType: Team.Enums.UnitTypes;
+        constructor(unitType: Team.Enums.UnitTypes);
         remove(): void;
         setContext(context: any): void;
         fromJson(json: any): void;
-        toJson(): {
-            routes: any;
-            positionIndex: number;
-            guid: string;
-        };
+        toJson(): any;
     }
 }
 declare module Common.Models {
-    class AssignmentCollection extends Common.Models.ModifiableCollection<Common.Models.Assignment> {
+    class AssignmentCollection extends Common.Models.AssociableCollectionEntity<Common.Models.Assignment> {
         setType: Common.Enums.SetTypes;
         unitType: Team.Enums.UnitTypes;
         name: string;
-        key: number;
-        constructor(count?: number);
+        constructor(unitType: Team.Enums.UnitTypes, count?: number);
         toJson(): any;
         fromJson(json: any): any;
         getAssignmentByPositionIndex(index: number): any;
     }
 }
 declare module Common.Models {
-    class Formation extends Common.Models.Modifiable {
+    class Formation extends Common.Models.AssociableEntity {
         unitType: Team.Enums.UnitTypes;
         parentRK: number;
         editorType: Playbook.Enums.EditorTypes;
         name: string;
-        associated: Common.Models.Association;
         placements: Common.Models.PlacementCollection;
-        key: number;
         png: string;
-        constructor(name?: string);
+        constructor(unitType: Team.Enums.UnitTypes);
         copy(newFormation?: Common.Models.Formation): Common.Models.Formation;
         toJson(): any;
         fromJson(json: any): any;
@@ -754,10 +943,10 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
-    class FormationCollection extends Common.Models.ModifiableCollection<Common.Models.Formation> {
+    class FormationCollection extends Common.Models.ActionableCollection<Common.Models.Formation> {
         parentRK: number;
         unitType: Team.Enums.UnitTypes;
-        constructor();
+        constructor(unitType: Team.Enums.UnitTypes);
         toJson(): {
             formations: any;
             unitType: Team.Enums.UnitTypes;
@@ -767,69 +956,71 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
-    class Play extends Common.Models.Modifiable {
+    class Play extends Common.Models.AssociableEntity {
         field: Common.Interfaces.IField;
         name: string;
-        associated: Common.Models.Association;
         assignments: Common.Models.AssignmentCollection;
         formation: Common.Models.Formation;
         personnel: Team.Models.Personnel;
         unitType: Team.Enums.UnitTypes;
         editorType: Playbook.Enums.EditorTypes;
         png: string;
-        key: number;
-        constructor();
+        constructor(unitType: Team.Enums.UnitTypes);
         setPlaybook(playbook: Common.Models.PlaybookModel): void;
         setFormation(formation: Common.Models.Formation): void;
         setAssignments(assignments: Common.Models.AssignmentCollection): void;
         setPersonnel(personnel: Team.Models.Personnel): void;
+        setUnitType(unitType: Team.Enums.UnitTypes): void;
         draw(field: Common.Interfaces.IField): void;
         fromJson(json: any): any;
         toJson(): any;
         hasAssignments(): boolean;
         setDefault(field: Common.Interfaces.IField): void;
+        getOpposingUnitType(): Team.Enums.UnitTypes;
+        isFieldSet(field: Common.Interfaces.IField): boolean;
+        isBallSet(ball: Common.Interfaces.IBall): boolean;
     }
 }
 declare module Common.Models {
     class PlayPrimary extends Common.Models.Play {
         playType: Playbook.Enums.PlayTypes;
-        constructor();
+        constructor(unitType: Team.Enums.UnitTypes);
     }
 }
 declare module Common.Models {
     class PlayOpponent extends Common.Models.Play {
         playType: Playbook.Enums.PlayTypes;
-        constructor();
+        constructor(unitType: Team.Enums.UnitTypes);
         draw(field: Common.Interfaces.IField): void;
     }
 }
 declare module Common.Models {
-    class PlayCollection extends Common.Models.ModifiableCollection<Common.Models.Play> {
-        constructor();
-        toJson(): any;
-        fromJson(plays: any[]): void;
-    }
-}
-declare module Common.Models {
-    class PlaybookModel extends Common.Models.Modifiable {
-        key: number;
-        name: string;
-        associated: Common.Models.Association;
+    class PlayCollection extends Common.Models.ActionableCollection<Common.Models.Play> {
         unitType: Team.Enums.UnitTypes;
-        constructor();
+        constructor(unitType: Team.Enums.UnitTypes);
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Common.Models {
+    class PlaybookModel extends Common.Models.AssociableEntity {
+        name: string;
+        unitType: Team.Enums.UnitTypes;
+        constructor(unitType: Team.Enums.UnitTypes);
         toJson(): any;
         fromJson(json: any): any;
     }
 }
 declare module Common.Models {
-    class PlaybookModelCollection extends Common.Models.ModifiableCollection<Common.Models.PlaybookModel> {
-        constructor();
+    class PlaybookModelCollection extends Common.Models.ActionableCollection<Common.Models.PlaybookModel> {
+        unitType: Team.Enums.UnitTypes;
+        constructor(unitType: Team.Enums.UnitTypes);
         toJson(): any;
         fromJson(json: any): any;
     }
 }
 declare module Common.Models {
-    class Tab extends Common.Models.Storable implements Common.Interfaces.ICollectionItem {
+    class Tab extends Common.Models.Modifiable implements Common.Interfaces.ICollectionItem {
         title: string;
         key: number;
         active: boolean;
@@ -845,9 +1036,10 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
-    class TabCollection extends Common.Models.Collection<Common.Models.Tab> {
+    class TabCollection extends Common.Models.ModifiableCollection<Common.Models.Tab> {
         constructor();
         getByPlayGuid(guid: string): Common.Models.Tab;
+        close(tab: Common.Models.Tab): void;
     }
 }
 declare module Common.Models {
@@ -966,8 +1158,9 @@ declare module Common.Models {
         listener: Common.Models.CanvasListener;
         readyCallbacks: Function[];
         widthChangeInterval: any;
+        active: boolean;
         constructor(width?: number, height?: number);
-        remove(): void;
+        clear(): void;
         /**
          * Converts this canvas's SVG graphics element into a data-URI
          * which can be used in an <img/> src attribute to render the image
@@ -999,8 +1192,10 @@ declare module Common.Drawing {
         alignToGrid(x: number, y: number, absolute: boolean): Models.Coordinates;
         path(path: string): any;
         rect(x: number, y: number, width: number, height: number, absolute: boolean, offsetX?: number, offsetY?: number): any;
+        rhombus(x: number, y: number, width: number, height: number, absolute: boolean, offsetX?: number, offsetY?: number): any;
         ellipse(x: any, y: any, width: any, height: any, absolute: boolean, offsetX?: number, offsetY?: number): any;
-        circle(x: any, y: any, radius: number, absolute: boolean, offsetX?: number, offsetY?: number): any;
+        circle(x: number, y: number, radius: number, absolute: boolean, offsetX?: number, offsetY?: number): any;
+        triangle(x: number, y: number, height: number, absolute: boolean, offsetX?: number, offsetY?: number): any;
         text(x: number, y: number, text: string, absolute: boolean, offsetX?: number, offsetY?: number): any;
         print(x: number, y: number, text: string, font: any, size: any, origin: any, letterSpacing: any, offsetX?: number, offsetY?: number): any;
         getFont(family: string, weight?: string, style?: string, stretch?: string): any;
@@ -1286,6 +1481,7 @@ declare module Common.Models {
         applyPrimaryFormation(formation: Common.Models.Formation): void;
         applyPrimaryAssignments(assignments: Common.Models.AssignmentCollection): void;
         applyPrimaryPersonnel(personnel: Team.Models.Personnel): void;
+        applyPrimaryUnitType(unitType: Team.Enums.UnitTypes): void;
         deselectAll(): void;
         getSelectedByLayerType(layerType: Common.Enums.LayerTypes): Common.Models.Collection<Common.Interfaces.IFieldElement>;
         toggleSelectionByLayerType(layerType: Common.Enums.LayerTypes): void;
@@ -1661,8 +1857,7 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
-    class Graphics extends Common.Models.Modifiable implements Common.Interfaces.ISelectable, Common.Interfaces.IDrawable, Common.Interfaces.IHoverable {
-        guid: string;
+    class Graphics extends Common.Models.Actionable implements Common.Interfaces.IDrawable, Common.Interfaces.IHoverable {
         paper: Common.Interfaces.IPaper;
         grid: Common.Interfaces.IGrid;
         raphael: any;
@@ -1703,29 +1898,6 @@ declare module Common.Models {
         disabledStroke: string;
         disabledOpacity: number;
         hoverOpacity: number;
-        /**
-         *
-         * Selection information
-         *
-         */
-        disabled: boolean;
-        selected: boolean;
-        selectable: boolean;
-        clickable: boolean;
-        /**
-         *
-         * Hoverable information
-         *
-         */
-        hoverable: boolean;
-        /**
-         *
-         * Draggable attributes
-         *
-         */
-        dragging: boolean;
-        draggable: boolean;
-        dragged: boolean;
         constructor(paper: Common.Interfaces.IPaper);
         toJson(): any;
         fromJson(json: any): any;
@@ -1769,10 +1941,6 @@ declare module Common.Models {
          * Toggles the opacity for show/hide effect
          */
         toggleOpacity(): void;
-        /**
-         * Generic selection toggle
-         */
-        toggleSelect(): void;
         /**
          * Generic selection method
          */
@@ -1823,8 +1991,10 @@ declare module Common.Models {
          */
         path(path: string): Common.Models.Graphics;
         rect(): Common.Models.Graphics;
+        rhombus(): Common.Models.Graphics;
         ellipse(): Common.Models.Graphics;
         circle(): Common.Models.Graphics;
+        triangle(): Common.Models.Graphics;
         text(text: string): Common.Models.Graphics;
         refresh(): void;
         attr(attrs: any): Common.Models.Graphics;
@@ -1944,6 +2114,7 @@ declare module Common.Models {
         area: number;
         circularArea: number;
         offset: Common.Models.Offset;
+        rotation: number;
         constructor();
         toJson(): any;
         fromJson(json: any): any;
@@ -2034,20 +2205,49 @@ declare module Common.Models {
 declare module Common.Models {
 }
 declare module Common.Enums {
-    enum ImpaktTypes {
+    enum ImpaktDataTypes {
         Unknown = 0,
         PlaybookView = 1,
         Playbook = 2,
-        PlayFormation = 3,
-        PlaySet = 4,
+        Formation = 3,
+        Set = 4,
+        Play = 10,
         PlayTemplate = 98,
         Variant = 99,
-        Play = 100,
-        Player = 101,
-        PlayPlayer = 102,
-        PlayPosition = 103,
-        PlayAssignment = 104,
         Team = 200,
+        GenericEntity = 1000,
+        League = 1010,
+        Season = 1011,
+        Opponent = 1012,
+        Game = 1013,
+        Position = 1014,
+        PersonnelGroup = 1015,
+        TeamMember = 1016,
+        UnitType = 1017,
+        Conference = 1018,
+        Scenario = 1020,
+        MatchupPlaybook = 1021,
+        Situation = 1022,
+        Assignment = 1023,
+        AssignmentGroup = 1024,
+        GamePlan = 1030,
+        PracticePlan = 1031,
+        PracticeSchedule = 1032,
+        ScoutCard = 1033,
+        Drill = 1034,
+        QBWristband = 1035,
+        GameAnalysis = 1050,
+        PlayByPlayAnalysis = 1051,
+        GenericSetting = 2000,
+        User = 2010,
+        SecureUser = 2011,
+        Account = 2020,
+        Organization = 2021,
+    }
+    enum AssociationTypes {
+        Unknown = 0,
+        Peer = 1,
+        Dependency = 2,
     }
     enum DimensionTypes {
         Square = 0,
@@ -2321,6 +2521,15 @@ declare module Common {
         static isNullOrUndefined(obj: any): boolean;
         static isNull(obj: any): boolean;
         static isUndefined(obj: any): boolean;
+        static isEmptyString(str: string): boolean;
+        /**
+         * Iterates over the given array and removes any
+         * duplicate entries
+         *
+         * @param  {any[]} array [description]
+         * @return {any[]}       [description]
+         */
+        static uniqueArray(array: any[]): any[];
     }
 }
 declare module Common.UI {
@@ -2706,16 +2915,67 @@ declare module Playbook.Constants {
 declare module Playbook {
 }
 declare module Team.Models {
-    class Personnel extends Common.Models.Modifiable {
+    class TeamModel extends Common.Models.AssociableEntity {
+        teamType: Team.Enums.TeamTypes;
+        name: string;
+        records: Team.Models.TeamRecordCollection;
+        constructor(teamType: Team.Enums.TeamTypes);
+        toJson(): any;
+        fromJson(json: any): any;
+    }
+}
+declare module Team.Models {
+    class TeamModelCollection extends Common.Models.ModifiableCollection<Team.Models.TeamModel> {
+        teamType: Team.Enums.TeamTypes;
+        constructor(teamType: Team.Enums.TeamTypes);
+        toJson(): {
+            teamType: Enums.TeamTypes;
+            guid: string;
+            teams: any;
+        };
+        fromJson(json: any): void;
+    }
+}
+declare module Team.Models {
+    class TeamRecord extends Common.Models.Modifiable {
+        wins: number;
+        losses: number;
+        season: number;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Team.Models {
+    class TeamRecordCollection extends Common.Models.ModifiableCollection<Team.Models.TeamRecord> {
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Team.Models {
+    class PrimaryTeam extends Team.Models.TeamModel {
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Team.Models {
+    class OpponentTeam extends Team.Models.TeamModel {
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Team.Models {
+    class Personnel extends Common.Models.AssociableEntity {
         unitType: Team.Enums.UnitTypes;
         parentRK: number;
         editorType: Playbook.Enums.EditorTypes;
         name: string;
-        associated: Common.Models.Association;
         positions: Team.Models.PositionCollection;
         setType: Common.Enums.SetTypes;
-        key: number;
-        constructor();
+        constructor(unitType: Team.Enums.UnitTypes);
         hasPositions(): boolean;
         update(personnel: Team.Models.Personnel): void;
         copy(newPersonnel: Team.Models.Personnel): Team.Models.Personnel;
@@ -2729,7 +2989,7 @@ declare module Team.Models {
     class PersonnelCollection extends Common.Models.ModifiableCollection<Team.Models.Personnel> {
         unitType: Team.Enums.UnitTypes;
         setType: Common.Enums.SetTypes;
-        constructor();
+        constructor(unitType: Team.Enums.UnitTypes);
         toJson(): {
             unitType: Enums.UnitTypes;
             setType: Common.Enums.SetTypes;
@@ -2746,7 +3006,7 @@ declare module Team.Models {
         eligible: boolean;
         index: number;
         unitType: Team.Enums.UnitTypes;
-        constructor(options?: any);
+        constructor(unitType: Team.Enums.UnitTypes, options?: any);
         toJson(): any;
         fromJson(json: any): any;
     }
@@ -2792,12 +3052,13 @@ declare module Team.Models {
         getPosition(positionListValue: any): any;
         switchPosition(fromPosition: any, toPositionEnum: any): any;
         static getBlank(type: Team.Enums.UnitTypes): PositionCollection;
-        getByUnitType(type: Team.Enums.UnitTypes): any;
+        getByUnitType(type: Team.Enums.UnitTypes): PositionCollection;
     }
 }
 declare module Team.Models {
     class PositionCollection extends Common.Models.ModifiableCollection<Team.Models.Position> {
-        constructor();
+        unitType: Team.Enums.UnitTypes;
+        constructor(unitType: Team.Enums.UnitTypes);
         listPositions(): any[];
         toJson(): any;
         fromJson(positions: any): any;
@@ -2807,7 +3068,6 @@ declare module Team.Models {
 declare module Team.Models {
     class UnitType extends Common.Models.Modifiable {
         unitType: Team.Enums.UnitTypes;
-        associated: Common.Models.Association;
         name: string;
         constructor(unitType: Team.Enums.UnitTypes, name: string);
         static getUnitTypes(): {};
@@ -2824,6 +3084,8 @@ declare module Team.Models {
         fromJson(json: any): void;
     }
 }
+declare module Team.Interfaces {
+}
 declare module Team.Enums {
     enum UnitTypes {
         Offense = 0,
@@ -2831,6 +3093,12 @@ declare module Team.Enums {
         SpecialTeams = 2,
         Other = 3,
         Mixed = 4,
+    }
+    enum TeamTypes {
+        Primary = 0,
+        Opponent = 1,
+        Other = 2,
+        Mixed = 3,
     }
 }
 declare module Team {
@@ -2849,13 +3117,19 @@ declare module Navigation.Models {
         label: string;
         glyphicon: string;
         path: string;
-        isActive: boolean;
-        constructor(name: string, label: string, glyphicon: string, path: string, isActive: boolean);
+        active: boolean;
+        activationCallback: Function;
+        constructor(name: string, label: string, glyphicon: string, path: string, active: boolean, activationCallback: Function);
+        activate(): void;
+        deactivate(): void;
+        toggleActivation(): void;
     }
 }
 declare module Navigation.Models {
     class NavigationItemCollection extends Common.Models.Collection<Navigation.Models.NavigationItem> {
         constructor();
+        activate(navItem: Navigation.Models.NavigationItem): void;
+        getActive(): Navigation.Models.NavigationItem;
     }
 }
 declare module Nav {
@@ -2864,50 +3138,50 @@ declare module Search {
 }
 declare module Season {
 }
+declare module League.Models {
+    class LeagueModel extends Common.Models.AssociableEntity implements Common.Interfaces.IAssociable {
+        name: string;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module League.Models {
+    class LeagueModelCollection extends Common.Models.ModifiableCollection<League.Models.LeagueModel> {
+        constructor();
+    }
+}
+declare module League.Models {
+}
+declare module League {
+}
 declare module Stats {
 }
 declare module User.Models {
     class Organization extends Common.Models.Storable {
-        companyName: string;
-        emailAccounting: string;
-        emailOther: string;
-        emailPrimary: string;
-        emailSales: string;
-        emailScheduling: string;
-        emailWarranty: string;
-        faxAccounting: string;
+        accountKey: number;
+        address1: string;
+        address2: string;
+        address3: string;
+        city: string;
+        country: string;
         faxPrimary: string;
-        faxSales: string;
-        faxScheduling: string;
-        faxWarranty: string;
+        inactive: boolean;
+        name: string;
+        notes: any;
         organizationKey: number;
-        phoneAccounting: string;
+        otherDetails: any;
         phonePrimary: string;
-        phoneSales: string;
-        phoneScheduling: string;
-        phoneWarranty: string;
-        primaryAddress1: string;
-        primaryAddress2: string;
-        primaryAddress3: string;
-        primaryCity: string;
-        primaryCountry: string;
-        primaryPostalCode: string;
-        primaryStateProvince: string;
-        secondaryAddress1: string;
-        secondaryAddress2: string;
-        secondaryAddress3: string;
-        secondaryCity: string;
-        secondaryCountry: string;
-        secondaryPostalCode: string;
-        secondaryStateProvince: string;
-        upsFedExAddress1: string;
-        upsFedExAddress2: string;
-        upsFedExAddress3: string;
-        upsFedExCity: string;
-        upsFedExCountry: string;
-        upsFedExPostalCode: string;
-        upsFedExStateProvince: string;
-        website: string;
+        postalCode: string;
+        primaryEmail: string;
+        stateProvince: string;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module User.Models {
+    class OrganizationCollection extends Common.Models.Collection<User.Models.Organization> {
         constructor();
         toJson(): any;
         fromJson(json: any): void;
@@ -2929,7 +3203,6 @@ declare var impakt: any, angular: any;
 declare var impakt: any;
 declare var impakt: any;
 declare var impakt: any;
-declare var impakt: any;
 declare var impakt: any, playbook: any;
 declare var impakt: any, angular: any;
 declare var impakt: any, angular: any;
@@ -2944,6 +3217,11 @@ declare var impakt: any;
 declare var impakt: any, angular: any;
 declare var impakt: any, angular: any;
 declare var impakt: any;
+declare module Team.Interfaces {
+    interface ITeam {
+        teamType: Team.Enums.TeamTypes;
+    }
+}
 declare module User.Models {
     class Account extends Common.Models.Storable {
         name: string;
@@ -2958,13 +3236,6 @@ declare module User.Models {
         constructor();
         toJson(): any;
         fromJson(): void;
-    }
-}
-declare module User.Models {
-    class OrganizationCollection extends Common.Models.Collection<User.Models.Organization> {
-        constructor();
-        toJson(): any;
-        fromJson(json: any): void;
     }
 }
 declare module User.Models {

@@ -1,0 +1,44 @@
+<div class='col'>
+	
+	<div class='col'>
+		<div class=''>
+			
+			<h4>Leagues ({{leagues.size()}})</h4>
+			<div class='pad green-bg-hover pointer marginBottom1 width6'
+				ng-click='createLeague()'>
+				<span class='glyphicon glyphicon-plus'></span>
+				new
+			</div>
+
+			<div class='grid'>
+				<div class='marginRight1 marginBottom1 height5 width12 pad gray-bg-3-hover pointer'
+					ng-repeat='league in leagues.toArray()'
+					ng-click='leagueDrilldown(league)'>
+					<strong>{{league.name}}</strong>
+				</div>
+			</div>
+
+		</div>
+
+		<div class=''>
+			
+			<h4>Teams ({{teams.size()}})</h4>
+			<div class='pad green-bg-hover pointer marginBottom1 width6'
+				ng-click='createTeam()'>
+				<span class='glyphicon glyphicon-plus'></span>
+				new
+			</div>
+
+			<div class='grid'>
+				<div class='marginRight1 marginBottom1 height5 width12 pad gray-bg-3-hover pointer'
+					ng-repeat='team in teams.toArray()'
+					ng-click='teamDrilldown(team)'>
+					<strong>{{team.name}}</strong>
+					<p>{{team.records.first().wins}} &mdash; {{team.records.first().losses}}</p>
+				</div>
+			</div>
+
+		</div>
+	</div>
+	
+</div>

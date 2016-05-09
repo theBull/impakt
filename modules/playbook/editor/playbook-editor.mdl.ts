@@ -17,21 +17,8 @@ impakt.playbook.editor = angular.module('impakt.playbook.editor',
 
 	$stateProvider.state('playbook.editor', {
 		url: '/editor',
-		views: {
-			// Uses browser side bar for now
-			'sidebar': {
-				templateUrl: 'modules/playbook/browser/sidebar/playbook-browser-sidebar.tpl.html',
-				controller: 'playbook.browser.sidebar.ctrl'
-			},
-			'main': {
-				templateUrl: 'modules/playbook/editor/playbook-editor.tpl.html',
-				controller: 'playbook.editor.ctrl'
-			},
-			'details': {
-				templateUrl: 'modules/playbook/editor/details/playbook-editor-details.tpl.html',
-				controller: 'playbook.editor.details.ctrl'
-			}
-		}
+		templateUrl: 'modules/playbook/editor/playbook-editor.tpl.html',
+		controller: 'playbook.editor.ctrl'
 	});
 
 }])

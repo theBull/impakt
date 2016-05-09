@@ -7,7 +7,7 @@ function($scope: any, $state: any, _home: any) {
 	$scope.menuItems = _home.menuItems;
 
 	$scope.goTo = function(menuItem: Navigation.Models.NavigationItem) {
-		$state.transitionTo(menuItem.name);
+		$scope.menuItems.activate(menuItem);
 	}
 
 }]);

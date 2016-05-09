@@ -9,7 +9,7 @@
         <p>Select your organization access its data.</p>
     </div>
     <select 
-    	ng-options='organization as organization.companyName 
+    	ng-options='organization as organization.name 
     		for organization in organizations.toArray()'
         ng-model='selectedOrganization'
     	ng-change='organizationSelected()'>

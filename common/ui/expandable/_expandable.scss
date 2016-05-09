@@ -23,15 +23,15 @@ expandable {
 	background-color: $gray-bg-2;
 	box-shadow: 0 0 5px rgba(255, 255, 255, 0.15);
 }
-.expandable-left {
-	border-left: 1px solid #111;
+expandable[direction=left] {
+	border-left: 1px solid $lightBorderColor;
 }
-.expandable-right {
-	border-right: 1px solid #111;
+expandable[direction=right] {
+	border-right: 1px solid $lightBorderColor;
 }
-.expandable-top {
-	border-top: 1px solid #111;
+expandable[direction=top] {
+	border-top: 1px solid $lightBorderColor;
 }
-.expandable-bottom {
-	border-bottom: 1px solid #111;
+expandable[direction=botom] {
+	border-bottom: 1px solid $lightBorderColor;
 }

@@ -2,6 +2,7 @@
 
 impakt.modules = angular.module('impakt.modules', [
 	'impakt.home',
+	'impakt.league',
 	'impakt.season',
 	'impakt.planning',
 	'impakt.analysis',
@@ -9,7 +10,9 @@ impakt.modules = angular.module('impakt.modules', [
 	'impakt.nav',
 	'impakt.user',
 	'impakt.search',
-	'impakt.team'
+	'impakt.team',
+	'impakt.sidebar',
+	'impakt.details'
 ])
 .config(
 ['$stateProvider', '$urlRouterProvider',

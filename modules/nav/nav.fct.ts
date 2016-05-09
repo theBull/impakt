@@ -1,8 +1,15 @@
 /// <reference path='./nav.mdl.ts' />
 
 // Nav factory
-impakt.nav.factory('__nav', ['$http', '$q', function($http: any, $q: any) {
-	console.log('nav factory');
+impakt.nav.factory('__nav', [
+'$http', 
+'$q',
+'$state',
+function(
+	$http: any, 
+	$q: any,
+	$state: any
+) {
 
 	let menuItems = new Navigation.Models.NavigationItemCollection();
 	
@@ -13,7 +20,24 @@ impakt.nav.factory('__nav', ['$http', '$q', function($http: any, $q: any) {
 			'Home',
 			'home',
 			'/home',
-			true
+			true,
+			function(self: Navigation.Models.NavigationItem) {
+				$state.transitionTo('home');
+			}
+		)
+	);
+
+	// League
+	menuItems.add(
+		new Navigation.Models.NavigationItem(
+			'league',
+			'League',
+			'globe',
+			'/league',
+			false,
+			function(self: Navigation.Models.NavigationItem) {
+				$state.transitionTo('league');
+			}
 		)
 	);
 
@@ -24,7 +48,10 @@ impakt.nav.factory('__nav', ['$http', '$q', function($http: any, $q: any) {
 			'Season',
 			'calendar',
 			'/season',
-			false
+			false,
+			function(self: Navigation.Models.NavigationItem) {
+				$state.transitionTo('season');
+			}
 		)
 	);
 
@@ -35,7 +62,10 @@ impakt.nav.factory('__nav', ['$http', '$q', function($http: any, $q: any) {
 			'Playbook',
 			'book',
 			'/playbook/browser',
-			false
+			false,
+			function(self: Navigation.Models.NavigationItem) {
+				$state.transitionTo('playbook');
+			}
 		)
 	);
 
@@ -46,7 +76,10 @@ impakt.nav.factory('__nav', ['$http', '$q', function($http: any, $q: any) {
 			'Planning',
 			'blackboard',
 			'/planning',
-			false
+			false,
+			function(self: Navigation.Models.NavigationItem) {
+				$state.transitionTo('planning');
+			}
 		)
 	);
 
@@ -57,7 +90,10 @@ impakt.nav.factory('__nav', ['$http', '$q', function($http: any, $q: any) {
 			'Analysis',
 			'facetime-video',
 			'/analysis',
-			false
+			false,
+			function(self: Navigation.Models.NavigationItem) {
+				$state.transitionTo('analysis');
+			}
 		)
 	);
 
@@ -68,7 +104,10 @@ impakt.nav.factory('__nav', ['$http', '$q', function($http: any, $q: any) {
 			'Team Management',
 			'list-alt',
 			'/team',
-			false
+			false,
+			function(self: Navigation.Models.NavigationItem) {
+				$state.transitionTo('team');
+			}
 		)
 	);
 
@@ -79,7 +118,10 @@ impakt.nav.factory('__nav', ['$http', '$q', function($http: any, $q: any) {
 			'Profile',
 			'user',
 			'/profile',
-			false
+			false,
+			function(self: Navigation.Models.NavigationItem) {
+				$state.transitionTo('profile');
+			}
 		)
 	);
 
@@ -89,7 +131,8 @@ impakt.nav.factory('__nav', ['$http', '$q', function($http: any, $q: any) {
 		'Search',
 		'search',
 		null,
-		false
+		false,
+		function(self: Navigation.Models.NavigationItem) {}
 	);
 
 	// Notifications
@@ -98,7 +141,8 @@ impakt.nav.factory('__nav', ['$http', '$q', function($http: any, $q: any) {
 		'Notifications',
 		'bell',
 		null,
-		false
+		false,
+		function(self: Navigation.Models.NavigationItem) {}
 	);
 	
 	// TODO @theBull - implement

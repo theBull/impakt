@@ -8,4 +8,11 @@ module Team.Enums {
 		Other,
 		Mixed
 	}
+
+	export enum TeamTypes {
+		Primary,
+		Opponent,
+		Other,
+		Mixed
+	}
 }

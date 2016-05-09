@@ -5,6 +5,14 @@ impakt.playbook.editor.details.controller('playbook.editor.details.ctrl',
 function($scope: any, _playbookModals: any, _playbookEditorDetails: any) {
 	
 	$scope.canvas = _playbookEditorDetails.canvas;
+	$scope.paper;
+	$scope.field;
+	$scope.grid;
+	$scope.playPrimary;
+	$scope.playOpponent;
+	$scope.layers;
+	$scope.selected;
+	$scope.players;
 
 	$scope.canvas.onready(function() {
 		$scope.paper = $scope.canvas.paper;

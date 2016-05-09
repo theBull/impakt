@@ -11,6 +11,11 @@ function($scope: any, _team: any) {
 			active: true,
 			src: "modules/team/personnel/team-personnel.tpl.html"
 		},
+		teams: {
+			title: 'My teams',
+			active: false,
+			src: 'modules/team/main/team-main.tpl.html'
+		},
 		unitTypes: {
 			title: 'Unit types',
 			active: false,

@@ -2,7 +2,7 @@
 
 module Common.Models {
 	export class TabCollection
-	extends Common.Models.Collection<Common.Models.Tab> {
+	extends Common.Models.ModifiableCollection<Common.Models.Tab> {
 		constructor() {
 			super();
 		}
@@ -11,6 +11,11 @@ module Common.Models {
 			return this.filterFirst(function(tab, index) {
 				return tab.play.guid == guid;
 			});
+		}
+
+		public close(tab: Common.Models.Tab): void {
+			this.remove(tab.guid);
+			tab.close();
 		}
 	}
 }

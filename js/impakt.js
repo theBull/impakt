@@ -10,6 +10,12 @@
 /// <reference path='./interfaces.ts' />
 /// <reference path='./interfaces.ts' />
 /// <reference path='./interfaces.ts' />
+/// <reference path='./interfaces.ts' />
+/// <reference path='./interfaces.ts' />
+/// <reference path='./interfaces.ts' />
+/// <reference path='./interfaces.ts' />
+/// <reference path='./interfaces.ts' />
+/// <reference path='./interfaces.ts' />
 /// <reference path='../models/models.ts' />
 /// <reference path='./interfaces.ts' />
 /// <reference path='./interfaces.ts' />
@@ -30,10 +36,14 @@
 /// <reference path='./interfaces.ts' />
 /// <reference path='./interfaces.ts' />
 /// <reference path='./interfaces.ts' />
+/// <reference path='./ICollection.ts' />
 /// <reference path='./ICollectionItem.ts' />
 /// <reference path='./ILinkedListItem.ts' />
 /// <reference path='./IModifiable.ts' />
+/// <reference path='./IModifiableCollection.ts' />
 /// <reference path='./IStorable.ts' />
+/// <reference path='./IActionable.ts' />
+/// <reference path='./IActionableCollection.ts' />
 /// <reference path='./IScrollable.ts' />
 /// <reference path='./IListener.ts' />
 /// <reference path='./IPlaceable.ts' />
@@ -43,6 +53,7 @@
 /// <reference path='./IDrawable.ts' />
 /// <reference path='./IContextual.ts' />
 /// <reference path='./IHoverable.ts' />
+/// <reference path='./IAssociable.ts' />
 /// <reference path='./IPaper.ts' />
 /// <reference path='./IGrid.ts' />
 /// <reference path='./ICanvas.ts' />
@@ -126,7 +137,10 @@ var Common;
             /**
              * Allows for switching the listening mechanism on or off
              * within a method chain. listen(false) would prevent
-             * any mutation from triggering a rehash.
+             * any mutation from triggering a rehash. Does not
+             * trigger a modification event when setting to true,
+             * you must invoke the modification event directly and
+             * separately if needed.
              *
              * @param {boolean} startListening true or false
              */
@@ -208,18 +222,17 @@ var Common;
                 return newElement;
             };
             Modifiable.prototype.toJson = function () {
-                return {
+                return $.extend({
                     lastModified: this.lastModified,
-                    guid: this.guid,
                     checksum: this.checksum
-                };
+                }, _super.prototype.toJson.call(this));
             };
             Modifiable.prototype.fromJson = function (json) {
                 this.modified = json.modified;
                 this.lastModified = json.lastModified;
-                this.guid = json.guid || this.guid;
                 this.original = json.checksum;
                 this.checksum = Common.Utilities.generateChecksum(this.toJson());
+                _super.prototype.fromJson.call(this, json);
             };
             return Modifiable;
         })(Common.Models.Storable);
@@ -359,6 +372,10 @@ var Common;
                     ].join(''));
                 }
             };
+            Collection.prototype.only = function (data) {
+                this.removeAll();
+                this.add(data);
+            };
             Collection.prototype.append = function (collection) {
                 // adds the given collection onto the end of this collection
                 // E.g.
@@ -445,6 +462,9 @@ var Common;
                     results.push(element.toJson());
                 });
                 return results;
+            };
+            Collection.prototype.getGuids = function () {
+                return this._keys;
             };
             return Collection;
         })(Common.Models.Storable);
@@ -622,6 +642,9 @@ var Common;
             ModifiableCollection.prototype.hasElements = function () {
                 return this._collection.hasElements();
             };
+            ModifiableCollection.prototype.exists = function (key) {
+                return this._collection.exists(key);
+            };
             ModifiableCollection.prototype.get = function (key) {
                 return this._collection.get(key);
             };
@@ -698,6 +721,15 @@ var Common;
                 });
                 return this;
             };
+            ModifiableCollection.prototype.only = function (data) {
+                this._collection.only(data);
+                this._modifiable.setModified(true);
+                var self = this;
+                data.onModified(function () {
+                    self._modifiable.setModified();
+                });
+                return this;
+            };
             ModifiableCollection.prototype.append = function (collection, clearListeners) {
                 this._collection.append(collection);
                 this._modifiable.setModified();
@@ -762,9 +794,17 @@ var Common;
             ModifiableCollection.prototype.toJson = function () {
                 return this._collection.toJson();
             };
+            ModifiableCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this._collection.fromJson(json);
+            };
             ModifiableCollection.prototype.copy = function (newElement, context) {
                 console.error('ModifiableCollection copy() not implemented');
                 return null;
+            };
+            ModifiableCollection.prototype.getGuids = function () {
+                return this._collection.getGuids();
             };
             return ModifiableCollection;
         })();
@@ -839,53 +879,442 @@ var Common;
         Models.ModifiableLinkedListNode = ModifiableLinkedListNode;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
+/// <reference path='./models.ts' />
 var Common;
 (function (Common) {
     var Models;
     (function (Models) {
-        var AssociationArray = (function (_super) {
-            __extends(AssociationArray, _super);
-            function AssociationArray() {
+        var Actionable = (function (_super) {
+            __extends(Actionable, _super);
+            function Actionable(impaktDataType) {
                 _super.call(this);
                 _super.prototype.setContext.call(this, this);
-                this._array = [];
+                this.impaktDataType = impaktDataType;
+                this.disabled = false;
+                this.selected = false;
+                this.clickable = true;
+                this.hoverable = true;
+                this.dragging = false;
+                this.draggable = true;
+                this.dragged = false;
+                this.selectable = true;
             }
-            AssociationArray.prototype.size = function () {
-                return this._array.length;
+            Actionable.prototype.toJson = function () {
+                return _super.prototype.toJson.call(this);
             };
-            AssociationArray.prototype.add = function (guid) {
-                this._array.push(guid);
+            Actionable.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                _super.prototype.fromJson.call(this, json);
             };
-            AssociationArray.prototype.addAll = function (guids) {
-                this._array.concat(guids);
+            /**
+             * Generic selection toggle
+             */
+            Actionable.prototype.toggleSelect = function () {
+                if (this.disabled || !this.selectable)
+                    return;
+                if (this.selected)
+                    this.deselect();
+                else
+                    this.select();
             };
-            AssociationArray.prototype.addAtIndex = function (guid, index) {
-                this._array[index] = guid;
+            /**
+             * Generic selection method
+             */
+            Actionable.prototype.select = function () {
+                if (this.disabled || !this.selectable)
+                    return;
+                this.selected = true;
             };
-            AssociationArray.prototype.primary = function () {
-                return this.getAtIndex(0);
+            /**
+             * Generic deselection method
+             */
+            Actionable.prototype.deselect = function () {
+                if (this.disabled || !this.selectable)
+                    return;
+                this.selected = false;
             };
-            AssociationArray.prototype.getAtIndex = function (index) {
-                return this._array[index];
+            /**
+             * Generic disable method
+             */
+            Actionable.prototype.disable = function () {
+                this.disabled = true;
             };
-            AssociationArray.prototype.first = function (guid) {
-                this.addAtIndex(guid, 0);
+            /**
+             * Generic enable method
+             */
+            Actionable.prototype.enable = function () {
+                this.disabled = false;
             };
-            AssociationArray.prototype.only = function (guid) {
-                this._array = [];
-                this.add(guid);
+            // TODO @theBull - implement here?
+            Actionable.prototype.oncontextmenu = function (fn, context) {
             };
-            AssociationArray.prototype.empty = function () {
-                this._array = [];
+            // TODO @theBull - implement here?
+            Actionable.prototype.contextmenu = function (e, context) {
             };
-            AssociationArray.prototype.remove = function (guid) {
-                if (this.exists(guid)) {
-                    this._array.splice(this._array.indexOf(guid), 1);
-                    return guid;
+            return Actionable;
+        })(Common.Models.Modifiable);
+        Models.Actionable = Actionable;
+    })(Models = Common.Models || (Common.Models = {}));
+})(Common || (Common = {}));
+/// <reference path='./models.ts' />
+var Common;
+(function (Common) {
+    var Models;
+    (function (Models) {
+        var ActionableCollection = (function (_super) {
+            __extends(ActionableCollection, _super);
+            function ActionableCollection() {
+                _super.call(this);
+            }
+            ActionableCollection.prototype.toJson = function () {
+                return _super.prototype.toJson.call(this);
+            };
+            ActionableCollection.prototype.fromJson = function (json) {
+                _super.prototype.fromJson.call(this, json);
+            };
+            ActionableCollection.prototype.deselectAll = function () {
+                this.forEach(function (element, index) {
+                    element.deselect();
+                });
+            };
+            ActionableCollection.prototype.selectAll = function () {
+                this.forEach(function (element, index) {
+                    element.select();
+                });
+            };
+            ActionableCollection.prototype.select = function (element) {
+                if (Common.Utilities.isNullOrUndefined(element))
+                    return;
+                this.deselectAll();
+                var selectedElement = this.get(element.guid);
+                if (!Common.Utilities.isNullOrUndefined(selectedElement))
+                    selectedElement.select();
+            };
+            ActionableCollection.prototype.deselect = function (element) {
+                if (Common.Utilities.isNullOrUndefined(element))
+                    return;
+                var deselectedElement = this.get(element.guid);
+                if (!Common.Utilities.isNullOrUndefined(deselectedElement))
+                    deselectedElement.deselect();
+            };
+            ActionableCollection.prototype.toggleSelect = function (element) {
+                if (Common.Utilities.isNullOrUndefined(element))
+                    return;
+                if (element.selected)
+                    this.deselect(element);
+                else
+                    this.select(element);
+            };
+            return ActionableCollection;
+        })(Common.Models.ModifiableCollection);
+        Models.ActionableCollection = ActionableCollection;
+    })(Models = Common.Models || (Common.Models = {}));
+})(Common || (Common = {}));
+/// <reference path='./models.ts' />
+var Common;
+(function (Common) {
+    var Models;
+    (function (Models) {
+        var AssociableEntity = (function (_super) {
+            __extends(AssociableEntity, _super);
+            function AssociableEntity(impaktDataType) {
+                _super.call(this, impaktDataType);
+                this.key = 0;
+                this.impaktDataType = impaktDataType;
+                this.associationKey = null;
+            }
+            AssociableEntity.prototype.generateAssociationKey = function () {
+                this.associationKey = [
+                    this.impaktDataType,
+                    '|',
+                    this.key,
+                    '|',
+                    this.guid
+                ].join('');
+            };
+            AssociableEntity.prototype.toJson = function () {
+                return $.extend({
+                    key: this.key,
+                    impaktDataType: this.impaktDataType,
+                    associationKey: this.associationKey
+                }, _super.prototype.toJson.call(this));
+            };
+            AssociableEntity.prototype.fromJson = function (json) {
+                if (!json)
+                    throw new Error('AssociableEntity fromJson(): json is null or undefined');
+                this.key = json.key;
+                this.impaktDataType = json.impaktDataType;
+                _super.prototype.fromJson.call(this, json);
+                if (Common.Utilities.isNullOrUndefined(json.associationKey)) {
+                    this.generateAssociationKey();
                 }
                 else {
-                    throw new Error(['Association does not exist: ', guid].join(''));
-                    return null;
+                    this.associationKey = json.associationKey;
+                }
+            };
+            return AssociableEntity;
+        })(Common.Models.Actionable);
+        Models.AssociableEntity = AssociableEntity;
+    })(Models = Common.Models || (Common.Models = {}));
+})(Common || (Common = {}));
+/// <reference path='./models.ts' />
+var Common;
+(function (Common) {
+    var Models;
+    (function (Models) {
+        var AssociableCollectionEntity = (function (_super) {
+            __extends(AssociableCollectionEntity, _super);
+            function AssociableCollectionEntity(impaktDataType) {
+                _super.call(this);
+                this._associableEntity = new Common.Models.AssociableEntity(impaktDataType);
+            }
+            AssociableCollectionEntity.prototype.toJson = function () {
+                return $.extend(this._associableEntity.toJson(), _super.prototype.toJson.call(this));
+            };
+            AssociableCollectionEntity.prototype.fromJson = function (json) {
+                if (!json)
+                    throw new Error('AssociableEntity fromJson(): json is null or undefined');
+                this._associableEntity.fromJson(json);
+                _super.prototype.fromJson.call(this, json);
+            };
+            return AssociableCollectionEntity;
+        })(Common.Models.ModifiableCollection);
+        Models.AssociableCollectionEntity = AssociableCollectionEntity;
+    })(Models = Common.Models || (Common.Models = {}));
+})(Common || (Common = {}));
+/// <reference path='./models.ts' />
+var Common;
+(function (Common) {
+    var Models;
+    (function (Models) {
+        var AssociationCollection = (function (_super) {
+            __extends(AssociationCollection, _super);
+            function AssociationCollection(contextId) {
+                _super.call(this);
+                _super.prototype.setContext.call(this, this);
+                this._data = {};
+                this._size = 0;
+                this.contextId = contextId;
+            }
+            /**
+             * Returns the size of the association collection
+             * @return {number} size
+             */
+            AssociationCollection.prototype.size = function () {
+                return this._size;
+            };
+            /**
+             * Returns whether the association collection has elements
+             * @return {boolean} true or false
+             */
+            AssociationCollection.prototype.isEmpty = function () {
+                return this.size() == 0;
+            };
+            /**
+             * Returns whether the array has elements
+             * @return {boolean} true or false
+             */
+            AssociationCollection.prototype.hasElements = function () {
+                return this.size() > 0;
+            };
+            /**
+             * Creates an association, and an inverse association, between
+             * the two given entities.
+             *
+             * @param {Common.Interfaces.IAssociable} fromEntity [description]
+             * @param {Common.Interfaces.IAssociable} toEntity   [description]
+             */
+            AssociationCollection.prototype.add = function (fromEntity, toEntity) {
+                var fromAssociation = new Common.Models.Association(fromEntity.key, fromEntity.impaktDataType, fromEntity.guid, toEntity.key, toEntity.impaktDataType, toEntity.guid, this.contextId);
+                this.addAssociation(fromAssociation);
+            };
+            /**
+             * Creates an association between the given entity and all of the
+             * given array of entities.
+             *
+             * @param {Common.Interfaces.IAssociable}   fromEntity [description]
+             * @param {Common.Interfaces.IAssociable[]} entities   [description]
+             */
+            AssociationCollection.prototype.addAll = function (fromEntity, entities) {
+                if (Common.Utilities.isNullOrUndefined(entities))
+                    throw new Error('AssociationCollection addAll(): entities[] is null or undefined');
+                for (var i = 0; i < entities.length; i++) {
+                    var toEntity = entities[i];
+                    if (Common.Utilities.isNullOrUndefined(toEntity))
+                        continue;
+                    var fromAssociation = new Common.Models.Association(fromEntity.key, fromEntity.impaktDataType, fromEntity.guid, toEntity.key, toEntity.impaktDataType, toEntity.guid, this.contextId);
+                    this.addAssociation(fromAssociation);
+                }
+            };
+            /**
+             * Creates an 'inverse' association with the given association, and
+             * adds both to the association collection
+             *
+             * @param {Common.Models.Association} association the 'from' association
+             */
+            AssociationCollection.prototype.addAssociation = function (association) {
+                var toAssociation = new Common.Models.Association(association.toKey, association.toType, association.toGuid, association.fromKey, association.fromType, association.fromGuid, this.contextId);
+                if (!this._data[association.internalKey]) {
+                    this._data[association.internalKey] = [];
+                    this._size++;
+                }
+                if (this._data[association.internalKey].indexOf(toAssociation.internalKey) < 0)
+                    this._data[association.internalKey].push(toAssociation.internalKey);
+                if (!this._data[toAssociation.internalKey]) {
+                    this._data[toAssociation.internalKey] = [];
+                    this._size++;
+                }
+                if (this._data[toAssociation.internalKey].indexOf(association.internalKey) < 0)
+                    this._data[toAssociation.internalKey].push(association.internalKey);
+            };
+            AssociationCollection.prototype.addInternalKey = function (internalKey, associations) {
+                if (Common.Utilities.isNullOrUndefined(internalKey) ||
+                    Common.Utilities.isNullOrUndefined(associations)) {
+                    throw new Error('AssociationCollection addInternalKey(): \
+					internalKey or associations[] is null or undefined');
+                }
+                if (this.exists(internalKey)) {
+                    // merge the internalKey's associations
+                    // with the existing internalKey's associations
+                    this._data[internalKey] = Common.Utilities.uniqueArray(this._data[internalKey].concat(associations));
+                }
+                else {
+                    this._data[internalKey] = associations;
+                    this._size++;
+                }
+            };
+            /**
+             * Merges another association collection into this association collection;
+             * ignores any duplicate entries.
+             *
+             * @param {Common.Models.AssociationCollection} associationCollection association collection to merge
+             */
+            AssociationCollection.prototype.merge = function (associationCollection) {
+                if (Common.Utilities.isNullOrUndefined(associationCollection))
+                    throw new Error('AssignmentCollection merge(): associationCollection to \
+					merge is null or undefined');
+                if (associationCollection.isEmpty())
+                    return;
+                // iterate over all entries in associationCollection to merge
+                var targetCollection = this;
+                associationCollection.forEach(function (self, internalKey) {
+                    // gather the to merge collection's array of associations
+                    var associations = self.getByInternalKey(internalKey);
+                    // add the internalKey to the target collection with blank array
+                    targetCollection.addInternalKey(internalKey, associations);
+                });
+            };
+            AssociationCollection.prototype.getByInternalKey = function (internalKey) {
+                if (Common.Utilities.isNullOrUndefined(internalKey))
+                    throw new Error('AssociationCollection get(): internalKey is null or undefined');
+                return this._data[internalKey];
+            };
+            AssociationCollection.prototype.hasAssociations = function (internalKey) {
+                if (Common.Utilities.isNullOrUndefined(internalKey))
+                    throw new Error('AssociationCollection hasAssociations(): internalKey is null or undefined');
+                if (!this.exists(internalKey)) {
+                    return false;
+                }
+                var associations = this._data[internalKey];
+                if (Common.Utilities.isNullOrUndefined(associations)) {
+                    // shouldn't be null or undefined, so let's set it
+                    // for proper house keeping...any issues with this,
+                    // or any reason an internal key might point to null/undefined?
+                    this._data[internalKey] = [];
+                }
+                return associations.length > 0;
+            };
+            AssociationCollection.prototype.empty = function () {
+                this._data = {};
+                this._size = 0;
+            };
+            AssociationCollection.prototype.delete = function (internalKey) {
+                if (Common.Utilities.isNullOrUndefined(internalKey))
+                    throw new Error('AssociationCollection remove(): internalKey is null or undefined');
+                var associationsRemoved = new Common.Models.AssociationCollection(this.contextId);
+                if (this.exists(internalKey)) {
+                    var internalKeyParts = Common.Models.Association.parse(internalKey);
+                    var associations = this._data[internalKey];
+                    for (var i = 0; i < associations.length; i++) {
+                        if (Common.Utilities.isNullOrUndefined(associations[i]))
+                            continue;
+                        var associatedKeyParts = Common.Models.Association.parse(associations[i]);
+                        var association = new Common.Models.Association(internalKeyParts.entityKey, internalKeyParts.entityType, internalKeyParts.entityGuid, associatedKeyParts.entityKey, associatedKeyParts.entityType, associatedKeyParts.entityGuid, this.contextId);
+                        associationsRemoved.addAssociation(association);
+                    }
+                    delete this._data[internalKey];
+                    this._size--;
+                    this.forEach(function (self, associationKey) {
+                        var associations = self._data[associationKey].associations;
+                        if (!associations || associations.length == 0) {
+                            // Clean up; we shouldn't have empty arrays
+                            // in the associations collection; we know that
+                            // if there is only 1 element in the associations array,
+                            // then we should effectively 
+                            delete self._data[associationKey];
+                            self._size--;
+                            return;
+                        }
+                        if (associations.length > 0) {
+                            var index = associations.indexOf(internalKey);
+                            if (index >= 0) {
+                                associations.splice(index, 1);
+                                if (associations.length == 0) {
+                                    delete self._data[associationKey];
+                                    self._size--;
+                                }
+                            }
+                        }
+                    });
+                }
+                return associationsRemoved;
+            };
+            /**
+             * Removes the association ONLY between the two entities, and only
+             * completely removes them if their respective association arrays
+             * are empty as a result.
+             *
+             * @param {Common.Interfaces.IAssociable} fromEntity [description]
+             * @param {Common.Interfaces.IAssociable} toEntity   [description]
+             */
+            AssociationCollection.prototype.disassociate = function (fromEntity, toEntity) {
+                if (Common.Utilities.isNullOrUndefined(fromEntity) ||
+                    Common.Utilities.isNullOrUndefined(toEntity))
+                    throw new Error('AssociationCollection disassociate(): from or to entity is null or undefined');
+                var fromAssociation = new Common.Models.Association(fromEntity.key, fromEntity.impaktDataType, fromEntity.guid, toEntity.key, toEntity.impaktDataType, toEntity.guid, this.contextId);
+                var toAssociation = new Common.Models.Association(toEntity.key, toEntity.impaktDataType, toEntity.guid, fromEntity.key, fromEntity.impaktDataType, fromEntity.guid, this.contextId);
+                var fromAssociations = this._data[fromAssociation.internalKey];
+                if (!Common.Utilities.isNullOrUndefined(fromAssociations)) {
+                    if (fromAssociations.length > 1) {
+                        var index = fromAssociations.indexOf(toAssociation.internalKey);
+                        if (index >= 0) {
+                            fromAssociations.splice(index, 1);
+                        }
+                    }
+                    else {
+                        delete this._data[fromAssociation.internalKey];
+                        this._size--;
+                    }
+                }
+                else {
+                    throw new Error('AssociationCollection disassociate(): No from association found');
+                }
+                var toAssociations = this._data[toAssociation.internalKey];
+                if (!Common.Utilities.isNullOrUndefined(toAssociations)) {
+                    if (toAssociations.length > 1) {
+                        var index = toAssociations.indexOf(fromAssociation.internalKey);
+                        if (index >= 0) {
+                            toAssociations.splice(index, 1);
+                        }
+                    }
+                    else {
+                        delete this._data[toAssociation.internalKey];
+                        this._size--;
+                    }
+                }
+                else {
+                    throw new Error('AssociationCollection disassociate(): No to association found');
                 }
             };
             /**
@@ -893,48 +1322,80 @@ var Common;
              * @param  {string}  guid the guid to check
              * @return {boolean}      true if it exists, otherwise false
              */
-            AssociationArray.prototype.exists = function (guid) {
-                return this.hasElements() && this._array.indexOf(guid) > -1;
-            };
-            /**
-             * Returns whether the array has elements
-             * @return {boolean} true or false
-             */
-            AssociationArray.prototype.hasElements = function () {
-                return this.size() > 0;
+            AssociationCollection.prototype.exists = function (internalKey) {
+                return !Common.Utilities.isNullOrUndefined(this._data[internalKey]);
             };
             /**
              * Replaces guid1, if found, with guid2
              * @param  {string} guid1 guid to be replaced
              * @param  {string} guid2 guid to replace with
              */
-            AssociationArray.prototype.replace = function (guid1, guid2) {
-                if (this.exists(guid1)) {
-                    this._array[this._array.indexOf(guid1)] = guid2;
-                }
+            AssociationCollection.prototype.replace = function (guid1, guid2) {
+                // TODO @theBull
             };
             /**
              * Iterates over each element in the array
              * @param {Function} iterator the iterator function to call per element
              */
-            AssociationArray.prototype.forEach = function (iterator) {
-                for (var i = 0; i < this._array.length; i++) {
-                    var guid = this._array[i];
-                    iterator(guid, i);
+            AssociationCollection.prototype.forEach = function (iterator) {
+                // TODO @theBull
+                for (var internalKey in this._data) {
+                    iterator(this, internalKey);
                 }
             };
-            AssociationArray.prototype.toArray = function () {
-                return this._array;
+            AssociationCollection.prototype.toArray = function (toJson) {
+                toJson = toJson === true;
+                var array = [];
+                for (var fromInternalKey in this._data) {
+                    var fromParts = Common.Models.Association.parse(fromInternalKey);
+                    var associations = this._data[fromInternalKey];
+                    for (var i = 0; i < associations.length; i++) {
+                        var toInternalKey = associations[i];
+                        var toParts = Common.Models.Association.parse(toInternalKey);
+                        var association = new Common.Models.Association(fromParts.entityKey, fromParts.entityType, fromParts.entityGuid, toParts.entityKey, toParts.entityType, toParts.entityGuid, this.contextId);
+                        if (toJson) {
+                            array.push(association.toJson());
+                        }
+                        else {
+                            array.push(association);
+                        }
+                    }
+                }
+                return array;
             };
-            AssociationArray.prototype.toJson = function () {
-                return this.toArray();
+            AssociationCollection.prototype.toJson = function () {
+                return this.toArray(true);
             };
-            AssociationArray.prototype.fromJson = function (json) {
-                this._array = json;
+            AssociationCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                // iterate over array of associations
+                for (var i = 0; i < json.length; i++) {
+                    var rawAssociation = json[i];
+                    if (Common.Utilities.isNullOrUndefined(rawAssociation)) {
+                        throw new Error('AssociationCollection fromJson(): an association result\
+						is null or undefined');
+                    }
+                    if (Common.Utilities.isNullOrUndefined(rawAssociation.data)) {
+                        throw new Error('AssociationCollection fromJson(): the data property of\
+						an association result is null or undefined');
+                    }
+                    var association = new Common.Models.Association(rawAssociation.fromKey, rawAssociation.fromType, rawAssociation.data.fromGuid, rawAssociation.toKey, rawAssociation.toType, rawAssociation.data.toGuid, rawAssociation.contextID);
+                    if (!this.exists(association.internalKey)) {
+                        this.addAssociation(association);
+                    }
+                }
             };
-            return AssociationArray;
+            AssociationCollection.prototype.getInternalKeys = function () {
+                var internalKeyArray = [];
+                for (var internalKey in this._data) {
+                    internalKeyArray.push(internalKey);
+                }
+                return internalKeyArray;
+            };
+            return AssociationCollection;
         })(Common.Models.Modifiable);
-        Models.AssociationArray = AssociationArray;
+        Models.AssociationCollection = AssociationCollection;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
 /// <reference path='./models.ts' />
@@ -948,48 +1409,107 @@ var Common;
          */
         var Association = (function (_super) {
             __extends(Association, _super);
-            function Association() {
+            function Association(fromKey, fromType, fromGuid, toKey, toType, toGuid, contextId) {
                 _super.call(this);
                 _super.prototype.setContext.call(this, this);
-                this.playbooks = new Common.Models.AssociationArray();
-                this.formations = new Common.Models.AssociationArray();
-                this.personnel = new Common.Models.AssociationArray();
-                this.assignments = new Common.Models.AssociationArray();
-                this.plays = new Common.Models.AssociationArray();
+                this.fromKey = fromKey;
+                this.fromType = fromType;
+                this.fromGuid = fromGuid;
+                this.toKey = toKey;
+                this.toType = toType;
+                this.toGuid = toGuid;
+                this.data = {
+                    guid: this.guid,
+                    fromGuid: this.fromGuid,
+                    toGuid: this.toGuid
+                };
+                this.version = 1;
+                this.contextId = contextId;
+                this.internalKey = Common.Models.Association.buildKey(this);
+                this.associationType = Common.Enums.AssociationTypes.Peer;
             }
+            Association.buildKey = function (association) {
+                return [association.fromType, '|', association.fromKey, '|', association.fromGuid].join('');
+            };
+            Association.parse = function (internalKey) {
+                if (Common.Utilities.isNullOrUndefined(internalKey))
+                    throw new Error('Association parse(): internalKey is null or undefined');
+                var parts = internalKey.split('|');
+                if (parts.length <= 0)
+                    throw new Error('Association parse(): internalKey is invalid; missing "|" separator');
+                if (parts.length != Common.Models.Association.KEY_PART_LENGTH)
+                    throw new Error('Association parse(): internalKey is invalid; invalid number of parts');
+                // assume by this point we have an array of 3 parts
+                // part 1: EntityType
+                // part 2: EntityKey (fromKey)
+                // part 3: Entity guid (client-generated for quick lookup)
+                // - get the entity type
+                // - ensure it exists in the ImpaktDataTypes enum
+                if (Common.Utilities.isNullOrUndefined(parts[0])) {
+                    throw new Error('Association parse(): internalKey is invalid; entityType is null or undefined');
+                }
+                var entityType = parseInt(parts[0]);
+                if (Common.Utilities.isNullOrUndefined(Common.Enums.ImpaktDataTypes[entityType])) {
+                    throw new Error('Association parse(): internalKey is invalid; entityType is not valid ImpaktDataType');
+                }
+                // - get the entity key
+                // - ensure it is a valid key
+                if (Common.Utilities.isNullOrUndefined(parts[1]) || parseInt(parts[1]) <= 0) {
+                    throw new Error('Association parse(): internalKey is invalid; entityKey is invalid');
+                }
+                var entityKey = parseInt(parts[1]);
+                // - get the entity guid
+                if (Common.Utilities.isNullOrUndefined(parts[2])) {
+                    throw new Error('Association parse(): internalKey is invalid; entity guid is null or undefined');
+                }
+                var entityGuid = parts[2];
+                return new Common.Models.AssociationParts(entityType, entityKey, entityGuid);
+            };
             Association.prototype.toJson = function () {
-                var self = this;
                 return {
-                    playbooks: self.playbooks.toJson(),
-                    formations: self.formations.toJson(),
-                    personnel: self.personnel.toJson(),
-                    assignments: self.assignments.toJson(),
-                    plays: self.plays.toJson(),
-                    guid: self.guid
+                    fromKey: this.fromKey,
+                    fromType: this.fromType,
+                    toKey: this.toKey,
+                    toType: this.toType,
+                    contextID: this.contextId + '',
+                    data: this.data,
+                    version: this.version,
+                    associationType: this.associationType
                 };
             };
             Association.prototype.fromJson = function (json) {
                 if (!json)
                     return;
-                this.playbooks.addAll(json.playbooks);
-                this.formations.addAll(json.formations);
-                this.personnel.addAll(json.personnel);
-                this.assignments.addAll(json.assignments);
-                this.plays.addAll(json.plays);
-                this.guid = json.guid || this.guid;
+                if (json.data) {
+                    this.guid = json.data.guid;
+                    this.fromGuid = json.data.fromGuid;
+                    this.toGuid = json.data.toGuid;
+                }
+                else {
+                    throw new Error('Association fromJson(): data is null or undefined');
+                }
+                this.fromKey = json.fromKey;
+                this.fromType = json.fromType;
+                this.toKey = json.toKey;
+                this.toType = json.toType;
+                this.contextId = json.contextID;
+                this.data = json.data;
+                this.associationType = json.associationType;
+                this.version = json.version;
             };
-            /**
-             * Returns the sum count of all associated elements
-             * @return {number} [description]
-             */
-            Association.prototype.size = function () {
-                return this.playbooks.size() + this.formations.size() +
-                    this.personnel.size() + this.assignments.size() +
-                    this.plays.size();
-            };
+            Association.KEY_PART_LENGTH = 3;
             return Association;
         })(Common.Models.Modifiable);
         Models.Association = Association;
+        var AssociationParts = (function () {
+            function AssociationParts(entityType, entityKey, guid) {
+                this.entityType = entityType;
+                this.entityKey = entityKey;
+                this.entityGuid = guid;
+            }
+            return AssociationParts;
+        })();
+        Models.AssociationParts = AssociationParts;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
 /// <reference path='./models.ts' />
@@ -1001,6 +1521,7 @@ var Common;
             __extends(Notification, _super);
             function Notification(message, type) {
                 _super.call(this);
+                _super.prototype.setContext.call(this, this);
                 this.message = message;
                 this.type = type;
             }
@@ -1079,7 +1600,7 @@ var Common;
                 return !args || !args.length || args.length <= 0 ? '' : args.join('');
             };
             return Notification;
-        })(Common.Models.Storable);
+        })(Common.Models.Modifiable);
         Models.Notification = Notification;
         (function (NotificationType) {
             NotificationType[NotificationType["None"] = 0] = "None";
@@ -1103,7 +1624,7 @@ var Common;
                 _super.call(this);
             }
             return NotificationCollection;
-        })(Common.Models.Collection);
+        })(Common.Models.ModifiableCollection);
         Models.NotificationCollection = NotificationCollection;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -1140,9 +1661,10 @@ var Common;
     (function (Models) {
         var Assignment = (function (_super) {
             __extends(Assignment, _super);
-            function Assignment() {
-                _super.call(this);
+            function Assignment(unitType) {
+                _super.call(this, Common.Enums.ImpaktDataTypes.Assignment);
                 _super.prototype.setContext.call(this, this);
+                this.unitType = unitType;
                 this.routes = new Common.Models.RouteCollection();
                 this.positionIndex = -1;
                 this.setType = Common.Enums.SetTypes.Assignment;
@@ -1162,17 +1684,18 @@ var Common;
                     return;
                 this.routes.fromJson(json.routes);
                 this.positionIndex = json.positionIndex;
-                this.guid = json.guid;
+                this.unitType = json.unitType;
+                _super.prototype.fromJson.call(this, json);
             };
             Assignment.prototype.toJson = function () {
-                return {
+                return $.extend({
                     routes: this.routes.toJson(),
                     positionIndex: this.positionIndex,
-                    guid: this.guid
-                };
+                    unitType: this.unitType
+                }, _super.prototype.toJson.call(this));
             };
             return Assignment;
-        })(Common.Models.Modifiable);
+        })(Common.Models.AssociableEntity);
         Models.Assignment = Assignment;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -1186,40 +1709,39 @@ var Common;
             // at this point I'm expecting an object literal with data / count
             // properties, but not a valid AssignmentCollection; Essentially
             // this is to get around 
-            function AssignmentCollection(count) {
-                _super.call(this);
+            function AssignmentCollection(unitType, count) {
+                _super.call(this, Common.Enums.ImpaktDataTypes.AssignmentGroup);
+                this.unitType = unitType;
                 if (count) {
                     for (var i = 0; i < count; i++) {
-                        var assignment = new Common.Models.Assignment();
+                        var assignment = new Common.Models.Assignment(this.unitType);
                         assignment.positionIndex = i;
                         this.add(assignment);
                     }
                 }
                 this.setType = Common.Enums.SetTypes.Assignment;
-                this.unitType = Team.Enums.UnitTypes.Other;
                 this.name = 'Untitled';
-                this.key = -1;
             }
             AssignmentCollection.prototype.toJson = function () {
                 return {
                     unitType: this.unitType,
                     setType: this.setType,
-                    guid: this.guid,
-                    key: this.key,
                     assignments: _super.prototype.toJson.call(this)
                 };
             };
             AssignmentCollection.prototype.fromJson = function (json) {
                 if (!json)
                     return;
-                this.guid = json.guid;
-                this.key = json.key;
                 this.unitType = json.unitType;
                 this.setType = json.setType;
                 var assignments = json.assignments || [];
                 for (var i = 0; i < assignments.length; i++) {
                     var rawAssignment = assignments[i];
-                    var assignmentModel = new Common.Models.Assignment();
+                    if (Common.Utilities.isNullOrUndefined(rawAssignment))
+                        continue;
+                    rawAssignment.unitType = !Common.Utilities.isNullOrUndefined(rawAssignment.unitType) &&
+                        rawAssignment.unitType >= 0 ? rawAssignment.unitTpe : Team.Enums.UnitTypes.Other;
+                    var assignmentModel = new Common.Models.Assignment(rawAssignment.unitType);
                     assignmentModel.fromJson(rawAssignment);
                     this.add(assignmentModel);
                 }
@@ -1234,7 +1756,7 @@ var Common;
                 return result;
             };
             return AssignmentCollection;
-        })(Common.Models.ModifiableCollection);
+        })(Common.Models.AssociableCollectionEntity);
         Models.AssignmentCollection = AssignmentCollection;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -1245,14 +1767,12 @@ var Common;
     (function (Models) {
         var Formation = (function (_super) {
             __extends(Formation, _super);
-            function Formation(name) {
-                _super.call(this);
-                _super.prototype.setContext.call(this, this);
-                this.unitType = Team.Enums.UnitTypes.Other;
+            function Formation(unitType) {
+                _super.call(this, Common.Enums.ImpaktDataTypes.Formation);
+                this.unitType = unitType;
                 this.parentRK = 1;
                 this.editorType = Playbook.Enums.EditorTypes.Formation;
                 this.name = name || 'New formation';
-                this.associated = new Common.Models.Association();
                 this.placements = new Common.Models.PlacementCollection();
                 this.png = null;
                 //this.setDefault();
@@ -1263,36 +1783,30 @@ var Common;
                 });
             }
             Formation.prototype.copy = function (newFormation) {
-                var copyFormation = newFormation || new Common.Models.Formation();
+                var copyFormation = newFormation || new Common.Models.Formation(this.unitType);
                 return _super.prototype.copy.call(this, copyFormation, this);
             };
             Formation.prototype.toJson = function () {
-                return $.extend(_super.prototype.toJson.call(this), {
+                return $.extend({
                     name: this.name,
-                    key: this.key,
                     parentRK: this.parentRK,
                     unitType: this.unitType,
                     editorType: this.editorType,
-                    guid: this.guid,
-                    associated: this.associated.toJson(),
                     placements: this.placements.toJson(),
                     png: this.png
-                });
+                }, _super.prototype.toJson.call(this));
             };
             Formation.prototype.fromJson = function (json) {
                 if (!json)
                     return;
                 var self = this;
-                _super.prototype.fromJson.call(this, json);
                 this.parentRK = json.parentRK;
                 this.editorType = Playbook.Enums.EditorTypes.Formation;
                 this.name = json.name;
-                this.guid = json.guid;
                 this.unitType = json.unitType;
                 this.placements.fromJson(json.placements);
-                this.key = json.key;
-                this.associated.fromJson(json.associated);
                 this.png = json.png;
+                _super.prototype.fromJson.call(this, json);
                 this.placements.onModified(function () {
                     console.log('formation modified: placement collection:', self.guid);
                     self.setModified(true);
@@ -1317,7 +1831,7 @@ var Common;
                 this.setModified(true);
             };
             return Formation;
-        })(Common.Models.Modifiable);
+        })(Common.Models.AssociableEntity);
         Models.Formation = Formation;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -1331,10 +1845,10 @@ var Common;
             // at this point I'm expecting an object literal with data / count
             // properties, but not a valid FormationCollection; Essentially
             // this is to get around 
-            function FormationCollection() {
+            function FormationCollection(unitType) {
                 _super.call(this);
                 this.parentRK = -1;
-                this.unitType = Team.Enums.UnitTypes.Other;
+                this.unitType = unitType;
                 this.onModified(function () { });
             }
             FormationCollection.prototype.toJson = function () {
@@ -1354,7 +1868,11 @@ var Common;
                 var formations = json || [];
                 for (var i = 0; i < formations.length; i++) {
                     var rawFormation = formations[i];
-                    var formationModel = new Common.Models.Formation();
+                    if (Common.Utilities.isNullOrUndefined(rawFormation))
+                        continue;
+                    rawFormation.unitType = !Common.Utilities.isNullOrUndefined(rawFormation.unitType) &&
+                        rawFormation.unitType >= 0 ? rawFormation.unitType : Team.Enums.UnitTypes.Other;
+                    var formationModel = new Common.Models.Formation(rawFormation.unitType);
                     formationModel.fromJson(rawFormation);
                     this.add(formationModel);
                 }
@@ -1366,7 +1884,7 @@ var Common;
                 });
             };
             return FormationCollection;
-        })(Common.Models.ModifiableCollection);
+        })(Common.Models.ActionableCollection);
         Models.FormationCollection = FormationCollection;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -1377,83 +1895,104 @@ var Common;
     (function (Models) {
         var Play = (function (_super) {
             __extends(Play, _super);
-            function Play() {
-                _super.call(this);
-                _super.prototype.setContext.call(this, this);
+            function Play(unitType) {
+                _super.call(this, Common.Enums.ImpaktDataTypes.Play);
                 this.field = null;
                 this.name = 'New play';
-                this.associated = new Common.Models.Association();
+                this.unitType = unitType;
                 this.assignments = null;
                 this.formation = null;
                 this.personnel = null;
-                this.unitType = Team.Enums.UnitTypes.Other;
                 this.editorType = Playbook.Enums.EditorTypes.Play;
                 this.png = null;
             }
             Play.prototype.setPlaybook = function (playbook) {
-                // Unit type is key.
-                if (playbook) {
-                    this.associated.playbooks.only(playbook.guid);
-                }
-                else {
-                    this.associated.playbooks.empty();
-                    console.warn('Play setPlaybook(): implementation is incomplete');
-                }
+                // TODO @theBull - handle associations
                 // TODO @theBull
                 // - add playbook field?
                 // - what happens when changing to playbooks of different unit types? 
                 this.setModified(true);
             };
             Play.prototype.setFormation = function (formation) {
-                if (formation) {
-                    this.associated.formations.only(formation.guid);
+                if (!Common.Utilities.isNullOrUndefined(formation)) {
+                    if (formation.unitType != this.unitType) {
+                    }
                 }
                 else {
-                    this.associated.formations.empty();
                     this.setAssignments(null);
                     this.setPersonnel(null);
                 }
                 this.formation = formation;
+                this.unitType = formation.unitType;
                 this.setModified(true);
             };
             Play.prototype.setAssignments = function (assignments) {
-                if (assignments) {
-                    this.associated.assignments.only(assignments.guid);
+                if (!Common.Utilities.isNullOrUndefined(assignments)) {
+                    if (assignments.unitType != this.unitType)
+                        throw new Error('Play setAssignments(): Assignments unit type does not match play unit type');
                 }
                 else {
-                    this.associated.assignments.empty();
                 }
                 this.assignments = assignments;
                 this.setModified(true);
             };
             Play.prototype.setPersonnel = function (personnel) {
-                if (personnel) {
-                    this.associated.personnel.only(personnel.guid);
+                if (!Common.Utilities.isNullOrUndefined(personnel)) {
+                    if (personnel.unitType != this.unitType)
+                        throw new Error('Play setPersonnel(): Cannot apply personnel with different unit type.');
                 }
                 else {
-                    this.associated.personnel.empty();
                 }
                 this.personnel = personnel;
                 this.setModified(true);
             };
+            Play.prototype.setUnitType = function (unitType) {
+                this.isFieldSet(this.field);
+                this.isBallSet(this.field.ball);
+                // 1. if formation doesn't match unit type, select default formation
+                // of unit type
+                if (this.formation && this.formation.unitType != unitType) {
+                    var confirmed = confirm('Formation unit type mismatch.\nContinue with a default formation of the correct unit type?');
+                    if (confirmed) {
+                        this.formation.unitType = unitType;
+                    }
+                    else {
+                        return;
+                    }
+                }
+                // Handle the formation / confirm dialog first; that way if user clicks cancel
+                // in the confirm, we don't end up setting the play's unit type anyway.
+                this.unitType = unitType;
+                // 2. if personnel doesn't match unit type, select default personnel
+                // of unit type
+                if (this.personnel && this.personnel.unitType != unitType) {
+                    this.personnel.unitType = unitType;
+                    this.personnel.setDefault();
+                }
+                // 3. if assignments do not match unit type, clear them.
+                if (this.assignments.unitType != this.unitType) {
+                    this.assignments = new Common.Models.AssignmentCollection(this.unitType);
+                }
+            };
             Play.prototype.draw = function (field) {
-                if (!field)
-                    throw new Error('Play draw(): Field is null or undefined');
-                if (!field.ball)
-                    throw new Error('Play draw(): Ball is null or undefined');
+                this.isFieldSet(field);
+                this.isBallSet(field.ball);
                 this.field = field;
                 // Clear the players
                 this.field.clearPlayers();
                 var self = this;
                 // set defaults, in case no assignments / personnel were assigned
                 if (!this.personnel) {
-                    this.personnel = new Team.Models.Personnel();
+                    this.personnel = new Team.Models.Personnel(this.unitType);
+                }
+                if (!this.personnel.positions) {
+                    this.personnel.setDefault();
                 }
                 if (!this.assignments) {
-                    this.assignments = new Common.Models.AssignmentCollection();
+                    this.assignments = new Common.Models.AssignmentCollection(this.unitType);
                 }
                 if (!this.formation) {
-                    this.formation = new Common.Models.Formation();
+                    this.formation = new Common.Models.Formation(this.unitType);
                 }
                 if (!this.formation.placements || this.formation.placements.isEmpty()) {
                     this.formation.setDefault(this.field.ball);
@@ -1466,49 +2005,60 @@ var Common;
             };
             Play.prototype.fromJson = function (json) {
                 // TODO
-                this.key = json.key;
                 this.name = json.name;
-                this.guid = json.guid;
-                this.associated.formations.add(json.formationGuid);
-                this.associated.personnel.add(json.personnelGuid);
-                this.associated.assignments.add(json.assignmentsGuid);
                 this.unitType = json.unitType;
                 this.editorType = json.editorType;
                 this.png = json.png;
+                _super.prototype.fromJson.call(this, json);
             };
             Play.prototype.toJson = function () {
-                return {
-                    key: this.key,
+                return $.extend({
                     name: this.name,
-                    associated: this.associated.toJson(),
-                    assignmentsGuid: this.assignments ? this.assignments.guid : null,
-                    personnelGuid: this.personnel ? this.personnel.guid : null,
-                    formationGuid: this.formation ? this.formation.guid : null,
                     unitType: this.unitType,
                     editorType: this.editorType,
-                    guid: this.guid,
                     png: this.png
-                };
+                }, _super.prototype.toJson.call(this));
             };
             Play.prototype.hasAssignments = function () {
                 return this.assignments && this.assignments.size() > 0;
             };
             Play.prototype.setDefault = function (field) {
-                if (!field)
-                    throw new Error('Play setDefault(): field is null or undefined');
+                this.isFieldSet(field);
                 this.field = field;
                 // empty what's already there, if anything...
                 if (!this.personnel)
-                    this.personnel = new Team.Models.Personnel();
+                    this.personnel = new Team.Models.Personnel(this.unitType);
                 if (!this.formation)
-                    this.formation = new Common.Models.Formation();
+                    this.formation = new Common.Models.Formation(this.unitType);
                 this.personnel.setDefault();
                 this.formation.setDefault(this.field.ball);
                 // assignments?
                 // this.draw(field);
             };
+            Play.prototype.getOpposingUnitType = function () {
+                var opponentUnitType = Team.Enums.UnitTypes.Other;
+                switch (this.unitType) {
+                    case Team.Enums.UnitTypes.Offense:
+                        opponentUnitType = Team.Enums.UnitTypes.Defense;
+                        break;
+                    case Team.Enums.UnitTypes.Defense:
+                        opponentUnitType = Team.Enums.UnitTypes.Offense;
+                        break;
+                }
+                return opponentUnitType;
+            };
+            Play.prototype.isFieldSet = function (field) {
+                if (!field)
+                    throw new Error('Play draw(): Field is null or undefined');
+                return true;
+            };
+            Play.prototype.isBallSet = function (ball) {
+                if (!ball)
+                    throw new Error('Play draw(): Ball is null or undefined');
+                return true;
+            };
             return Play;
-        })(Common.Models.Modifiable);
+        })(Common.Models.AssociableEntity);
         Models.Play = Play;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -1519,8 +2069,8 @@ var Common;
     (function (Models) {
         var PlayPrimary = (function (_super) {
             __extends(PlayPrimary, _super);
-            function PlayPrimary() {
-                _super.call(this);
+            function PlayPrimary(unitType) {
+                _super.call(this, unitType);
                 this.playType = Playbook.Enums.PlayTypes.Primary;
             }
             return PlayPrimary;
@@ -1535,8 +2085,8 @@ var Common;
     (function (Models) {
         var PlayOpponent = (function (_super) {
             __extends(PlayOpponent, _super);
-            function PlayOpponent() {
-                _super.call(this);
+            function PlayOpponent(unitType) {
+                _super.call(this, unitType);
                 this.playType = Playbook.Enums.PlayTypes.Opponent;
             }
             PlayOpponent.prototype.draw = function (field) {
@@ -1555,27 +2105,39 @@ var Common;
     (function (Models) {
         var PlayCollection = (function (_super) {
             __extends(PlayCollection, _super);
-            function PlayCollection() {
+            function PlayCollection(unitType) {
                 _super.call(this);
+                this.unitType = unitType;
             }
             PlayCollection.prototype.toJson = function () {
-                return _super.prototype.toJson.call(this);
+                var self = this;
+                return $.extend(_super.prototype.toJson.call(this), {
+                    unitType: self.unitType
+                });
             };
-            PlayCollection.prototype.fromJson = function (plays) {
+            PlayCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.unitType = json.unitType;
+                var plays = json.plays;
                 if (!plays)
                     plays = [];
                 for (var i = 0; i < plays.length; i++) {
                     var obj = plays[i];
                     var rawPlay = obj.data.play;
+                    if (Common.Utilities.isNullOrUndefined(rawPlay))
+                        continue;
+                    rawPlay.unitType = Common.Utilities.isNullOrUndefined(rawPlay.unitType) &&
+                        rawPlay.unitType >= 0 ? rawPlay.unitType : Team.Enums.UnitTypes.Other;
                     rawPlay.key = obj.key;
                     // TODO
-                    var playModel = new Common.Models.Play();
+                    var playModel = new Common.Models.Play(rawPlay.unitType);
                     playModel.fromJson(rawPlay);
                     this.add(playModel);
                 }
             };
             return PlayCollection;
-        })(Common.Models.ModifiableCollection);
+        })(Common.Models.ActionableCollection);
         Models.PlayCollection = PlayCollection;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -1586,35 +2148,27 @@ var Common;
     (function (Models) {
         var PlaybookModel = (function (_super) {
             __extends(PlaybookModel, _super);
-            function PlaybookModel() {
-                _super.call(this);
+            function PlaybookModel(unitType) {
+                _super.call(this, Common.Enums.ImpaktDataTypes.Playbook);
                 _super.prototype.setContext.call(this, this);
-                this.key = -1;
                 this.name = 'Untitled';
-                this.associated = new Common.Models.Association();
-                this.unitType = Team.Enums.UnitTypes.Other;
+                this.unitType = unitType;
             }
             PlaybookModel.prototype.toJson = function () {
-                return {
-                    key: this.key,
+                return $.extend({
                     name: this.name,
-                    associated: this.associated.toJson(),
-                    unitType: this.unitType,
-                    guid: this.guid
-                };
+                    unitType: this.unitType
+                }, _super.prototype.toJson.call(this));
             };
             PlaybookModel.prototype.fromJson = function (json) {
                 if (!json)
                     return;
-                this.key = json.key;
                 this.name = json.name;
                 this.unitType = json.unitType;
-                this.guid = json.guid;
-                if (json.associated)
-                    this.associated.fromJson(json.associated);
+                _super.prototype.fromJson.call(this, json);
             };
             return PlaybookModel;
-        })(Common.Models.Modifiable);
+        })(Common.Models.AssociableEntity);
         Models.PlaybookModel = PlaybookModel;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -1625,29 +2179,41 @@ var Common;
     (function (Models) {
         var PlaybookModelCollection = (function (_super) {
             __extends(PlaybookModelCollection, _super);
-            function PlaybookModelCollection() {
+            function PlaybookModelCollection(unitType) {
                 _super.call(this);
+                this.unitType = unitType;
             }
             PlaybookModelCollection.prototype.toJson = function () {
                 return {
                     guid: this.guid,
-                    playbooks: _super.prototype.toJson.call(this)
+                    playbooks: _super.prototype.toJson.call(this),
+                    unitType: this.unitType
                 };
             };
             PlaybookModelCollection.prototype.fromJson = function (json) {
                 if (!json)
                     return;
                 this.guid = json.guid || this.guid;
+                this.unitType = json.unitType;
                 var playbooks = json.playbooks || [];
                 for (var i = 0; i < playbooks.length; i++) {
                     var rawPlaybook = playbooks[i];
-                    var playbookModel = new Common.Models.PlaybookModel();
+                    if (Common.Utilities.isNullOrUndefined(rawPlaybook))
+                        continue;
+                    rawPlaybook.unitType = !Common.Utilities.isNullOrUndefined(rawPlaybook.unitType) &&
+                        rawPlaybook.unitType >= 0 ? rawPlaybook.unitType : Team.Enums.UnitTypes.Mixed;
+                    // Allow mixed unit types to be added to the playbookmodel collection;
+                    // a variety of unit types may exist in a playbook model collection
+                    if (rawPlaybook.unitType != this.unitType) {
+                        this.unitType = Team.Enums.UnitTypes.Mixed;
+                    }
+                    var playbookModel = new Common.Models.PlaybookModel(rawPlaybook.unitType);
                     playbookModel.fromJson(rawPlaybook);
                     this.add(playbookModel);
                 }
             };
             return PlaybookModelCollection;
-        })(Common.Models.ModifiableCollection);
+        })(Common.Models.ActionableCollection);
         Models.PlaybookModelCollection = PlaybookModelCollection;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -1662,6 +2228,7 @@ var Common;
                 _super.call(this);
                 this.title = 'Untitled';
                 this.active = true;
+                _super.prototype.setContext.call(this, this);
                 this.playPrimary = playPrimary;
                 this.editorType = this.playPrimary.editorType;
                 this.key = this.playPrimary.key;
@@ -1680,7 +2247,7 @@ var Common;
                 }
             };
             return Tab;
-        })(Common.Models.Storable);
+        })(Common.Models.Modifiable);
         Models.Tab = Tab;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -1699,8 +2266,12 @@ var Common;
                     return tab.play.guid == guid;
                 });
             };
+            TabCollection.prototype.close = function (tab) {
+                this.remove(tab.guid);
+                tab.close();
+            };
             return TabCollection;
-        })(Common.Models.Collection);
+        })(Common.Models.ModifiableCollection);
         Models.TabCollection = TabCollection;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -1886,9 +2457,11 @@ var Common;
                 this.readyCallbacks = [];
                 this.listener = new Common.Models.CanvasListener(this);
             }
-            Canvas.prototype.remove = function () {
+            Canvas.prototype.clear = function () {
                 this.playOpponent = null;
                 this.playPrimary = null;
+                this.paper.clear();
+                this.clearListeners();
                 this.setModified(true);
             };
             /**
@@ -1997,6 +2570,11 @@ var Common;
                 });
                 return rect;
             };
+            Utilities.prototype.rhombus = function (x, y, width, height, absolute, offsetX, offsetY) {
+                var rect = this.rect(x, y, width, height, absolute, offsetX, offsetY);
+                rect.transform('r-45');
+                return rect;
+            };
             Utilities.prototype.ellipse = function (x, y, width, height, absolute, offsetX, offsetY) {
                 var pixels = this.alignToGrid(x, y, absolute);
                 offsetX = offsetX || 0;
@@ -2016,6 +2594,22 @@ var Common;
                     cy: pixels.y + offsetY
                 });
                 return circle;
+            };
+            Utilities.prototype.triangle = function (x, y, height, absolute, offsetX, offsetY) {
+                var pixels = this.alignToGrid(x, y, absolute);
+                offsetX = offsetX || 0;
+                offsetY = offsetY || 0;
+                // get height of center
+                var centerHeight = height / 2;
+                // get side length
+                var sideLength = (2 * height) / Math.sqrt(3);
+                // create path string
+                var pathString = Common.Drawing.Utilities.getClosedPathString(true, [
+                    ((pixels.x + offsetX) - (sideLength / 2)), ((pixels.y + offsetY) + centerHeight),
+                    (pixels.x + offsetX), ((pixels.y + offsetY) - centerHeight),
+                    ((pixels.x + offsetX) + (sideLength / 2)), ((pixels.y + offsetY) + centerHeight)
+                ]);
+                return this.Raphael.path(pathString);
             };
             Utilities.prototype.text = function (x, y, text, absolute, offsetX, offsetY) {
                 var pixels = this.alignToGrid(x, y, absolute);
@@ -2382,7 +2976,7 @@ var Common;
                 this.draw();
             };
             Paper.prototype.clear = function () {
-                return this.drawing.clear();
+                this.field.clearPlay();
             };
             Paper.prototype.setViewBox = function (center) {
                 center = center === true;
@@ -2863,6 +3457,15 @@ var Common;
                     ].join(''));
                 }
             };
+            Field.prototype.applyPrimaryUnitType = function (unitType) {
+                if (Common.Utilities.isNullOrUndefined(this.playPrimary))
+                    return;
+                this.playPrimary.setUnitType(unitType);
+                if (!Common.Utilities.isNullOrUndefined(this.playOpponent))
+                    this.playOpponent.setUnitType(this.playPrimary.getOpposingUnitType());
+                this.clearPlayers();
+                this.drawPlay();
+            };
             Field.prototype.deselectAll = function () {
                 if (this.selected.isEmpty())
                     return;
@@ -3213,7 +3816,7 @@ var Common;
                 this.layer.type = Common.Enums.LayerTypes.Player;
                 this.layer.graphics.setPlacement(placement);
                 this.position = position;
-                this.assignment = assignment || new Common.Models.Assignment();
+                this.assignment = assignment || new Common.Models.Assignment(this.position.unitType);
                 this.assignment.positionIndex = this.position.index;
                 this.layer.graphics.dimensions.setWidth(this.grid.getSize());
                 this.layer.graphics.dimensions.setHeight(this.grid.getSize());
@@ -3345,13 +3948,29 @@ var Common;
                 _super.call(this, player.field, player);
                 this.player = player;
                 this.layer.type = Common.Enums.LayerTypes.PlayerIcon;
-                this.layer.graphics.setPlacement(this.player.layer.graphics.placement);
-                this.layer.graphics.dimensions.offset.x = -this.layer.graphics.dimensions.getRadius();
-                this.layer.graphics.dimensions.offset.y = -this.layer.graphics.dimensions.getRadius();
+                this.layer.graphics.dimensions.setRadius(this.grid.getSize() / 2);
+                this.layer.graphics.dimensions.setWidth(this.player.layer.graphics.dimensions.getWidth());
+                this.layer.graphics.dimensions.setHeight(this.player.layer.graphics.dimensions.getHeight());
+                this.layer.graphics.setPlacement(player.layer.graphics.placement);
+                // this.layer.graphics.dimensions.offset.x = -this.layer.graphics.dimensions.getRadius();
+                // this.layer.graphics.dimensions.offset.y = -this.layer.graphics.dimensions.getRadius();
                 this.layer.graphics.updateLocation(this.player.layer.graphics.location.ax, this.player.layer.graphics.location.ay);
             }
             PlayerIcon.prototype.draw = function () {
-                this.layer.graphics.circle();
+                switch (this.player.position.unitType) {
+                    case Team.Enums.UnitTypes.Offense:
+                        this.layer.graphics.circle();
+                        break;
+                    case Team.Enums.UnitTypes.Defense:
+                        this.layer.graphics.triangle();
+                        break;
+                    case Team.Enums.UnitTypes.SpecialTeams:
+                        this.layer.graphics.rect();
+                        break;
+                    case Team.Enums.UnitTypes.Other:
+                        this.layer.graphics.rhombus();
+                        break;
+                }
             };
             return PlayerIcon;
         })(Common.Models.FieldElement);
@@ -4124,9 +4743,7 @@ var Common;
         var Graphics = (function (_super) {
             __extends(Graphics, _super);
             function Graphics(paper) {
-                _super.call(this);
-                _super.prototype.setContext.call(this, this);
-                this.guid = Common.Utilities.guid();
+                _super.call(this, Common.Enums.ImpaktDataTypes.Unknown);
                 this.paper = paper;
                 this.grid = paper.grid;
                 this.set = new Common.Models.GraphicsSet(this);
@@ -4134,14 +4751,6 @@ var Common;
                 this.placement = new Common.Models.Placement(0, 0);
                 this.dimensions = new Common.Models.Dimensions();
                 this.containment = new Common.Models.Containment(0, this.grid.getWidth(), 0, this.grid.getHeight());
-                this.disabled = false;
-                this.selected = false;
-                this.clickable = true;
-                this.hoverable = true;
-                this.dragging = false;
-                this.draggable = true;
-                this.dragged = false;
-                this.selectable = true;
                 this.originalFill = 'white';
                 this.originalStroke = 'black';
                 this.originalOpacity = 1;
@@ -4318,23 +4927,10 @@ var Common;
                 }
             };
             /**
-             * Generic selection toggle
-             */
-            Graphics.prototype.toggleSelect = function () {
-                if (this.disabled || !this.selectable)
-                    return;
-                if (this.selected)
-                    this.deselect();
-                else
-                    this.select();
-            };
-            /**
              * Generic selection method
              */
             Graphics.prototype.select = function () {
-                if (this.disabled || !this.selectable)
-                    return;
-                this.selected = true;
+                _super.prototype.select.call(this);
                 this.fill = this.selectedFill;
                 this.stroke = this.selectedStroke;
                 this.opacity = this.selectedOpacity;
@@ -4349,9 +4945,7 @@ var Common;
              * Generic deselection method
              */
             Graphics.prototype.deselect = function () {
-                if (this.disabled || !this.selectable)
-                    return;
-                this.selected = false;
+                _super.prototype.deselect.call(this);
                 this.fill = this.originalFill;
                 this.stroke = this.originalStroke;
                 this.opacity = this.originalOpacity;
@@ -4366,7 +4960,7 @@ var Common;
              * Generic disable method
              */
             Graphics.prototype.disable = function () {
-                this.disabled = true;
+                _super.prototype.disable.call(this);
                 this.fill = this.disabledFill;
                 this.stroke = this.disabledStroke;
                 this.opacity = this.disabledOpacity;
@@ -4381,7 +4975,7 @@ var Common;
              * Generic enable method
              */
             Graphics.prototype.enable = function () {
-                this.disabled = false;
+                _super.prototype.enable.call(this);
                 this.fill = this.originalFill;
                 this.stroke = this.originalStroke;
                 this.opacity = this.originalOpacity;
@@ -4488,6 +5082,14 @@ var Common;
                 this.refresh();
                 return this;
             };
+            Graphics.prototype.rhombus = function () {
+                this.remove();
+                this.rect();
+                this.dimensions.rotation = -45;
+                this.refresh();
+                this.transform(0, 0);
+                return this;
+            };
             Graphics.prototype.ellipse = function () {
                 this.remove();
                 this.raphael = this.paper.drawing.ellipse(this.placement.coordinates.x, this.placement.coordinates.y, this.dimensions.getWidth(), this.dimensions.getHeight(), false, this.dimensions.getOffsetX(), this.dimensions.getOffsetY());
@@ -4497,6 +5099,12 @@ var Common;
             Graphics.prototype.circle = function () {
                 this.remove();
                 this.raphael = this.paper.drawing.circle(this.placement.coordinates.x, this.placement.coordinates.y, this.dimensions.getRadius(), false, this.dimensions.getOffsetX(), this.dimensions.getOffsetY());
+                this.refresh();
+                return this;
+            };
+            Graphics.prototype.triangle = function () {
+                this.remove();
+                this.raphael = this.paper.drawing.triangle(this.placement.coordinates.x, this.placement.coordinates.y, this.dimensions.getHeight(), false, this.dimensions.getOffsetX(), this.dimensions.getOffsetY());
                 this.refresh();
                 return this;
             };
@@ -4540,7 +5148,7 @@ var Common;
             Graphics.prototype.transform = function (ax, ay) {
                 if (!this.hasRaphael())
                     return;
-                this.raphael.transform(['t', ax, ', ', ay].join(''));
+                this.raphael.transform(['t', ax, ', ', ay, 'r', this.dimensions.rotation].join(''));
             };
             Graphics.prototype.toFront = function () {
                 this.raphael.toFront();
@@ -4726,7 +5334,7 @@ var Common;
                 this.transform(0, 0);
             };
             return Graphics;
-        })(Common.Models.Modifiable);
+        })(Common.Models.Actionable);
         Models.Graphics = Graphics;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -4872,6 +5480,7 @@ var Common;
                 this.area = 0;
                 this.circularArea = 0;
                 this.offset = new Common.Models.Offset(0, 0);
+                this.rotation = 0;
             }
             Dimensions.prototype.toJson = function () {
                 return {
@@ -4886,7 +5495,8 @@ var Common;
                     perimeter: this.perimeter,
                     area: this.area,
                     circumference: this.circumference,
-                    offset: this.offset.toJson()
+                    offset: this.offset.toJson(),
+                    rotation: this.rotation
                 };
             };
             Dimensions.prototype.fromJson = function (json) {
@@ -4904,6 +5514,7 @@ var Common;
                 this.area = json.area;
                 this.circumference = json.circumference;
                 this.offset.fromJson(json.offset);
+                this.rotation = json.rotation;
             };
             Dimensions.prototype.calculateDimensions = function () {
                 this._calculateDiameter();
@@ -5201,7 +5812,11 @@ var Common;
 /// <reference path='./ModifiableCollection.ts' />
 /// <reference path='./ModifiableLinkedList.ts' />
 /// <reference path='./ModifiableLinkedListNode.ts' />
-/// <reference path='./AssociationArray.ts' />
+/// <reference path='./Actionable.ts' />
+/// <reference path='./ActionableCollection.ts' />
+/// <reference path='./AssociableEntity.ts' />
+/// <reference path='./AssociableCollectionEntity.ts' />
+/// <reference path='./AssociationCollection.ts' />
 /// <reference path='./Association.ts' />
 /// <reference path='./Notification.ts' />
 /// <reference path='./NotificationCollection.ts' />
@@ -5268,22 +5883,52 @@ var Common;
 (function (Common) {
     var Enums;
     (function (Enums) {
-        (function (ImpaktTypes) {
-            ImpaktTypes[ImpaktTypes["Unknown"] = 0] = "Unknown";
-            ImpaktTypes[ImpaktTypes["PlaybookView"] = 1] = "PlaybookView";
-            ImpaktTypes[ImpaktTypes["Playbook"] = 2] = "Playbook";
-            ImpaktTypes[ImpaktTypes["PlayFormation"] = 3] = "PlayFormation";
-            ImpaktTypes[ImpaktTypes["PlaySet"] = 4] = "PlaySet";
-            ImpaktTypes[ImpaktTypes["PlayTemplate"] = 98] = "PlayTemplate";
-            ImpaktTypes[ImpaktTypes["Variant"] = 99] = "Variant";
-            ImpaktTypes[ImpaktTypes["Play"] = 100] = "Play";
-            ImpaktTypes[ImpaktTypes["Player"] = 101] = "Player";
-            ImpaktTypes[ImpaktTypes["PlayPlayer"] = 102] = "PlayPlayer";
-            ImpaktTypes[ImpaktTypes["PlayPosition"] = 103] = "PlayPosition";
-            ImpaktTypes[ImpaktTypes["PlayAssignment"] = 104] = "PlayAssignment";
-            ImpaktTypes[ImpaktTypes["Team"] = 200] = "Team";
-        })(Enums.ImpaktTypes || (Enums.ImpaktTypes = {}));
-        var ImpaktTypes = Enums.ImpaktTypes;
+        (function (ImpaktDataTypes) {
+            ImpaktDataTypes[ImpaktDataTypes["Unknown"] = 0] = "Unknown";
+            ImpaktDataTypes[ImpaktDataTypes["PlaybookView"] = 1] = "PlaybookView";
+            ImpaktDataTypes[ImpaktDataTypes["Playbook"] = 2] = "Playbook";
+            ImpaktDataTypes[ImpaktDataTypes["Formation"] = 3] = "Formation";
+            ImpaktDataTypes[ImpaktDataTypes["Set"] = 4] = "Set";
+            ImpaktDataTypes[ImpaktDataTypes["Play"] = 10] = "Play";
+            ImpaktDataTypes[ImpaktDataTypes["PlayTemplate"] = 98] = "PlayTemplate";
+            ImpaktDataTypes[ImpaktDataTypes["Variant"] = 99] = "Variant";
+            ImpaktDataTypes[ImpaktDataTypes["Team"] = 200] = "Team";
+            ImpaktDataTypes[ImpaktDataTypes["GenericEntity"] = 1000] = "GenericEntity";
+            ImpaktDataTypes[ImpaktDataTypes["League"] = 1010] = "League";
+            ImpaktDataTypes[ImpaktDataTypes["Season"] = 1011] = "Season";
+            ImpaktDataTypes[ImpaktDataTypes["Opponent"] = 1012] = "Opponent";
+            ImpaktDataTypes[ImpaktDataTypes["Game"] = 1013] = "Game";
+            ImpaktDataTypes[ImpaktDataTypes["Position"] = 1014] = "Position";
+            ImpaktDataTypes[ImpaktDataTypes["PersonnelGroup"] = 1015] = "PersonnelGroup";
+            ImpaktDataTypes[ImpaktDataTypes["TeamMember"] = 1016] = "TeamMember";
+            ImpaktDataTypes[ImpaktDataTypes["UnitType"] = 1017] = "UnitType";
+            ImpaktDataTypes[ImpaktDataTypes["Conference"] = 1018] = "Conference";
+            ImpaktDataTypes[ImpaktDataTypes["Scenario"] = 1020] = "Scenario";
+            ImpaktDataTypes[ImpaktDataTypes["MatchupPlaybook"] = 1021] = "MatchupPlaybook";
+            ImpaktDataTypes[ImpaktDataTypes["Situation"] = 1022] = "Situation";
+            ImpaktDataTypes[ImpaktDataTypes["Assignment"] = 1023] = "Assignment";
+            ImpaktDataTypes[ImpaktDataTypes["AssignmentGroup"] = 1024] = "AssignmentGroup";
+            ImpaktDataTypes[ImpaktDataTypes["GamePlan"] = 1030] = "GamePlan";
+            ImpaktDataTypes[ImpaktDataTypes["PracticePlan"] = 1031] = "PracticePlan";
+            ImpaktDataTypes[ImpaktDataTypes["PracticeSchedule"] = 1032] = "PracticeSchedule";
+            ImpaktDataTypes[ImpaktDataTypes["ScoutCard"] = 1033] = "ScoutCard";
+            ImpaktDataTypes[ImpaktDataTypes["Drill"] = 1034] = "Drill";
+            ImpaktDataTypes[ImpaktDataTypes["QBWristband"] = 1035] = "QBWristband";
+            ImpaktDataTypes[ImpaktDataTypes["GameAnalysis"] = 1050] = "GameAnalysis";
+            ImpaktDataTypes[ImpaktDataTypes["PlayByPlayAnalysis"] = 1051] = "PlayByPlayAnalysis";
+            ImpaktDataTypes[ImpaktDataTypes["GenericSetting"] = 2000] = "GenericSetting";
+            ImpaktDataTypes[ImpaktDataTypes["User"] = 2010] = "User";
+            ImpaktDataTypes[ImpaktDataTypes["SecureUser"] = 2011] = "SecureUser";
+            ImpaktDataTypes[ImpaktDataTypes["Account"] = 2020] = "Account";
+            ImpaktDataTypes[ImpaktDataTypes["Organization"] = 2021] = "Organization";
+        })(Enums.ImpaktDataTypes || (Enums.ImpaktDataTypes = {}));
+        var ImpaktDataTypes = Enums.ImpaktDataTypes;
+        (function (AssociationTypes) {
+            AssociationTypes[AssociationTypes["Unknown"] = 0] = "Unknown";
+            AssociationTypes[AssociationTypes["Peer"] = 1] = "Peer";
+            AssociationTypes[AssociationTypes["Dependency"] = 2] = "Dependency";
+        })(Enums.AssociationTypes || (Enums.AssociationTypes = {}));
+        var AssociationTypes = Enums.AssociationTypes;
         (function (DimensionTypes) {
             DimensionTypes[DimensionTypes["Square"] = 0] = "Square";
             DimensionTypes[DimensionTypes["Circle"] = 1] = "Circle";
@@ -5899,6 +6544,27 @@ var Common;
         Utilities.isUndefined = function (obj) {
             return obj === undefined || obj === 'undefined';
         };
+        Utilities.isEmptyString = function (str) {
+            return Common.Utilities.isNullOrUndefined(str) || str === '';
+        };
+        /**
+         * Iterates over the given array and removes any
+         * duplicate entries
+         *
+         * @param  {any[]} array [description]
+         * @return {any[]}       [description]
+         */
+        Utilities.uniqueArray = function (array) {
+            if (Common.Utilities.isNullOrUndefined(array))
+                throw new Error('Utilities uniqueArray(): array is null or undefined');
+            var unique = [];
+            for (var i = 0; i < array.length; i++) {
+                var element = array[i];
+                if (unique.indexOf(element) < 0)
+                    unique.push(element);
+            }
+            return unique;
+        };
         return Utilities;
     })();
     Common.Utilities = Utilities;
@@ -6078,7 +6744,7 @@ var Playbook;
                 this.layers.add(this.hashmark_sideline_left.layer);
                 this.layers.add(this.hashmark_sideline_right.layer);
                 if (!this.playPrimary.formation) {
-                    this.playPrimary.formation = new Common.Models.Formation('Default Formation');
+                    this.playPrimary.formation = new Common.Models.Formation(this.playPrimary.unitType);
                     this.playPrimary.formation.setDefault(this.ball);
                 }
                 this.draw();
@@ -6300,7 +6966,7 @@ var Playbook;
                 this.layers.add(this.hashmark_sideline_left.layer);
                 this.layers.add(this.hashmark_sideline_right.layer);
                 if (!this.playPrimary.formation) {
-                    this.playPrimary.formation = new Common.Models.Formation('Default Formation');
+                    this.playPrimary.formation = new Common.Models.Formation(this.playPrimary.unitType);
                     this.playPrimary.formation.setDefault(this.ball);
                 }
                 this.draw();
@@ -6747,7 +7413,7 @@ var Playbook;
                 if (this.canvas.toolMode == Playbook.Enums.ToolModes.Assignment) {
                     //console.log('drawing route', dx, dy, posx, posy);
                     if (!this.assignment) {
-                        this.assignment = new Common.Models.Assignment();
+                        this.assignment = new Common.Models.Assignment(this.position.unitType);
                         this.assignment.positionIndex = this.position.index;
                     }
                     var route = this.assignment.routes.getOne();
@@ -6907,9 +7573,6 @@ var Playbook;
             function EditorPlayerIcon(player) {
                 _super.call(this, player);
                 this.layer.graphics.hoverOpacity = 0.6;
-                this.layer.graphics.dimensions.setRadius(this.grid.getSize() / 2);
-                this.layer.graphics.dimensions.setWidth(this.layer.graphics.dimensions.getDiameter());
-                this.layer.graphics.dimensions.setHeight(this.layer.graphics.dimensions.getDiameter());
             }
             EditorPlayerIcon.prototype.draw = function () {
                 _super.prototype.draw.call(this);
@@ -6944,9 +7607,6 @@ var Playbook;
                 _super.call(this, player);
                 this.layer.graphics.fill = 'black';
                 this.layer.graphics.setStrokeWidth(0);
-                this.layer.graphics.dimensions.setRadius(this.grid.getSize() / 2);
-                this.layer.graphics.dimensions.setWidth(this.layer.graphics.dimensions.getDiameter());
-                this.layer.graphics.dimensions.setHeight(this.layer.graphics.dimensions.getDiameter());
             }
             return PreviewPlayerIcon;
         })(Common.Models.PlayerIcon);
@@ -7562,19 +8222,206 @@ var Team;
 (function (Team) {
     var Models;
     (function (Models) {
-        var Personnel = (function (_super) {
-            __extends(Personnel, _super);
-            function Personnel() {
-                _super.call(this);
+        var TeamModel = (function (_super) {
+            __extends(TeamModel, _super);
+            function TeamModel(teamType) {
+                _super.call(this, Common.Enums.ImpaktDataTypes.Team);
                 _super.prototype.setContext.call(this, this);
                 this.name = 'Untitled';
-                this.unitType = Team.Enums.UnitTypes.Other;
-                this.key = -1;
-                this.positions = new Team.Models.PositionCollection();
-                this.setDefault();
+                this.teamType = teamType;
+                this.records = new Team.Models.TeamRecordCollection();
+                var self = this;
+                this.onModified(function (data) { });
+            }
+            TeamModel.prototype.toJson = function () {
+                return $.extend({
+                    name: this.name,
+                    teamType: this.teamType,
+                    records: this.records.toJson()
+                }, _super.prototype.toJson.call(this));
+            };
+            TeamModel.prototype.fromJson = function (json) {
+                if (!json)
+                    return null;
+                this.teamType = json.teamType;
+                this.name = json.name;
+                this.records.fromJson(json.records);
+                _super.prototype.fromJson.call(this, json);
+            };
+            return TeamModel;
+        })(Common.Models.AssociableEntity);
+        Models.TeamModel = TeamModel;
+    })(Models = Team.Models || (Team.Models = {}));
+})(Team || (Team = {}));
+/// <reference path='./models.ts' />
+var Team;
+(function (Team) {
+    var Models;
+    (function (Models) {
+        var TeamModelCollection = (function (_super) {
+            __extends(TeamModelCollection, _super);
+            function TeamModelCollection(teamType) {
+                _super.call(this);
+                this.teamType = teamType;
+            }
+            TeamModelCollection.prototype.toJson = function () {
+                return {
+                    teamType: this.teamType,
+                    guid: this.guid,
+                    teams: _super.prototype.toJson.call(this)
+                };
+            };
+            TeamModelCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.teamType = json.teamType;
+                this.guid = json.guid;
+                var teamArray = json.teams || [];
+                for (var i = 0; i < teamArray.length; i++) {
+                    var rawTeamModel = teamArray[i];
+                    if (Common.Utilities.isNullOrUndefined(rawTeamModel)) {
+                        continue;
+                    }
+                    rawTeamModel.teamType = Common.Utilities.isNullOrUndefined(rawTeamModel.teamType) &&
+                        rawTeamModel.teamType >= 0 ? rawTeamModel.teamType : Team.Enums.TeamTypes.Other;
+                    var teamModel = new Team.Models.TeamModel(rawTeamModel.teamType);
+                    teamModel.fromJson(rawTeamModel);
+                    this.add(teamModel);
+                }
+            };
+            return TeamModelCollection;
+        })(Common.Models.ModifiableCollection);
+        Models.TeamModelCollection = TeamModelCollection;
+    })(Models = Team.Models || (Team.Models = {}));
+})(Team || (Team = {}));
+/// <reference path='./models.ts' />
+var Team;
+(function (Team) {
+    var Models;
+    (function (Models) {
+        var TeamRecord = (function (_super) {
+            __extends(TeamRecord, _super);
+            function TeamRecord() {
+                _super.call(this);
+                _super.prototype.setContext.call(this, this);
+                this.wins = 0;
+                this.losses = 0;
+                this.season = 2016; // @theBull - TODO - how to tie this with the season...association?
+            }
+            TeamRecord.prototype.toJson = function () {
+                return {
+                    wins: this.wins,
+                    losses: this.losses,
+                    season: this.season
+                };
+            };
+            TeamRecord.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.wins = json.wins;
+                this.losses = json.losses;
+                this.season = json.season;
+            };
+            return TeamRecord;
+        })(Common.Models.Modifiable);
+        Models.TeamRecord = TeamRecord;
+    })(Models = Team.Models || (Team.Models = {}));
+})(Team || (Team = {}));
+/// <reference path='./models.ts' />
+var Team;
+(function (Team) {
+    var Models;
+    (function (Models) {
+        var TeamRecordCollection = (function (_super) {
+            __extends(TeamRecordCollection, _super);
+            function TeamRecordCollection() {
+                _super.call(this);
+            }
+            TeamRecordCollection.prototype.toJson = function () {
+                return _super.prototype.toJson.call(this);
+            };
+            TeamRecordCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                var recordArray = json.records || [];
+                for (var i = 0; i < recordArray.length; i++) {
+                    var rawTeamRecordModel = recordArray[i];
+                    if (Common.Utilities.isNullOrUndefined(rawTeamRecordModel)) {
+                        continue;
+                    }
+                    var teamRecordModel = new Team.Models.TeamRecord();
+                    teamRecordModel.fromJson(rawTeamRecordModel);
+                    this.add(teamRecordModel);
+                }
+            };
+            return TeamRecordCollection;
+        })(Common.Models.ModifiableCollection);
+        Models.TeamRecordCollection = TeamRecordCollection;
+    })(Models = Team.Models || (Team.Models = {}));
+})(Team || (Team = {}));
+/// <reference path='./models.ts' />
+var Team;
+(function (Team) {
+    var Models;
+    (function (Models) {
+        var PrimaryTeam = (function (_super) {
+            __extends(PrimaryTeam, _super);
+            function PrimaryTeam() {
+                _super.call(this, Team.Enums.TeamTypes.Primary);
+                _super.prototype.setContext.call(this, this);
+                this.onModified(function (data) { });
+            }
+            PrimaryTeam.prototype.toJson = function () {
+                return {};
+            };
+            PrimaryTeam.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+            };
+            return PrimaryTeam;
+        })(Team.Models.TeamModel);
+        Models.PrimaryTeam = PrimaryTeam;
+    })(Models = Team.Models || (Team.Models = {}));
+})(Team || (Team = {}));
+/// <reference path='./models.ts' />
+var Team;
+(function (Team) {
+    var Models;
+    (function (Models) {
+        var OpponentTeam = (function (_super) {
+            __extends(OpponentTeam, _super);
+            function OpponentTeam() {
+                _super.call(this, Team.Enums.TeamTypes.Opponent);
+                _super.prototype.setContext.call(this, this);
+                this.onModified(function (data) { });
+            }
+            OpponentTeam.prototype.toJson = function () {
+                return {};
+            };
+            OpponentTeam.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+            };
+            return OpponentTeam;
+        })(Team.Models.TeamModel);
+        Models.OpponentTeam = OpponentTeam;
+    })(Models = Team.Models || (Team.Models = {}));
+})(Team || (Team = {}));
+/// <reference path='./models.ts' />
+var Team;
+(function (Team) {
+    var Models;
+    (function (Models) {
+        var Personnel = (function (_super) {
+            __extends(Personnel, _super);
+            function Personnel(unitType) {
+                _super.call(this, Common.Enums.ImpaktDataTypes.PersonnelGroup);
+                _super.prototype.setContext.call(this, this);
+                this.name = 'Untitled';
+                this.unitType = unitType;
+                this.positions = null;
                 this.setType = Common.Enums.SetTypes.Personnel;
                 this.onModified(function (data) { });
-                this.positions.onModified(function (data) { });
             }
             Personnel.prototype.hasPositions = function () {
                 return this.positions && this.positions.size() > 0;
@@ -7591,31 +8438,34 @@ var Team;
             Personnel.prototype.fromJson = function (json) {
                 if (!json)
                     return null;
-                this.positions.removeAll();
-                this.positions.fromJson(json.positions);
                 this.unitType = json.unitType;
-                this.key = json.key;
+                if (!this.positions) {
+                    this.positions = new Team.Models.PositionCollection(this.unitType);
+                }
+                else {
+                    this.positions.removeAll();
+                }
+                this.positions.fromJson(json.positions);
                 this.name = json.name;
-                this.guid = json.guid;
+                _super.prototype.fromJson.call(this, json);
             };
             Personnel.prototype.toJson = function () {
-                return {
+                return $.extend({
                     name: this.name,
                     unitType: this.unitType,
-                    key: this.key,
-                    positions: this.positions.toJson(),
-                    guid: this.guid
-                };
+                    positions: this.positions.toJson()
+                }, _super.prototype.toJson.call(this));
             };
             Personnel.prototype.setDefault = function () {
                 this.positions = Team.Models.PositionDefault.getBlank(this.unitType);
+                this.positions.onModified(function (data) { });
             };
             Personnel.prototype.setUnitType = function (unitType) {
                 this.unitType = unitType;
                 this.setDefault();
             };
             return Personnel;
-        })(Common.Models.Modifiable);
+        })(Common.Models.AssociableEntity);
         Models.Personnel = Personnel;
     })(Models = Team.Models || (Team.Models = {}));
 })(Team || (Team = {}));
@@ -7626,9 +8476,9 @@ var Team;
     (function (Models) {
         var PersonnelCollection = (function (_super) {
             __extends(PersonnelCollection, _super);
-            function PersonnelCollection() {
+            function PersonnelCollection(unitType) {
                 _super.call(this);
-                this.unitType = Team.Enums.UnitTypes.Other;
+                this.unitType = unitType;
                 this.setType = Common.Enums.SetTypes.Personnel;
             }
             PersonnelCollection.prototype.toJson = function () {
@@ -7647,7 +8497,12 @@ var Team;
                 var personnelArray = json.personnel || [];
                 for (var i = 0; i < personnelArray.length; i++) {
                     var rawPersonnel = personnelArray[i];
-                    var personnelModel = new Team.Models.Personnel();
+                    if (Common.Utilities.isNullOrUndefined(rawPersonnel)) {
+                        continue;
+                    }
+                    rawPersonnel.unitType = Common.Utilities.isNullOrUndefined(rawPersonnel.unitType) &&
+                        rawPersonnel.unitType >= 0 ? rawPersonnel.unitType : Team.Enums.UnitTypes.Other;
+                    var personnelModel = new Team.Models.Personnel(rawPersonnel.unitType);
                     personnelModel.fromJson(rawPersonnel);
                     this.add(personnelModel);
                 }
@@ -7664,17 +8519,17 @@ var Team;
     (function (Models) {
         var Position = (function (_super) {
             __extends(Position, _super);
-            function Position(options) {
+            function Position(unitType, options) {
                 _super.call(this);
                 _super.prototype.setContext.call(this, this);
                 if (!options)
                     options = {};
+                this.unitType = unitType;
                 this.positionListValue = options.positionListValue || PositionList.Other;
                 this.title = options.title || 'Untitled';
                 this.label = options.label || '-';
                 this.eligible = options.eligible || false;
                 this.index = options.index >= 0 ? options.index : -1;
-                this.unitType = options.unitType || Team.Enums.UnitTypes.Other;
             }
             Position.prototype.toJson = function () {
                 return {
@@ -7984,7 +8839,7 @@ var Team;
                 for (var positionKey in Team.Models.PositionDefault.defaults) {
                     if (Team.Models.PositionDefault.defaults[positionKey].positionListValue == positionListValue) {
                         var positionSeedData = Team.Models.PositionDefault.defaults[positionKey];
-                        results = new Team.Models.Position(positionSeedData);
+                        results = new Team.Models.Position(positionSeedData.unitType, positionSeedData);
                     }
                 }
                 return results;
@@ -7995,7 +8850,7 @@ var Team;
                 return newPosition;
             };
             PositionDefault.getBlank = function (type) {
-                var collection = new Team.Models.PositionCollection();
+                var collection = new Team.Models.PositionCollection(type);
                 var positionSeedData = null;
                 switch (type) {
                     case Team.Enums.UnitTypes.Offense:
@@ -8014,7 +8869,7 @@ var Team;
                 if (!positionSeedData)
                     return null;
                 for (var i = 0; i < 11; i++) {
-                    var blank = new Team.Models.Position(positionSeedData);
+                    var blank = new Team.Models.Position(positionSeedData.unitType, positionSeedData);
                     // add an index for the position :]
                     blank.index = i;
                     collection.add(blank);
@@ -8022,65 +8877,57 @@ var Team;
                 return collection;
             };
             PositionDefault.prototype.getByUnitType = function (type) {
-                var results = null;
+                var results = new Team.Models.PositionCollection(type);
                 switch (type) {
                     case Team.Enums.UnitTypes.Offense:
-                        var offense = new Team.Models.PositionCollection();
-                        offense.fromJson([
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.blankOffense),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.quarterback),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.runningBack),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.fullBack),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.tightEnd),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.center),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.guard),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.tackle),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.wideReceiver),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.slotReceiver)
+                        results.fromJson([
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.blankOffense),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.quarterback),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.runningBack),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.fullBack),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.tightEnd),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.center),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.guard),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.tackle),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.wideReceiver),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.slotReceiver)
                         ]);
-                        results = offense;
                         break;
                     case Team.Enums.UnitTypes.Defense:
-                        var defense = new Team.Models.PositionCollection();
-                        defense.fromJson([
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.blankDefense),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.noseGuard),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.defensiveTackle),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.defensiveGuard),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.defensiveEnd),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.linebacker),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.safety),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.freeSafety),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.strongSafety),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.defensiveBack),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.cornerback)
+                        results.fromJson([
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.blankDefense),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.noseGuard),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.defensiveTackle),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.defensiveGuard),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.defensiveEnd),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.linebacker),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.safety),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.freeSafety),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.strongSafety),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.defensiveBack),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.cornerback)
                         ]);
-                        results = defense;
                         break;
                     case Team.Enums.UnitTypes.SpecialTeams:
-                        var specialTeams = new Team.Models.PositionCollection();
-                        specialTeams.fromJson([
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.blankSpecialTeams),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.kicker),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.holder),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.punter),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.longSnapper),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.kickoffSpecialist),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.puntReturner),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.kickReturner),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.upback),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.gunner),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.jamme)
+                        results.fromJson([
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.blankSpecialTeams),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.kicker),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.holder),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.punter),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.longSnapper),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.kickoffSpecialist),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.puntReturner),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.kickReturner),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.upback),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.gunner),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.jamme)
                         ]);
-                        results = specialTeams;
                         break;
                     case Team.Enums.UnitTypes.Other:
-                        var other = new Team.Models.PositionCollection();
-                        other.fromJson([
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.blankOther),
-                            new Team.Models.Position(Team.Models.PositionDefault.defaults.other)
+                        results.fromJson([
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.blankOther),
+                            new Team.Models.Position(type, Team.Models.PositionDefault.defaults.other)
                         ]);
-                        results = other;
                         break;
                     default:
                         results = null;
@@ -8101,8 +8948,9 @@ var Team;
     (function (Models) {
         var PositionCollection = (function (_super) {
             __extends(PositionCollection, _super);
-            function PositionCollection() {
+            function PositionCollection(unitType) {
                 _super.call(this);
+                this.unitType = unitType;
                 this.setDefault();
             }
             PositionCollection.prototype.listPositions = function () {
@@ -8120,7 +8968,11 @@ var Team;
                     return;
                 for (var i = 0; i < positions.length; i++) {
                     var rawPosition = positions[i];
-                    var positionModel = new Team.Models.Position();
+                    if (Common.Utilities.isNullOrUndefined(rawPosition))
+                        continue;
+                    rawPosition.unitType = !Common.Utilities.isNullOrUndefined(rawPosition.unitType) &&
+                        rawPosition.unitType >= 0 ? rawPosition.unitType : Team.Enums.UnitTypes.Other;
+                    var positionModel = new Team.Models.Position(rawPosition.unitType);
                     positionModel.fromJson(rawPosition);
                     this.add(positionModel);
                 }
@@ -8143,7 +8995,6 @@ var Team;
                 _super.call(this);
                 _super.prototype.setContext.call(this, this);
                 this.unitType = unitType;
-                this.associated = new Common.Models.Association();
                 this.name = name;
             }
             UnitType.getUnitTypes = function () {
@@ -8151,7 +9002,6 @@ var Team;
             };
             UnitType.prototype.toJson = function () {
                 var json = {
-                    associated: this.associated.toJson(),
                     unitType: this.unitType,
                     name: this.name,
                     guid: this.guid
@@ -8164,10 +9014,6 @@ var Team;
                 this.unitType = json.unitType;
                 this.name = json.name;
                 this.guid = json.guid;
-                this.associated.playbooks.fromJson(json.playbooks);
-                this.associated.formations.fromJson(json.formations);
-                this.associated.personnel.fromJson(json.personnel);
-                this.associated.assignments.fromJson(json.assignments);
             };
             return UnitType;
         })(Common.Models.Modifiable);
@@ -8198,7 +9044,7 @@ var Team;
                 });
             };
             UnitTypeCollection.prototype.getAssociatedPlaybooks = function () {
-                var collection = new Common.Models.PlaybookModelCollection();
+                var collection = new Common.Models.PlaybookModelCollection(Team.Enums.UnitTypes.Mixed);
                 this.forEach(function (unitType, index) {
                     if (unitType && unitType.associated &&
                         unitType.associated.playbooks &&
@@ -8229,12 +9075,20 @@ var Team;
     })(Models = Team.Models || (Team.Models = {}));
 })(Team || (Team = {}));
 /// <reference path='../team.ts' />
+/// <reference path='./TeamModel.ts' />
+/// <reference path='./TeamModelCollection.ts' />
+/// <reference path='./TeamRecord.ts' />
+/// <reference path='./TeamRecordCollection.ts' />
+/// <reference path='./PrimaryTeam.ts' />
+/// <reference path='./OpponentTeam.ts' />
 /// <reference path='./Personnel.ts' />
 /// <reference path='./PersonnelCollection.ts' />
 /// <reference path='./Position.ts' />
 /// <reference path='./PositionCollection.ts' />
 /// <reference path='./UnitType.ts' />
 /// <reference path='./UnitTypeCollection.ts' /> 
+/// <references path='../team.ts' />
+/// <references path='./ITeam.ts' />
 /// <reference path='../team.ts' />
 var Team;
 (function (Team) {
@@ -8248,11 +9102,19 @@ var Team;
             UnitTypes[UnitTypes["Mixed"] = 4] = "Mixed";
         })(Enums.UnitTypes || (Enums.UnitTypes = {}));
         var UnitTypes = Enums.UnitTypes;
+        (function (TeamTypes) {
+            TeamTypes[TeamTypes["Primary"] = 0] = "Primary";
+            TeamTypes[TeamTypes["Opponent"] = 1] = "Opponent";
+            TeamTypes[TeamTypes["Other"] = 2] = "Other";
+            TeamTypes[TeamTypes["Mixed"] = 3] = "Mixed";
+        })(Enums.TeamTypes || (Enums.TeamTypes = {}));
+        var TeamTypes = Enums.TeamTypes;
     })(Enums = Team.Enums || (Team.Enums = {}));
 })(Team || (Team = {}));
 /// <reference path='../modules.ts' />
-/// <reference path='models/models.ts' />
-/// <reference path='enums/enums.ts' />
+/// <reference path='./models/models.ts' />
+/// <reference path='./interfaces/interfaces.ts' />
+/// <reference path='./enums/enums.ts' />
 /// <reference path='../modules.ts' />
 /// <reference path='../modules.ts' />
 /// <reference path='../modules.ts' />
@@ -8263,14 +9125,27 @@ var Navigation;
     (function (Models) {
         var NavigationItem = (function (_super) {
             __extends(NavigationItem, _super);
-            function NavigationItem(name, label, glyphicon, path, isActive) {
+            function NavigationItem(name, label, glyphicon, path, active, activationCallback) {
                 _super.call(this);
                 this.name = name;
                 this.label = label;
                 this.glyphicon = glyphicon;
                 this.path = path;
-                this.isActive = isActive === true;
+                this.active = active === true;
+                this.activationCallback = activationCallback;
             }
+            NavigationItem.prototype.activate = function () {
+                this.active = true;
+                this.activationCallback(this);
+            };
+            NavigationItem.prototype.deactivate = function () {
+                this.active = false;
+            };
+            NavigationItem.prototype.toggleActivation = function () {
+                this.active = !this.active;
+                if (this.active === true)
+                    this.activate();
+            };
             return NavigationItem;
         })(Common.Models.Storable);
         Models.NavigationItem = NavigationItem;
@@ -8286,6 +9161,17 @@ var Navigation;
             function NavigationItemCollection() {
                 _super.call(this);
             }
+            NavigationItemCollection.prototype.activate = function (navItem) {
+                this.forEach(function (item, index) {
+                    item.deactivate();
+                });
+                navItem.activate();
+            };
+            NavigationItemCollection.prototype.getActive = function () {
+                return this.filterFirst(function (item, index) {
+                    return item.active === true;
+                });
+            };
             return NavigationItemCollection;
         })(Common.Models.Collection);
         Models.NavigationItemCollection = NavigationItemCollection;
@@ -8299,6 +9185,53 @@ var Navigation;
 /// <reference path='./models/models.ts' />
 /// <reference path='../modules.ts' />
 /// <reference path='../modules.ts' />
+/// <reference path='./models.ts' />
+var League;
+(function (League) {
+    var Models;
+    (function (Models) {
+        var LeagueModel = (function (_super) {
+            __extends(LeagueModel, _super);
+            function LeagueModel() {
+                _super.call(this, Common.Enums.ImpaktDataTypes.League);
+                _super.prototype.setContext.call(this, this);
+            }
+            LeagueModel.prototype.toJson = function () {
+                return $.extend({
+                    name: this.name
+                }, _super.prototype.toJson.call(this));
+            };
+            LeagueModel.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.name = json.name;
+                _super.prototype.fromJson.call(this, json);
+            };
+            return LeagueModel;
+        })(Common.Models.AssociableEntity);
+        Models.LeagueModel = LeagueModel;
+    })(Models = League.Models || (League.Models = {}));
+})(League || (League = {}));
+/// <reference path='./models.ts' />
+var League;
+(function (League) {
+    var Models;
+    (function (Models) {
+        var LeagueModelCollection = (function (_super) {
+            __extends(LeagueModelCollection, _super);
+            function LeagueModelCollection() {
+                _super.call(this);
+            }
+            return LeagueModelCollection;
+        })(Common.Models.ModifiableCollection);
+        Models.LeagueModelCollection = LeagueModelCollection;
+    })(Models = League.Models || (League.Models = {}));
+})(League || (League = {}));
+/// <reference path='../league.ts' />
+/// <reference path='./LeagueModel.ts' />
+/// <reference path='./LeagueModelCollection.ts' />
+/// <reference path='../modules.ts' />
+/// <reference path='./models/models.ts' />
 /// <reference path='../modules.ts' />
 /// <reference path='./models.ts' />
 var User;
@@ -8309,143 +9242,94 @@ var User;
             __extends(Organization, _super);
             function Organization() {
                 _super.call(this);
-                this.companyName = null;
-                this.emailAccounting = null;
-                this.emailOther = null;
-                this.emailPrimary = null;
-                this.emailSales = null;
-                this.emailScheduling = null;
-                this.emailWarranty = null;
-                this.faxAccounting = null;
+                this.accountKey = 0;
+                this.address1 = null;
+                this.address2 = null;
+                this.address3 = null;
+                this.city = null;
+                this.country = null;
                 this.faxPrimary = null;
-                this.faxSales = null;
-                this.faxScheduling = null;
-                this.faxWarranty = null;
-                this.organizationKey = -1;
-                this.phoneAccounting = null;
+                this.inactive = false;
+                this.name = null;
+                this.notes = null;
+                this.organizationKey = 0;
+                this.otherDetails = null;
                 this.phonePrimary = null;
-                this.phoneSales = null;
-                this.phoneScheduling = null;
-                this.phoneWarranty = null;
-                this.primaryAddress1 = null;
-                this.primaryAddress2 = null;
-                this.primaryAddress3 = null;
-                this.primaryCity = null;
-                this.primaryCountry = null;
-                this.primaryPostalCode = null;
-                this.primaryStateProvince = null;
-                this.secondaryAddress1 = null;
-                this.secondaryAddress2 = null;
-                this.secondaryAddress3 = null;
-                this.secondaryCity = null;
-                this.secondaryCountry = null;
-                this.secondaryPostalCode = null;
-                this.secondaryStateProvince = null;
-                this.upsFedExAddress1 = null;
-                this.upsFedExAddress2 = null;
-                this.upsFedExAddress3 = null;
-                this.upsFedExCity = null;
-                this.upsFedExCountry = null;
-                this.upsFedExPostalCode = null;
-                this.upsFedExStateProvince = null;
-                this.website = null;
+                this.postalCode = null;
+                this.primaryEmail = null;
+                this.stateProvince = null;
             }
             Organization.prototype.toJson = function () {
-                var json = {
-                    companyName: this.companyName,
-                    emailAccounting: this.emailAccounting,
-                    emailOther: this.emailOther,
-                    emailPrimary: this.emailPrimary,
-                    emailSales: this.emailSales,
-                    emailScheduling: this.emailScheduling,
-                    emailWarranty: this.emailWarranty,
-                    faxAccounting: this.faxAccounting,
+                return {
+                    accountKey: this.accountKey,
+                    address1: this.address1,
+                    address2: this.address2,
+                    address3: this.address3,
+                    city: this.city,
+                    country: this.country,
                     faxPrimary: this.faxPrimary,
-                    faxSales: this.faxSales,
-                    faxScheduling: this.faxScheduling,
-                    faxWarranty: this.faxWarranty,
+                    inactive: this.inactive,
+                    name: this.name,
+                    notes: this.notes,
                     organizationKey: this.organizationKey,
-                    phoneAccounting: this.phoneAccounting,
+                    otherDetails: this.otherDetails,
                     phonePrimary: this.phonePrimary,
-                    phoneSales: this.phoneSales,
-                    phoneScheduling: this.phoneScheduling,
-                    phoneWarranty: this.phoneWarranty,
-                    primaryAddress1: this.primaryAddress1,
-                    primaryAddress2: this.primaryAddress2,
-                    primaryAddress3: this.primaryAddress3,
-                    primaryCity: this.primaryCity,
-                    primaryCountry: this.primaryCountry,
-                    primaryPostalCode: this.primaryPostalCode,
-                    primaryStateProvince: this.primaryStateProvince,
-                    secondaryAddress1: this.secondaryAddress1,
-                    secondaryAddress2: this.secondaryAddress2,
-                    secondaryAddress3: this.secondaryAddress3,
-                    secondaryCity: this.secondaryCity,
-                    secondaryCountry: this.secondaryCountry,
-                    secondaryPostalCode: this.secondaryPostalCode,
-                    secondaryStateProvince: this.secondaryStateProvince,
-                    upsFedExAddress1: this.upsFedExAddress1,
-                    upsFedExAddress2: this.upsFedExAddress2,
-                    upsFedExAddress3: this.upsFedExAddress3,
-                    upsFedExCity: this.upsFedExCity,
-                    upsFedExCountry: this.upsFedExCountry,
-                    upsFedExPostalCode: this.upsFedExPostalCode,
-                    upsFedExStateProvince: this.upsFedExStateProvince,
-                    website: this.website
+                    postalCode: this.postalCode,
+                    primaryEmail: this.primaryEmail,
+                    stateProvince: this.stateProvince
                 };
-                return json;
             };
             Organization.prototype.fromJson = function (json) {
                 if (!json)
                     return;
-                this.companyName = json.companyName;
-                this.emailAccounting = json.emailAccounting;
-                this.emailOther = json.emailOther;
-                this.emailPrimary = json.emailPrimary;
-                this.emailSales = json.emailSales;
-                this.emailScheduling = json.emailScheduling;
-                this.emailWarranty = json.emailWarranty;
-                this.faxAccounting = json.faxAccounting;
+                this.accountKey = json.accountKey;
+                this.address1 = json.address1;
+                this.address2 = json.address2;
+                this.address3 = json.address3;
+                this.city = json.city;
+                this.country = json.country;
                 this.faxPrimary = json.faxPrimary;
-                this.faxSales = json.faxSales;
-                this.faxScheduling = json.faxScheduling;
-                this.faxWarranty = json.faxWarranty;
+                this.inactive = json.inactive;
+                this.name = json.name;
+                this.notes = json.notes;
                 this.organizationKey = json.organizationKey;
-                this.phoneAccounting = json.phoneAccounting;
+                this.otherDetails = json.otherDetails;
                 this.phonePrimary = json.phonePrimary;
-                this.phoneSales = json.phoneSales;
-                this.phoneScheduling = json.phoneScheduling;
-                this.phoneWarranty = json.phoneWarranty;
-                this.primaryAddress1 = json.primaryAddress1;
-                this.primaryAddress2 = json.primaryAddress2;
-                this.primaryAddress3 = json.primaryAddress3;
-                this.primaryCity = json.primaryCity;
-                this.primaryCountry = json.primaryCountry;
-                this.primaryPostalCode = json.primaryPostalCode;
-                this.primaryStateProvince = json.primaryStateProvince;
-                this.secondaryAddress1 = json.secondaryAddress1;
-                this.secondaryAddress2 = json.secondaryAddress2;
-                this.secondaryAddress3 = json.secondaryAddress3;
-                this.secondaryCity = json.secondaryCity;
-                this.secondaryCountry = json.secondaryCountry;
-                this.secondaryPostalCode = json.secondaryPostalCode;
-                this.secondaryStateProvince = json.secondaryStateProvince;
-                this.upsFedExAddress1 = json.upsFedExAddress1;
-                this.upsFedExAddress2 = json.upsFedExAddress2;
-                this.upsFedExAddress3 = json.upsFedExAddress3;
-                this.upsFedExCity = json.upsFedExCity;
-                this.upsFedExCountry = json.upsFedExCountry;
-                this.upsFedExPostalCode = json.upsFedExPostalCode;
-                this.upsFedExStateProvince = json.upsFedExStateProvince;
-                this.website = json.website;
+                this.postalCode = json.postalCode;
+                this.primaryEmail = json.primaryEmail;
+                this.stateProvince = json.stateProvince;
             };
             return Organization;
         })(Common.Models.Storable);
         Models.Organization = Organization;
     })(Models = User.Models || (User.Models = {}));
 })(User || (User = {}));
+/// <reference path='./models.ts' />
+var User;
+(function (User) {
+    var Models;
+    (function (Models) {
+        var OrganizationCollection = (function (_super) {
+            __extends(OrganizationCollection, _super);
+            function OrganizationCollection() {
+                _super.call(this);
+            }
+            OrganizationCollection.prototype.toJson = function () {
+                return _super.prototype.toJson.call(this);
+            };
+            OrganizationCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                throw new Error('OrganizationCollection fromJson(): not implemented');
+            };
+            return OrganizationCollection;
+        })(Common.Models.Collection);
+        Models.OrganizationCollection = OrganizationCollection;
+    })(Models = User.Models || (User.Models = {}));
+})(User || (User = {}));
 /// <reference path='../user.ts' />
 /// <reference path='./Organization.ts' />
+/// <reference path='./OrganizationCollection.ts' />
 /// <reference path='../modules.ts' />
 /// <reference path='./models/models.ts' />
 /// <reference path='../common/common.ts' />
@@ -8457,6 +9341,7 @@ var User;
 /// <reference path='./nav/nav.ts' />
 /// <reference path='./search/search.ts' />
 /// <reference path='./season/season.ts' />
+/// <reference path='./league/league.ts' />
 /// <reference path='./stats/stats.ts' />
 /// <reference path='./user/user.ts' /> 
 /// <reference path='../modules/modules.ts' />
@@ -8469,7 +9354,8 @@ impakt.app = angular.module('impakt.app', [
     'ui.router',
     'ui.bootstrap',
     'impakt.common',
-    'impakt.modules'
+    'impakt.modules',
+    'ngTagsInput'
 ])
     .config([
     '$stateProvider',
@@ -8580,6 +9466,7 @@ impakt.common = angular.module('impakt.common', [
     'impakt.common.auth',
     'impakt.common.contextmenu',
     'impakt.common.context',
+    'impakt.common.associations',
     'impakt.common.base',
     'impakt.common.scrollable',
     'impakt.common.modals',
@@ -8607,8 +9494,8 @@ impakt.common.api = angular.module('impakt.common.api', [])
 /// <reference path='./api.mdl.ts' />
 impakt.common.api.constant('API', {
     'VERSION': 0.01,
-    //'HOST_URL': 'http://test.impaktathletics.com',
-    'HOST_URL': 'https://test-impakt.azurewebsites.net',
+    'HOST_URL': 'https://test.impaktathletics.com',
+    //'HOST_URL': 'https://test-impakt.azurewebsites.net',
     'ENDPOINT': '/api',
 });
 /// <reference path='./api.mdl.ts' />
@@ -8645,7 +9532,7 @@ impakt.common.api.factory('__api', [
             });
             return d.promise;
         }
-        function get(endpointUrl) {
+        function get(endpointUrl, data) {
             var d = $q.defer();
             $http({
                 method: 'POST',
@@ -8654,9 +9541,9 @@ impakt.common.api.factory('__api', [
                     'X-HTTP-Method-Override': 'GET',
                     'Content-Type': 'application/json'
                 },
-                data: {
+                data: $.extend({
                     "OrganizationKey": __localStorage.getOrganizationKey()
-                }
+                }, data)
             }).then(function (data) {
                 // TODO: handle statuses manually
                 //console.log(data);
@@ -8774,6 +9661,217 @@ impakt.common.base.service('_base', ['$rootScope', function ($rootScope) {
         };
     }]);
 /// <reference path='../common.mdl.ts' />
+impakt.common.associations = angular.module('impakt.common.associations', [])
+    .config([function () {
+        console.debug('impakt.common.associations - config');
+    }])
+    .run([function () {
+        console.debug('impakt.common.associations - run');
+    }]);
+/// <reference path='./associations.mdl.ts' />
+impakt.common.associations.constant('ASSOCIATIONS', {
+    'ENDPOINT': '/general',
+    // Methods
+    GET_ASSOCIATIONS_FOR_CONTEXT: '/getAssociationsForContext',
+    GET_ASSOCIATIONS_FOR_ENTITY: '/getAssociationsForEntity',
+    UPDATE_ASSOCIATIONS: '/updateAssociations',
+    DELETE_ASSOCIATIONS: '/deleteAssociations',
+});
+/// <reference path='./associations.mdl.ts' />
+// Association service
+impakt.common.associations.service('_associations', [
+    'ASSOCIATIONS',
+    '$q',
+    '__api',
+    '__localStorage',
+    '__notifications',
+    function (ASSOCIATIONS, $q, __api, __localStorage, __notifications) {
+        /**
+         * Global associations model;
+         *
+         * Manages associations between all entities/entityTypes
+         * as a bi-directional association.
+         *
+         */
+        var organizationKey = __localStorage.getOrganizationKey();
+        this.associations = new Common.Models.AssociationCollection(organizationKey);
+        /**
+         * Get associations by context (organization key)
+         */
+        this.getAssociationsByContextId = function () {
+            var d = $q.defer();
+            // Get organization key
+            var organizationKey = __localStorage.getOrganizationKey();
+            var notification = __notifications.pending('Retrieving Association data for Organization ', organizationKey, '...');
+            if (Common.Utilities.isNullOrUndefined(organizationKey)) {
+                notification.error('Failed to retrieve associations for Organization ', organizationKey, '');
+                d.reject(['Organization Key is invalid when attempting\
+				 to request all Associations: (', organizationKey, ')'].join(''));
+            }
+            // make request
+            __api.get(__api.path(ASSOCIATIONS.ENDPOINT, ASSOCIATIONS.GET_ASSOCIATIONS_FOR_CONTEXT), {
+                contextId: organizationKey + ''
+            }).then(function (associations) {
+                var collection = new Common.Models.AssociationCollection(organizationKey);
+                if (associations && associations.data && associations.data.results) {
+                    collection.fromJson(associations.data.results);
+                }
+                notification.success(collection.size(), ' Associations successfully retrieved');
+                d.resolve(collection);
+            }, function (err) {
+                notification.error('Failed to retrieve Associations for Organization ', organizationKey, '');
+                d.reject(err);
+            });
+            return d.promise;
+        };
+        /**
+        * Get associations by entity key
+        */
+        this.getAssociationsByEntityKey = function () {
+        };
+        /**
+        * Update assocations
+        */
+        this.updateAssociations = function () {
+            var d = $q.defer();
+            var organizationKey = __localStorage.getOrganizationKey();
+            var notification = __notifications.pending('Updating data associations...');
+            var associations = impakt.context.Associations.creation.toJson();
+            __api.post(__api.path(ASSOCIATIONS.ENDPOINT, ASSOCIATIONS.UPDATE_ASSOCIATIONS), {
+                version: 1,
+                contextID: organizationKey + '',
+                associations: associations
+            }).then(function (updatedAssociations) {
+                notification.success(impakt.context.Associations.creation.size(), ' Associations successfully updated');
+                impakt.context.Associations.associations.merge(impakt.context.Associations.creation);
+                impakt.context.Associations.creation.empty();
+                d.resolve();
+            }, function (err) {
+                notification.error('Failed to update Associations');
+                d.reject(err);
+            });
+            return d.promise;
+        };
+        /**
+        * Delete associations
+        */
+        this.deleteAssociations = function (internalKey) {
+            var d = $q.defer();
+            var organizationKey = __localStorage.getOrganizationKey();
+            var notification = __notifications.pending('Deleting ', 'data associations...');
+            var associations = impakt.context.Associations.associations.delete(internalKey);
+            __api.post(__api.path(ASSOCIATIONS.ENDPOINT, ASSOCIATIONS.UPDATE_ASSOCIATIONS), {
+                contextID: organizationKey,
+                associations: associations.toJson()
+            }).then(function () {
+                notification.success(associations.size(), ' Associations successfully deleted');
+                d.resolve();
+            }, function (err) {
+                notification.error('Failed to update Associations');
+                d.reject(err);
+            });
+            return d.promise;
+        };
+        /**
+        * Create association
+        */
+        this.createAssociation = function (fromEntity, toEntity) {
+            var d = $q.defer();
+            impakt.context.Associations.creation.add(fromEntity, toEntity);
+            this.updateAssociations()
+                .then(function () {
+                d.resolve();
+            }, function (err) {
+                d.reject(err);
+            });
+            return d.promise;
+        };
+        this.createAssociations = function (fromEntity, associatedEntities) {
+            var d = $q.defer();
+            impakt.context.Associations.creation.addAll(fromEntity, associatedEntities);
+            this.updateAssociations()
+                .then(function () {
+                d.resolve();
+            }, function (err) {
+                d.reject(err);
+            });
+            return d.promise;
+        };
+        /**
+         * Gets all associated entities for the given IAssociable.
+         *
+         * @param  {Common.Interfaces.IAssociable} entity The entity for which to find associated entities
+         * @return {any}                                  returns an object literal which contains
+         *                                                a key representing each type of entity collection
+         *                                                (playbooks, plays, formations, etc.), and
+         *                                                a corresponding collection of that entity type,
+         *                                                which will be empty if no associations of that
+         *                                                type are found, or will be populated with entities
+         *                                                of the given type if associations are found
+         */
+        this.getAssociated = function (entity) {
+            // 
+            // Gets the associations for the given entity by its associationKey
+            // 
+            var associations = impakt.context.Associations.associations.getByInternalKey(entity.associationKey);
+            // Instantiate the set of association collections for the given
+            // entity.
+            var results = {
+                playbooks: new Common.Models.PlaybookModelCollection(Team.Enums.UnitTypes.Mixed),
+                plays: new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed),
+                formations: new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed)
+            };
+            //
+            // Clients of this service should expect to receive back
+            // a resulting set of associations, even if the collections
+            // are empty. This should help prevent null pointer exceptions
+            // when attempting to create ng-repeat bindings in the view logic
+            // which rely on use of the .toArray() method on the given
+            // collection.
+            // 
+            if (Common.Utilities.isNullOrUndefined(associations) ||
+                associations.length == 0)
+                return results;
+            // Iterate over the entity's associations and parse each one
+            // to:
+            // 1. retrieve its guid
+            // 2. determine its type
+            // 3. make a query to the correct app. context collection
+            for (var i = 0; i < associations.length; i++) {
+                // each element in the associations array is in 'internalKey' structure
+                // i.e. '<type>|<key>|<guid>''; parse(...) yields an
+                // AssociationParts object with the corresponding and correctly typed values
+                var associationParts = Common.Models.Association.parse(associations[i]);
+                if (Common.Utilities.isNullOrUndefined(associationParts))
+                    continue;
+                var guid = associationParts.entityGuid;
+                var type = associationParts.entityType;
+                //
+                // Gets the appropriate application context collection 
+                // for the given entity's impakt data type enum value
+                // 
+                switch (type) {
+                    case Common.Enums.ImpaktDataTypes.Playbook:
+                        var playbook_1 = impakt.context.Playbook.playbooks.get(guid);
+                        if (playbook_1)
+                            results.playbooks.add(playbook_1);
+                        break;
+                    case Common.Enums.ImpaktDataTypes.Play:
+                        var play = impakt.context.Playbook.plays.get(guid);
+                        if (play)
+                            results.plays.add(play);
+                        break;
+                    case Common.Enums.ImpaktDataTypes.Formation:
+                        var formation = impakt.context.Playbook.formations.get(guid);
+                        if (formation)
+                            results.formations.add(formation);
+                        break;
+                }
+            }
+            return results;
+        };
+    }]);
+/// <reference path='../common.mdl.ts' />
 impakt.common.context = angular.module('impakt.common.context', [])
     .config([function () {
         console.debug('impakt.common.context - config');
@@ -8786,32 +9884,58 @@ impakt.common.context.factory('__context', ['$q',
     '__api',
     '__localStorage',
     '__notifications',
+    '_associations',
     '_playbook',
-    function ($q, __api, __localStorage, __notifications, _playbook, _user) {
+    '_league',
+    '_team',
+    function ($q, __api, __localStorage, __notifications, _associations, _playbook, _league, _team) {
         var isReady = false;
         var readyCallbacks = [];
+        var initializingCallbacks = [];
         function onReady(callback) {
             readyCallbacks.push(callback);
             if (isReady)
                 ready();
+        }
+        function onInitializing(callback) {
+            initializingCallbacks.push(callback);
+        }
+        function initializing() {
+            for (var i = 0; i < initializingCallbacks.length; i++) {
+                initializingCallbacks[i]();
+            }
+            initializingCallbacks = [];
         }
         function ready() {
             isReady = true;
             for (var i = 0; i < readyCallbacks.length; i++) {
                 readyCallbacks[i]();
             }
+            readyCallbacks = [];
         }
         var self = {
             initialize: initialize,
-            onReady: onReady
+            onReady: onReady,
+            onInitializing: onInitializing
         };
         function initialize(context) {
+            // notify listeners that context initialization
+            // has begun
+            initializing();
             var d = $q.defer();
             console.log('Making application context initialization requests');
+            var organizationKey = __localStorage.getOrganizationKey();
+            if (!context.Associations) {
+                context.Associations = {};
+                context.Associations.associations = new Common.Models.AssociationCollection(organizationKey);
+                context.Associations.creation = new Common.Models.AssociationCollection(organizationKey);
+            }
             if (!context.Playbook)
                 context.Playbook = {};
             if (!context.Team)
                 context.Team = {};
+            if (!context.League)
+                context.League = {};
             /**
              *
              *
@@ -8820,34 +9944,77 @@ impakt.common.context.factory('__context', ['$q',
              *
              */
             /**
+             * Association context
+             */
+            // Already set
+            /**
              * Playbook context
              */
-            context.Playbook.playbooks = new Common.Models.PlaybookModelCollection();
-            context.Playbook.formations = new Common.Models.FormationCollection();
-            context.Playbook.assignments = new Common.Models.AssignmentCollection();
-            context.Playbook.plays = new Common.Models.PlayCollection();
+            context.Playbook.playbooks = new Common.Models.PlaybookModelCollection(Team.Enums.UnitTypes.Mixed);
+            context.Playbook.formations = new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed);
+            context.Playbook.assignments = new Common.Models.AssignmentCollection(Team.Enums.UnitTypes.Mixed);
+            context.Playbook.plays = new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed);
             /**
              * Team context
              */
-            context.Team.personnel = new Team.Models.PersonnelCollection();
+            context.Team.teams = new Team.Models.TeamModelCollection(Team.Enums.TeamTypes.Mixed);
+            context.Team.personnel = new Team.Models.PersonnelCollection(Team.Enums.UnitTypes.Mixed);
             context.Team.positionDefaults = new Team.Models.PositionDefault();
             context.Team.unitTypes = _playbook.getUnitTypes();
             context.Team.unitTypesEnum = _playbook.getUnitTypesEnum();
             /**
+             * League context
+             */
+            context.League.leagues = new League.Models.LeagueModelCollection();
+            /**
              * Module-specific context data; plays currently open in the editor
              */
             context.Playbook.editor = {
-                plays: new Common.Models.PlayCollection(),
+                plays: new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed),
                 tabs: new Common.Models.TabCollection()
             };
             /**
              * A creation context for new plays and formations.
              */
             context.Playbook.creation = {
-                plays: new Common.Models.PlayCollection(),
-                formations: new Common.Models.FormationCollection()
+                plays: new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed),
+                formations: new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed)
             };
             async.parallel([
+                // Retrieve associations
+                // Retrieve associations
+                function (callback) {
+                    // make requests to get all associations
+                    _associations.getAssociationsByContextId()
+                        .then(function (associations) {
+                        context.Associations.associations = associations;
+                        callback(null, associations);
+                    }, function (err) {
+                        callback(err);
+                    });
+                },
+                // Retrieve leagues
+                // Retrieve leagues
+                function (callback) {
+                    _league.getLeagues().then(function (leagues) {
+                        context.League.leagues = leagues;
+                        __notifications.success('Leagues successfully loaded');
+                        callback(null, leagues);
+                    }, function (err) {
+                        callback(err);
+                    });
+                },
+                // Retrieve teams
+                // Retrieve teams
+                function (callback) {
+                    _team.getTeams().then(function (teams) {
+                        context.Team.teams = teams;
+                        __notifications.success('Teams successfully loaded');
+                        callback(null, teams);
+                    }, function (err) {
+                        callback(err);
+                    });
+                },
                 // Retrieve playbooks
                 // Retrieve playbooks
                 function (callback) {
@@ -8890,16 +10057,6 @@ impakt.common.context.factory('__context', ['$q',
                 function (callback) {
                     _playbook.getPlays().then(function (plays) {
                         context.Playbook.plays = plays;
-                        context.Playbook.plays.forEach(function (play, index) {
-                            var primaryAssociatedFormation = play.associated.formations.primary();
-                            if (primaryAssociatedFormation) {
-                                play.formation = context.Playbook.formations.get(primaryAssociatedFormation);
-                            }
-                            var primaryAssociatedPersonnel = play.associated.personnel.primary();
-                            if (primaryAssociatedPersonnel) {
-                                play.personnel = context.Team.personnel.get(primaryAssociatedPersonnel);
-                            }
-                        });
                         __notifications.success('Plays successfully loaded');
                         callback(null, plays);
                     }, function (err) {
@@ -10077,27 +11234,86 @@ impakt.common.ui = angular.module('impakt.common.ui', [])
         console.debug('impakt.common.ui - run');
     }]);
 /// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('appLoading.ctrl', [
+    '$scope',
+    '$timeout',
+    '__context',
+    '__notifications',
+    function ($scope, $timeout, __context, __notifications) {
+        $scope.$element;
+        $scope.visible = false;
+        $scope.notifications = __notifications.notifications;
+        $scope.notification;
+        $scope.notifications.onModified(function (collection) {
+            $scope.notification = collection.getLast();
+        });
+        __context.onInitializing(function () {
+            $scope.visible = true;
+        });
+        __context.onReady(function () {
+            // simulate a slight delay to let the user
+            // see that all of their data has been loaded
+            // before removing the loading screen
+            $timeout(function () {
+                $scope.visible = false;
+            }, 1000);
+        });
+    }])
+    .directive('appLoading', [
+    function () {
+        return {
+            restrict: 'E',
+            templateUrl: 'common/ui/app-loading/app-loading.tpl.html',
+            transclude: true,
+            replace: true,
+            controller: 'appLoading.ctrl',
+            link: function ($scope, $element, attrs) {
+                $scope.$element = $element;
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.directive('details', [
+    function () {
+        return {
+            restrict: 'E',
+            compile: function ($element, attrs) {
+                return {
+                    pre: function ($scope, $element, attrs, controller, transcludeFn) {
+                    },
+                    post: function ($scope, $element, attrs, controller, transcludeFn) {
+                    }
+                };
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
 impakt.common.ui.controller('expandable.ctrl', [
-    '$scope', function ($scope) {
-        console.log('expandable.ctrl - loaded');
-        var directions = ['left', 'right', 'up', 'down'];
-        $scope.direction = 'left';
+    '$scope',
+    function ($scope) {
+        $scope.direction;
         $scope.min = 3; // in em's
         $scope.max = 32; // in em's
-        $scope.$element = null;
+        $scope.$element;
         $scope.em = parseInt($('body').css('font-size'));
         $scope.collapsed = true;
         $scope.ready = false;
+        $scope.url;
+        $scope.handle = {
+            position: '',
+            collapsed: '',
+            expanded: '',
+            class: ''
+        };
         $scope.toggle = function () {
             $scope.collapsed = !$scope.collapsed;
             if ($scope.collapsed) {
                 $scope.$element.removeClass($scope.getMaxClass()).addClass($scope.getMinClass());
-                console.log('collapse panel');
             }
             else {
                 $scope.$element.removeClass($scope.getMinClass()).addClass($scope.getMaxClass());
-                console.log('expand panel');
             }
+            $scope.setHandleClass();
         };
         $scope.getMinClass = function () {
             return 'width' + $scope.min;
@@ -10110,6 +11326,35 @@ impakt.common.ui.controller('expandable.ctrl', [
         };
         $scope.setInitialClass = function () {
             $scope.$element.addClass($scope.getInitialClass());
+        };
+        $scope.initializeToggleHandle = function () {
+            switch ($scope.direction) {
+                case 'left':
+                    $scope.handle.position = 'top0 left0';
+                    $scope.handle.expanded = 'glyphicon-chevron-right';
+                    $scope.handle.collapsed = 'glyphicon-chevron-left';
+                    break;
+                case 'right':
+                    $scope.handle.position = 'top0 right0';
+                    $scope.handle.expanded = 'glyphicon-chevron-left';
+                    $scope.handle.collapsed = 'glyphicon-chevron-right';
+                    break;
+                case 'top':
+                    $scope.handle.position = 'top0 left0';
+                    $scope.handle.expanded = 'glyphicon-chevron-up';
+                    $scope.handle.collapsed = 'glyphicon-chevron-down';
+                    break;
+                case 'bottom':
+                    $scope.handle.position = 'bottom0 left0';
+                    $scope.handle.expanded = 'glyphicon-chevron-down';
+                    $scope.handle.collapsed = 'glyphicon-chevron-up';
+                    break;
+            }
+            $scope.setHandleClass();
+        };
+        $scope.setHandleClass = function () {
+            $scope.handle.class = $scope.collapsed ?
+                $scope.handle.collapsed : $scope.handle.expanded;
         };
         /**
          * Deprecated
@@ -10127,107 +11372,107 @@ impakt.common.ui.controller('expandable.ctrl', [
                 $scope.getWidth($scope.max);
         };
     }]).directive('expandable', [
-    '$timeout', '$compile',
-    function ($timeout, $compile) {
+    '$compile',
+    function ($compile) {
         return {
             restrict: 'E',
             controller: 'expandable.ctrl',
+            transclude: true,
+            replace: true,
+            templateUrl: 'common/ui/expandable/expandable.tpl.html',
+            scope: {
+                collapsed: '=?',
+                direction: '@',
+                url: '@'
+            },
+            compile: function ($element, attrs) {
+                return {
+                    pre: function ($scope, $element, attrs, controller, transcludeFn) {
+                        $scope.$element = $element;
+                        /**
+                         * Set initial class on the element for proper sizing
+                         */
+                        $scope.setInitialClass();
+                        $scope.ready = true;
+                    },
+                    post: function ($scope, $element, attrs, controller, transcludeFn) {
+                    }
+                };
+            }
+        };
+    }])
+    .directive('expandableToggle', [
+    function () {
+        return {
+            restrict: 'E',
+            controller: 'expandable.ctrl',
+            transclude: true,
+            replace: true,
+            require: '^expandable',
+            template: "<div class='width3 pad {{handle.position}} \
+			gray-bg-3-hover pointer font- white'\
+			ng-click='toggle()'>\
+				<div class='glyphicon {{handle.class}}'></div>\
+			</div>'",
             compile: function ($element, attrs) {
                 return {
                     pre: function ($scope, $element, attrs, controller, transcludeFn) {
                     },
                     post: function ($scope, $element, attrs, controller, transcludeFn) {
-                        $element.hide();
+                        /**
+                         * Initialize the toggle handle
+                         */
+                        $scope.initializeToggleHandle();
+                    }
+                };
+            }
+        };
+    }
+]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('formationItem.ctrl', [
+    '$scope',
+    '_playbook',
+    '_details',
+    function ($scope, _playbook, _details) {
+        $scope.play;
+        $scope.element;
+        /**
+         *
+         *	Item selection
+         *
+         */
+        $scope.toggleSelection = function (formation) {
+            impakt.context.Playbook.formations.toggleSelect(formation);
+            if (formation.selected) {
+                _details.selectedElements.only(formation);
+            }
+            else {
+                _details.selectedElements.remove(formation.guid);
+            }
+        };
+        $scope.openInEditor = function (formation) {
+            _playbook.editFormation(formation);
+        };
+    }]).directive('formationItem', [
+    function () {
+        /**
+         * play-item directive
+         */
+        return {
+            restrict: 'E',
+            controller: 'formationItem.ctrl',
+            scope: {
+                formation: '='
+            },
+            templateUrl: 'common/ui/formation-item/formation-item.tpl.html',
+            transclude: true,
+            replace: true,
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
                         $scope.$element = $element;
-                        $scope.direction = attrs.direction || $scope.direction;
-                        $scope.collapsed = attrs.collapsed == 'true' ||
-                            attrs.collapsed == 'false' ?
-                            attrs.collapsed == 'true' : $scope.collapsed;
-                        var multiplier = $scope.direction == 'left' ||
-                            $scope.direction == 'bottom' ?
-                            -1 : 1;
-                        var position = '';
-                        var collapseHandle = '';
-                        var expandHandle = '';
-                        switch ($scope.direction) {
-                            case 'left':
-                                position = 'top0 left0';
-                                collapseHandle = 'glyphicon-chevron-right';
-                                expandHandle = 'glyphicon-chevron-left';
-                                break;
-                            case 'right':
-                                position = 'top0 right0';
-                                collapseHandle = 'glyphicon-chevron-left';
-                                expandHandle = 'glyphicon-chevron-right';
-                                break;
-                            case 'top':
-                                position = 'top0 left0';
-                                collapseHandle = 'glyphicon-chevron-up';
-                                expandHandle = 'glyphicon-chevron-down';
-                                break;
-                            case 'bottom':
-                                position = 'bottom0 left0';
-                                collapseHandle = 'glyphicon-chevron-down';
-                                expandHandle = 'glyphicon-chevron-up';
-                                break;
-                        }
-                        var init = function () {
-                            /**
-                             * Set initial class on the element for proper sizing
-                             */
-                            $scope.setInitialClass();
-                            var $handle = $('<div />', {
-                                'ng-show': '!collapsed',
-                                'class': [
-                                    'expandable-handle ',
-                                    'expandable-handle-vertical ',
-                                    'expandable-', $scope.direction, ' ',
-                                    position
-                                ].join('')
-                            });
-                            var dragging = false;
-                            var startX = 0;
-                            var elementWidth = $element.width();
-                            $handle.mousedown(function (e1) {
-                                startX = e1.pageX;
-                                dragging = true;
-                                var elementWidth = $element.width();
-                                $('body').on('mousemove', function (e) {
-                                    var deltaX = e.pageX - startX;
-                                    var toWidth = elementWidth + (multiplier * deltaX);
-                                    if (dragging && toWidth > $scope.min) {
-                                        $element.width(toWidth);
-                                    }
-                                }).on('mouseup', function (e) {
-                                    if (dragging) {
-                                        dragging = false;
-                                    }
-                                });
-                            }).mouseup(function (e) {
-                                startX = 0;
-                                dragging = false;
-                                elementWidth = $element.width();
-                                $('body').off('mousemove').off('mouseup');
-                            });
-                            $element.append($compile($handle[0])($scope));
-                        };
-                        $timeout(init, 0);
-                        var toggleIcon = $compile([
-                            "<div class='pad ",
-                            position,
-                            " dark-bg-hover pointer font-white zIndexTop' ",
-                            'ng-click="toggle()">',
-                            '<div class="glyphicon"',
-                            'ng-class="{',
-                            "'", collapseHandle, "': !collapsed,",
-                            "'", expandHandle, "': collapsed",
-                            '}">',
-                            '</div>',
-                            '</div>'
-                        ].join(''))($scope);
-                        $element.prepend(toggleIcon);
-                        $scope.ready = true;
-                        $element.show();
                     }
                 };
             }
@@ -10304,7 +11549,7 @@ impakt.common.ui.controller('formationPreview.ctrl', [
                             else {
                                 // no play has been found to contain the formation,
                                 // draw a new play to render the preview
-                                $scope.play = new Common.Models.Play();
+                                $scope.play = new Common.Models.Play($scope.formation.unitType);
                                 $scope.play.setFormation($scope.formation);
                             }
                             if (Common.Utilities.isNullOrUndefined($scope.play))
@@ -10459,6 +11704,84 @@ impakt.common.ui.controller('typeFormatter.ctrl', [
         };
     }]);
 /// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('grid.ctrl', [
+    '$scope',
+    '_details',
+    function ($scope, _details) {
+        $scope.play;
+        $scope.element;
+    }]).directive('grid', [
+    function () {
+        /**
+         * play-item directive
+         */
+        return {
+            restrict: 'E',
+            controller: 'grid.ctrl',
+            scope: {
+                element: '='
+            },
+            templateUrl: '',
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                    }
+                };
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('playItem.ctrl', [
+    '$scope',
+    '_details',
+    '_playbook',
+    function ($scope, _details, _playbook) {
+        $scope.play;
+        $scope.element;
+        /**
+         *
+         *	Item selection
+         *
+         */
+        $scope.toggleSelection = function (play) {
+            impakt.context.Playbook.plays.toggleSelect(play);
+            if (play.selected) {
+                _details.selectedElements.only(play);
+            }
+            else {
+                _details.selectedElements.remove(play.guid);
+            }
+        };
+        $scope.openInEditor = function (play) {
+            _playbook.editPlay(play);
+        };
+    }]).directive('playItem', [
+    function () {
+        /**
+         * play-item directive
+         */
+        return {
+            restrict: 'E',
+            controller: 'playItem.ctrl',
+            scope: {
+                play: '='
+            },
+            templateUrl: 'common/ui/play-item/play-item.tpl.html',
+            transclude: true,
+            replace: true,
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                    }
+                };
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
 impakt.common.ui.controller('playPreview.ctrl', [
     '$scope', '$timeout', function ($scope, $timeout) {
         $scope.previewCanvas;
@@ -10517,7 +11840,7 @@ impakt.common.ui.controller('playPreview.ctrl', [
                             $scope.modificationTimer = $timeout(function () {
                                 console.log('auto refresh based on user changes');
                                 $scope.refresh();
-                            }, 500);
+                            }, 200);
                         });
                         /**
                          *
@@ -10810,6 +12133,18 @@ impakt.common.ui.factory('__router', [function () {
         return self;
     }]);
 /// <reference path='../ui.mdl.ts' />
+impakt.common.ui.directive('search', [
+    function () {
+        return {
+            restrict: 'E',
+            templateUrl: 'common/ui/search/search.tpl.html',
+            transclude: true,
+            replace: true,
+            link: function ($scope, $element, attrs) {
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
 impakt.common.ui.controller('stepper.ctrl', [
     '$scope',
     function ($scope) {
@@ -10920,6 +12255,7 @@ impakt.common.ui.controller('stepper.ctrl', [
 /// <reference path='../js/impakt.ts' />
 impakt.modules = angular.module('impakt.modules', [
     'impakt.home',
+    'impakt.league',
     'impakt.season',
     'impakt.planning',
     'impakt.analysis',
@@ -10927,7 +12263,9 @@ impakt.modules = angular.module('impakt.modules', [
     'impakt.nav',
     'impakt.user',
     'impakt.search',
-    'impakt.team'
+    'impakt.team',
+    'impakt.sidebar',
+    'impakt.details'
 ])
     .config(['$stateProvider', '$urlRouterProvider',
     function ($stateProvider, $urlRouterProvider) {
@@ -10944,6 +12282,98 @@ impakt.analysis = angular.module('impakt.analysis', [])
         console.debug('impakt.analysis - run');
     }]);
 /// <reference path='../modules.mdl.ts' />
+impakt.details = angular.module('impakt.details', [])
+    .config(function () {
+    console.debug('impakt.details - config');
+})
+    .run(function () {
+    console.debug('impakt.details - run');
+});
+/// <reference path='./details.mdl.ts' />
+impakt.details.controller('details.ctrl', ['$scope',
+    '$q',
+    '$timeout',
+    '__context',
+    '__modals',
+    '_details',
+    '_associations',
+    function ($scope, $q, $timeout, __context, __modals, _details, _associations) {
+        $scope.selectedElements = _details.selectedElements;
+        $scope.selectedElement = null;
+        $scope.associatedPlaybooks = [];
+        $scope.playbooks;
+        $scope._details = _details;
+        __context.onReady(function () {
+            $scope.playbooks = impakt.context.Playbook.playbooks;
+        });
+        function init() {
+            $scope.selectedElements.onModified(function (selectedElements) {
+                // TODO @theBull - open/close details panel when items
+                // are selected - currently buggy; isolate scope in expandable directive?
+                $scope.collapsed = selectedElements.isEmpty();
+                initAssociatedPlaybooks();
+            });
+        }
+        function initAssociatedPlaybooks() {
+            if (Common.Utilities.isNullOrUndefined($scope.selectedElements) ||
+                $scope.selectedElements.isEmpty())
+                return;
+            $scope.selectedElement = $scope.selectedElements.first();
+            if (!Common.Utilities.isNullOrUndefined($scope.selectedElement)) {
+            }
+        }
+        $scope.loadPlaybooks = function (query) {
+            var d = $q.defer();
+            d.resolve(impakt.context.Playbook.playbooks.toJson().playbooks);
+            return d.promise;
+        };
+        $scope.associatePlaybook = function (playbookJson, play, service) {
+            if (Common.Utilities.isNullOrUndefined(playbookJson))
+                return;
+            // add association to play if it isn't already there
+            // if(!play.associated.playbooks.exists(playbookJson.guid)) {
+            // 	play.associated.setPlaybook(playbookJson.guid);
+            // 	service.updatePlay(play);
+            // }
+        };
+        $scope.unassociatePlaybook = function (playbookJson, play, service) {
+            if (Common.Utilities.isNullOrUndefined(playbookJson))
+                return;
+            // remove association from play if it exists
+            // if(play.associated.playbooks.exists(playbookJson.guid)) {
+            // 	play.associated.removePlaybook(playbookJson.guid);
+            // 	service.updatePlay(play);
+            // }
+            // remove association from playbook if it exists
+        };
+        $scope.delete = function (entity) {
+            _details.delete(entity);
+        };
+        init();
+    }]);
+/// <reference path='./details.mdl.ts' />
+impakt.details.service('_details', [
+    '_playbook',
+    function (_playbook) {
+        this.selectedElements = new Common.Models.ActionableCollection();
+        this.state = {
+            collapsed: true
+        };
+        var self = this;
+        this.selectedElements.onModified(function (collection) {
+            if (collection.hasElements())
+                self.state.collapsed = false;
+        });
+        this.updatePlay = function (play) {
+            _playbook.updatePlay(play);
+        };
+        this.delete = function (entity) {
+            _playbook.deleteEntityByType(entity).then(function () {
+            }, function (err) {
+            });
+        };
+    }]);
+/// <reference path='../modules.mdl.ts' />
 impakt.home = angular.module('impakt.home', [])
     .config([function () {
         console.debug('impakt.home - config');
@@ -10956,7 +12386,7 @@ impakt.home.controller('home.ctrl', ['$scope', '$state', '_home',
     function ($scope, $state, _home) {
         $scope.menuItems = _home.menuItems;
         $scope.goTo = function (menuItem) {
-            $state.transitionTo(menuItem.name);
+            $scope.menuItems.activate(menuItem);
         };
     }]);
 /// <reference path='./home.mdl.ts' />
@@ -10964,28 +12394,458 @@ impakt.home.controller('home.ctrl', ['$scope', '$state', '_home',
 impakt.home.service('_home', [
     '$state', '__nav',
     function ($state, __nav) {
-        var self = this;
         this.menuItems = __nav.menuItems;
+    }]);
+/// <reference path='../modules.mdl.ts' />
+/// <reference path='./league.ts' />
+impakt.league = angular.module('impakt.league', [
+    'impakt.league.browser',
+    'impakt.league.drilldown',
+    'impakt.league.modals'
+])
+    .config([
+    '$stateProvider',
+    '$urlRouterProvider',
+    function ($stateProvider, $urlRouterProvider) {
+        console.debug('impakt.league - config');
+        // impakt module states
+        $stateProvider.state('league', {
+            url: '/league',
+            templateUrl: 'modules/league/league.tpl.html',
+            controller: 'league.ctrl'
+        });
+    }])
+    .run(function () {
+    console.debug('impakt.league - run');
+});
+/// <reference path='../league.mdl.ts' />
+impakt.league.browser = angular.module('impakt.league.browser', [])
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.league.browser - config');
+        $stateProvider.state('league.browser', {
+            url: '/browser',
+            templateUrl: 'modules/league/browser/league-browser.tpl.html',
+            controller: 'league.browser.ctrl'
+        });
+    }])
+    .run(function () {
+    console.debug('impakt.league.browser - run');
+});
+/// <reference path='./league-browser.mdl.ts' />
+impakt.league.browser.controller('league.browser.ctrl', ['$scope', '_league', '_leagueModals', '_teamModals',
+    function ($scope, _league, _leagueModals, _teamModals) {
+        $scope.leagues = impakt.context.League.leagues;
+        $scope.teams = impakt.context.Team.teams;
+        $scope.createLeague = function () {
+            _leagueModals.createLeague();
+        };
+        $scope.createTeam = function () {
+            _teamModals.createTeam();
+        };
+        $scope.leagueDrilldown = function (league) {
+            _league.toLeagueDrilldown(league);
+        };
+        $scope.teamDrilldown = function (team) {
+            _league.toTeamDrilldown(team);
+        };
+    }]);
+/// <reference path='../league.mdl.ts' />
+impakt.league.drilldown = angular.module('impakt.league.drilldown', [
+    'impakt.league.drilldown.league',
+    'impakt.league.drilldown.team'
+])
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.league.drilldown - config');
+        $stateProvider.state('league.drilldown', {
+            url: '/drilldown',
+            templateUrl: 'modules/league/drilldown/league-drilldown.tpl.html',
+            controller: 'league.drilldown.ctrl'
+        });
+    }])
+    .run(function () {
+    console.debug('impakt.league.drilldown - run');
+});
+/// <reference path='./league-drilldown.mdl.ts' />
+impakt.league.drilldown.controller('league.drilldown.ctrl', [
+    '$scope',
+    '_league',
+    function ($scope, _league) {
+        $scope.toBrowser = function () {
+            _league.toBrowser();
+        };
+    }]);
+/// <reference path='../league-drilldown.mdl.ts' />
+impakt.league.drilldown.league = angular.module('impakt.league.drilldown.league', [])
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.league.drilldown.league - config');
+        $stateProvider.state('league.drilldown.league', {
+            url: '/league',
+            templateUrl: 'modules/league/drilldown/league/league-drilldown-league.tpl.html',
+            controller: 'league.drilldown.league.ctrl'
+        });
+    }])
+    .run(function () {
+    console.debug('impakt.league.drilldown.league - run');
+});
+/// <reference path='./league-drilldown-league.mdl.ts' />
+impakt.league.drilldown.league.controller('league.drilldown.league.ctrl', [
+    '$scope',
+    '_league',
+    '_leagueModals',
+    function ($scope, _league, _leagueModals) {
+        $scope.league = _league.drilldown.league;
+        $scope.delete = function () {
+            _leagueModals.deleteLeague($scope.league);
+        };
+    }]);
+/// <reference path='../league-drilldown.mdl.ts' />
+impakt.league.drilldown.team = angular.module('impakt.league.drilldown.team', [])
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.league.drilldown.team - config');
+        $stateProvider.state('league.drilldown.team', {
+            url: '/team',
+            templateUrl: 'modules/league/drilldown/team/league-drilldown-team.tpl.html',
+            controller: 'league.drilldown.team.ctrl'
+        });
+    }])
+    .run(function () {
+    console.debug('impakt.league.drilldown.team - run');
+});
+/// <reference path='./league-drilldown-team.mdl.ts' />
+impakt.league.controller('league.drilldown.team.ctrl', ['$scope', '_league', '_teamModals',
+    function ($scope, _league, _teamModals) {
+        $scope.team = _league.drilldown.team;
+        $scope.delete = function () {
+            _teamModals.deleteTeam($scope.team);
+        };
+    }]);
+/// <reference path='./league.mdl.ts' />
+/**
+ * League constants defined here
+ */
+impakt.league.constant('LEAGUE', {
+    ENDPOINT: '/teamInfo',
+    // League
+    CREATE_LEAGUE: '/createLeague',
+    GET_LEAGUES: '/getLeagues',
+    GET_LEAGUE: '/getLeague',
+    DELETE_LEAGUE: '/deleteLeague',
+    // League Teams
+    CREATE_TEAM: '/createTeam',
+    GET_TEAMS: '/getTeams',
+    GET_TEAM: '/getTeam',
+    DELETE_TEAM: '/deleteTeam',
+});
+/// <reference path='./league.mdl.ts' />
+impakt.league.controller('league.ctrl', ['$scope', '$state', '_league',
+    function ($scope, $state, _league) {
+        // load up the browser by default
+        $state.go('league.browser');
+    }]);
+/// <reference path='./models/models.ts' />
+/// <reference path='./league.ts' />
+// League service
+impakt.league.service('_league', [
+    'LEAGUE',
+    '$q',
+    '$state',
+    '__api',
+    '__localStorage',
+    '__notifications',
+    '_leagueModals',
+    function (LEAGUE, $q, $state, __api, __localStorage, __notifications, _leagueModals) {
+        var self = this;
+        this.drilldown = {
+            league: null,
+            team: null
+        };
+        // TODO @theBull - ensure the 'current user' is being addressed
+        // TODO @theBull - add notification handling
         /**
-         * Navigation to other modules
+         * Retrieves all leagues
          */
-        this.toTeam = function () {
-            $state.transitionTo('team');
+        this.getLeagues = function () {
+            var d = $q.defer();
+            var notification = __notifications.pending('Getting leagues...');
+            __api.get(__api.path(LEAGUE.ENDPOINT, LEAGUE.GET_LEAGUES))
+                .then(function (response) {
+                var collection = new League.Models.LeagueModelCollection();
+                if (response && response.data && response.data.results) {
+                    var leagueResults = Common.Utilities.parseData(response.data.results);
+                    for (var i = 0; i < leagueResults.length; i++) {
+                        var leagueResult = leagueResults[i];
+                        if (leagueResult && leagueResult.data && leagueResult.data.model) {
+                            var leagueModel = new League.Models.LeagueModel();
+                            leagueResult.data.model.key = leagueResult.key;
+                            leagueModel.fromJson(leagueResult.data.model);
+                            collection.add(leagueModel);
+                        }
+                    }
+                }
+                notification.success([collection.size(), ' Leagues successfully retreived'].join(''));
+                d.resolve(collection);
+            }, function (error) {
+                notification.error('Failed to retieve Leagues');
+                console.error(error);
+                d.reject(error);
+            });
+            return d.promise;
         };
-        this.toPlaybook = function () {
-            $state.transitionTo('playbook');
+        /**
+         * Gets a single league with the given key
+         * @param {number} key The key of the league to retrieve
+         */
+        this.getLeague = function (key) {
+            var d = $q.defer();
+            __api.get(__api.path(LEAGUE.ENDPOINT, LEAGUE.GET_LEAGUE, '/' + key))
+                .then(function (response) {
+                var league = Common.Utilities.parseData(response.data.results);
+                d.resolve(league);
+            }, function (error) {
+                d.reject(error);
+            });
+            return d.promise;
         };
-        this.toSeason = function () {
-            $state.transitionTo('season');
+        /**
+         * Sends a league model to the server for storage
+         * @param {Common.Models.LeagueModel} leagueModel The model to be created/saved
+         */
+        this.createLeague = function (newLeagueModel) {
+            var d = $q.defer();
+            if (!Common.Utilities.isNullOrUndefined(newLeagueModel)) {
+                var nameExists = impakt.context.League.leagues.hasElementWhich(function (leagueModel, index) {
+                    return leagueModel.name == newLeagueModel.name;
+                });
+                if (nameExists) {
+                    var notification_1 = __notifications.warning('Failed to create league. League "', newLeagueModel.name, '" already exists.');
+                    _leagueModals.createLeagueDuplicate(newLeagueModel);
+                    return;
+                }
+            }
+            // set key to -1 to ensure a new object is created server-side
+            newLeagueModel.key = -1;
+            var leagueModelJson = newLeagueModel.toJson();
+            var notification = __notifications.pending('Creating playbook "', newLeagueModel.name, '"...');
+            __api.post(__api.path(LEAGUE.ENDPOINT, LEAGUE.CREATE_LEAGUE), {
+                version: 1,
+                name: newLeagueModel.name,
+                data: {
+                    version: 1,
+                    model: leagueModelJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var leagueModel = new League.Models.LeagueModel();
+                if (results && results.data && results.data.model) {
+                    results.data.model.key = results.key;
+                    leagueModel.fromJson(results.data.model);
+                    // update the context
+                    impakt.context.League.leagues.add(leagueModel);
+                }
+                else {
+                    throw new Error('CreateLeague did not return a valid league model');
+                }
+                notification.success('Successfully created league "', leagueModel.name, '"');
+                d.resolve(leagueModel);
+            }, function (error) {
+                notification.error('Failed to create league "', newLeagueModel.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
         };
-        this.toPlanning = function () {
-            $state.transitionTo('planning');
+        /**
+         * Deletes the given league for the current user
+         * @param {League.Models.LeagueModel} league The league to be deleted
+         */
+        this.deleteLeague = function (league) {
+            var d = $q.defer();
+            var notification = __notifications.pending('Deleting league "', league.name, '"...');
+            __api.post(__api.path(LEAGUE.ENDPOINT, LEAGUE.DELETE_LEAGUE), { key: league.key }).then(function (response) {
+                // update the context
+                impakt.context.League.leagues.remove(league.guid);
+                notification.success('Deleted league "', league.name, '"');
+                d.resolve(league);
+            }, function (error) {
+                notification.error('Failed to delete league "', league.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
         };
-        this.toAnalysis = function () {
-            $state.transitionTo('analysis');
+        /**
+         * Updates the given league for the current user
+         * @param {League.Models.LeagueModel} league The league to update
+         */
+        this.updateLeague = function (league) {
+            var d = $q.defer();
+            // update assignment collection to json object
+            var leagueJson = league.toJson();
+            var notification = __notifications.pending('Updating league "', league.name, '"...');
+            __api.post(__api.path(LEAGUE.ENDPOINT, LEAGUE.UPDATE_LEAGUE), {
+                version: 1,
+                name: leagueJson.name,
+                key: leagueJson.key,
+                data: {
+                    version: 1,
+                    key: leagueJson.key,
+                    model: leagueJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var leagueModel = new League.Models.LeagueModel();
+                if (results && results.data && results.data.model) {
+                    leagueModel.fromJson(results.data.model);
+                    // update the context
+                    impakt.context.League.leagues.set(leagueModel.guid, leagueModel);
+                }
+                notification.success('Successfully updated league "', league.name, '"');
+                d.resolve(leagueModel);
+            }, function (error) {
+                notification.error('Failed to update league "', league.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
         };
-        this.toProfile = function () {
-            $state.transitionTo('profile');
+        this.toBrowser = function () {
+            this.drilldown.league = null;
+            this.drilldown.team = null;
+            $state.transitionTo('league.browser');
+        };
+        this.toLeagueDrilldown = function (league) {
+            this.drilldown.league = league;
+            $state.transitionTo('league.drilldown.league');
+        };
+        this.toTeamDrilldown = function (team) {
+            this.drilldown.team = team;
+            $state.transitionTo('league.drilldown.team');
+        };
+    }]);
+/// <reference path='../league.mdl.ts' />
+impakt.league.modals = angular.module('impakt.league.modals', [])
+    .config(function () {
+    console.debug('impakt.league.modals - config');
+})
+    .run(function () {
+    console.debug('impakt.league.modals - run');
+});
+/// <reference path='../league-modals.mdl.ts' />
+impakt.league.modals.controller('league.modals.createLeagueDuplicateError.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_league',
+    'league',
+    function ($scope, $uibModalInstance, _league, league) {
+        $scope.league = league;
+        $scope.ok = function () {
+            $uibModalInstance.close();
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../league-modals.mdl.ts' />
+impakt.league.modals.controller('league.modals.createLeague.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_league',
+    function ($scope, $uibModalInstance, _league) {
+        $scope.newLeagueModel = new League.Models.LeagueModel();
+        $scope.ok = function () {
+            _league.createLeague($scope.newLeagueModel)
+                .then(function (createdLeague) {
+                $uibModalInstance.close(createdLeague);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../league-modals.mdl.ts' />
+impakt.league.modals.controller('league.modals.deleteLeague.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_league',
+    'league',
+    function ($scope, $uibModalInstance, _league, league) {
+        $scope.league = league;
+        $scope.ok = function () {
+            _league.deleteLeague($scope.league)
+                .then(function (results) {
+                $uibModalInstance.close(results);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='./league-modals.mdl.ts' />
+impakt.league.modals.service('_leagueModals', [
+    '$q',
+    '__modals',
+    function ($q, __modals) {
+        /**
+         *
+         * LEAGUE
+         *
+         */
+        this.createLeague = function () {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/league/modals/create-league/create-league.tpl.html', 'league.modals.createLeague.ctrl', {});
+            modalInstance.result.then(function (createdLeague) {
+                console.log(createdLeague);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.createLeagueDuplicate = function (leagueModel) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/league/modals/create-league-duplicate-error/create-league-duplicate-error.tpl.html', 'league.modals.createLeagueDuplicateError.ctrl', {
+                league: function () {
+                    return leagueModel;
+                }
+            });
+            modalInstance.result.then(function (createdLeague) {
+                console.log(createdLeague);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.deleteLeague = function (league) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/league/modals/delete-league/delete-league.tpl.html', 'league.modals.deleteLeague.ctrl', {
+                league: function () {
+                    return league;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
         };
     }]);
 /// <reference path='../modules.mdl.ts' />
@@ -11013,10 +12873,10 @@ impakt.nav.controller('nav.ctrl', [
         $scope.notificationsMenuItem = __nav.notificationsMenuItem;
         $scope.searchMenuItem = __nav.searchMenuItem;
         // set default view to the Home module
-        $location.path('/home');
+        $location.path('/playbook');
         $scope.navigatorNavSelection = getActiveNavItemLabel();
         $scope.searchItemClick = function () {
-            $scope.searchMenuItem.isActive = !$scope.searchMenuItem.isActive;
+            $scope.searchMenuItem.toggleActivation();
         };
         $scope.notificationItemClick = function () {
             $scope.notificationsMenuItem.isActive = !$scope.notificationsMenuItem.isActive;
@@ -11027,48 +12887,58 @@ impakt.nav.controller('nav.ctrl', [
             propagate && $scope.menuItemClick(navigationItem);
         };
         $scope.menuItemClick = function (navigationItem) {
-            var activeNavItem = getActiveNavItem();
-            if (activeNavItem)
-                activeNavItem.isActive = false;
-            navigationItem.isActive = true;
-            if (navigationItem)
-                $location.path(navigationItem.path);
+            $scope.menuItems.activate(navigationItem);
             $scope.navigatorNavSelection = navigationItem.label;
         };
-        function getActiveNavItem() {
-            // pre-assumption, we can only have 1 active menu item
-            return $scope.menuItems.filterFirst(function (menuItem) {
-                return menuItem.isActive === true;
-            });
-        }
         function getActiveNavItemLabel() {
-            var activeNavItem = getActiveNavItem();
+            var activeNavItem = $scope.menuItems.getActive();
             return activeNavItem ? activeNavItem.label : null;
         }
     }]);
 /// <reference path='./nav.mdl.ts' />
 // Nav factory
-impakt.nav.factory('__nav', ['$http', '$q', function ($http, $q) {
-        console.log('nav factory');
+impakt.nav.factory('__nav', [
+    '$http',
+    '$q',
+    '$state',
+    function ($http, $q, $state) {
         var menuItems = new Navigation.Models.NavigationItemCollection();
         // Home
-        menuItems.add(new Navigation.Models.NavigationItem('home', 'Home', 'home', '/home', true));
+        menuItems.add(new Navigation.Models.NavigationItem('home', 'Home', 'home', '/home', true, function (self) {
+            $state.transitionTo('home');
+        }));
+        // League
+        menuItems.add(new Navigation.Models.NavigationItem('league', 'League', 'globe', '/league', false, function (self) {
+            $state.transitionTo('league');
+        }));
         // Season
-        menuItems.add(new Navigation.Models.NavigationItem('season', 'Season', 'calendar', '/season', false));
+        menuItems.add(new Navigation.Models.NavigationItem('season', 'Season', 'calendar', '/season', false, function (self) {
+            $state.transitionTo('season');
+        }));
         // Playbook
-        menuItems.add(new Navigation.Models.NavigationItem('playbook', 'Playbook', 'book', '/playbook/browser', false));
+        menuItems.add(new Navigation.Models.NavigationItem('playbook', 'Playbook', 'book', '/playbook/browser', false, function (self) {
+            $state.transitionTo('playbook');
+        }));
         // Planning
-        menuItems.add(new Navigation.Models.NavigationItem('planning', 'Planning', 'blackboard', '/planning', false));
+        menuItems.add(new Navigation.Models.NavigationItem('planning', 'Planning', 'blackboard', '/planning', false, function (self) {
+            $state.transitionTo('planning');
+        }));
         // Analysis
-        menuItems.add(new Navigation.Models.NavigationItem('analysis', 'Analysis', 'facetime-video', '/analysis', false));
+        menuItems.add(new Navigation.Models.NavigationItem('analysis', 'Analysis', 'facetime-video', '/analysis', false, function (self) {
+            $state.transitionTo('analysis');
+        }));
         // Team
-        menuItems.add(new Navigation.Models.NavigationItem('team', 'Team Management', 'list-alt', '/team', false));
+        menuItems.add(new Navigation.Models.NavigationItem('team', 'Team Management', 'list-alt', '/team', false, function (self) {
+            $state.transitionTo('team');
+        }));
         // Profile
-        menuItems.add(new Navigation.Models.NavigationItem('profile', 'Profile', 'user', '/profile', false));
+        menuItems.add(new Navigation.Models.NavigationItem('profile', 'Profile', 'user', '/profile', false, function (self) {
+            $state.transitionTo('profile');
+        }));
         // Search
-        var searchMenuItem = new Navigation.Models.NavigationItem('search', 'Search', 'search', null, false);
+        var searchMenuItem = new Navigation.Models.NavigationItem('search', 'Search', 'search', null, false, function (self) { });
         // Notifications
-        var notificationsMenuItem = new Navigation.Models.NavigationItem('notifications', 'Notifications', 'bell', null, false);
+        var notificationsMenuItem = new Navigation.Models.NavigationItem('notifications', 'Notifications', 'bell', null, false, function (self) { });
         // TODO @theBull - implement
         // ,
         // film: {
@@ -11105,11 +12975,13 @@ impakt.playbook = angular.module('impakt.playbook', [
     'impakt.playbook.contextmenus',
     'impakt.playbook.modals',
     'impakt.playbook.browser',
+    'impakt.playbook.drilldown',
     'impakt.playbook.editor',
     'impakt.playbook.layout',
     'impakt.playbook.nav',
 ])
-    .config(['$stateProvider',
+    .config([
+    '$stateProvider',
     '$urlRouterProvider',
     function ($stateProvider, $urlRouterProvider) {
         console.debug('impakt.playbook - config');
@@ -11120,110 +12992,48 @@ impakt.playbook = angular.module('impakt.playbook', [
             controller: 'playbook.ctrl'
         });
     }])
-    .run([
-    '$stateParams',
-    '__localStorage',
-    function ($stateParams, __localStorage) {
+    .run([function () {
         console.debug('impakt.playbook - run');
     }]);
 /// <reference path='../playbook.mdl.ts' />
-impakt.playbook.browser = angular.module('impakt.playbook.browser', [
-    'impakt.playbook.browser.sidebar',
-    'impakt.playbook.browser.main',
-    'impakt.playbook.browser.details'
-])
+impakt.playbook.browser = angular.module('impakt.playbook.browser', [])
     .config([
     '$stateProvider',
     function ($stateProvider) {
         console.debug('impakt.playbook.browser - config');
         $stateProvider.state('playbook.browser', {
             url: '/browser',
-            views: {
-                'sidebar': {
-                    templateUrl: 'modules/playbook/browser/sidebar/playbook-browser-sidebar.tpl.html',
-                    controller: 'playbook.browser.sidebar.ctrl'
-                },
-                'main': {
-                    templateUrl: 'modules/playbook/browser/main/playbook-browser-main.tpl.html',
-                    controller: 'playbook.browser.main.ctrl',
-                },
-                'details': {
-                    templateUrl: 'modules/playbook/browser/details/playbook-browser-details.tpl.html',
-                    controller: 'playbook.browser.details.ctrl'
-                },
-            }
+            templateUrl: 'modules/playbook/browser/playbook-browser.tpl.html',
+            controller: 'playbook.browser.ctrl'
         });
     }])
     .run(function () {
     console.debug('impakt.playbook.browser - run');
 });
-/// <reference path='../playbook-browser.mdl.ts' />
-impakt.playbook.browser.details = angular.module('impakt.playbook.browser.details', [])
-    .config(function () {
-    console.debug('impakt.playbook.browser.details - config');
-})
-    .run(function () {
-    console.debug('impakt.playbook.browser.details - run');
-});
-/// <reference path='./playbook-browser-details.mdl.ts' />
-impakt.playbook.browser.details.controller('playbook.browser.details.ctrl', ['$scope', '__modals', '_playbookBrowserDetails',
-    function ($scope, __modals, _playbookBrowserDetails) {
-    }]);
-/// <reference path='./playbook-browser-details.mdl.ts' />
-impakt.playbook.browser.details.service('_playbookBrowserDetails', [function () {
-        console.debug('service: impakt.playbook.browser.details');
-    }]);
-/// <reference path='../playbook-browser.mdl.ts' />
-impakt.playbook.browser.main = angular.module('impakt.playbook.browser.main', [])
-    .config([
-    '$stateProvider',
-    function ($stateProvider) {
-        console.debug('impakt.playbook.browser.main - config');
-    }])
-    .run([function () {
-        console.debug('impakt.playbook.browser.main - run');
-    }]);
-/// <reference path='./playbook-browser-main.mdl.ts' />
-impakt.playbook.browser.main.controller('playbook.browser.main.ctrl', [
+/// <reference path='./playbook-browser.mdl.ts' />
+impakt.playbook.browser.controller('playbook.browser.ctrl', [
     '$scope',
     '__context',
-    '__router',
+    '_details',
     '_playbook',
     '_playbookModals',
-    function ($scope, __context, __router, _playbook, _playbookModals) {
-        var parent = 'playbook.browser.main';
-        __router.push(parent, [
-            new Common.Models.Template('playbook.browser.main.all', 'modules/playbook/browser/main/all/playbook-browser-main-all.tpl.html'),
-            new Common.Models.Template('playbook.browser.main.playbook', 'modules/playbook/browser/main/playbook/playbook-browser-playbook.tpl.html')
-        ]);
-        $scope.template = {};
-        $scope.editor = impakt.context.Playbook.editor;
-        $scope.playbooks = impakt.context.Playbook.playbooks;
-        $scope.formations = impakt.context.Playbook.formations;
-        $scope.plays = impakt.context.Playbook.plays;
+    function ($scope, __context, _details, _playbook, _playbookModals) {
+        $scope.editor;
+        $scope.playbooks;
+        $scope.formations;
+        $scope.plays;
+        _details.selectedPlay = null;
         __context.onReady(function () {
+            $scope.editor = impakt.context.Playbook.editor;
             $scope.playbooks = impakt.context.Playbook.playbooks;
             $scope.formations = impakt.context.Playbook.formations;
             $scope.plays = impakt.context.Playbook.plays;
         });
-        $scope.goToAll = function () {
-            $scope.template = __router.get(parent, 'playbook.browser.main.all');
-        };
-        $scope.goToPlaybook = function (playbook) {
-            $scope.template = __router.get(parent, 'playbook.browser.main.playbook');
-            $scope.template.data = playbook;
-        };
         $scope.getEditorTypeClass = function (editorType) {
             return _playbook.getEditorTypeClass(editorType);
         };
         $scope.openEditor = function () {
             _playbook.toEditor();
-        };
-        $scope.openFormationInEditor = function (formation) {
-            _playbook.editFormation(formation);
-        };
-        $scope.openPlayInEditor = function (play) {
-            _playbook.editPlay(play);
         };
         $scope.createPlaybook = function () {
             _playbookModals.createPlaybook();
@@ -11256,104 +13066,16 @@ impakt.playbook.browser.main.controller('playbook.browser.main.ctrl', [
             _playbookModals.deleteFormation(formation);
         };
         /**
-         * Navigates to the main browser 'all' view
+         *
+         * Item Drilldown
+         *
          */
-        $scope.goToAll();
-    }]);
-/// <reference path='../playbook-browser-main.mdl.ts' />
-impakt.playbook.browser.main.controller('playbook.browser.playbook.ctrl', [
-    '$scope',
-    function ($scope) {
-        $scope.playbook = $scope.template.data;
-        $scope.associatedFormationCollection = new Common.Models.FormationCollection();
-        $scope.associatedPlayCollection = new Common.Models.PlayCollection();
-        function init() {
-            $scope.playbook.associated.formations.forEach(function (formationGuid, index) {
-                var matchingFormation = impakt.context.Playbook.formations.get(formationGuid);
-                if (!Common.Utilities.isNullOrUndefined(matchingFormation))
-                    $scope.associatedFormationCollection.add(matchingFormation);
-            });
-            $scope.playbook.associated.plays.forEach(function (playGuid, index) {
-                var matchingPlay = impakt.context.Playbook.formations.get(playGuid);
-                if (!Common.Utilities.isNullOrUndefined(matchingPlay))
-                    $scope.associatedFormationCollection.add(matchingPlay);
-            });
-        }
-        init();
-    }]);
-/// <reference path='./playbook-browser.mdl.ts' />
-impakt.playbook.browser.controller('playbook.browser.ctrl', ['$scope',
-    function ($scope) {
+        $scope.toPlaybookDrilldown = function (playbookModel) {
+            _playbook.toPlaybookDrilldown(playbookModel);
+        };
     }]);
 /// <reference path='./playbook-browser.mdl.ts' />
 impakt.playbook.browser.service('_playbookBrowser', [function () {
-    }]);
-/// <reference path='../playbook-browser.mdl.ts' />
-impakt.playbook.browser.sidebar = angular.module('impakt.playbook.browser.sidebar', [])
-    .config([
-    '$stateProvider',
-    function ($stateProvider) {
-        console.debug('impakt.playbook.browser.sidebar - config');
-    }])
-    .run([function () {
-        console.debug('impakt.playbook.browser.sidebar - run');
-    }]);
-/// <reference path='./playbook-browser-sidebar.mdl.ts' />
-impakt.playbook.browser.sidebar.controller('playbook.browser.sidebar.ctrl', [
-    '$scope',
-    '__router',
-    '_playbook',
-    '_playbookModals',
-    function ($scope, __router, _playbook, _playbookModals) {
-        var parent = 'playbook.browser.sidebar';
-        __router.push(parent, [
-            new Common.Models.Template('playbook.browser.sidebar.unitTypes', 'modules/playbook/browser/sidebar/unitTypes/unitTypes.tpl.html'),
-            new Common.Models.Template('playbook.browser.sidebar.playbooks', 'modules/playbook/browser/sidebar/playbook/playbooks.tpl.html'),
-            new Common.Models.Template('playbook.browser.sidebar.associated', 'modules/playbook/browser/sidebar/associated/associated.tpl.html'),
-            new Common.Models.Template('playbook.browser.sidebar.plays', 'modules/playbook/browser/sidebar/play/plays.tpl.html'),
-            new Common.Models.Template('playbook.browser.sidebar.formations', 'modules/playbook/browser/sidebar/formation/formations.tpl.html')
-        ]);
-        $scope.template = {};
-        $scope.unitTypes = impakt.context.Team.unitTypes;
-        $scope.plays = impakt.context.Playbook.plays;
-        $scope.formations = impakt.context.Playbook.formations;
-        $scope.goToUnitTypes = function () {
-            $scope.template = __router.get(parent, 'playbook.browser.sidebar.unitTypes');
-        };
-        $scope.goToPlaybooks = function () {
-            $scope.template = __router.get(parent, 'playbook.browser.sidebar.playbooks');
-        };
-        $scope.goToAssociated = function () {
-            $scope.template = __router.get(parent, 'playbook.browser.sidebar.associated');
-        };
-        $scope.goToPlays = function () {
-            $scope.template = __router.get(parent, 'playbook.browser.sidebar.plays');
-        };
-        $scope.goToFormations = function () {
-            $scope.template = __router.get(parent, 'playbook.browser.sidebar.formations');
-        };
-        $scope.refreshPlays = function () {
-            $scope.plays = impakt.context.Playbook.plays;
-        };
-        $scope.refreshFormations = function () {
-            $scope.formations = impakt.context.Playbook.formations;
-        };
-        $scope.createPlay = function () {
-            _playbookModals.createPlay();
-        };
-        $scope.createFormation = function () {
-            _playbookModals.createFormation();
-        };
-        $scope.openFormationInEditor = function (formation) {
-            _playbook.editFormation(formation);
-            _playbook.refreshEditor();
-        };
-        $scope.openPlayInEditor = function (play) {
-            _playbook.editPlay(play);
-            _playbook.refreshEditor();
-        };
-        $scope.goToPlays();
-        console.debug('controller: playbook.browser.sidebar.ctrl', __router.templates);
     }]);
 /// <reference path='../playbook.mdl.ts' />
 impakt.playbook.contextmenus = angular.module('impakt.playbook.contextmenus', [
@@ -11411,6 +13133,68 @@ impakt.playbook.contextmenus.routeNode.service('_playbookContextmenusRouteNode',
         this.init();
     }]);
 /// <reference path='../playbook.mdl.ts' />
+impakt.playbook.drilldown = angular.module('impakt.playbook.drilldown', [
+    'impakt.playbook.drilldown.playbook'
+]).config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.playbook.drilldown - config');
+        $stateProvider.state('playbook.drilldown', {
+            url: '/drilldown',
+            templateUrl: 'modules/playbook/drilldown/playbook-drilldown.tpl.html',
+            controller: 'playbook.drilldown.ctrl'
+        });
+    }])
+    .run(function () {
+    console.debug('impakt.playbook.drilldown - run');
+});
+/// <reference path='./playbook-drilldown.mdl.ts' />
+impakt.playbook.drilldown.controller('playbook.drilldown.ctrl', [
+    '$scope',
+    '_playbook',
+    function ($scope, _playbook) {
+        $scope.toBrowser = function () {
+            _playbook.toBrowser();
+        };
+    }]);
+/// <reference path='../playbook-drilldown.mdl.ts' />
+impakt.playbook.drilldown.playbook = angular.module('impakt.playbook.drilldown.playbook', [])
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.playbook.drilldown.playbook - config');
+        $stateProvider.state('playbook.drilldown.playbook', {
+            url: '/playbook',
+            templateUrl: 'modules/playbook/drilldown/playbook/playbook-drilldown-playbook.tpl.html',
+            controller: 'playbook.drilldown.playbook.ctrl'
+        });
+    }])
+    .run(function () {
+    console.debug('impakt.playbook.drilldown.playbook - run');
+});
+/// <reference path='./playbook-drilldown-playbook.mdl.ts' />
+impakt.playbook.drilldown.playbook.controller('playbook.drilldown.playbook.ctrl', [
+    '$scope',
+    '_associations',
+    '_playbook',
+    '_playbookModals',
+    function ($scope, _associations, _playbook, _playbookModals) {
+        $scope.playbook = _playbook.drilldown.playbook;
+        $scope.plays;
+        $scope.formations;
+        function init() {
+            var associations = _associations.getAssociated($scope.playbook);
+            if (!Common.Utilities.isNullOrUndefined(associations)) {
+                $scope.plays = associations.plays;
+                $scope.formations = associations.formations;
+            }
+        }
+        $scope.delete = function () {
+            _playbookModals.deletePlaybook($scope.playbook);
+        };
+        init();
+    }]);
+/// <reference path='../playbook.mdl.ts' />
 impakt.playbook.editor = angular.module('impakt.playbook.editor', [
     'impakt.playbook.editor.tabs',
     'impakt.playbook.editor.tools',
@@ -11424,21 +13208,8 @@ impakt.playbook.editor = angular.module('impakt.playbook.editor', [
         console.debug('impakt.playbook.editor - config');
         $stateProvider.state('playbook.editor', {
             url: '/editor',
-            views: {
-                // Uses browser side bar for now
-                'sidebar': {
-                    templateUrl: 'modules/playbook/browser/sidebar/playbook-browser-sidebar.tpl.html',
-                    controller: 'playbook.browser.sidebar.ctrl'
-                },
-                'main': {
-                    templateUrl: 'modules/playbook/editor/playbook-editor.tpl.html',
-                    controller: 'playbook.editor.ctrl'
-                },
-                'details': {
-                    templateUrl: 'modules/playbook/editor/details/playbook-editor-details.tpl.html',
-                    controller: 'playbook.editor.details.ctrl'
-                }
-            }
+            templateUrl: 'modules/playbook/editor/playbook-editor.tpl.html',
+            controller: 'playbook.editor.ctrl'
         });
     }])
     .run(function () {
@@ -11459,28 +13230,37 @@ impakt.playbook.editor.canvas.controller('playbook.editor.canvas.ctrl', [
     '$timeout',
     '_playbookEditorCanvas',
     function ($scope, $timeout, _playbookEditorCanvas) {
+        $scope.unitTypes = _playbookEditorCanvas.unitTypes;
         $scope.formations = _playbookEditorCanvas.formations;
         $scope.personnelCollection = _playbookEditorCanvas.personnelCollection;
         $scope.plays = _playbookEditorCanvas.plays;
         $scope.tab = _playbookEditorCanvas.getActiveTab();
-        $scope.hasOpenTabs = $scope.tab != null;
+        $scope.tabs = _playbookEditorCanvas.tabs;
+        $scope.hasOpenTabs = _playbookEditorCanvas.hasTabs();
         $scope.canvas = _playbookEditorCanvas.canvas;
         $scope.editorModeClass = '';
         // check if there are any open tabs; if not, hide the canvas and
         // clear the canvas data.
-        if ($scope.tab) {
+        if (!Common.Utilities.isNullOrUndefined($scope.tab)) {
             $scope.tab.onclose(function () {
                 $scope.hasOpenTabs = _playbookEditorCanvas.hasTabs();
             });
             $scope.canvas.onready(function () {
                 $scope.editorModeClass = $scope.getEditorTypeClass($scope.canvas.playPrimary.editorType);
                 $scope.canvas.onModified(function () {
+                    if (Common.Utilities.isNullOrUndefined($scope.canvas.playPrimary))
+                        return;
                     $scope.editorModeClass = $scope.getEditorTypeClass($scope.canvas.playPrimary.editorType);
                     $timeout(function () {
                         console.log('timeout running');
                         $scope.$apply();
                     }, 1);
                 });
+            });
+        }
+        if (!Common.Utilities.isNullOrUndefined($scope.tabs)) {
+            $scope.tabs.onModified(function (tabs) {
+                $scope.hasOpenTabs = tabs.hasElements();
             });
         }
         // _playbookEditorCanvas.onready(function() {
@@ -11505,12 +13285,20 @@ impakt.playbook.editor.canvas.controller('playbook.editor.canvas.ctrl', [
         $scope.applyFormation = function (formation) {
             console.log('apply formation to editor');
             _playbookEditorCanvas.applyPrimaryFormation(formation);
+            $scope.formationDropdownVisible = false;
         };
         $scope.applyPersonnel = function (personnel) {
             _playbookEditorCanvas.applyPrimaryPersonnel(personnel);
+            $scope.setDropdownVisible = false;
         };
         $scope.applyPlay = function (play) {
             _playbookEditorCanvas.applyPrimaryPlay(play);
+        };
+        $scope.applyUnitType = function (unitType) {
+            if (unitType.unitType == $scope.canvas.playPrimary.unitType)
+                return;
+            _playbookEditorCanvas.applyPrimaryUnitType(unitType.unitType);
+            $scope.unitTypeDropdownVisible = false;
         };
         /**
          * Determine whether to show quick formation dropdown. Should only
@@ -11644,6 +13432,7 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas', [
         console.debug('service: impakt.playbook.editor.canvas');
         var self = this;
         this.activeTab = _playbookEditor.activeTab;
+        this.tabs = _playbookEditor.tabs;
         this.playbooks = impakt.context.Playbook.playbooks;
         this.formations = impakt.context.Playbook.formations;
         this.personnelCollection = impakt.context.Team.personnel;
@@ -11651,6 +13440,7 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas', [
         this.plays = impakt.context.Playbook.plays;
         this.readyCallbacks = [function () { console.log('canvas ready'); }];
         this.canvas = _playbookEditor.canvas;
+        this.unitTypes = impakt.context.Team.unitTypes;
         this.component = new Common.Base.Component('_playbookEditorCanvas', Common.Base.ComponentType.Service, []);
         function init() {
             _playbookEditor.component.loadDependency(self.component);
@@ -11668,8 +13458,11 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas', [
             this.readyCallbacks = [];
         };
         this.create = function (tab) {
-            // TODO @theBull - implement opponent play
-            var canvas = new Playbook.Models.EditorCanvas(tab.playPrimary, new Common.Models.PlayOpponent());
+            if (Common.Utilities.isNullOrUndefined(tab))
+                throw new Error('playbook-editor-canvas.srv create(): tab is null or undefined');
+            if (Common.Utilities.isNullOrUndefined(tab.playPrimary))
+                throw new Error('playbook-editor-canvas.srv create(): tab.playPrimary is null or undefined');
+            var canvas = new Playbook.Models.EditorCanvas(tab.playPrimary, new Common.Models.PlayOpponent(tab.playPrimary.getOpposingUnitType()));
             canvas.tab = tab;
         };
         this.getActiveTab = function () {
@@ -11738,6 +13531,15 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas', [
         this.applyPrimaryPlay = function (playPrimary) {
             if (canApplyData()) {
                 _playbookEditor.canvas.paper.field.applyPlayPrimary(playPrimary);
+            }
+        };
+        /**
+         * Applies the given unitType to the play
+         * @param {Common.Models.Play} play The Play to apply
+         */
+        this.applyPrimaryUnitType = function (unitType) {
+            if (canApplyData()) {
+                _playbookEditor.canvas.paper.field.applyPrimaryUnitType(unitType);
             }
         };
         function canApplyData() {
@@ -11822,6 +13624,14 @@ impakt.playbook.editor.details = angular.module('impakt.playbook.editor.details'
 impakt.playbook.editor.details.controller('playbook.editor.details.ctrl', ['$scope', '_playbookModals', '_playbookEditorDetails',
     function ($scope, _playbookModals, _playbookEditorDetails) {
         $scope.canvas = _playbookEditorDetails.canvas;
+        $scope.paper;
+        $scope.field;
+        $scope.grid;
+        $scope.playPrimary;
+        $scope.playOpponent;
+        $scope.layers;
+        $scope.selected;
+        $scope.players;
         $scope.canvas.onready(function () {
             $scope.paper = $scope.canvas.paper;
             $scope.field = $scope.paper.field;
@@ -11921,10 +13731,11 @@ impakt.playbook.editor.controller('playbook.editor.ctrl', [
 /// <reference path='../../../common/common.ts' />
 impakt.playbook.editor.service('_playbookEditor', [
     '$rootScope',
+    '$q',
     '_base',
     '_playbook',
     '_playbookModals',
-    function ($rootScope, _base, _playbook, _playbookModals) {
+    function ($rootScope, $q, _base, _playbook, _playbookModals) {
         console.debug('service: impakt.playbook.editor');
         var self = this;
         this.component = new Common.Base.Component('_playbookEditor', Common.Base.ComponentType.Service, [
@@ -11962,7 +13773,7 @@ impakt.playbook.editor.service('_playbookEditor', [
             console.debug('service: impakt.playbook.editor - load complete');
             initialized = true;
             var initialPlay = null;
-            if (self.tabs.isEmpty()) {
+            if (self.tabs.isEmpty() || self.tabs.size() != self.plays.size()) {
                 self.loadTabs();
             }
             // check for active tab and initialize the canvas with that tab's play
@@ -12047,7 +13858,7 @@ impakt.playbook.editor.service('_playbookEditor', [
             }
         };
         this.closeTab = function (tab) {
-            this.tabs.remove(tab.guid);
+            this.tabs.close(tab);
             // remove play from editor context
             this.plays.remove(tab.playPrimary.guid);
             // get last tab
@@ -12058,8 +13869,7 @@ impakt.playbook.editor.service('_playbookEditor', [
             else {
                 // no remaining tabs - nullify active Tab
                 this.activeTab = null;
-                this.canvas.clearListeners();
-                this.canvas = null;
+                this.canvas.clear();
             }
             // tell tab to close (fire off close callbacks)
             tab.close();
@@ -12125,10 +13935,12 @@ impakt.playbook.editor.service('_playbookEditor', [
             _playbook.toBrowser();
         };
         this.editFormation = function (formation) {
-            return _playbook.editFormation(formation);
+            _playbook.editFormation(formation);
+            this.loadTabs();
         };
         this.editPlay = function (play) {
-            return _playbook.editPlay(play);
+            _playbook.editPlay(play);
+            this.loadTabs();
         };
         /**
          * Receives broadcast command from other services;
@@ -12191,17 +14003,13 @@ impakt.playbook.editor.tabs.service('_playbookEditorTabs', ['$rootScope',
         console.debug('service: impakt.playbook.editor.tabs');
         var self = this;
         this.tabs = _playbookEditor.tabs;
-        this.canvases = _playbookEditor.canvases;
+        this.canvas = _playbookEditor.canvas;
         this.component = new Common.Base.Component('_playbookEditorTabs', Common.Base.ComponentType.Service, [
             'playbook.editor.tabs.ctrl'
         ]);
         function init() {
             _playbookEditor.component.loadDependency(self.component);
         }
-        this.openNew = function () {
-            // Step 2: build a generic model from that response
-            _playbookEditor.addTab(new Common.Models.Play());
-        };
         this.close = function (tab) {
             // remove the tab from the array			
             _playbookEditor.closeTab(tab);
@@ -12218,11 +14026,9 @@ impakt.playbook.editor.tabs.service('_playbookEditorTabs', ['$rootScope',
         };
         this.editFormation = function (formation) {
             _playbookEditor.editFormation(formation);
-            $rootScope.$broadcast('playbook-editor.loadTabs');
         };
         this.editPlay = function (play) {
             _playbookEditor.editPlay(play);
-            $rootScope.$broadcast('playbook-editor.loadTabs');
         };
         init();
     }]);
@@ -12299,7 +14105,6 @@ impakt.playbook.editor.tools.service('_playbookEditorTools', ['$rootScope', '_ba
                     this.zoomOut();
                     break;
                 case Playbook.Enums.ToolActions.Assignment:
-                    alert('NOTE: Assignment functionality is in development. Thanks for your patience!');
                     break;
             }
             this.setCursor(tool.cursor);
@@ -12362,11 +14167,12 @@ impakt.playbook.modals = angular.module('impakt.playbook.modals', [])
 /// <reference path='../playbook-modals.mdl.ts' />
 impakt.playbook.modals.controller('playbook.modals.createFormation.ctrl', ['$scope',
     '$uibModalInstance',
+    '_associations',
     '_playbook',
-    function ($scope, $uibModalInstance, _playbook) {
+    function ($scope, $uibModalInstance, _associations, _playbook) {
         $scope.selectedUnitType = Team.Enums.UnitTypes.Offense;
         $scope.playbooks = impakt.context.Playbook.playbooks;
-        $scope.formation = new Common.Models.Formation();
+        $scope.formation = new Common.Models.Formation($scope.selectedUnitType);
         $scope.formations = impakt.context.Playbook.formations;
         $scope.formation.unitType = $scope.selectedUnitType;
         $scope.unitTypes = impakt.context.Team.unitTypes;
@@ -12387,19 +14193,13 @@ impakt.playbook.modals.controller('playbook.modals.createFormation.ctrl', ['$sco
          * the new formation to that playbook.
          */
         if ($scope.selectedPlaybook) {
-            // Add the currently selected playbook as an association to
-            // this formation, by default
-            $scope.formation.associated.playbooks.only($scope.selectedPlaybook.guid);
-            // add the new formation as an association to the currently
-            // selected playbook, by default
-            $scope.selectedPlaybook.associated.formations.add($scope.formation.guid);
         }
         $scope.selectPlaybook = function (playbook) {
             // update the new formation associated playbook so that it only has 1 playbook
             // association, max, when creating it.
-            $scope.formation.associated.playbooks.only(playbook.guid);
+            //$scope.formation.associated.playbooks.only(playbook.guid);
             // Remove the formation from the currently selected playbook
-            $scope.selectedPlaybook.associated.formations.remove($scope.formation.guid);
+            //$scope.selectedPlaybook.associated.formations.remove($scope.formation.guid);
             // Add the formation to the newly selected playbook
             $scope.selectedPlaybook = playbook;
         };
@@ -12416,6 +14216,7 @@ impakt.playbook.modals.controller('playbook.modals.createFormation.ctrl', ['$sco
             $scope.formation.parentRK = 1; // TODO @theBull - deprecate parentRK
             _playbook.createFormation($scope.formation)
                 .then(function (createdFormation) {
+                _associations.createAssociation(createdFormation, $scope.selectedPlaybook);
                 removeFormationFromCreationContext();
                 $uibModalInstance.close(createdFormation);
             }, function (err) {
@@ -12449,9 +14250,15 @@ impakt.playbook.modals.controller('playbook.modals.createFormation.ctrl', ['$sco
     }]);
 /// <reference path='../playbook-modals.mdl.ts' />
 impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl', [
-    '$scope', '$uibModalInstance', '_playbook',
-    function ($scope, $uibModalInstance, _playbook) {
-        $scope.newPlay = new Common.Models.Play();
+    '$scope',
+    '$uibModalInstance',
+    '_associations',
+    '_playbook',
+    function ($scope, $uibModalInstance, _associations, _playbook) {
+        $scope.unitTypeCollection = impakt.context.Team.unitTypes;
+        $scope.selectedUnitType =
+            $scope.unitTypeCollection.getByUnitType(Team.Enums.UnitTypes.Offense).toJson();
+        $scope.newPlay = new Common.Models.Play($scope.selectedUnitType.unitType);
         $scope.playbooks = impakt.context.Playbook.playbooks;
         $scope.formations = impakt.context.Playbook.formations;
         $scope.assignments = impakt.context.Playbook.assignments;
@@ -12460,9 +14267,6 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl', [
         $scope.selectedAssignments = $scope.assignments.first();
         $scope.personnelCollection = impakt.context.Team.personnel;
         $scope.selectedPersonnel = $scope.personnelCollection.first();
-        $scope.unitTypeCollection = impakt.context.Team.unitTypes;
-        $scope.selectedUnitType =
-            $scope.unitTypeCollection.getByUnitType(Team.Enums.UnitTypes.Offense).toJson();
         // Intialize new Play with data
         $scope.newPlay.setFormation($scope.selectedFormation);
         $scope.newPlay.setAssignments($scope.selectedAssignments);
@@ -12470,8 +14274,8 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl', [
         // Add the new play onto the creation context, to access from
         // other parts of the application
         impakt.context.Playbook.creation.plays.add($scope.newPlay);
-        $scope.selectUnitType = function (unitTypeValue) {
-            $scope.selectedUnitType = $scope.unitTypeCollection.getByUnitType(unitTypeValue);
+        $scope.selectUnitType = function () {
+            $scope.newPlay.unitType = $scope.selectedUnitType.unitType;
         };
         $scope.selectPlaybook = function (playbook) {
             $scope.newPlay.setPlaybook($scope.playbooks.get(playbook.guid));
@@ -12484,11 +14288,18 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl', [
         };
         $scope.selectPersonnel = function (personnel) {
             $scope.newPlay.setPersonnel($scope.personnelCollection.get(personnel.guid));
+            $scope.selectedUnitType = $scope.unitTypeCollection.getByUnitType(personnel.unitType);
+            $scope.selectUnitType($scope.selectedUnitType);
         };
         $scope.ok = function () {
-            $scope.newPlay.unitType = $scope.selectedUnitType.unitType;
             _playbook.createPlay($scope.newPlay)
                 .then(function (createdPlay) {
+                _associations.createAssociations(createdPlay, [
+                    $scope.selectedPlaybook,
+                    $scope.selectedFormation,
+                    $scope.selectedPersonnel,
+                    $scope.selectedAssignments
+                ]);
                 removePlayFromCreationContext();
                 $uibModalInstance.close(createdPlay);
             }, function (err) {
@@ -12517,12 +14328,27 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl', [
         }
     }]);
 /// <reference path='../playbook-modals.mdl.ts' />
+impakt.playbook.modals.controller('playbook.modals.createPlaybookDuplicateError.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_playbook',
+    'playbook',
+    function ($scope, $uibModalInstance, _playbook, playbook) {
+        $scope.playbook = playbook;
+        $scope.ok = function () {
+            $uibModalInstance.close();
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../playbook-modals.mdl.ts' />
 impakt.playbook.modals.controller('playbook.modals.createPlaybook.ctrl', [
     '$scope', '$uibModalInstance', '_playbook',
     function ($scope, $uibModalInstance, _playbook) {
-        $scope.newPlaybookModel = new Common.Models.PlaybookModel();
         $scope.unitTypeCollection = impakt.context.Team.unitTypes;
         $scope.selectedUnitType = $scope.unitTypeCollection.getByUnitType(Team.Enums.UnitTypes.Offense);
+        $scope.newPlaybookModel = new Common.Models.PlaybookModel($scope.selectedUnitType);
         $scope.ok = function () {
             $scope.newPlaybookModel.unitType = $scope.selectedUnitType.unitType;
             _playbook.createPlaybook($scope.newPlaybookModel)
@@ -12541,13 +14367,15 @@ impakt.playbook.modals.controller('playbook.modals.createPlaybook.ctrl', [
 impakt.playbook.modals.controller('playbook.modals.deleteFormation.ctrl', [
     '$scope',
     '$uibModalInstance',
+    '_associations',
     '_playbook',
     'formation',
-    function ($scope, $uibModalInstance, _playbook, formation) {
+    function ($scope, $uibModalInstance, _associations, _playbook, formation) {
         $scope.formation = formation;
         $scope.ok = function () {
             _playbook.deleteFormation($scope.formation)
                 .then(function (results) {
+                _associations.deleteAssociations($scope.formation.associationKey);
                 $uibModalInstance.close(results);
             }, function (err) {
                 console.error(err);
@@ -12647,6 +14475,22 @@ impakt.playbook.modals.service('_playbookModals', [
             var d = $q.defer();
             console.log('create playbook');
             var modalInstance = __modals.open('', 'modules/playbook/modals/create-playbook/create-playbook.tpl.html', 'playbook.modals.createPlaybook.ctrl', {});
+            modalInstance.result.then(function (createdPlaybook) {
+                console.log(createdPlaybook);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.createPlaybookDuplicate = function (playbookModel) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/playbook/modals/create-playbook-duplicate-error/create-playbook-duplicate-error.tpl.html', 'playbook.modals.createPlaybookDuplicateError.ctrl', {
+                playbook: function () {
+                    return playbookModel;
+                }
+            });
             modalInstance.result.then(function (createdPlaybook) {
                 console.log(createdPlaybook);
                 d.resolve();
@@ -12794,11 +14638,17 @@ impakt.playbook.modals.controller('playbook.modals.saveFormation.ctrl', ['$scope
     'play',
     function ($scope, $uibModalInstance, _playbook, play) {
         $scope.play = play;
+        $scope.playbooks = impakt.context.Playbook.playbooks;
         $scope.formation = play.formation;
         $scope.copyFormation = false;
+        $scope.associatedPlaybook;
         var originalFormationKey = $scope.formation.key;
         var originalFormationName = $scope.formation.name;
         var originalFormationGuid = $scope.formation.guid;
+        function init() {
+            // look for first associated playbook in formation
+            var associatedPlaybook = false;
+        }
         $scope.copyFormationChange = function () {
             $scope.formation.key = $scope.copyFormation ? -1 : originalFormationKey;
             $scope.formation.name = $scope.copyFormation ?
@@ -12841,6 +14691,7 @@ impakt.playbook.modals.controller('playbook.modals.saveFormation.ctrl', ['$scope
             $scope.formation.name = originalFormationName;
             $uibModalInstance.dismiss();
         };
+        init();
     }]);
 /// <reference path='../playbook-modals.mdl.ts' />
 impakt.playbook.modals.controller('playbook.modals.savePlay.ctrl', [
@@ -12989,8 +14840,12 @@ impakt.playbook.service('_playbook', [
     '__api',
     '__localStorage',
     '__notifications',
-    function (PLAYBOOK, $rootScope, $q, $state, __api, __localStorage, __notifications) {
+    '_playbookModals',
+    function (PLAYBOOK, $rootScope, $q, $state, __api, __localStorage, __notifications, _playbookModals) {
         var self = this;
+        this.drilldown = {
+            playbook: null
+        };
         // TODO @theBull - ensure the 'current user' is being addressed
         // TODO @theBull - add notification handling
         /**
@@ -13001,13 +14856,13 @@ impakt.playbook.service('_playbook', [
             var notification = __notifications.pending('Getting playbooks...');
             __api.get(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.GET_PLAYBOOKS))
                 .then(function (response) {
-                var collection = new Common.Models.PlaybookModelCollection();
+                var collection = new Common.Models.PlaybookModelCollection(Team.Enums.UnitTypes.Mixed);
                 if (response && response.data && response.data.results) {
                     var playbookResults = Common.Utilities.parseData(response.data.results);
                     for (var i = 0; i < playbookResults.length; i++) {
                         var playbookResult = playbookResults[i];
                         if (playbookResult && playbookResult.data && playbookResult.data.model) {
-                            var playbookModel = new Common.Models.PlaybookModel();
+                            var playbookModel = new Common.Models.PlaybookModel(Team.Enums.UnitTypes.Other);
                             playbookResult.data.model.key = playbookResult.key;
                             playbookModel.fromJson(playbookResult.data.model);
                             collection.add(playbookModel);
@@ -13042,15 +14897,25 @@ impakt.playbook.service('_playbook', [
          * Sends a playbook model to the server for storage
          * @param {Common.Models.PlaybookModel} playbookModel The model to be created/saved
          */
-        this.createPlaybook = function (playbookModel) {
+        this.createPlaybook = function (newPlaybookModel) {
             var d = $q.defer();
+            if (!Common.Utilities.isNullOrUndefined(newPlaybookModel)) {
+                var nameExists = impakt.context.Playbook.playbooks.hasElementWhich(function (playbookModel, index) {
+                    return playbookModel.name == newPlaybookModel.name;
+                });
+                if (nameExists) {
+                    var notification_2 = __notifications.warning('Failed to create playbook. Playbook "', newPlaybookModel.name, '" already exists.');
+                    _playbookModals.createPlaybookDuplicate(newPlaybookModel);
+                    return;
+                }
+            }
             // set key to -1 to ensure a new object is created server-side
-            playbookModel.key = -1;
-            var playbookModelJson = playbookModel.toJson();
-            var notification = __notifications.pending('Creating playbook "', playbookModel.name, '"...');
+            newPlaybookModel.key = -1;
+            var playbookModelJson = newPlaybookModel.toJson();
+            var notification = __notifications.pending('Creating playbook "', newPlaybookModel.name, '"...');
             __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.CREATE_PLAYBOOK), {
                 version: 1,
-                name: playbookModel.name,
+                name: newPlaybookModel.name,
                 data: {
                     version: 1,
                     model: playbookModelJson
@@ -13058,7 +14923,7 @@ impakt.playbook.service('_playbook', [
             })
                 .then(function (response) {
                 var results = Common.Utilities.parseData(response.data.results);
-                var playbookModel = new Common.Models.PlaybookModel();
+                var playbookModel = new Common.Models.PlaybookModel(newPlaybookModel.unitType);
                 if (results && results.data && results.data.model) {
                     results.data.model.key = results.key;
                     playbookModel.fromJson(results.data.model);
@@ -13071,7 +14936,7 @@ impakt.playbook.service('_playbook', [
                 notification.success('Successfully created playbook "', playbookModel.name, '"');
                 d.resolve(playbookModel);
             }, function (error) {
-                notification.error('Failed to create playbook "', playbookModel.name, '"');
+                notification.error('Failed to create playbook "', newPlaybookModel.name, '"');
                 d.reject(error);
             });
             return d.promise;
@@ -13123,7 +14988,8 @@ impakt.playbook.service('_playbook', [
                 if (!result || !result.data || !result.data.formation) {
                     d.reject('Create playbook result was invalid');
                 }
-                var formationModel = new Common.Models.Formation();
+                var formationModel = new Common.Models.Formation(Team.Enums.UnitTypes.Other);
+                result.data.formation.key = result.key;
                 formationModel.fromJson(result.data.formation);
                 console.log(formationModel);
                 impakt.context.Playbook.formations.add(formationModel);
@@ -13170,7 +15036,7 @@ impakt.playbook.service('_playbook', [
             __api.get(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.GET_FORMATIONS, '?$filter=ParentRK gt 0'))
                 .then(function (response) {
                 var results = Common.Utilities.parseData(response.data.results);
-                var collection = new Common.Models.FormationCollection();
+                var collection = new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed);
                 var formations = [];
                 for (var i = 0; i < results.length; i++) {
                     var result = results[i];
@@ -13202,7 +15068,7 @@ impakt.playbook.service('_playbook', [
                 .then(function (response) {
                 var rawResults = Common.Utilities.parseData(response.data.results);
                 var formationRaw = (JSON.parse(rawResults.data)).formation;
-                var formationModel = new Common.Models.Formation();
+                var formationModel = new Common.Models.Formation(Team.Enums.UnitTypes.Other);
                 formationModel.fromJson(formationRaw);
                 d.resolve(formationModel);
             }, function (error) {
@@ -13232,12 +15098,11 @@ impakt.playbook.service('_playbook', [
                 // 3. update the working copy's properties accordingly
                 // 4. add the working play to the editor context
                 // Set Play to formation-only editing mode
-                var play = new Common.Models.PlayPrimary();
+                var play = new Common.Models.PlayPrimary(formation.unitType);
                 // need to make a copy of the formation here
                 var formationCopy = formation.copy();
                 play.setFormation(formationCopy);
                 play.editorType = Playbook.Enums.EditorTypes.Formation;
-                play.unitType = formation.unitType;
                 play.name = formation.name;
                 // add the play onto the editor context
                 impakt.context.Playbook.editor.plays.add(play);
@@ -13268,7 +15133,7 @@ impakt.playbook.service('_playbook', [
             })
                 .then(function (response) {
                 var results = Common.Utilities.parseData(response.data.results);
-                var formationModel = new Common.Models.Formation();
+                var formationModel = new Common.Models.Formation(Team.Enums.UnitTypes.Other);
                 if (results && results.data && results.data.formation) {
                     formationModel.fromJson(results.data.formation);
                     // update the context
@@ -13330,7 +15195,7 @@ impakt.playbook.service('_playbook', [
          * Retrieves all sets (for the given playbook?) of the current user
          * @param {[type]} playbook ???
          */
-        this.getSets = function (playbook) {
+        this.getSets = function () {
             var d = $q.defer();
             var personnelNotification = __notifications.pending('Getting Personnel...');
             var assignmentsNotification = __notifications.pending('Getting Assignments...');
@@ -13338,9 +15203,9 @@ impakt.playbook.service('_playbook', [
                 .then(function (response) {
                 var results = Common.Utilities.parseData(response.data.results);
                 var personnelResults = [];
-                var personnelCollection = new Team.Models.PersonnelCollection();
+                var personnelCollection = new Team.Models.PersonnelCollection(Team.Enums.UnitTypes.Mixed);
                 var assignmentResults = [];
-                var assignmentCollection = new Common.Models.AssignmentCollection();
+                var assignmentCollection = new Common.Models.AssignmentCollection(Team.Enums.UnitTypes.Mixed);
                 // get personnel & assignments from `sets`
                 for (var i = 0; i < results.length; i++) {
                     var result = results[i];
@@ -13360,13 +15225,13 @@ impakt.playbook.service('_playbook', [
                 }
                 for (var i_2 = 0; i_2 < personnelResults.length; i_2++) {
                     var personnel = personnelResults[i_2];
-                    var personnelModel = new Team.Models.Personnel();
+                    var personnelModel = new Team.Models.Personnel(Team.Enums.UnitTypes.Other);
                     personnelModel.fromJson(personnel);
                     personnelCollection.add(personnelModel);
                 }
                 for (var i_3 = 0; i_3 < assignmentResults.length; i_3++) {
                     var assignment = assignmentResults[i_3];
-                    var assignmentModel = new Common.Models.Assignment();
+                    var assignmentModel = new Common.Models.Assignment(Team.Enums.UnitTypes.Other);
                     assignmentModel.fromJson(assignment);
                     assignmentCollection.add(assignmentModel);
                 }
@@ -13442,7 +15307,7 @@ impakt.playbook.service('_playbook', [
                 var results = Common.Utilities.parseData(response.data.results);
                 var playModel = null;
                 if (results && results.data && results.data.play) {
-                    playModel = new Common.Models.Play();
+                    playModel = new Common.Models.Play(Team.Enums.UnitTypes.Other);
                     playModel.fromJson(results.data.play);
                     playModel.key = results.key;
                     impakt.context.Playbook.plays.add(playModel);
@@ -13587,7 +15452,7 @@ impakt.playbook.service('_playbook', [
             })
                 .then(function (response) {
                 var results = Common.Utilities.parseData(response.data.results);
-                var playModel = new Common.Models.Play();
+                var playModel = new Common.Models.Play(Team.Enums.UnitTypes.Other);
                 if (results && results.data && results.data.play) {
                     playModel.fromJson(results.data.play);
                     // update the context
@@ -13609,7 +15474,7 @@ impakt.playbook.service('_playbook', [
             var notification = __notifications.pending('Getting Plays...');
             __api.get(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.GET_PLAYS))
                 .then(function (response) {
-                var playCollection = new Common.Models.PlayCollection();
+                var playCollection = new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed);
                 if (response && response.data && response.data.results) {
                     var results = Common.Utilities.parseData(response.data.results);
                     if (results) {
@@ -13617,7 +15482,7 @@ impakt.playbook.service('_playbook', [
                         for (var i = 0; i < results.length; i++) {
                             var result = results[i];
                             if (result && result.data && result.data.play) {
-                                var playModel = new Common.Models.Play();
+                                var playModel = new Common.Models.Play(Team.Enums.UnitTypes.Other);
                                 playModel.fromJson(result.data.play);
                                 playModel.key = result.key;
                                 playCollection.add(playModel);
@@ -13642,16 +15507,8 @@ impakt.playbook.service('_playbook', [
             // Set Play to play editing mode
             play.editorType = Playbook.Enums.EditorTypes.Play;
             if (!play.formation) {
-                var associatedFormation = play.associated.formations.primary();
-                if (associatedFormation) {
-                    play.formation = impakt.context.Playbook.formations.get(associatedFormation);
-                }
             }
             if (!play.personnel) {
-                var associatedPersonnel = play.associated.personnel.primary();
-                if (associatedPersonnel) {
-                    play.personnel = impakt.context.Team.personnel.get(associatedPersonnel);
-                }
             }
             // add the play onto the editor context
             impakt.context.Playbook.editor.plays.add(play);
@@ -13735,7 +15592,12 @@ impakt.playbook.service('_playbook', [
          * Navigates to the playbook browser
          */
         this.toBrowser = function () {
+            this.drilldown.playbook = null;
             $state.transitionTo('playbook.browser');
+        };
+        this.toPlaybookDrilldown = function (playbookModel) {
+            this.drilldown.playbook = playbookModel;
+            $state.transitionTo('playbook.drilldown.playbook');
         };
         /**
          * Navigates to the team module
@@ -13743,16 +15605,116 @@ impakt.playbook.service('_playbook', [
         this.toTeam = function () {
             $state.transitionTo('team');
         };
+        /**
+         * Takes a given entity (of unknown type) and uses its internally
+         * defined ImpaktDataType to determine the appropriate API method
+         * to call.
+         *
+         * @param {Common.Interfaces.IActionable} entity The entity to delete
+         */
+        this.deleteEntityByType = function (entity) {
+            var d = $q.defer();
+            switch (entity.impaktDataType) {
+                case Common.Enums.ImpaktDataTypes.Playbook:
+                    return _playbookModals.deletePlaybook(entity);
+                case Common.Enums.ImpaktDataTypes.Play:
+                    return _playbookModals.deletePlay(entity);
+                case Common.Enums.ImpaktDataTypes.Formation:
+                    return _playbookModals.deleteFormation(entity);
+                default:
+                    d.reject(new Error('_playbook deleteEntityByType: impaktDataType not supported'));
+            }
+            return d.promise;
+        };
+    }]);
+/// <reference path='../playbook.mdl.ts' />
+impakt.playbook.sidebar = angular.module('impakt.playbook.sidebar', [])
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.playbook.sidebar - config');
+    }])
+    .run([function () {
+        console.debug('impakt.playbook.sidebar - run');
+    }]);
+/// <reference path='./playbook-sidebar.mdl.ts' />
+impakt.playbook.sidebar.controller('playbook.sidebar.ctrl', [
+    '$scope',
+    '__router',
+    '_playbook',
+    '_playbookModals',
+    function ($scope, __router, _playbook, _playbookModals) {
+        var parent = 'playbook.sidebar';
+        __router.push(parent, [
+            new Common.Models.Template('playbook.sidebar.playbooks', 'modules/playbook/sidebar/playbook/playbook-sidebar-playbooks.tpl.html'),
+            new Common.Models.Template('playbook.sidebar.plays', 'modules/playbook/sidebar/play/playbook-sidebar-plays.tpl.html'),
+            new Common.Models.Template('playbook.sidebar.formations', 'modules/playbook/sidebar/formation/playbook-sidebar-formations.tpl.html')
+        ]);
+        $scope.template = {};
+        $scope.plays = impakt.context.Playbook.plays;
+        $scope.formations = impakt.context.Playbook.formations;
+        $scope.playbooks = impakt.context.Playbook.playbooks;
+        $scope.goToPlaybooks = function () {
+            $scope.template = __router.get(parent, 'playbook.sidebar.playbooks');
+        };
+        $scope.goToPlays = function () {
+            $scope.template = __router.get(parent, 'playbook.sidebar.plays');
+        };
+        $scope.goToFormations = function () {
+            $scope.template = __router.get(parent, 'playbook.sidebar.formations');
+        };
+        $scope.refreshPlays = function () {
+            $scope.plays = impakt.context.Playbook.plays;
+        };
+        $scope.refreshFormations = function () {
+            $scope.formations = impakt.context.Playbook.formations;
+        };
+        $scope.refreshPlaybooks = function () {
+            $scope.playbooks = impakt.context.Playbook.playbooks;
+        };
+        $scope.createPlay = function () {
+            _playbookModals.createPlay();
+        };
+        $scope.createFormation = function () {
+            _playbookModals.createFormation();
+        };
+        $scope.createPlaybook = function () {
+            _playbookModals.createPlaybook();
+        };
+        $scope.openFormationInEditor = function (formation) {
+            _playbook.editFormation(formation);
+            _playbook.refreshEditor();
+        };
+        $scope.openPlayInEditor = function (play) {
+            _playbook.editPlay(play);
+            _playbook.refreshEditor();
+        };
+        $scope.goToPlays();
     }]);
 /// <reference path='../modules.mdl.ts' />
-impakt.search = angular.module('impakt.search', []);
+impakt.search = angular.module('impakt.search', [])
+    .filter('globalSearchFilter', function () {
+    return function (input, searchQuery) {
+    };
+});
 /// <reference path='./search.mdl.ts' />
-impakt.search.controller('search.ctrl', ['$scope', function ($scope) {
+impakt.search.controller('search.ctrl', [
+    '$scope',
+    '__context',
+    function ($scope, __context) {
         $scope.title = 'Results';
         $scope.query = '';
-        $scope.results = [
-            1, 2, 3, 4, 5
-        ];
+        $scope.playbooks;
+        $scope.formations;
+        $scope.plays;
+        // attach key listeners
+        __context.onReady(function () {
+            $scope.playbooks = impakt.context.Playbook.playbooks;
+            $scope.formations = impakt.context.Playbook.formations;
+            $scope.plays = impakt.context.Playbook.plays;
+        });
+        $scope.$on("$destroy", function () {
+        });
     }]);
 /// <reference path='../modules.mdl.ts' />
 impakt.season = angular.module('impakt.season', [])
@@ -13763,10 +15725,30 @@ impakt.season = angular.module('impakt.season', [])
     console.debug('impakt.season - run');
 });
 /// <reference path='../modules.mdl.ts' />
+impakt.sidebar = angular.module('impakt.sidebar', [
+    'impakt.playbook.sidebar'
+])
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.sidebar - config');
+    }])
+    .run([function () {
+        console.debug('impakt.sidebar - run');
+    }]);
+/// <reference path='./sidebar.mdl.ts' />
+impakt.sidebar.controller('sidebar.ctrl', [
+    '$scope',
+    function ($scope) {
+    }]);
+/// <references path='./interfaces.ts' />
+/// <reference path='../modules.mdl.ts' />
 /// <reference path='./team.ts' />
 impakt.team = angular.module('impakt.team', [
     'impakt.team.personnel',
-    'impakt.team.unitTypes'
+    'impakt.team.main',
+    'impakt.team.unitTypes',
+    'impakt.team.modals'
 ])
     .config([function () {
         console.debug('impakt.team - config');
@@ -13774,6 +15756,139 @@ impakt.team = angular.module('impakt.team', [
     .run(function () {
     console.debug('impakt.team - run');
 });
+/// <reference path='../team.mdl.ts' />
+impakt.team.main = angular.module('impakt.team.main', [])
+    .config([function () {
+        console.debug('impakt.team.main - config');
+    }])
+    .run(function () {
+    console.debug('impakt.team.main - run');
+});
+/// <reference path='./team-main.mdl.ts' />
+impakt.team.main.controller('team.main.ctrl', ['$scope', '_team', '_teamModals',
+    function ($scope, _team, _teamModals) {
+        $scope.createTeam = function () {
+            _teamModals.createTeam();
+        };
+    }]);
+/// <reference path='../team.mdl.ts' />
+impakt.team.modals = angular.module('impakt.team.modals', [])
+    .config(function () {
+    console.debug('impakt.team.modals - config');
+})
+    .run(function () {
+    console.debug('impakt.team.modals - run');
+});
+/// <reference path='../team-modals.mdl.ts' />
+impakt.team.modals.controller('team.modals.createTeamDuplicateError.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_team',
+    'team',
+    function ($scope, $uibModalInstance, _team, team) {
+        $scope.team = team;
+        $scope.ok = function () {
+            $uibModalInstance.close();
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../team-modals.mdl.ts' />
+impakt.team.modals.controller('team.modals.createTeam.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_team',
+    function ($scope, $uibModalInstance, _team) {
+        $scope.newTeamModel = new Team.Models.TeamModel(Team.Enums.TeamTypes.Primary);
+        $scope.teamTypes = Common.Utilities.convertEnumToList(Team.Enums.TeamTypes);
+        $scope.ok = function () {
+            _team.createTeam($scope.newTeamModel)
+                .then(function (createdTeam) {
+                $uibModalInstance.close(createdTeam);
+            }, function (err) {
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../team-modals.mdl.ts' />
+impakt.team.modals.controller('team.modals.deleteTeam.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_team',
+    'team',
+    function ($scope, $uibModalInstance, _team, team) {
+        $scope.team = team;
+        $scope.ok = function () {
+            _team.deleteTeam($scope.team)
+                .then(function (results) {
+                $uibModalInstance.close(results);
+            }, function (err) {
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='./team-modals.mdl.ts' />
+impakt.team.modals.service('_teamModals', [
+    '$q',
+    '__modals',
+    function ($q, __modals) {
+        /**
+         *
+         * Team
+         *
+         */
+        this.createTeam = function () {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/team/modals/create-team/create-team.tpl.html', 'team.modals.createTeam.ctrl', {});
+            modalInstance.result.then(function (createdTeam) {
+                console.log(createdTeam);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.createTeamDuplicate = function (teamModel) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/team/modals/create-team-duplicate-error/create-team-duplicate-error.tpl.html', 'team.modals.createTeamDuplicateError.ctrl', {
+                team: function () {
+                    return teamModel;
+                }
+            });
+            modalInstance.result.then(function (createdTeam) {
+                console.log(createdTeam);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.deleteTeam = function (teamModel) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/team/modals/delete-team/delete-team.tpl.html', 'team.modals.deleteTeam.ctrl', {
+                team: function () {
+                    return teamModel;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+    }]);
 /// <reference path='../team.mdl.ts' />
 impakt.team.personnel = angular.module('impakt.team.personnel', [
     'impakt.team.personnel.create'
@@ -13806,22 +15921,30 @@ impakt.team.personnel.controller('impakt.team.personnel.ctrl', [
     '_team',
     function ($scope, _team) {
         console.debug('impakt.team.personnel.ctrl');
-        $scope.personnelCollection = _team.personnel;
-        $scope.personnel = _team.personnel.getOne() || new Team.Models.Personnel();
-        $scope.selectedPersonnel = {
-            guid: $scope.personnel.guid,
-            unitType: $scope.personnel.unitType.toString()
-        };
+        $scope.personnelCollection;
+        $scope.personnel;
+        $scope.selectedPersonnel;
         $scope.unitTypes = Team.Models.UnitType.getUnitTypes();
         var positionDefault = new Team.Models.PositionDefault();
-        $scope.positionOptions = positionDefault.getByUnitType($scope.personnel.unitType);
+        $scope.positionOptions;
         $scope.createNew = false;
         $scope.creating = false;
+        function init() {
+            _team.initialize();
+            $scope.personnelCollection = _team.personnel;
+            $scope.personnel = _team.personnel.getOne() ||
+                new Team.Models.Personnel(Team.Enums.UnitTypes.Other);
+            $scope.selectedPersonnel = {
+                guid: $scope.personnel.guid,
+                unitType: $scope.personnel.unitType.toString()
+            };
+            $scope.positionOptions = positionDefault.getByUnitType($scope.personnel.unitType);
+        }
         $scope.cancelCreate = function () {
             $scope.creating = false;
         };
         $scope.createPersonnel = function () {
-            $scope.personnel = new Team.Models.Personnel();
+            $scope.personnel = new Team.Models.Personnel(Team.Enums.UnitTypes.Other);
             $scope.creating = true;
             $scope.selectedPersonnel.unitType = $scope.personnel.unitType;
             $scope.createNew = true;
@@ -13861,6 +15984,7 @@ impakt.team.personnel.controller('impakt.team.personnel.ctrl', [
                 console.error(err);
             });
         };
+        init();
     }
 ]);
 /// <reference path='./team.mdl.ts' />
@@ -13880,6 +16004,11 @@ impakt.team.controller('team.ctrl', ['$scope', '_team',
                 active: true,
                 src: "modules/team/personnel/team-personnel.tpl.html"
             },
+            teams: {
+                title: 'My teams',
+                active: false,
+                src: 'modules/team/main/team-main.tpl.html'
+            },
             unitTypes: {
                 title: 'Unit types',
                 active: false,
@@ -13897,9 +16026,165 @@ impakt.team.controller('team.ctrl', ['$scope', '_team',
     }]);
 /// <reference path='./team.mdl.ts' />
 // Team service
-impakt.team.service('_team', ['$q', 'PLAYBOOK', 'TEAM', '__api', '__notifications',
-    function ($q, PLAYBOOK, TEAM, __api, __notifications) {
-        this.personnel = impakt.context.Team.personnel;
+impakt.team.service('_team', [
+    '$q',
+    'PLAYBOOK',
+    'TEAM',
+    'LEAGUE',
+    '__api',
+    '__notifications',
+    '_teamModals',
+    function ($q, PLAYBOOK, TEAM, LEAGUE, __api, __notifications, _teamModals) {
+        this.personnel = null;
+        this.initialize = function () {
+            this.personnel = impakt.context.Team.personnel;
+        };
+        /**
+         * Retrieves all teams
+         */
+        this.getTeams = function () {
+            var d = $q.defer();
+            var notification = __notifications.pending('Getting all league teams...');
+            __api.get(__api.path(LEAGUE.ENDPOINT, LEAGUE.GET_TEAMS))
+                .then(function (response) {
+                var collection = new Team.Models.TeamModelCollection(Team.Enums.TeamTypes.Mixed);
+                if (response && response.data && response.data.results) {
+                    var teamResults = Common.Utilities.parseData(response.data.results);
+                    for (var i = 0; i < teamResults.length; i++) {
+                        var teamResult = teamResults[i];
+                        if (teamResult && teamResult.data && teamResult.data.model) {
+                            var teamModel = new Team.Models.TeamModel(teamResult.data.model.teamType);
+                            teamResult.data.model.key = teamResult.key;
+                            teamModel.fromJson(teamResult.data.model);
+                            collection.add(teamModel);
+                        }
+                    }
+                }
+                notification.success([collection.size(), ' league teams successfully retreived'].join(''));
+                d.resolve(collection);
+            }, function (error) {
+                notification.error('Failed to retieve league teams');
+                console.error(error);
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Gets a single team with the given key
+         * @param {number} key The key of the team to retrieve
+         */
+        this.getTeam = function (key) {
+            var d = $q.defer();
+            __api.get(__api.path(LEAGUE.ENDPOINT, LEAGUE.GET_TEAM, '/' + key))
+                .then(function (response) {
+                var team = Common.Utilities.parseData(response.data.results);
+                d.resolve(team);
+            }, function (error) {
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Sends a team model to the server for storage
+         * @param {Team.Models.TeamModel} teamModel The model to be created/saved
+         */
+        this.createTeam = function (newTeamModel) {
+            var d = $q.defer();
+            if (!Common.Utilities.isNullOrUndefined(newTeamModel)) {
+                var nameExists = impakt.context.Team.teams.hasElementWhich(function (teamModel, index) {
+                    return teamModel.name == newTeamModel.name;
+                });
+                if (nameExists) {
+                    var notification_3 = __notifications.warning('Failed to create team. Team "', newTeamModel.name, '" already exists.');
+                    _teamModals.createTeamDuplicate(newTeamModel);
+                    return;
+                }
+            }
+            // set key to -1 to ensure a new object is created server-side
+            newTeamModel.key = -1;
+            var teamModelJson = newTeamModel.toJson();
+            var notification = __notifications.pending('Creating playbook "', newTeamModel.name, '"...');
+            __api.post(__api.path(LEAGUE.ENDPOINT, LEAGUE.CREATE_TEAM), {
+                version: 1,
+                name: newTeamModel.name,
+                data: {
+                    version: 1,
+                    model: teamModelJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var teamModel = new Team.Models.TeamModel(Team.Enums.TeamTypes.Other);
+                if (results && results.data && results.data.model) {
+                    results.data.model.key = results.key;
+                    teamModel.fromJson(results.data.model);
+                    // update the context
+                    impakt.context.Team.teams.add(teamModel);
+                }
+                else {
+                    throw new Error('CreateTeam did not return a valid team model');
+                }
+                notification.success('Successfully created team "', teamModel.name, '"');
+                d.resolve(teamModel);
+            }, function (error) {
+                notification.error('Failed to create team "', newTeamModel.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Deletes the given team for the current user
+         * @param {Team.Models.TeamModel} team The team to be deleted
+         */
+        this.deleteTeam = function (team) {
+            var d = $q.defer();
+            var notification = __notifications.pending('Deleting team "', team.name, '"...');
+            __api.post(__api.path(LEAGUE.ENDPOINT, LEAGUE.DELETE_TEAM), { key: team.key }).then(function (response) {
+                // update the context
+                impakt.context.Team.teams.remove(team.guid);
+                notification.success('Deleted team "', team.name, '"');
+                d.resolve(team);
+            }, function (error) {
+                notification.error('Failed to delete team "', team.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Updates the given team for the current user
+         * @param {Team.Models.TeamModel} team The team to update
+         */
+        this.updateTeam = function (team) {
+            var d = $q.defer();
+            // update assignment collection to json object
+            var teamJson = team.toJson();
+            var notification = __notifications.pending('Updating team "', team.name, '"...');
+            __api.post(__api.path(LEAGUE.ENDPOINT, LEAGUE.UPDATE_TEAM), {
+                version: 1,
+                name: teamJson.name,
+                key: teamJson.key,
+                data: {
+                    version: 1,
+                    key: teamJson.key,
+                    model: teamJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var teamModel = new Team.Models.TeamModel(Team.Enums.TeamTypes.Other);
+                if (results && results.data && results.data.model) {
+                    teamModel.fromJson(results.data.model);
+                    // update the context
+                    impakt.context.Team.teams.set(teamModel.guid, teamModel);
+                }
+                notification.success('Successfully updated team "', team.name, '"');
+                d.resolve(teamModel);
+            }, function (error) {
+                notification.error('Failed to update team "', team.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
         this.savePersonnel = function (personnelModel, createNew) {
             var d = $q.defer();
             var result;
@@ -13941,7 +16226,7 @@ impakt.team.service('_team', ['$q', 'PLAYBOOK', 'TEAM', '__api', '__notification
             })
                 .then(function (response) {
                 var results = Common.Utilities.parseData(response.data.results);
-                var personnelModel = new Team.Models.Personnel();
+                var personnelModel = new Team.Models.Personnel(Team.Enums.UnitTypes.Other);
                 if (results && results.data && results.data.personnel) {
                     results.data.personnel.key = results.key;
                     personnelModel.fromJson(results.data.personnel);
@@ -13972,7 +16257,7 @@ impakt.team.service('_team', ['$q', 'PLAYBOOK', 'TEAM', '__api', '__notification
             })
                 .then(function (response) {
                 var results = Common.Utilities.parseData(response.data.results);
-                var personnelModel = new Team.Models.Personnel();
+                var personnelModel = new Team.Models.Personnel(Team.Enums.UnitTypes.Other);
                 if (results && results.data && results.data.personnel) {
                     personnelModel.fromJson(results.data.personnel);
                 }
@@ -13999,6 +16284,14 @@ impakt.team.service('_team', ['$q', 'PLAYBOOK', 'TEAM', '__api', '__notification
                 d.reject(err);
             });
             return d.promise;
+        };
+        this.createPrimaryTeam = function (teamModel) {
+        };
+        this.updatePrimaryTeam = function (teamModel) {
+        };
+        this.deletePrimaryTeam = function (teamModel) {
+        };
+        this.savePrimaryTeam = function (teamModel) {
         };
     }]);
 /// <reference path='../team.mdl.ts' />
@@ -14138,29 +16431,6 @@ var User;
 (function (User) {
     var Models;
     (function (Models) {
-        var OrganizationCollection = (function (_super) {
-            __extends(OrganizationCollection, _super);
-            function OrganizationCollection() {
-                _super.call(this);
-            }
-            OrganizationCollection.prototype.toJson = function () {
-                return _super.prototype.toJson.call(this);
-            };
-            OrganizationCollection.prototype.fromJson = function (json) {
-                if (!json)
-                    return;
-                throw new Error('OrganizationCollection fromJson(): not implemented');
-            };
-            return OrganizationCollection;
-        })(Common.Models.Collection);
-        Models.OrganizationCollection = OrganizationCollection;
-    })(Models = User.Models || (User.Models = {}));
-})(User || (User = {}));
-/// <reference path='./models.ts' />
-var User;
-(function (User) {
-    var Models;
-    (function (Models) {
         var UserModel = (function (_super) {
             __extends(UserModel, _super);
             function UserModel() {
@@ -14201,7 +16471,7 @@ var User;
 })(User || (User = {}));
 /// <reference path='./user.mdl.ts' />
 impakt.user.constant('USER', {
-    'ORG_ENDPOINT': '/configuration',
+    'ORG_ENDPOINT': '/accounts',
     'GET_ORGANIZATIONS': '/getOrganizations'
 });
 /// <reference path='./user.mdl.ts' />

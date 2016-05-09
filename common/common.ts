@@ -409,6 +409,31 @@ module Common {
 		public static isUndefined(obj: any): boolean {
 			return obj === undefined || obj === 'undefined';
 		}
+
+		public static isEmptyString(str: string): boolean {
+			return Common.Utilities.isNullOrUndefined(str) || str === '';
+		}
+
+		/**
+		 * Iterates over the given array and removes any
+		 * duplicate entries
+		 * 
+		 * @param  {any[]} array [description]
+		 * @return {any[]}       [description]
+		 */
+		public static uniqueArray(array: any[]): any[] {
+			if (Common.Utilities.isNullOrUndefined(array))
+				throw new Error('Utilities uniqueArray(): array is null or undefined');
+
+			let unique = [];
+			for (let i = 0; i < array.length; i++) {
+				let element = array[i];
+
+				if (unique.indexOf(element) < 0)
+					unique.push(element);
+			}
+			return unique;
+		}
 	}
 }
 

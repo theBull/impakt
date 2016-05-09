@@ -7,6 +7,11 @@
 	<!-- bootstrap -->
 	<link href='css/bootstrap.css' type='text/css' rel='stylesheet' />
 	<link href='css/bootstrap-theme.css' type='text/css' rel='stylesheet' />
+
+	<!-- ng-tags-input directive (tags) -->
+	<link href='css/ng-tags-input.css' type='text/css' rel='stylesheet' />
+	
+	<!-- <link href='css/ng-tags-input.bootstrap.css' type='text/css' rel='stylesheet' /> -->
 	<!-- blueprint -->
 	<link href='css/blueprint-grid.css' type='text/css' rel='stylesheet' />
 	<link href='css/blueprint-util.css' type='text/css' rel='stylesheet' />
@@ -24,6 +29,7 @@
 	<script src='js/bootstrap-select.js'></script>
 	<!--<script src='js/ui-bootstrap-0.11.0.min.js'></script>-->
 	<script src='js/ui-bootstrap-tpls-0.14.3.min.js'></script>
+	<script src='js/ng-tags-input.js'></script>
 	<!--<script src='js/ui-bootstrap-tpls-1.0.0.min.js'></script>-->
 	<script src='js/jquery-ui.min.js'></script>
 	<script src='js/blueprint.js'></script>
@@ -44,6 +50,8 @@
 </head>
 <body>
 
+	<app-loading></app-loading>
+
 	<!-- main -->
 	<div class='blueprint col'>
 		
@@ -56,8 +64,8 @@
 		</div> -->
 	
 		<div class='row'>
-			<div id='impakt-navigator' class='col' ng-controller='nav.ctrl'
-				ng-class='{width6: isMenuCollapsed, width32: !isMenuCollapsed}'
+			<div id='impakt-navigator' class='col light-border-right' ng-controller='nav.ctrl'
+				ng-class='{width6: isMenuCollapsed, width38: !isMenuCollapsed}'
 				ng-include='"modules/nav/nav.tpl.html"'></div>
 
 			<!-- this is where modules are displayed -->

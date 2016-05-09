@@ -61,6 +61,9 @@ module Common.Models {
 		public hasElements(): boolean {
 			return this._collection.hasElements();
 		}
+		public exists(key: string | number): boolean {
+			return this._collection.exists(key);
+		}
 		public get(key: string | number): T {
 			return this._collection.get(key);
 		}
@@ -139,6 +142,15 @@ module Common.Models {
 			});
 			return this;
 		}
+		public only(data: T) {
+			this._collection.only(data);
+			this._modifiable.setModified(true);
+			let self = this;
+			data.onModified(function() {
+				self._modifiable.setModified();
+			});
+			return this;
+		}
 		public append(collection: Common.Models.Collection<T>, clearListeners?: boolean) {
 			this._collection.append(collection);
 			this._modifiable.setModified();
@@ -208,12 +220,23 @@ module Common.Models {
 			return this._collection.toJson();
 		}
 
+		public fromJson(json): void {
+			if (!json)
+				return;
+			
+			this._collection.fromJson(json);
+		}
+
 		public copy(
 			newElement: Common.Models.ModifiableCollection<T>,
 			context: Common.Models.ModifiableCollection<T>
 		): Common.Models.ModifiableCollection<T> {
 			console.error('ModifiableCollection copy() not implemented');
 			return null;
+		}
+
+		public getGuids(): Array<string | number> {
+			return this._collection.getGuids();
 		}
 
 	}

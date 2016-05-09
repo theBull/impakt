@@ -25,7 +25,7 @@ $fontRed: rgb(192, 35, 40);
 $fontGreen: #86BE75;
 
 $lightBackground: rgba(222, 225, 227, 0.9);
-$lightBorderColor: rgba(100, 100, 100, 0.3);
+$lightBorderColor: rgba(150, 150, 150, 0.3);
 $lightBorder: 1px solid $lightBorderColor;
 $whiteBorder: 1px solid $white;
 $whiteSelectedBorder: 3px solid $white;
@@ -41,6 +41,9 @@ $darkBorderColor: rgba(0, 0, 0, 0.5);
 $darkBorder: 1px solid $darkBorderColor;
 $black: #000000;
 $red: #BB250E;
+$red-hover: #AA0000;
+$green: #39A017;
+$green-hover: #2E8212;
 $blue: #2A58D2;
 $blue-bg-hover: #336BCB;
 $black-bg: $black;
@@ -60,6 +63,7 @@ $gray-bg-a-hover: #b1b1b1;
 $gray-bg-7: #777777;
 $gray-bg-7-hover: #7f7f7f;
 $gray: $gray-bg-3;
+$selected-border: $blue solid 3px;
 
 
 /* Main site styles */
@@ -235,20 +239,26 @@ details summary {
  * COLOR CLASSES
  * 
  */
-.circle-bg {
+.rounded-rect-bg {
 	border-radius: 0.5em;
 	font-size: 0.9em;
 	text-align: center;
 	padding: 0.25em 0.5em;
 	border: $darkBorder;
 }
-.black-bg, .black-bg-hover, .black-circle-bg {
+.circle-bg {
+	border-radius: 50%;
+	text-align: center;
+	padding: 0.9em;
+	border: $darkBorder;
+}
+.black-bg, .black-bg-hover, .black-circle-bg, .black-rounded-rect-bg {
 	background-color: $black-bg;
 }
 .black-bg-hover:hover {
 	background-color: $black-bg-hover;
 }
-.black-circle-bg {
+.black-circle-bg, .black-rounded-rect-bg {
 	color: $white;
 }
 .gray-bg-1, .gray-bg-1-hover {
@@ -308,22 +318,31 @@ details summary {
 .dark-bg {
 	background-color: $darkBackground;
 }
-.red-bg, .red-bg-hover, .red-circle-bg {
+.red-bg, .red-bg-hover, .red-circle-bg, .red-rounded-rect-bg {
 	background-color: $red;
 }
 .red-bg-hover:hover {
-	background-color: #AA0000;
+	background-color: $red-hover;
 }
-.red-circle-bg {
+.red-circle-bg, .red-rounded-rect-bg {
 	color: $white;
 }
-.blue-bg, .blue-bg-hover, .blue-circle-bg {
+.green-bg, .green-bg-hover, .green-circle-bg, .green-rounded-rect-bg {
+	background-color: $green;
+}
+.green-bg-hover:hover {
+	background-color: $green-hover;
+}
+.green-circle-bg, .green-rounded-rect-bg {
+	color: $white;
+}
+.blue-bg, .blue-bg-hover, .blue-circle-bg, .blue-rounded-rect-bg {
 	background-color: $blue;
 }
 .blue-bg-hover:hover {
 	background-color: $blue-bg-hover;
 }
-.blue-circle-bg {
+.blue-circle-bg, .blue-rounded-rect-bg {
 	color: $white;
 }
 .light-blue-bg {
@@ -364,6 +383,12 @@ details summary {
 }
 .light-border-left-red {
 	border-left: 1px solid $lightBorderColorRed;
+}
+.light-border-right {
+	border-right: 1px solid $lightBorderColor;
+}
+.light-border-right-red {
+	border-right: 1px solid $lightBorderColorRed;
 }
 .dark-border {
 	border: $darkBorder;
@@ -424,6 +449,9 @@ details summary {
 }
 .gray-border-left-red {
 	border-left: 1px solid $gray;
+}
+.selected-border {
+	outline: $selected-border;
 }
 
 /*

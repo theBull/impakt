@@ -11,18 +11,19 @@ module Team.Models {
             public index: number;
             public unitType: Team.Enums.UnitTypes;
 
-            constructor(options?: any) {
+            constructor(unitType: Team.Enums.UnitTypes, options?: any) {
                 super();
                 super.setContext(this);
                 
                 if (!options)
                     options = {};
+
+                this.unitType = unitType;
                 this.positionListValue = options.positionListValue || PositionList.Other;
                 this.title = options.title || 'Untitled';
                 this.label = options.label || '-';
                 this.eligible = options.eligible || false;
                 this.index = options.index >= 0 ? options.index : -1;
-                this.unitType = options.unitType || Team.Enums.UnitTypes.Other;
             }
             public toJson(): any {
                 return {
@@ -335,7 +336,7 @@ module Team.Models {
             for (let positionKey in Team.Models.PositionDefault.defaults) {
                 if (Team.Models.PositionDefault.defaults[positionKey].positionListValue == positionListValue) {
                     let positionSeedData = Team.Models.PositionDefault.defaults[positionKey];
-                    results = new Team.Models.Position(positionSeedData);
+                    results = new Team.Models.Position(positionSeedData.unitType, positionSeedData);
                 }
             }
             return results;
@@ -346,7 +347,7 @@ module Team.Models {
             return newPosition;
         }
         public static getBlank(type: Team.Enums.UnitTypes) {
-            let collection = new Team.Models.PositionCollection();
+            let collection = new Team.Models.PositionCollection(type);
             let positionSeedData = null;
             switch (type) {
                 case Team.Enums.UnitTypes.Offense:
@@ -365,7 +366,7 @@ module Team.Models {
             if (!positionSeedData)
                 return null;
             for (let i = 0; i < 11; i++) {
-                let blank = new Team.Models.Position(positionSeedData);
+                let blank = new Team.Models.Position(positionSeedData.unitType, positionSeedData);
                 // add an index for the position :]
                 blank.index = i;
                 collection.add(blank);
@@ -374,65 +375,57 @@ module Team.Models {
         }
 
         public getByUnitType (type: Team.Enums.UnitTypes) {
-            let results = null;
+            let results = new Team.Models.PositionCollection(type);
             switch (type) {
                 case Team.Enums.UnitTypes.Offense:
-                    let offense = new Team.Models.PositionCollection();
-                    offense.fromJson([
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.blankOffense),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.quarterback),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.runningBack),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.fullBack),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.tightEnd),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.center),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.guard),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.tackle),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.wideReceiver),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.slotReceiver)
+                    results.fromJson([
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.blankOffense),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.quarterback),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.runningBack),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.fullBack),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.tightEnd),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.center),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.guard),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.tackle),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.wideReceiver),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.slotReceiver)
                     ]);
-                    results = offense;
                     break;
                 case Team.Enums.UnitTypes.Defense:
-                    let defense = new Team.Models.PositionCollection();
-                    defense.fromJson([
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.blankDefense),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.noseGuard),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.defensiveTackle),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.defensiveGuard),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.defensiveEnd),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.linebacker),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.safety),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.freeSafety),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.strongSafety),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.defensiveBack),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.cornerback)
+                    results.fromJson([
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.blankDefense),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.noseGuard),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.defensiveTackle),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.defensiveGuard),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.defensiveEnd),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.linebacker),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.safety),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.freeSafety),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.strongSafety),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.defensiveBack),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.cornerback)
                     ]);
-                    results = defense;
                     break;
                 case Team.Enums.UnitTypes.SpecialTeams:
-                    let specialTeams = new Team.Models.PositionCollection();
-                    specialTeams.fromJson([
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.blankSpecialTeams),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.kicker),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.holder),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.punter),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.longSnapper),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.kickoffSpecialist),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.puntReturner),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.kickReturner),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.upback),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.gunner),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.jamme)
+                    results.fromJson([
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.blankSpecialTeams),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.kicker),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.holder),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.punter),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.longSnapper),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.kickoffSpecialist),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.puntReturner),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.kickReturner),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.upback),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.gunner),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.jamme)
                     ]);
-                    results = specialTeams;
                     break;
                 case Team.Enums.UnitTypes.Other:
-                    let other = new Team.Models.PositionCollection();
-                    other.fromJson([
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.blankOther),
-                        new Team.Models.Position(Team.Models.PositionDefault.defaults.other)
+                    results.fromJson([
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.blankOther),
+                        new Team.Models.Position(type, Team.Models.PositionDefault.defaults.other)
                     ]);
-                    results = other;
                     break;
                 default:
                     results = null;

@@ -7,5 +7,6 @@
 /// <reference path='./nav/nav.ts' />
 /// <reference path='./search/search.ts' />
 /// <reference path='./season/season.ts' />
+/// <reference path='./league/league.ts' />
 /// <reference path='./stats/stats.ts' />
 /// <reference path='./user/user.ts' />

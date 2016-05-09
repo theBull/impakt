@@ -20,6 +20,7 @@ module Common.Interfaces {
 		initialize(): void;
 		draw(): void;
 		drawOutline(): void;
+		clear(): void;
 		resize(): void;
 		setViewBox(): void;
 		scroll(scrollToX: number, scrollToY: number, center?: boolean): void;

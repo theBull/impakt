@@ -14,7 +14,7 @@ module Common.Interfaces {
 		isContextSet: boolean;
 		listening: boolean;
 
-		copy(newElement: Common.Models.Modifiable, context: Common.Models.Modifiable): Common.Models.Modifiable;
+		copy(newElement: Common.Interfaces.IModifiable, context: Common.Interfaces.IModifiable): Common.Interfaces.IModifiable;
 		checkContextSet(): void;
 		setContext(context: any): void;
 		onModified(callback: Function): void;

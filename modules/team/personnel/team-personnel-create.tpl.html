@@ -34,7 +34,7 @@
 					<p>Personnel</p>
 
 					<select
-						ng-options='guid as personnelItem.name for (guid, personnelItem) in personnelCollection.getAll()'
+						ng-options='personnelItem.guid as personnelItem.name for personnelItem in personnelCollection.toArray()'
 						ng-model='selectedPersonnel.guid'
 						ng-change='selectPersonnel(personnelItem)'>
 					</select>
@@ -56,7 +56,7 @@
 				</div>
 			</div>
 
-			<div class='col width33'>
+			<div class='col width40'>
 				<div>
 					<p>&quot;{{personnel.name}}&quot; positions</p>
 				</div>
@@ -75,6 +75,9 @@
 								Label
 							</div>
 							<div class='width5 padTop1 padRight1 padBottom1'>
+								Unit
+							</div>
+							<div class='width5 padTop1 padRight1 padBottom1'>
 								Eligible
 							</div>
 						</div>
@@ -83,7 +86,7 @@
 				   			<div class='row'>
 				    			<div class='width5 pad'>
 				    				<!-- Index -->
-				    				{{$index + 1}}
+				    				{{$index}}
 				    			</div>
 				   				<div class='minWidth18 padRight1 width4'>
 				   					<!-- Position -->
@@ -104,6 +107,9 @@
 				    					tab-index='{{$index}}' />
 				    			</div>
 				    			<div class='width5 pad'>
+				    				{{position.unitType}}
+				    			</div>
+				    			<div class='width5 pad textLeft'>
 				    				<!-- Eligible -->
 				    				<input type='checkbox'
 				    					ng-checked='position.eligible'

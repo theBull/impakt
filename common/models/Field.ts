@@ -203,6 +203,19 @@ module Common.Models {
                 ].join(''));
             }
         }
+
+        public applyPrimaryUnitType(unitType: Team.Enums.UnitTypes): void {
+            if (Common.Utilities.isNullOrUndefined(this.playPrimary))
+                return;
+
+            this.playPrimary.setUnitType(unitType);
+            
+            if(!Common.Utilities.isNullOrUndefined(this.playOpponent))
+                this.playOpponent.setUnitType(this.playPrimary.getOpposingUnitType());
+            
+            this.clearPlayers();
+            this.drawPlay();
+        }
         
         public deselectAll(): void {
             if (this.selected.isEmpty())

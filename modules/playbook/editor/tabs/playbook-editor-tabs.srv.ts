@@ -15,7 +15,7 @@ function(
 	let self = this;
 	
 	this.tabs = _playbookEditor.tabs;
-	this.canvases = _playbookEditor.canvases;
+	this.canvas = _playbookEditor.canvas;
 
 	this.component = new Common.Base.Component(
 		'_playbookEditorTabs',
@@ -27,11 +27,6 @@ function(
 
 	function init() {
 		_playbookEditor.component.loadDependency(self.component);
-	}
-
-	this.openNew = function() {						
-		// Step 2: build a generic model from that response
-		_playbookEditor.addTab(new Common.Models.Play());
 	}
 
 	this.close = function(tab: Common.Models.Tab) {
@@ -54,12 +49,10 @@ function(
 
 	this.editFormation = function(formation: Common.Models.Formation) {
 		_playbookEditor.editFormation(formation);
-        $rootScope.$broadcast('playbook-editor.loadTabs');
 	}
 
 	this.editPlay = function(play: Common.Models.Play) {
 		_playbookEditor.editPlay(play);
-        $rootScope.$broadcast('playbook-editor.loadTabs');
 	}
 
 	init();

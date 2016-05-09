@@ -1,43 +1,51 @@
-<header class='row dark-bg'>
-
-	<!-- <div class='col width30'>
-		<header class='row height5' id='impakt-browser-search'>
-			<div class='impakt-main-logo height3 width3 margin'></div>
-			
-			<div class='height5 pad row width25'>
-				<div class="input-group">
-					
-					<input type="text" class="form-control" aria-label="...">
-					
-					<div class="input-group-btn">
-			            <button type="button" class="btn btn-default">
-			            	<span class='glyphicon glyphicon-search'></span>
-			            </button>
-			            <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
-			              <span class="caret"></span>
-			              <span class="sr-only">Toggle Dropdown</span>
-			            </button>
-			            <ul class="dropdown-menu dropdown-menu-right" role="menu">
-			              <li><a href="#">Action</a></li>
-			              <li><a href="#">Another action</a></li>
-			              <li><a href="#">Something else here</a></li>
-			              <li class="divider"></li>
-			              <li><a href="#">Separated link</a></li>
-			            </ul>
-					</div>
-				</div>
-			</div>
-		</header>
+<div class='col left6 top0 minHeight5 
+	gray-bg-7 font-white light-border-right light-border-bottom' 
+	ng-show='searchMenuItem.active'
+	ng-controller='search.ctrl'>	
+		
+	<div class='positionRelative'>
+		<input 
+			type='text' 
+			class='fontSize20'
+			placeholder='Search'
+			ng-model='searchQuery' />
+		<div class='right1 top1 height3 width3 circle-bg pointer gray-bg-2-hover dark-border'
+			ng-click='searchQuery = ""'>
+			<span class='glyphicon glyphicon-remove'></span>
+		</div>
 	</div>
 
-	<nav class='col minWidth35'>
-		<ul>
-			<li ng-repeat='navItem in navItems' class='height5 width10 pad2 black-gradient-bg-hover' 
-				ng-class='{ active: navItem.isActive }' ng-click='navClick(navItem)'>
-					{{ navItem.label }}
-			</li>
-		</ul>
-	</nav>
-	 -->
+	<div class='col pad gray-bg-4'>
+		<div class='marginBottom1'>
+			{{title}}
+		</div>
 
-</header>
+		<!-- Playbooks -->
+		<div class='marginBottom1'>
+			<p><strong>Playbooks ({{playbooks.size()}})</strong></p>
+			<div ng-repeat='playbook in playbooks.toArray() | filter: {name: searchQuery}' 
+				class='pad gray-bg-2-hover pointer playbook-editor-type-playbook'> 
+				{{playbook.name}}
+			</div>
+		</div>
+
+		<!-- Plays -->
+		<div class='marginBottom1'>
+			<p><strong>Plays ({{plays.size()}})</strong></p>
+			<div ng-repeat='play in plays.toArray() | filter: {name: searchQuery}' 
+				class='pad gray-bg-2-hover pointer playbook-editor-type-play'>
+				{{play.name}}
+			</div>
+		</div>
+
+		<!-- Formations -->
+		<div class='marginBottom1'>
+			<p><strong>Formations ({{formations.size()}})</strong></p>
+			<div ng-repeat='formations in formations.toArray() | filter: {name: searchQuery}' 
+				class='pad gray-bg-2-hover pointer playbook-editor-type-formation'>
+				{{formations.name}}
+			</div>
+		</div>
+
+	</div>
+</div>

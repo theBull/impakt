@@ -21,6 +21,7 @@ module Common.Interfaces {
 
 		exportToPng(): string;
 		setDimensions(): void;
+		clear(): void;
 	}
 }
 

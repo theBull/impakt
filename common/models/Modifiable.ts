@@ -55,11 +55,14 @@ module Common.Models {
 		/**
 		 * Allows for switching the listening mechanism on or off
 		 * within a method chain. listen(false) would prevent
-		 * any mutation from triggering a rehash.
+		 * any mutation from triggering a rehash. Does not
+		 * trigger a modification event when setting to true,
+		 * you must invoke the modification event directly and
+		 * separately if needed.
 		 * 
 		 * @param {boolean} startListening true or false
 		 */
-		public listen(startListening: boolean) {
+		public listen(startListening: boolean): Common.Interfaces.IModifiable {
 			this.listening = startListening;
 			return this;
 		}
@@ -151,18 +154,18 @@ module Common.Models {
 		}
 
 		public toJson(): any {
-			return {
+			return $.extend({
 				lastModified: this.lastModified,
-				guid: this.guid,
 				checksum: this.checksum
-			};
+			}, super.toJson());
 		}
 		public fromJson(json: any) {
 			this.modified = json.modified;
 			this.lastModified = json.lastModified;
-			this.guid = json.guid || this.guid;
 			this.original = json.checksum;
 			this.checksum = Common.Utilities.generateChecksum(this.toJson());
+
+			super.fromJson(json);
 		}
 	}
 }

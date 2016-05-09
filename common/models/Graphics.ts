@@ -2,12 +2,10 @@
 
 module Common.Models {
 	export class Graphics
-    extends Common.Models.Modifiable
-    implements Common.Interfaces.ISelectable,
-    Common.Interfaces.IDrawable,
+    extends Common.Models.Actionable
+    implements Common.Interfaces.IDrawable,
     Common.Interfaces.IHoverable {
 
-        public guid: string;
         public paper: Common.Interfaces.IPaper;
         public grid: Common.Interfaces.IGrid;
 		public raphael: any;
@@ -51,38 +49,10 @@ module Common.Models {
         public disabledStroke: string;
         public disabledOpacity: number;
         public hoverOpacity: number;
-
-        /**
-         * 
-         * Selection information
-         * 
-         */
-        public disabled: boolean;
-        public selected: boolean;
-        public selectable: boolean;
-        public clickable: boolean;
-
-        /**
-         * 
-         * Hoverable information
-         * 
-         */
-        public hoverable: boolean;
-
-        /**
-         * 
-         * Draggable attributes
-         * 
-         */
-        public dragging: boolean;
-        public draggable: boolean;
-        public dragged: boolean;
 		
 		constructor(paper: Common.Interfaces.IPaper) {
-            super();
-            super.setContext(this);
+            super(Common.Enums.ImpaktDataTypes.Unknown);
 
-            this.guid = Common.Utilities.guid();
             this.paper = paper;
             this.grid = paper.grid;
             this.set = new Common.Models.GraphicsSet(this);
@@ -95,15 +65,6 @@ module Common.Models {
                 0,
                 this.grid.getHeight()
             );
-
-            this.disabled = false;
-            this.selected = false;
-            this.clickable = true;
-            this.hoverable = true;
-            this.dragging = false;
-            this.draggable = true;
-            this.dragged = false;
-            this.selectable = true;
             
             this.originalFill = 'white';
             this.originalStroke = 'black';
@@ -303,25 +264,11 @@ module Common.Models {
         }
 
         /**
-         * Generic selection toggle
-         */
-        public toggleSelect(): void {
-            if(this.disabled || !this.selectable)
-                return;
-
-            if(this.selected)
-                this.deselect();
-            else
-                this.select();
-        }
-        /**
          * Generic selection method
          */
         public select(): void {
-            if (this.disabled || !this.selectable)
-                return;
+            super.select();
 
-            this.selected = true;
             this.fill = this.selectedFill;
             this.stroke = this.selectedStroke;
             this.opacity = this.selectedOpacity;
@@ -337,10 +284,8 @@ module Common.Models {
          * Generic deselection method
          */
         public deselect(): void {
-            if (this.disabled || !this.selectable)
-                return;
+            super.deselect();
 
-            this.selected = false;
             this.fill = this.originalFill;
             this.stroke = this.originalStroke;
             this.opacity = this.originalOpacity;
@@ -356,7 +301,8 @@ module Common.Models {
          * Generic disable method
          */
         public disable(): void {
-            this.disabled = true;
+            super.disable();
+
             this.fill = this.disabledFill;
             this.stroke = this.disabledStroke;
             this.opacity = this.disabledOpacity;
@@ -372,7 +318,8 @@ module Common.Models {
          * Generic enable method
          */
         public enable(): void {
-            this.disabled = false;
+            super.enable();
+
             this.fill = this.originalFill;
             this.stroke = this.originalStroke;
             this.opacity = this.originalOpacity;
@@ -524,6 +471,15 @@ module Common.Models {
             return this;
         }
 
+        public rhombus(): Common.Models.Graphics {            
+            this.remove();
+            this.rect();
+            this.dimensions.rotation = -45;
+            this.refresh();
+            this.transform(0, 0);
+            return this;
+        }
+
         public ellipse(): Common.Models.Graphics {            
             this.remove();
             this.raphael = this.paper.drawing.ellipse(
@@ -545,6 +501,20 @@ module Common.Models {
                 this.placement.coordinates.x,
                 this.placement.coordinates.y,
                 this.dimensions.getRadius(),
+                false,
+                this.dimensions.getOffsetX(),
+                this.dimensions.getOffsetY()
+            );
+            this.refresh();
+            return this;
+        }
+
+        public triangle(): Common.Models.Graphics {
+            this.remove();
+            this.raphael = this.paper.drawing.triangle(
+                this.placement.coordinates.x,
+                this.placement.coordinates.y,
+                this.dimensions.getHeight(),
                 false,
                 this.dimensions.getOffsetX(),
                 this.dimensions.getOffsetY()
@@ -612,7 +582,7 @@ module Common.Models {
             if (!this.hasRaphael())
                 return;
 
-            this.raphael.transform(['t', ax, ', ', ay].join(''));
+            this.raphael.transform(['t', ax, ', ', ay, 'r', this.dimensions.rotation].join(''));
         }
 
         public toFront(): void {

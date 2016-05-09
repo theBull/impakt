@@ -40,7 +40,7 @@ module Playbook.Models {
             this.layers.add(this.hashmark_sideline_right.layer);
 
             if (!this.playPrimary.formation) {
-                this.playPrimary.formation = new Common.Models.Formation('Default Formation');
+                this.playPrimary.formation = new Common.Models.Formation(this.playPrimary.unitType);
                 this.playPrimary.formation.setDefault(this.ball);
             }
 

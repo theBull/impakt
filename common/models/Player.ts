@@ -37,7 +37,7 @@ module Common.Models {
 			this.layer.type = Common.Enums.LayerTypes.Player;
 			this.layer.graphics.setPlacement(placement);
 			this.position = position;
-			this.assignment = assignment || new Common.Models.Assignment();
+			this.assignment = assignment || new Common.Models.Assignment(this.position.unitType);
 			this.assignment.positionIndex = this.position.index;
 
 			this.layer.graphics.dimensions.setWidth(this.grid.getSize());

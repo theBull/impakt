@@ -2,26 +2,22 @@
 
 module Common.Models {
     export class Formation
-        extends Common.Models.Modifiable {
+        extends Common.Models.AssociableEntity {
 
         public unitType: Team.Enums.UnitTypes;
         public parentRK: number; // TODO @theBull - deprecate
         public editorType: Playbook.Enums.EditorTypes;
         public name: string;
-        public associated: Common.Models.Association;
         public placements: Common.Models.PlacementCollection;
-        public key: number;
         public png: string;
 
-        constructor(name?: string) {
-            super();
-            super.setContext(this);
+        constructor(unitType: Team.Enums.UnitTypes) {
+            super(Common.Enums.ImpaktDataTypes.Formation);
             
-            this.unitType = Team.Enums.UnitTypes.Other;
+            this.unitType = unitType;
             this.parentRK = 1;
             this.editorType = Playbook.Enums.EditorTypes.Formation;
             this.name = name || 'New formation';
-            this.associated = new Common.Models.Association();
             this.placements = new Common.Models.PlacementCollection();
             this.png = null;
             //this.setDefault();
@@ -33,36 +29,33 @@ module Common.Models {
             });
         }
         public copy(newFormation?: Common.Models.Formation): Common.Models.Formation {
-            var copyFormation = newFormation || new Common.Models.Formation();
+            var copyFormation = newFormation || new Common.Models.Formation(this.unitType);
             return <Common.Models.Formation>super.copy(copyFormation, this);
         }
         public toJson() {
-            return $.extend(super.toJson(), {
+            return $.extend({
                 name: this.name,
-                key: this.key,
                 parentRK: this.parentRK,
                 unitType: this.unitType,
                 editorType: this.editorType,
-                guid: this.guid,
-                associated: this.associated.toJson(),
                 placements: this.placements.toJson(),
                 png: this.png
-            });
+            }, super.toJson());
         }
         public fromJson(json: any): any {
             if (!json)
                 return;
+            
             var self = this;
-            super.fromJson(json);
             this.parentRK = json.parentRK;
             this.editorType = Playbook.Enums.EditorTypes.Formation;
             this.name = json.name;
-            this.guid = json.guid;
             this.unitType = json.unitType;
             this.placements.fromJson(json.placements);
-            this.key = json.key;
-            this.associated.fromJson(json.associated);
             this.png = json.png;
+
+            super.fromJson(json);
+
             this.placements.onModified(function() {
                 console.log('formation modified: placement collection:', self.guid);
                 self.setModified(true);

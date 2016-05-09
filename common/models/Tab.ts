@@ -1,7 +1,7 @@
 /// <reference path='./models.ts' />
 
 module Common.Models {
-	export class Tab extends Common.Models.Storable
+	export class Tab extends Common.Models.Modifiable
 	implements Common.Interfaces.ICollectionItem {
 
 		public title: string = 'Untitled';
@@ -20,6 +20,8 @@ module Common.Models {
 			playOpponent: Common.Models.PlayOpponent
 		) {
 			super();
+			super.setContext(this);
+			
 			this.playPrimary = playPrimary;
 			this.editorType = this.playPrimary.editorType;
 			this.key = this.playPrimary.key;

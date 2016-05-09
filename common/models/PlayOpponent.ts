@@ -6,8 +6,8 @@ module Common.Models {
 
         public playType: Playbook.Enums.PlayTypes;
 
-        constructor() {
-            super();
+        constructor(unitType: Team.Enums.UnitTypes) {
+            super(unitType);
             this.playType = Playbook.Enums.PlayTypes.Opponent;
         }
         public draw(field: Common.Interfaces.IField): void {

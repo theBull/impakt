@@ -11,6 +11,7 @@ impakt.playbook.service('_playbook',
 '__api',
 '__localStorage',
 '__notifications',
+'_playbookModals',
 function(
     PLAYBOOK: any,
     $rootScope: any,
@@ -18,9 +19,14 @@ function(
     $state: any,
     __api: any,
     __localStorage: any,
-    __notifications: any) {
+    __notifications: any,
+    _playbookModals: any) {
 
     var self = this;
+
+    this.drilldown = {
+        playbook: null
+    }
 
     // TODO @theBull - ensure the 'current user' is being addressed
     // TODO @theBull - add notification handling
@@ -38,7 +44,7 @@ function(
         __api.get(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.GET_PLAYBOOKS))
             .then(function(response: any) {
 
-                let collection = new Common.Models.PlaybookModelCollection();
+                let collection = new Common.Models.PlaybookModelCollection(Team.Enums.UnitTypes.Mixed);
 
                 if (response && response.data && response.data.results) {
 
@@ -49,7 +55,7 @@ function(
                         let playbookResult = playbookResults[i];
 
                         if (playbookResult && playbookResult.data && playbookResult.data.model) {
-                            let playbookModel = new Common.Models.PlaybookModel();
+                            let playbookModel = new Common.Models.PlaybookModel(Team.Enums.UnitTypes.Other);
                             playbookResult.data.model.key = playbookResult.key;
                             playbookModel.fromJson(playbookResult.data.model);
 
@@ -93,20 +99,32 @@ function(
      * Sends a playbook model to the server for storage
      * @param {Common.Models.PlaybookModel} playbookModel The model to be created/saved
      */
-    this.createPlaybook = function(playbookModel: Common.Models.PlaybookModel) {
+    this.createPlaybook = function(newPlaybookModel: Common.Models.PlaybookModel) {
         var d = $q.defer();
 
+        if(!Common.Utilities.isNullOrUndefined(newPlaybookModel)) {
+            let nameExists = impakt.context.Playbook.playbooks.hasElementWhich(
+                function(playbookModel: Common.Models.PlaybookModel, index: number) {
+                    return playbookModel.name == newPlaybookModel.name;
+                });
+            if(nameExists) {
+                let notification = __notifications.warning(
+                    'Failed to create playbook. Playbook "', newPlaybookModel.name, '" already exists.');
+                _playbookModals.createPlaybookDuplicate(newPlaybookModel);
+                return;
+            }
+        }
         // set key to -1 to ensure a new object is created server-side
-        playbookModel.key = -1;
-        let playbookModelJson = playbookModel.toJson();
+        newPlaybookModel.key = -1;
+        let playbookModelJson = newPlaybookModel.toJson();
         let notification = __notifications.pending(
-            'Creating playbook "', playbookModel.name, '"...'
+            'Creating playbook "', newPlaybookModel.name, '"...'
         );
         __api.post(
             __api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.CREATE_PLAYBOOK),
             {
                 version: 1,
-                name: playbookModel.name,
+                name: newPlaybookModel.name,
                 data: {
                     version: 1,
                     model: playbookModelJson
@@ -115,7 +133,7 @@ function(
         )
         .then(function(response: any) {
             let results = Common.Utilities.parseData(response.data.results);
-            let playbookModel = new Common.Models.PlaybookModel();
+            let playbookModel = new Common.Models.PlaybookModel(newPlaybookModel.unitType);
             
             if(results && results.data && results.data.model) {
                 results.data.model.key = results.key;
@@ -134,7 +152,7 @@ function(
             
             d.resolve(playbookModel);
         }, function(error: any) {
-            notification.error('Failed to create playbook "', playbookModel.name, '"');
+            notification.error('Failed to create playbook "', newPlaybookModel.name, '"');
             d.reject(error);
         });
 
@@ -209,7 +227,8 @@ function(
                 if (!result || !result.data || !result.data.formation) {
                     d.reject('Create playbook result was invalid');
                 }
-                let formationModel = new Common.Models.Formation();
+                let formationModel = new Common.Models.Formation(Team.Enums.UnitTypes.Other);
+                result.data.formation.key = result.key;
                 formationModel.fromJson(result.data.formation);
                 console.log(formationModel);
 
@@ -292,7 +311,7 @@ function(
             '?$filter=ParentRK gt 0'))
             .then(function(response: any) {
                 let results = Common.Utilities.parseData(response.data.results);
-                let collection = new Common.Models.FormationCollection();
+                let collection = new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed);
                 let formations = [];
                 for (let i = 0; i < results.length; i++) {
                     let result = results[i];
@@ -336,7 +355,7 @@ function(
                 let rawResults = Common.Utilities.parseData(response.data.results);
                 let formationRaw = (JSON.parse(rawResults.data)).formation;
 
-                let formationModel = new Common.Models.Formation()
+                let formationModel = new Common.Models.Formation(Team.Enums.UnitTypes.Other);
                 formationModel.fromJson(formationRaw);
 
                 d.resolve(formationModel);
@@ -375,13 +394,12 @@ function(
             // 4. add the working play to the editor context
         
             // Set Play to formation-only editing mode
-            let play = new Common.Models.PlayPrimary();
+            let play = new Common.Models.PlayPrimary(formation.unitType);
 
             // need to make a copy of the formation here
             let formationCopy = formation.copy();
             play.setFormation(formationCopy);
             play.editorType = Playbook.Enums.EditorTypes.Formation;
-            play.unitType = formation.unitType;
             play.name = formation.name;
 
             // add the play onto the editor context
@@ -422,7 +440,7 @@ function(
         )
         .then(function(response: any) {
             let results = Common.Utilities.parseData(response.data.results);
-            let formationModel = new Common.Models.Formation();
+            let formationModel = new Common.Models.Formation(Team.Enums.UnitTypes.Other);
             if(results && results.data && results.data.formation) {
                 formationModel.fromJson(results.data.formation);
 
@@ -501,7 +519,7 @@ function(
      * Retrieves all sets (for the given playbook?) of the current user
      * @param {[type]} playbook ???
      */
-    this.getSets = function(playbook) {
+    this.getSets = function() {
         var d = $q.defer();
         
         let personnelNotification = __notifications.pending(
@@ -519,9 +537,9 @@ function(
                 let results = Common.Utilities.parseData(response.data.results);
 
                 let personnelResults = [];
-                let personnelCollection = new Team.Models.PersonnelCollection();
+                let personnelCollection = new Team.Models.PersonnelCollection(Team.Enums.UnitTypes.Mixed);
                 let assignmentResults = [];
-                let assignmentCollection = new Common.Models.AssignmentCollection();
+                let assignmentCollection = new Common.Models.AssignmentCollection(Team.Enums.UnitTypes.Mixed);
                 
                 // get personnel & assignments from `sets`
                 for (var i = 0; i < results.length; i++) {
@@ -543,13 +561,13 @@ function(
 
                 for (let i = 0; i < personnelResults.length; i++) {
                     let personnel = personnelResults[i];
-                    let personnelModel = new Team.Models.Personnel();
+                    let personnelModel = new Team.Models.Personnel(Team.Enums.UnitTypes.Other);
                     personnelModel.fromJson(personnel);
                     personnelCollection.add(personnelModel);
                 }
                 for (let i = 0; i < assignmentResults.length; i++) {
                     let assignment = assignmentResults[i];
-                    let assignmentModel = new Common.Models.Assignment();
+                    let assignmentModel = new Common.Models.Assignment(Team.Enums.UnitTypes.Other);
                     assignmentModel.fromJson(assignment);
                     assignmentCollection.add(assignmentModel);
                 }
@@ -662,7 +680,7 @@ function(
             let results = Common.Utilities.parseData(response.data.results);
             let playModel = null;
             if(results && results.data && results.data.play) {
-                playModel = new Common.Models.Play();
+                playModel = new Common.Models.Play(Team.Enums.UnitTypes.Other);
                 playModel.fromJson(results.data.play);
                 playModel.key = results.key;
                 impakt.context.Playbook.plays.add(playModel);
@@ -816,7 +834,7 @@ function(
         )
         .then(function(response: any) {
             let results = Common.Utilities.parseData(response.data.results);
-            let playModel = new Common.Models.Play();
+            let playModel = new Common.Models.Play(Team.Enums.UnitTypes.Other);
             if(results && results.data && results.data.play) {
                 playModel.fromJson(results.data.play);
 
@@ -857,7 +875,7 @@ function(
         )
         .then(function(response: any) {
             
-            let playCollection = new Common.Models.PlayCollection();
+            let playCollection = new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed);
             
             if(response && response.data && response.data.results) {
                 let results = Common.Utilities.parseData(response.data.results);
@@ -866,7 +884,7 @@ function(
                     for (let i = 0; i < results.length; i++) {
                         let result = results[i];
                         if (result && result.data && result.data.play) {
-                            let playModel = new Common.Models.Play();
+                            let playModel = new Common.Models.Play(Team.Enums.UnitTypes.Other);
                             playModel.fromJson(result.data.play);
                             playModel.key = result.key;
                             playCollection.add(playModel);
@@ -897,16 +915,16 @@ function(
         play.editorType = Playbook.Enums.EditorTypes.Play;
 
         if(!play.formation) {
-            let associatedFormation = play.associated.formations.primary();
-            if(associatedFormation) {
-                play.formation = impakt.context.Playbook.formations.get(associatedFormation);
-            }
+            // let associatedFormation = play.associated.formations.primary();
+            // if(associatedFormation) {
+            //     play.formation = impakt.context.Playbook.formations.get(associatedFormation);
+            // }
         }
         if (!play.personnel) {
-            let associatedPersonnel = play.associated.personnel.primary();
-            if (associatedPersonnel) {
-                play.personnel = impakt.context.Team.personnel.get(associatedPersonnel);
-            }
+            // let associatedPersonnel = play.associated.personnel.primary();
+            // if (associatedPersonnel) {
+            //     play.personnel = impakt.context.Team.personnel.get(associatedPersonnel);
+            // }
         }
 
         
@@ -1016,7 +1034,13 @@ function(
      * Navigates to the playbook browser
      */
     this.toBrowser = function() {
+        this.drilldown.playbook = null;
         $state.transitionTo('playbook.browser');
+    }
+
+    this.toPlaybookDrilldown = function(playbookModel: Common.Models.PlaybookModel) {
+        this.drilldown.playbook = playbookModel;
+        $state.transitionTo('playbook.drilldown.playbook');
     }
 
     /**
@@ -1024,6 +1048,30 @@ function(
      */
     this.toTeam = function() {
         $state.transitionTo('team');
+    }
+
+    /**
+     * Takes a given entity (of unknown type) and uses its internally
+     * defined ImpaktDataType to determine the appropriate API method
+     * to call.
+     * 
+     * @param {Common.Interfaces.IActionable} entity The entity to delete
+     */
+    this.deleteEntityByType = function(entity: Common.Interfaces.IActionable) {
+        let d = $q.defer();
+
+        switch(entity.impaktDataType) {
+            case Common.Enums.ImpaktDataTypes.Playbook:
+                return _playbookModals.deletePlaybook(entity);
+            case Common.Enums.ImpaktDataTypes.Play:
+                return _playbookModals.deletePlay(entity);
+            case Common.Enums.ImpaktDataTypes.Formation:
+                return _playbookModals.deleteFormation(entity);
+            default:
+               d.reject(new Error('_playbook deleteEntityByType: impaktDataType not supported'))
+        }
+
+        return d.promise;
     }
 
 }]);

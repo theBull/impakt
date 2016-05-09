@@ -8,5 +8,17 @@ module Navigation.Models {
 			super();
 		}
 
+		public activate(navItem: Navigation.Models.NavigationItem) {
+			this.forEach(function(item: Navigation.Models.NavigationItem, index: number) {
+				item.deactivate();
+			});
+			navItem.activate();
+		}
+
+		public getActive(): Navigation.Models.NavigationItem {
+			return this.filterFirst(function(item: Navigation.Models.NavigationItem, index: number) {
+				return item.active === true;
+			});
+		}
 	}
 }

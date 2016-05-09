@@ -1,11 +1,21 @@
 /// <reference path='../playbook-modals.mdl.ts' />
  
-impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl', 
-[
-'$scope', '$uibModalInstance', '_playbook',
-	function($scope: any, $uibModalInstance: any, _playbook: any) {
+impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl', [
+'$scope', 
+'$uibModalInstance', 
+'_associations',
+'_playbook',
+function(
+	$scope: any, 
+	$uibModalInstance: any, 
+	_associations: any,
+	_playbook: any
+) {
 
-	$scope.newPlay = new Common.Models.Play();
+	$scope.unitTypeCollection = impakt.context.Team.unitTypes;
+	$scope.selectedUnitType =
+		$scope.unitTypeCollection.getByUnitType(Team.Enums.UnitTypes.Offense).toJson();
+	$scope.newPlay = new Common.Models.Play($scope.selectedUnitType.unitType);
 	$scope.playbooks = impakt.context.Playbook.playbooks;
 	$scope.formations = impakt.context.Playbook.formations;
 	$scope.assignments = impakt.context.Playbook.assignments;
@@ -15,9 +25,7 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl',
 	$scope.selectedAssignments = $scope.assignments.first();
 	$scope.personnelCollection = impakt.context.Team.personnel;
 	$scope.selectedPersonnel = $scope.personnelCollection.first();
-	$scope.unitTypeCollection = impakt.context.Team.unitTypes;
-	$scope.selectedUnitType =
-		$scope.unitTypeCollection.getByUnitType(Team.Enums.UnitTypes.Offense).toJson();
+	
 
 	// Intialize new Play with data
 	$scope.newPlay.setFormation($scope.selectedFormation);
@@ -28,8 +36,8 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl',
 	// other parts of the application
 	impakt.context.Playbook.creation.plays.add($scope.newPlay);
 
-	$scope.selectUnitType = function(unitTypeValue: Team.Enums.UnitTypes) {
-		$scope.selectedUnitType = $scope.unitTypeCollection.getByUnitType(unitTypeValue);
+	$scope.selectUnitType = function() {
+		$scope.newPlay.unitType = $scope.selectedUnitType.unitType;
 	}
 
 	$scope.selectPlaybook = function(playbook: Common.Models.PlaybookModel) {
@@ -44,14 +52,20 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl',
 	}
 	$scope.selectPersonnel = function(personnel: Team.Models.Personnel) {
 		$scope.newPlay.setPersonnel($scope.personnelCollection.get(personnel.guid));
+		$scope.selectedUnitType = $scope.unitTypeCollection.getByUnitType(personnel.unitType);
+		$scope.selectUnitType($scope.selectedUnitType);
 	}
 
 	$scope.ok = function () {
-		
-		$scope.newPlay.unitType = $scope.selectedUnitType.unitType;
-		
+				
 		_playbook.createPlay($scope.newPlay)
-		.then(function(createdPlay) {
+		.then(function(createdPlay: Common.Models.Play) {
+			_associations.createAssociations(createdPlay, [
+				$scope.selectedPlaybook,
+				$scope.selectedFormation,
+				$scope.selectedPersonnel,
+				$scope.selectedAssignments
+			]);
 			removePlayFromCreationContext();
 			$uibModalInstance.close(createdPlay);
 		}, function(err) {

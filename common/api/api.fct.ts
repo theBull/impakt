@@ -44,7 +44,7 @@ function(
 		return d.promise;
 	}
 
-	function get(endpointUrl) {
+	function get(endpointUrl, data?: any) {
 		let d = $q.defer();
 		$http({
 			method: 'POST',
@@ -53,9 +53,9 @@ function(
 				'X-HTTP-Method-Override': 'GET',
 				'Content-Type': 'application/json'
 			},
-			data: { 
+			data: $.extend({ 
 				"OrganizationKey": __localStorage.getOrganizationKey()
-			}
+			}, data)
 		}).then(function(data) {
 			// TODO: handle statuses manually
 			//console.log(data);

@@ -100,7 +100,6 @@ function($rootScope: any, _base: any, _playbookEditor: any) {
 				break;
 
 			case Playbook.Enums.ToolActions.Assignment:
-				alert('NOTE: Assignment functionality is in development. Thanks for your patience!');
 				break;
 
 		}

@@ -22,12 +22,12 @@ impakt.nav.controller('nav.ctrl', [
 		$scope.searchMenuItem = __nav.searchMenuItem;
 
 		// set default view to the Home module
-		$location.path('/home');
+		$location.path('/playbook');
 		
 		$scope.navigatorNavSelection = getActiveNavItemLabel();
 
 		$scope.searchItemClick = function() {
-			$scope.searchMenuItem.isActive = !$scope.searchMenuItem.isActive;
+			$scope.searchMenuItem.toggleActivation();
 		}
 
 		$scope.notificationItemClick = function() {
@@ -41,27 +41,12 @@ impakt.nav.controller('nav.ctrl', [
 		}
 
 		$scope.menuItemClick = function(navigationItem: Navigation.Models.NavigationItem) {
-			let activeNavItem = getActiveNavItem();
-			if(activeNavItem)
-				activeNavItem.isActive = false;
-
-			navigationItem.isActive = true;
-
-			if(navigationItem)
-				$location.path(navigationItem.path);
-
+			$scope.menuItems.activate(navigationItem);
 			$scope.navigatorNavSelection = navigationItem.label;
 		}
 
-		function getActiveNavItem(): Navigation.Models.NavigationItem {
-			// pre-assumption, we can only have 1 active menu item
-			return $scope.menuItems.filterFirst(function(menuItem) {
-				return menuItem.isActive === true;
-			});
-		}
-
 		function getActiveNavItemLabel() {
-			var activeNavItem = getActiveNavItem();
+			var activeNavItem = $scope.menuItems.getActive();
 			return activeNavItem ? activeNavItem.label : null;
 		}
 }]);

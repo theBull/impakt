@@ -3,84 +3,108 @@
 module Common.Models {
 
     export class Play
-    extends Common.Models.Modifiable {
+    extends Common.Models.AssociableEntity {
 
         public field: Common.Interfaces.IField;
         public name: string;
-        public associated: Common.Models.Association;
         public assignments: Common.Models.AssignmentCollection;
         public formation: Common.Models.Formation;
         public personnel: Team.Models.Personnel;
         public unitType: Team.Enums.UnitTypes;
         public editorType: Playbook.Enums.EditorTypes;
         public png: string;
-        public key: number;
 
-        constructor() {
-            super();
-            super.setContext(this);
+        constructor(unitType: Team.Enums.UnitTypes) {
+            super(Common.Enums.ImpaktDataTypes.Play);
             
             this.field = null;
             this.name = 'New play';
-            this.associated = new Common.Models.Association();
+            this.unitType = unitType;
             this.assignments = null;
             this.formation = null;
             this.personnel = null;
-            this.unitType = Team.Enums.UnitTypes.Other;
             this.editorType = Playbook.Enums.EditorTypes.Play;
             this.png = null;
         }
         public setPlaybook(playbook: Common.Models.PlaybookModel): void {
-            // Unit type is key.
-            if (playbook) {
-                this.associated.playbooks.only(playbook.guid);
-            }
-            else {
-                this.associated.playbooks.empty();
-                console.warn('Play setPlaybook(): implementation is incomplete');
-            }
+            // TODO @theBull - handle associations
+
             // TODO @theBull
             // - add playbook field?
             // - what happens when changing to playbooks of different unit types? 
             this.setModified(true);
         }
         public setFormation(formation: Common.Models.Formation): void {
-            if (formation) {
-                this.associated.formations.only(formation.guid);
+            if (!Common.Utilities.isNullOrUndefined(formation)) {
+                if(formation.unitType != this.unitType) {
+                    //throw new Error('Play setFormation(): Formation unit type does not match play unit type');
+                }
+
             }
             else {
-                this.associated.formations.empty();
                 this.setAssignments(null);
                 this.setPersonnel(null);
             }
             this.formation = formation;
+            this.unitType = formation.unitType;
             this.setModified(true);
         }
         public setAssignments(assignments: Common.Models.AssignmentCollection): void {
-            if (assignments) {
-                this.associated.assignments.only(assignments.guid);
+            if (!Common.Utilities.isNullOrUndefined(assignments)) {
+                if(assignments.unitType != this.unitType)
+                    throw new Error('Play setAssignments(): Assignments unit type does not match play unit type');
+                
             }
             else {
-                this.associated.assignments.empty();
             }
             this.assignments = assignments;
             this.setModified(true);
         }
         public setPersonnel(personnel: Team.Models.Personnel): void {
-            if (personnel) {
-                this.associated.personnel.only(personnel.guid);
-            }
-            else {
-                this.associated.personnel.empty();
+            if (!Common.Utilities.isNullOrUndefined(personnel)) {
+                if (personnel.unitType != this.unitType)
+                    throw new Error('Play setPersonnel(): Cannot apply personnel with different unit type.');
+
+            } else {
             }
             this.personnel = personnel;
             this.setModified(true);
         }
+        public setUnitType(unitType: Team.Enums.UnitTypes) {
+            this.isFieldSet(this.field);
+            this.isBallSet(this.field.ball);
+
+            // 1. if formation doesn't match unit type, select default formation
+            // of unit type
+            if(this.formation && this.formation.unitType != unitType) {
+                let confirmed = confirm('Formation unit type mismatch.\nContinue with a default formation of the correct unit type?');
+                if(confirmed) {
+                    this.formation.unitType = unitType;
+                } else {
+                    return;
+                }
+            }
+
+            // Handle the formation / confirm dialog first; that way if user clicks cancel
+            // in the confirm, we don't end up setting the play's unit type anyway.
+            this.unitType = unitType;            
+
+            // 2. if personnel doesn't match unit type, select default personnel
+            // of unit type
+            if(this.personnel && this.personnel.unitType != unitType) {
+                this.personnel.unitType = unitType;
+                this.personnel.setDefault();
+            }
+
+            // 3. if assignments do not match unit type, clear them.
+            if(this.assignments.unitType != this.unitType) {
+                this.assignments = new Common.Models.AssignmentCollection(this.unitType);
+            }
+        }
         public draw(field: Common.Interfaces.IField): void {
-            if (!field)
-                throw new Error('Play draw(): Field is null or undefined');
-            if (!field.ball)
-                throw new Error('Play draw(): Ball is null or undefined');
+            this.isFieldSet(field);
+            this.isBallSet(field.ball);
+
             this.field = field;
 
             // Clear the players
@@ -89,13 +113,16 @@ module Common.Models {
             var self = this;
             // set defaults, in case no assignments / personnel were assigned
             if (!this.personnel) {
-                this.personnel = new Team.Models.Personnel();
+                this.personnel = new Team.Models.Personnel(this.unitType);
+            }
+            if(!this.personnel.positions) {
+                this.personnel.setDefault();
             }
             if (!this.assignments) {
-                this.assignments = new Common.Models.AssignmentCollection();
+                this.assignments = new Common.Models.AssignmentCollection(this.unitType);
             }
             if (!this.formation) {
-                this.formation = new Common.Models.Formation();
+                this.formation = new Common.Models.Formation(this.unitType);
             }
             if(!this.formation.placements || this.formation.placements.isEmpty()) {   
                 this.formation.setDefault(this.field.ball);
@@ -108,46 +135,61 @@ module Common.Models {
         }
         public fromJson(json: any): any {
             // TODO
-            this.key = json.key;
             this.name = json.name;
-            this.guid = json.guid;
-            this.associated.formations.add(json.formationGuid);
-            this.associated.personnel.add(json.personnelGuid);
-            this.associated.assignments.add(json.assignmentsGuid);
             this.unitType = json.unitType;
             this.editorType = json.editorType;
             this.png = json.png;
+
+            super.fromJson(json);
         }
         public toJson(): any {
-            return {
-                key: this.key,
+            return $.extend({
                 name: this.name,
-                associated: this.associated.toJson(),
-                assignmentsGuid: this.assignments ? this.assignments.guid : null,
-                personnelGuid: this.personnel ? this.personnel.guid : null,
-                formationGuid: this.formation ? this.formation.guid : null,
                 unitType: this.unitType,
                 editorType: this.editorType,
-                guid: this.guid,
                 png: this.png
-            }
+            }, super.toJson());
         }
         public hasAssignments() {
             return this.assignments && this.assignments.size() > 0;
         }
         public setDefault(field: Common.Interfaces.IField) {
-            if (!field)
-                throw new Error('Play setDefault(): field is null or undefined');
+            this.isFieldSet(field);
+
             this.field = field;
             // empty what's already there, if anything...
             if (!this.personnel)
-                this.personnel = new Team.Models.Personnel();
+                this.personnel = new Team.Models.Personnel(this.unitType);
             if (!this.formation)
-                this.formation = new Common.Models.Formation();
+                this.formation = new Common.Models.Formation(this.unitType);
             this.personnel.setDefault();
             this.formation.setDefault(this.field.ball);
             // assignments?
             // this.draw(field);
+        }
+        public getOpposingUnitType(): Team.Enums.UnitTypes {
+            let opponentUnitType = Team.Enums.UnitTypes.Other;
+            switch(this.unitType) {
+                case Team.Enums.UnitTypes.Offense:
+                    opponentUnitType = Team.Enums.UnitTypes.Defense;
+                    break;
+                case Team.Enums.UnitTypes.Defense:
+                    opponentUnitType = Team.Enums.UnitTypes.Offense;
+                    break;
+            }
+            return opponentUnitType;
+        }
+        public isFieldSet(field: Common.Interfaces.IField): boolean {
+            if (!field)
+                throw new Error('Play draw(): Field is null or undefined');
+
+            return true;
+        }
+        public isBallSet(ball: Common.Interfaces.IBall): boolean {
+            if (!ball)
+                throw new Error('Play draw(): Ball is null or undefined');
+
+            return true;
         }
     }
 }

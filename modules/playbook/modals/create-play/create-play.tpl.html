@@ -15,11 +15,12 @@
             <div class='marginBottom2'>
                 <p>Unit type</p>
                 <div ng-repeat='unitType in unitTypeCollection.toArray()'>
-            	    <label class='pad pointer gray-bg-0-hover row'>
+            	    <label class='pointer gray-bg-0-hover row'>
         		    	<div class='width1 marginRight1'>
         		    		<input type='radio' 
         		    			ng-model='selectedUnitType.unitType'
         		    			ng-value='unitType.unitType'
+                                ng-change='selectUnitType()'
         		    			name='unitType' />
         		    	</div>
         		    	<span>{{unitType.name}} ({{unitType.unitType}})</span>

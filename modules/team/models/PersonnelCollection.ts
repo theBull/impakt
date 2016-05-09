@@ -7,9 +7,9 @@ module Team.Models {
         public unitType: Team.Enums.UnitTypes;
         public setType: Common.Enums.SetTypes;
 
-        constructor() {
+        constructor(unitType: Team.Enums.UnitTypes) {
             super();
-            this.unitType = Team.Enums.UnitTypes.Other;
+            this.unitType = unitType;
             this.setType = Common.Enums.SetTypes.Personnel;
         }
         public toJson() {
@@ -28,7 +28,13 @@ module Team.Models {
             var personnelArray = json.personnel || [];
             for (var i = 0; i < personnelArray.length; i++) {
                 var rawPersonnel = personnelArray[i];
-                var personnelModel = new Team.Models.Personnel();
+                if(Common.Utilities.isNullOrUndefined(rawPersonnel)) {
+                    continue;
+                }
+                rawPersonnel.unitType = Common.Utilities.isNullOrUndefined(rawPersonnel.unitType) &&
+                    rawPersonnel.unitType >= 0 ? rawPersonnel.unitType : Team.Enums.UnitTypes.Other;
+                    
+                var personnelModel = new Team.Models.Personnel(rawPersonnel.unitType);
                 personnelModel.fromJson(rawPersonnel);
                 this.add(personnelModel);
             }

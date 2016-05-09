@@ -1,10 +1,28 @@
 /// <reference path='./search.mdl.ts' />
 
-impakt.search.controller('search.ctrl',
-['$scope', function($scope: any) {
+impakt.search.controller('search.ctrl',[
+'$scope', 
+'__context',
+function(
+	$scope: any,
+	__context: any
+) {
 	$scope.title = 'Results';
 	$scope.query = '';
-	$scope.results = [
-		1, 2, 3, 4, 5
-	];
+	$scope.playbooks;
+	$scope.formations;
+	$scope.plays;
+
+	// attach key listeners
+
+	__context.onReady(function() {
+		$scope.playbooks = impakt.context.Playbook.playbooks;
+		$scope.formations = impakt.context.Playbook.formations;
+		$scope.plays = impakt.context.Playbook.plays;
+	});
+
+	$scope.$on("$destroy", function() {
+        
+    });
+	
 }]);

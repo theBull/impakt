@@ -1,16 +1,21 @@
-<div id='playbook-editor-main' class='row positionRelative'>		
+<div class='col'>
 
-		<div class='col'>
+	<!-- tabs -->
+	<ng-include
+		ng-attr-src='templates.tabs'>
+	</ng-include>
 
-			<!-- tabs -->
-			<ng-include
-				ng-attr-src='templates.tabs'>
-			</ng-include>
+	<!-- canvas -->
+	<ng-include class='col'
+		ng-attr-src='templates.canvas'>
+	</ng-include>
 
-			<!-- canvas -->
-			<ng-include class='col'
-				ng-attr-src='templates.canvas'>
-			</ng-include>
-
-		</div>		
 </div>
+
+<!-- Details -->
+<expandable
+	direction='left'
+	collapsed='true'
+	url='modules/playbook/editor/details/playbook-editor-details.tpl.html'>
+
+</expandable>

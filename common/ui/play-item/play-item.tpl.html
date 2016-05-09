@@ -1,0 +1,39 @@
+<div 
+	class='positionRelative gray-bg-3-hover marginBottom1 
+		height21 width18 pointer marginRight1 overflowHidden'
+	ng-mouseover='editVisible = true'
+	ng-mouseout='editVisible = false'
+	ng-init='editVisible = false'
+	ng-click='toggleSelection(play)'
+	ng-class='{"selected-border": play.selected}'>
+	
+	<div class='col positionRelative'>
+		
+		<div class='right0 top0 pad gray-bg-2-hover opacity09' 
+			ng-show='editVisible'
+			ng-click='openInEditor(play)'>
+			edit
+			<span class='glyphicon glyphicon-pencil' 
+				title='Edit play'>
+			</span>
+		</div>
+		
+		<div class='pad'>
+			<div class='row'>
+				<p>
+					{{play.name}}
+				</p>
+			</div>
+		</div>					
+
+		<play-thumbnail play='play' class='height18'></play-thumbnail>			
+
+		<div class='pad gray-bg-2 opacity09 bottom0 left0 fontSize8'>
+			<type-formatter
+				value='play.unitType'
+				type='Team.Enums.UnitTypes'>
+			</type-formatter>
+		</div>
+	</div>
+	
+</div>

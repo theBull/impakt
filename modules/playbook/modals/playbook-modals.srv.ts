@@ -29,6 +29,28 @@ function($q: any, __modals: any) {
 		});
 		return d.promise;
 	}
+	this.createPlaybookDuplicate = function(playbookModel: Common.Models.PlaybookModel) {
+		let d = $q.defer();
+		let modalInstance = __modals.open(
+			'',
+			'modules/playbook/modals/create-playbook-duplicate-error/create-playbook-duplicate-error.tpl.html',
+			'playbook.modals.createPlaybookDuplicateError.ctrl',
+			{
+				playbook: function() {
+					return playbookModel;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(createdPlaybook) {
+			console.log(createdPlaybook);
+			d.resolve();
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+		return d.promise;
+	}
 	this.deletePlaybook = function(playbook: Common.Models.PlaybookModel) {
 		let d = $q.defer();
 		let modalInstance = __modals.open(

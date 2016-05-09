@@ -7,8 +7,8 @@
 				<!-- Search -->
 				<li class='width6 height5 padTop1 padBottom1 pointer gray-border-bottom'
 					ng-class="{
-						'gray-bg-2-hover': !searchMenuItem.isActive,
-						'gray-bg-1-hover': searchMenuItem.isActive
+						'gray-bg-2-hover': !searchMenuItem.active,
+						'gray-bg-1-hover': searchMenuItem.active
 					}"
 					ng-click='searchItemClick()'>
 
@@ -21,8 +21,8 @@
 				<!-- Notifications -->
 				<li class='width6 height5 padTop1 padBottom1 pointer gray-border-bottom'
 					ng-class="{
-						'gray-bg-2-hover': !notificationsMenuItem.isActive,
-						'gray-bg-1-hover': notificationsMenuItem.isActive
+						'gray-bg-2-hover': !notificationsMenuItem.active,
+						'gray-bg-1-hover': notificationsMenuItem.active
 					}"
 					ng-click='notificationItemClick()'>
 
@@ -30,10 +30,10 @@
 						<span ng-attr-class='{{ "glyphicon glyphicon-" + notificationsMenuItem.glyphicon }}'>
 						</span>
 					</div>
-					<div class='circle-bg top1 right1'
+					<div class='rounded-rect-bg top1 right1'
 						ng-class="{
-							'red-circle-bg': notifications.size() > 0, 
-							'black-circle-bg': notifications.size() <= 0
+							'green-rounded-rect-bg': notifications.size() > 0, 
+							'black-rounded-rect-bg': notifications.size() <= 0
 						}">
 						{{notifications.size()}}
 					</div>
@@ -43,9 +43,9 @@
 				<li ng-repeat='menuItem in menuItems.toArray()' 
 					class='height5 padTop1 padBottom1 pointer'
 					ng-class='{ 
-						active: menuItem.isActive,  
-						"gray-bg-2-hover": !menuItem.isActive,
-						"black-bg-hover": menuItem.isActive
+						active: menuItem.active,  
+						"gray-bg-2-hover": !menuItem.active,
+						"black-bg-hover": menuItem.active
 					}'
 					ng-click='menuItemClick(menuItem)'>
 					<div class='nav-item-icon height3 width4 marginLeft1 marginRight1'>
@@ -59,26 +59,10 @@
 		
 		<!-- Navigator menu container -->
 		<div id='impakt-navigator-container' class='col'>
-			<notifications class='col width100Percent'></notifications>
+			<notifications class='col'></notifications>
 		</div>
 
 		<!-- Navigator search container -->
-		<div id='impakt-search-container' class='col positionFixed left6 top0 minHeight5 gray-bg-7 width100Percent font-white' ng-show='searchMenuItem.isActive'
-		ng-controller='search.ctrl'>	
-			<input 
-				type='text' 
-				class='fontSize20'
-				placeholder='Search'
-				ng-model='searchQuery' />
-
-			<div class='col pad'>
-				<div class='marginBottom1'>
-					{{title}}
-				</div>
-				<div ng-repeat='result in results' class='marginBottom1'>
-					{{result}}
-				</div>
-			</div>
-		</div>
+		<div ng-include='"modules/search/search.tpl.html"'></div>
 	</div>
 </div>

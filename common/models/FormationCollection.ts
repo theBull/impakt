@@ -1,8 +1,9 @@
 /// <reference path='./models.ts' />
 
 module Common.Models {
+    
     export class FormationCollection
-    extends Common.Models.ModifiableCollection<Common.Models.Formation> {
+    extends Common.Models.ActionableCollection<Common.Models.Formation> {
 
         public parentRK: number; // TODO @theBull - deprecate
         public unitType: Team.Enums.UnitTypes;
@@ -10,10 +11,10 @@ module Common.Models {
         // at this point I'm expecting an object literal with data / count
         // properties, but not a valid FormationCollection; Essentially
         // this is to get around 
-        constructor() {
+        constructor(unitType: Team.Enums.UnitTypes) {
             super();
             this.parentRK = -1;
-            this.unitType = Team.Enums.UnitTypes.Other;
+            this.unitType = unitType;
             this.onModified(function() {});
         }
         public toJson() {
@@ -34,7 +35,12 @@ module Common.Models {
             let formations = json || [];
             for (let i = 0; i < formations.length; i++) {
                 let rawFormation = formations[i];
-                let formationModel = new Common.Models.Formation();
+                if (Common.Utilities.isNullOrUndefined(rawFormation))
+                    continue;
+                rawFormation.unitType = !Common.Utilities.isNullOrUndefined(rawFormation.unitType) &&
+                    rawFormation.unitType >= 0 ? rawFormation.unitType : Team.Enums.UnitTypes.Other;
+
+                let formationModel = new Common.Models.Formation(rawFormation.unitType);
                 formationModel.fromJson(rawFormation);
                 this.add(formationModel);
             }

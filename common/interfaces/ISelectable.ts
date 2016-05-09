@@ -3,22 +3,12 @@
 module Common.Interfaces {
 
 	export interface ISelectable
-	extends Common.Interfaces.IStorable {
+	extends Common.Interfaces.IStorable,
+	Common.Interfaces.IActionable {
 
-		disabled: boolean;
-		clickable: boolean;
-		hoverable: boolean;
-		selected: boolean;
 		selectedFill: string;
 		selectedStroke: string;
 		selectedOpacity: number;
-		selectable: boolean;
-
-		select(): void;
-		deselect(): void;
-		toggleSelect(): void;
-		disable(): void;
-		enable(): void;
 
 		onhover(hoverIn: any, hoverOut: any, context: any): void;
 		hoverIn(e: any, context?: any): void;

@@ -1,21 +1,56 @@
 /// <reference path='../common.ts' />
 
 module Common.Enums {
-
-	export enum ImpaktTypes {
-        Unknown = 0,
+	
+	export enum ImpaktDataTypes {
+		Unknown = 0,
 		PlaybookView = 1,
 		Playbook = 2,
-		PlayFormation = 3,
-		PlaySet = 4,
+		Formation = 3,
+		Set = 4,
+
+		Play = 10,
+
 		PlayTemplate = 98,
 		Variant = 99,
-		Play = 100,
-		Player = 101,
-		PlayPlayer = 102,
-		PlayPosition = 103,
-		PlayAssignment = 104,
-		Team = 200
+
+		Team = 200,
+
+		GenericEntity = 1000,
+		League = 1010,
+		Season = 1011,
+		Opponent = 1012,
+		Game = 1013,
+		Position = 1014,
+		PersonnelGroup = 1015,
+		TeamMember = 1016,
+		UnitType = 1017,
+		Conference = 1018,
+		Scenario = 1020,
+		MatchupPlaybook = 1021,
+		Situation = 1022,
+		Assignment = 1023,
+		AssignmentGroup = 1024,
+		GamePlan = 1030,
+		PracticePlan = 1031,
+		PracticeSchedule = 1032,
+		ScoutCard = 1033,
+		Drill = 1034,
+		QBWristband = 1035,
+		GameAnalysis = 1050,
+		PlayByPlayAnalysis = 1051,
+
+		GenericSetting = 2000,
+		User = 2010,
+		SecureUser = 2011,
+		Account = 2020,
+		Organization = 2021
+	}
+
+	export enum AssociationTypes {
+		Unknown = 0,
+		Peer = 1,
+		Dependency = 2
 	}
 
 	export enum DimensionTypes {

@@ -2,14 +2,15 @@
 
 module Common.Models {
 	export class Notification
-	extends Common.Models.Storable
-	implements Common.Interfaces.ICollectionItem {
+	extends Common.Models.Modifiable {
 		
 		public message: string;
 		public type: Common.Models.NotificationType;
 		
 		constructor(message: string, type: Common.Models.NotificationType) {
 			super();
+			super.setContext(this);
+			
 			this.message = message;
 			this.type = type;
 		}

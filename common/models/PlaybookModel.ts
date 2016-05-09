@@ -2,41 +2,32 @@
 
 module Common.Models {
     export class PlaybookModel
-    extends Common.Models.Modifiable {
+        extends Common.Models.AssociableEntity {
     
-        public key: number;
         public name: string;
-        public associated: Common.Models.Association;
         public unitType: Team.Enums.UnitTypes;
         
-        constructor() {
-            super();
+        constructor(unitType: Team.Enums.UnitTypes) {
+            super(Common.Enums.ImpaktDataTypes.Playbook);
             super.setContext(this);
 
-            this.key = -1;
             this.name = 'Untitled';
-            this.associated = new Common.Models.Association();
-            this.unitType = Team.Enums.UnitTypes.Other;
+            this.unitType = unitType;
         }
         public toJson(): any {
-            return {
-                key: this.key,
+            return $.extend({
                 name: this.name,
-                associated: this.associated.toJson(),
-                unitType: this.unitType,
-                guid: this.guid
-            };
+                unitType: this.unitType
+            }, super.toJson());
         }
         public fromJson(json: any): any {
             if (!json)
                 return;
 
-            this.key = json.key;
             this.name = json.name;
             this.unitType = json.unitType;
-            this.guid = json.guid;
-            if (json.associated)
-                this.associated.fromJson(json.associated);
+
+            super.fromJson(json);
         }
     }
 }

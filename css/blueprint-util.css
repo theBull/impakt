@@ -33,7 +33,7 @@ input {
 }
 input[type="radio"], 
 input[type="checkbox"] {
-	margin: 0 !important;
+	margin: 0.2em 0 0 0 !important;
 	padding: 0 !important;
 }
 
@@ -248,6 +248,9 @@ a {
 	flex-flow: row-reverse wrap;
 }
 
+.flex {
+	display: flex;
+}
 
 
 /*
@@ -314,8 +317,8 @@ a {
 	align-items: flex-start;
 	align-self: flex-start;
 	flex: 1 1 auto;
-	overflow-y: hidden;
-	overflow-x: hidden;
+	/*overflow-y: hidden;
+	overflow-x: hidden;*/
 	max-width: 100%;
 }
 /*.grid > div {
@@ -540,6 +543,9 @@ a {
 .zIndexTop {
 	z-index: 1000;
 }
+.zIndexBottom {
+	z-index: 0;
+}
 .ellipsis, li.ellipsis {
 	overflow-x: hidden;
 	text-overflow: ellipsis;
@@ -624,34 +630,6 @@ a {
 
 	/* Internet Explorer */
 	filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);
-}
-
-.opacity01 {
-	opacity: 0.1;
-}
-.opacity02 {
-	opacity: 0.2;
-}
-.opacity03 {
-	opacity: 0.3;
-}
-.opacity04 {
-	opacity: 0.4;
-}
-.opacity05 {
-	opacity: 0.5;
-}
-.opacity06 {
-	opacity: 0.6;
-}
-.opacity07 {
-	opacity: 0.7;
-}
-.opacity08 {
-	opacity: 0.8;
-}
-.opacity09 {
-	opacity: 0.9;
 }
 
 /**

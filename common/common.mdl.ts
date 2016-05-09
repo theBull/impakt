@@ -6,6 +6,7 @@ impakt.common = angular.module('impakt.common', [
 	'impakt.common.auth',
 	'impakt.common.contextmenu',
 	'impakt.common.context',
+	'impakt.common.associations',
 	'impakt.common.base',
 	'impakt.common.scrollable',
 	'impakt.common.modals',

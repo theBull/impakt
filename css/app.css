@@ -14,7 +14,7 @@ html, h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 }
 
 table, tr, td {
-  border: 1px solid rgba(100, 100, 100, 0.3);
+  border: 1px solid rgba(150, 150, 150, 0.3);
   border-collapse: collapse;
 }
 
@@ -204,7 +204,7 @@ details summary {
  * COLOR CLASSES
  * 
  */
-.circle-bg {
+.rounded-rect-bg {
   border-radius: 0.5em;
   font-size: 0.9em;
   text-align: center;
@@ -212,7 +212,14 @@ details summary {
   border: 1px solid rgba(0, 0, 0, 0.5);
 }
 
-.black-bg, .black-bg-hover, .black-circle-bg {
+.circle-bg {
+  border-radius: 50%;
+  text-align: center;
+  padding: 0.9em;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+}
+
+.black-bg, .black-bg-hover, .black-circle-bg, .black-rounded-rect-bg {
   background-color: #000000;
 }
 
@@ -220,7 +227,7 @@ details summary {
   background-color: #111111;
 }
 
-.black-circle-bg {
+.black-circle-bg, .black-rounded-rect-bg {
   color: rgba(255, 255, 255, 0.9);
 }
 
@@ -303,7 +310,7 @@ details summary {
   background-color: rgba(30, 32, 34, 0.9);
 }
 
-.red-bg, .red-bg-hover, .red-circle-bg {
+.red-bg, .red-bg-hover, .red-circle-bg, .red-rounded-rect-bg {
   background-color: #BB250E;
 }
 
@@ -311,11 +318,23 @@ details summary {
   background-color: #AA0000;
 }
 
-.red-circle-bg {
+.red-circle-bg, .red-rounded-rect-bg {
   color: rgba(255, 255, 255, 0.9);
 }
 
-.blue-bg, .blue-bg-hover, .blue-circle-bg {
+.green-bg, .green-bg-hover, .green-circle-bg, .green-rounded-rect-bg {
+  background-color: #39A017;
+}
+
+.green-bg-hover:hover {
+  background-color: #2E8212;
+}
+
+.green-circle-bg, .green-rounded-rect-bg {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.blue-bg, .blue-bg-hover, .blue-circle-bg, .blue-rounded-rect-bg {
   background-color: #2A58D2;
 }
 
@@ -323,7 +342,7 @@ details summary {
   background-color: #336BCB;
 }
 
-.blue-circle-bg {
+.blue-circle-bg, .blue-rounded-rect-bg {
   color: rgba(255, 255, 255, 0.9);
 }
 
@@ -356,15 +375,15 @@ details summary {
 }
 
 .light-border {
-  border: 1px solid rgba(100, 100, 100, 0.3);
+  border: 1px solid rgba(150, 150, 150, 0.3);
 }
 
 .light-border-top {
-  border-top: 1px solid rgba(100, 100, 100, 0.3);
+  border-top: 1px solid rgba(150, 150, 150, 0.3);
 }
 
 .light-border-bottom {
-  border-bottom: 1px solid rgba(100, 100, 100, 0.3);
+  border-bottom: 1px solid rgba(150, 150, 150, 0.3);
 }
 
 .light-border-bottom-red {
@@ -372,11 +391,19 @@ details summary {
 }
 
 .light-border-left {
-  border-left: 1px solid rgba(100, 100, 100, 0.3);
+  border-left: 1px solid rgba(150, 150, 150, 0.3);
 }
 
 .light-border-left-red {
   border-left: 1px solid #cd3737;
+}
+
+.light-border-right {
+  border-right: 1px solid rgba(150, 150, 150, 0.3);
+}
+
+.light-border-right-red {
+  border-right: 1px solid #cd3737;
 }
 
 .dark-border {
@@ -457,6 +484,10 @@ details summary {
 
 .gray-border-left-red {
   border-left: 1px solid #333333;
+}
+
+.selected-border {
+  outline: #2A58D2 solid 3px;
 }
 
 /*
@@ -749,20 +780,20 @@ expandable {
   box-shadow: 0 0 5px rgba(255, 255, 255, 0.15);
 }
 
-.expandable-left {
-  border-left: 1px solid #111;
+expandable[direction=left] {
+  border-left: 1px solid rgba(150, 150, 150, 0.3);
 }
 
-.expandable-right {
-  border-right: 1px solid #111;
+expandable[direction=right] {
+  border-right: 1px solid rgba(150, 150, 150, 0.3);
 }
 
-.expandable-top {
-  border-top: 1px solid #111;
+expandable[direction=top] {
+  border-top: 1px solid rgba(150, 150, 150, 0.3);
 }
 
-.expandable-bottom {
-  border-bottom: 1px solid #111;
+expandable[direction=botom] {
+  border-bottom: 1px solid rgba(150, 150, 150, 0.3);
 }
 
 play-preview {
@@ -906,6 +937,10 @@ body .popout-clickeater {
 */
 #impakt-playbook-controls {
   background-color: #333;
+}
+
+.playbook-editor-type-playbook {
+  border-left: 3px solid #000;
 }
 
 .playbook-editor-type-formation {

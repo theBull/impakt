@@ -22,7 +22,7 @@ module Team.Models {
             });
         }
         public getAssociatedPlaybooks() {
-            var collection = new Common.Models.PlaybookModelCollection();
+            var collection = new Common.Models.PlaybookModelCollection(Team.Enums.UnitTypes.Mixed);
             this.forEach(function(unitType, index) {
                 if (unitType && unitType.associated &&
                     unitType.associated.playbooks &&

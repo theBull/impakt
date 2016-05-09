@@ -2,16 +2,18 @@
 
 module Common.Models {
     export class Assignment
-        extends Common.Models.Modifiable {
+    extends Common.Models.AssociableEntity {
             
         public routes: Common.Models.RouteCollection;
         public positionIndex: number;
         public setType: Common.Enums.SetTypes;
+        public unitType: Team.Enums.UnitTypes;
 
-        constructor() {
-            super();
+        constructor(unitType: Team.Enums.UnitTypes) {
+            super(Common.Enums.ImpaktDataTypes.Assignment);
             super.setContext(this);
 
+            this.unitType = unitType;
             this.routes = new Common.Models.RouteCollection();
             this.positionIndex = -1;
             this.setType = Common.Enums.SetTypes.Assignment;
@@ -34,14 +36,16 @@ module Common.Models {
                 return;
             this.routes.fromJson(json.routes);
             this.positionIndex = json.positionIndex;
-            this.guid = json.guid;
+            this.unitType = json.unitType;
+            
+            super.fromJson(json);
         }
         public toJson() {
-            return {
+            return $.extend({
                 routes: this.routes.toJson(),
                 positionIndex: this.positionIndex,
-                guid: this.guid
-            }
+                unitType: this.unitType
+            }, super.toJson());
         }
     }
 }

@@ -1,0 +1,43 @@
+<div 
+	
+	class='positionRelative gray-bg-3-hover marginBottom1 
+		height21 width18 pointer marginRight1 overflowHidden'
+	ng-mouseover='editVisible = true'
+	ng-mouseout='editVisible = false'
+	ng-init='editVisible = false'
+	ng-click='toggleSelection(formation)'
+	ng-class='{"selected-border": formation.selected}'>
+
+	<div class='col positionRelative'>
+
+		<div class='top0 right0 pad gray-bg-2-hover opacity09' 
+			ng-show='editVisible'
+			ng-click='openInEditor(formation)'>
+			edit
+			<span class='glyphicon glyphicon-pencil' 
+				title='Edit formation'>
+			</span>
+		</div>
+
+		<div class='pad'>
+			<div class='row'>
+				<p>
+					{{formation.name}}
+				</p>
+			</div>
+		</div>
+		
+		<formation-thumbnail 
+			formation='formation' 
+			class='height18'>
+		</formation-thumbnail>				
+
+		<div class='pad gray-bg-2 opacity09 bottom0 left0 fontSize8'>
+			<type-formatter
+				value='formation.unitType'
+				type='Team.Enums.UnitTypes'>
+			</type-formatter>
+		</div>
+
+	</div>
+</div>

@@ -17,6 +17,7 @@ module Common.Models {
 		public area: number;
 		public circularArea: number;
 		public offset: Common.Models.Offset;
+		public rotation: number;
 
 		constructor() {
 			super();
@@ -35,7 +36,7 @@ module Common.Models {
 			this.area = 0;
 			this.circularArea = 0;
 			this.offset = new Common.Models.Offset(0, 0);
-
+			this.rotation = 0;
 		}
 
 		public toJson(): any {
@@ -51,7 +52,8 @@ module Common.Models {
 				perimeter: this.perimeter,
 				area: this.area,
 				circumference: this.circumference,
-				offset: this.offset.toJson()
+				offset: this.offset.toJson(),
+				rotation: this.rotation
 			}
 		}
 
@@ -71,6 +73,7 @@ module Common.Models {
 			this.area = json.area;
 			this.circumference = json.circumference;
 			this.offset.fromJson(json.offset);
+			this.rotation = json.rotation;
 		}
 
 		public calculateDimensions(): void {

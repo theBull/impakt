@@ -9,9 +9,6 @@ module Playbook.Models {
 			super(player);
 
 			this.layer.graphics.hoverOpacity = 0.6;
-			this.layer.graphics.dimensions.setRadius(this.grid.getSize() / 2);
-			this.layer.graphics.dimensions.setWidth(this.layer.graphics.dimensions.getDiameter());
-			this.layer.graphics.dimensions.setHeight(this.layer.graphics.dimensions.getDiameter());
 		}
 
 		public draw(): void {

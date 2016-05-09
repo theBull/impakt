@@ -23,6 +23,7 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 		var self = this;
 
 		this.activeTab = _playbookEditor.activeTab;
+		this.tabs = _playbookEditor.tabs;
 		this.playbooks = impakt.context.Playbook.playbooks;
 		this.formations = impakt.context.Playbook.formations;
 		this.personnelCollection = impakt.context.Team.personnel;
@@ -30,6 +31,7 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 		this.plays = impakt.context.Playbook.plays;
 		this.readyCallbacks = [function() { console.log('canvas ready'); }]
 		this.canvas = _playbookEditor.canvas;
+		this.unitTypes = impakt.context.Team.unitTypes;
 
 		this.component = new Common.Base.Component(
 			'_playbookEditorCanvas',
@@ -55,10 +57,14 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 		}
 
 		this.create = function(tab: Common.Models.Tab) {
-			// TODO @theBull - implement opponent play
+			if (Common.Utilities.isNullOrUndefined(tab))
+				throw new Error('playbook-editor-canvas.srv create(): tab is null or undefined');
+			if (Common.Utilities.isNullOrUndefined(tab.playPrimary))
+				throw new Error('playbook-editor-canvas.srv create(): tab.playPrimary is null or undefined');
+
 			let canvas = new Playbook.Models.EditorCanvas(
 				tab.playPrimary,
-				new Common.Models.PlayOpponent() 
+				new Common.Models.PlayOpponent(tab.playPrimary.getOpposingUnitType()) 
 			);
 			canvas.tab = tab;
 		}
@@ -155,6 +161,16 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 		this.applyPrimaryPlay = function(playPrimary: Common.Models.PlayPrimary) {
 			if(canApplyData()) {
 				_playbookEditor.canvas.paper.field.applyPlayPrimary(playPrimary);	
+			}
+		}
+
+		/**
+		 * Applies the given unitType to the play
+		 * @param {Common.Models.Play} play The Play to apply
+		 */
+		this.applyPrimaryUnitType = function(unitType: Team.Enums.UnitTypes) {
+			if(canApplyData()) {
+				_playbookEditor.canvas.paper.field.applyPrimaryUnitType(unitType);
 			}
 		}
 

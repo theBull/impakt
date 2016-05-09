@@ -6,26 +6,36 @@ impakt.team.personnel.controller('impakt.team.personnel.ctrl', [
 	function($scope: any, _team: any) {
 		console.debug('impakt.team.personnel.ctrl');
 
-		$scope.personnelCollection = _team.personnel;
-		$scope.personnel = _team.personnel.getOne() || new Team.Models.Personnel();
-		$scope.selectedPersonnel = { 
-			guid: $scope.personnel.guid,
-			unitType: $scope.personnel.unitType.toString()
-		};
+		$scope.personnelCollection;
+		$scope.personnel;
+		$scope.selectedPersonnel;
 		$scope.unitTypes = Team.Models.UnitType.getUnitTypes();
 		let positionDefault = new Team.Models.PositionDefault();
-		$scope.positionOptions = positionDefault.getByUnitType(
-			$scope.personnel.unitType
-		);
+		$scope.positionOptions;
 		$scope.createNew = false;
 		$scope.creating = false;
+
+		function init() {
+			_team.initialize();
+			
+			$scope.personnelCollection = _team.personnel;
+			$scope.personnel = _team.personnel.getOne() ||
+				new Team.Models.Personnel(Team.Enums.UnitTypes.Other);
+			$scope.selectedPersonnel = {
+				guid: $scope.personnel.guid,
+				unitType: $scope.personnel.unitType.toString()
+			};
+			$scope.positionOptions = positionDefault.getByUnitType(
+				$scope.personnel.unitType
+			);
+		}
 
 		$scope.cancelCreate = function() {
 			$scope.creating = false;
 		}
 
 		$scope.createPersonnel = function() {
-			$scope.personnel = new Team.Models.Personnel();
+			$scope.personnel = new Team.Models.Personnel(Team.Enums.UnitTypes.Other);
 			$scope.creating = true;
 			$scope.selectedPersonnel.unitType = $scope.personnel.unitType;
 			$scope.createNew = true;
@@ -75,5 +85,7 @@ impakt.team.personnel.controller('impakt.team.personnel.ctrl', [
 				console.error(err);
 			});
 		}
+
+		init();
 	}
 ])

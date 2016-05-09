@@ -153,7 +153,7 @@ module Playbook.Models {
 				//console.log('drawing route', dx, dy, posx, posy);
 
 				if (!this.assignment) {
-					this.assignment = new Common.Models.Assignment();
+					this.assignment = new Common.Models.Assignment(this.position.unitType);
 					this.assignment.positionIndex = this.position.index;
 				}
 

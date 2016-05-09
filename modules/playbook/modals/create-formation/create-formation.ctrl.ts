@@ -2,16 +2,18 @@
  
 impakt.playbook.modals.controller('playbook.modals.createFormation.ctrl', 
 ['$scope', 
-'$uibModalInstance', 
+'$uibModalInstance',
+'_associations',
 '_playbook',
 function(
 	$scope: any, 
 	$uibModalInstance: any, 
+	_associations: any,
 	_playbook: any) {
 
 	$scope.selectedUnitType = Team.Enums.UnitTypes.Offense;
 	$scope.playbooks = impakt.context.Playbook.playbooks;
-	$scope.formation = new Common.Models.Formation();
+	$scope.formation = new Common.Models.Formation($scope.selectedUnitType);
 	$scope.formations = impakt.context.Playbook.formations;
 	$scope.formation.unitType = $scope.selectedUnitType;
 	$scope.unitTypes = impakt.context.Team.unitTypes;
@@ -37,20 +39,20 @@ function(
 	if ($scope.selectedPlaybook) {
 		// Add the currently selected playbook as an association to
 		// this formation, by default
-		$scope.formation.associated.playbooks.only($scope.selectedPlaybook.guid);
+		//$scope.formation.associated.playbooks.only($scope.selectedPlaybook.guid);
 
 		// add the new formation as an association to the currently
 		// selected playbook, by default
-		$scope.selectedPlaybook.associated.formations.add($scope.formation.guid);
+		//$scope.selectedPlaybook.associated.formations.add($scope.formation.guid);
 	}
 
 	$scope.selectPlaybook = function(playbook: Common.Models.PlaybookModel) {
 		// update the new formation associated playbook so that it only has 1 playbook
 		// association, max, when creating it.
-		$scope.formation.associated.playbooks.only(playbook.guid);
+		//$scope.formation.associated.playbooks.only(playbook.guid);
 
 		// Remove the formation from the currently selected playbook
-		$scope.selectedPlaybook.associated.formations.remove($scope.formation.guid);
+		//$scope.selectedPlaybook.associated.formations.remove($scope.formation.guid);
 
 		// Add the formation to the newly selected playbook
 		$scope.selectedPlaybook = playbook;
@@ -72,6 +74,7 @@ function(
 		
 		_playbook.createFormation($scope.formation)
 		.then(function(createdFormation: Common.Models.Formation) {
+			_associations.createAssociation(createdFormation, $scope.selectedPlaybook);
 			removeFormationFromCreationContext();
 			$uibModalInstance.close(createdFormation);
 		}, function(err: any) {

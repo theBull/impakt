@@ -2,29 +2,24 @@
 
 module Team.Models {
     export class Personnel
-    extends Common.Models.Modifiable {
+    extends Common.Models.AssociableEntity {
 
         public unitType: Team.Enums.UnitTypes;
         public parentRK: number; // TODO @theBull - deprecate
         public editorType: Playbook.Enums.EditorTypes;
         public name: string;
-        public associated: Common.Models.Association;
         public positions: Team.Models.PositionCollection;
         public setType: Common.Enums.SetTypes; // TODO @theBull - deprecate
-        public key: number;
 
-        constructor() {
-            super();
+        constructor(unitType: Team.Enums.UnitTypes) {
+            super(Common.Enums.ImpaktDataTypes.PersonnelGroup);
             super.setContext(this);
             
             this.name = 'Untitled';
-            this.unitType = Team.Enums.UnitTypes.Other;
-            this.key = -1;
-            this.positions = new Team.Models.PositionCollection();
-            this.setDefault();
+            this.unitType = unitType;
+            this.positions = null;
             this.setType = Common.Enums.SetTypes.Personnel;
             this.onModified(function(data) {});
-            this.positions.onModified(function(data) {});
         }
         public hasPositions(): boolean {
             return this.positions && this.positions.size() > 0;
@@ -41,24 +36,28 @@ module Team.Models {
         public fromJson(json: any): any {
             if (!json)
                 return null;
-            this.positions.removeAll();
-            this.positions.fromJson(json.positions);
+
             this.unitType = json.unitType;
-            this.key = json.key;
+            if(!this.positions) {
+                this.positions = new Team.Models.PositionCollection(this.unitType);
+            } else {
+                this.positions.removeAll();
+            }
+            this.positions.fromJson(json.positions);    
             this.name = json.name;
-            this.guid = json.guid;
+
+            super.fromJson(json);
         }
         public toJson(): any {
-            return {
+            return $.extend({
                 name: this.name,
                 unitType: this.unitType,
-                key: this.key,
-                positions: this.positions.toJson(),
-                guid: this.guid
-            }
+                positions: this.positions.toJson()
+            }, super.toJson());
         }
         public setDefault() {
             this.positions = Team.Models.PositionDefault.getBlank(this.unitType);
+            this.positions.onModified(function(data) { });
         }
         public setUnitType(unitType: Team.Enums.UnitTypes): void {
             this.unitType = unitType;
