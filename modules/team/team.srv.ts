@@ -232,6 +232,44 @@ function(
         return d.promise;
     }
 
+    this.getPersonnel = function() {
+        var d = $q.defer();
+
+        let personnelNotification = __notifications.pending(
+            'Getting Personnel...'
+        );
+
+        __api.get(__api.path(
+            TEAM.ENDPOINT,
+            TEAM.GET_SETS)
+        )
+            .then(function(response: any) {
+                let personnelResults = Common.Utilities.parseData(response.data.results);
+                let personnelCollection = new Team.Models.PersonnelCollection(Team.Enums.UnitTypes.Mixed);
+
+                for (let i = 0; i < personnelResults.length; i++) {
+                    let results = personnelResults[i];
+                    if (results && results.data && results.data.personnel) {
+                        let rawPersonnel = results.data.personnel;
+                        let personnelModel = new Team.Models.Personnel(Team.Enums.UnitTypes.Other);
+                        personnelModel.fromJson(rawPersonnel);
+                        personnelCollection.add(personnelModel);
+                    }
+                }
+
+                personnelNotification.success(
+                    personnelCollection.size(), ' Personnel groups successfully retrieved'
+                );
+
+                d.resolve(personnelCollection);
+            }, function(error: any) {
+                personnelNotification.error('Failed to retrieve Personnel groups');
+                d.reject(error);
+            });
+
+        return d.promise;
+    }
+
     this.savePersonnel = function(
     	personnelModel: Team.Models.Personnel,
 		createNew?: boolean
@@ -266,7 +304,7 @@ function(
 			'Creating personnel group "', personnelModel.name, '"...'
 		);
 		__api.post(
-            __api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.CREATE_SET),
+            __api.path(TEAM.ENDPOINT, TEAM.CREATE_SET),
             {
 				version: 1,
 				ownerRK: 1,
@@ -312,7 +350,7 @@ function(
 		let notification = __notifications.pending('Updating personnel "', personnelModel.name, '"...');
 
 		__api.post(
-            __api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.UPDATE_SET),
+            __api.path(TEAM.ENDPOINT, TEAM.UPDATE_SET),
             {
 				version: 1,
 				name: personnelJson.name,
@@ -353,7 +391,7 @@ function(
 		let notification = __notifications.pending('Deleting personnel "', personnelModel.name, '"...');
 
 		__api.post(
-			__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.DELETE_SET), { 
+			__api.path(TEAM.ENDPOINT, TEAM.DELETE_SET), { 
 				key: personnelModel.key 
 		}).then(function(response: any) {
 			impakt.context.Team.personnel.remove(personnelModel.guid);

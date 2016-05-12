@@ -7,9 +7,9 @@
 	ng-click='toggleSelection(play)'
 	ng-class='{"selected-border": play.selected}'>
 	
-	<div class='col positionRelative'>
+	<div class='col positionRelative' enable-contextmenu entity='play'>
 		
-		<div class='right0 top0 pad gray-bg-2-hover opacity09' 
+		<div class='right0 top0 height3 pad gray-bg-2-hover opacity09' 
 			ng-show='editVisible'
 			ng-click='openInEditor(play)'>
 			edit
@@ -18,7 +18,7 @@
 			</span>
 		</div>
 		
-		<div class='pad'>
+		<div class='pad height3'>
 			<div class='row'>
 				<p>
 					{{play.name}}

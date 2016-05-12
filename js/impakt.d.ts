@@ -1,5 +1,5 @@
 declare module Common.Interfaces {
-    interface ICollection<T extends Common.Interfaces.IStorable> {
+    interface ICollection<T extends Common.Interfaces.IModifiable> {
         size(): number;
         isEmpty(): boolean;
         hasElements(): boolean;
@@ -19,11 +19,12 @@ declare module Common.Interfaces {
         addAll(...args: T[]): void;
         addAtIndex(data: T, index: number): void;
         only(data: T): void;
-        append(collection: Common.Models.Collection<T>): void;
+        append(collection: Common.Interfaces.ICollection<T>): void;
         forEach(iterator: Function): void;
         hasElementWhich(predicate: Function): boolean;
         filter(predicate: Function): T[];
         filterFirst(predicate: Function): T;
+        empty(): void;
         removeAll(): void;
         removeEach(iterator: any): void;
         contains(key: string | number): boolean;
@@ -38,8 +39,9 @@ declare module Common.Interfaces {
     }
 }
 declare module Common.Interfaces {
-    interface ILinkedListItem {
-        guid: string;
+    interface ILinkedListNode<T> extends Common.Interfaces.IModifiable {
+        next: T;
+        prev: T;
     }
 }
 declare module Common.Interfaces {
@@ -91,7 +93,7 @@ declare module Common.Interfaces {
     }
 }
 declare module Common.Interfaces {
-    interface IActionableCollection extends Common.Interfaces.IModifiableCollection<Common.Interfaces.IActionable> {
+    interface IActionableCollection extends Common.Interfaces.ICollection<Common.Interfaces.IActionable> {
         toggleSelect(element: Common.Interfaces.IActionable): void;
         deselectAll(): void;
         selectAll(): void;
@@ -169,7 +171,7 @@ declare module Common.Interfaces {
     }
 }
 declare module Common.Interfaces {
-    interface IAssociable {
+    interface IAssociable extends Common.Interfaces.IModifiable {
         key: number;
         impaktDataType: Common.Enums.ImpaktDataTypes;
         guid: string;
@@ -266,7 +268,7 @@ declare module Common.Interfaces {
         hashmark_right: Common.Interfaces.IHashmark;
         hashmark_sideline_left: Common.Interfaces.IHashmark;
         hashmark_sideline_right: Common.Interfaces.IHashmark;
-        selected: Common.Models.ModifiableCollection<Common.Interfaces.IFieldElement>;
+        selected: Common.Interfaces.ICollection<Common.Interfaces.IFieldElement>;
         cursorCoordinates: Common.Models.Coordinates;
         initialize(): void;
         draw(): void;
@@ -373,17 +375,18 @@ declare module Common.Interfaces {
     interface IRoute extends Common.Interfaces.IModifiable {
         player: Common.Interfaces.IPlayer;
         field: Common.Interfaces.IField;
+        layer: Common.Models.Layer;
         paper: Common.Interfaces.IPaper;
         grid: Common.Interfaces.IGrid;
-        nodes: Common.Models.ModifiableLinkedList<Common.Interfaces.IRouteNode>;
+        nodes: Common.Models.LinkedList<Common.Interfaces.IRouteNode>;
         routePath: Common.Interfaces.IRoutePath;
         dragInitialized: boolean;
         draw(): void;
         initializeCurve(coords: Common.Models.Coordinates, flip?: boolean): any;
-        addNode(routeNode: Common.Interfaces.IRouteNode, render?: boolean): Common.Models.LinkedListNode<Common.Models.RouteNode>;
-        getMixedStringFromNodes(nodeArray: Common.Models.LinkedListNode<Common.Models.RouteNode>[]): string;
-        getPathStringFromNodes(initialize: boolean, nodeArray: Common.Models.LinkedListNode<Common.Models.RouteNode>[]): string;
-        getCurveStringFromNodes(initialize: boolean, nodeArray: Common.Models.LinkedListNode<Common.Models.RouteNode>[]): string;
+        addNode(routeNode: Common.Interfaces.IRouteNode, render?: boolean): Common.Interfaces.IRouteNode;
+        getMixedStringFromNodes(nodeArray: Common.Interfaces.IRouteNode[]): string;
+        getPathStringFromNodes(initialize: boolean, nodeArray: Common.Interfaces.IRouteNode[]): string;
+        getCurveStringFromNodes(initialize: boolean, nodeArray: Common.Interfaces.IRouteNode[]): string;
     }
 }
 declare module Common.Interfaces {
@@ -398,8 +401,7 @@ declare module Common.Interfaces {
     }
 }
 declare module Common.Interfaces {
-    interface IRouteNode extends Common.Interfaces.IFieldElement {
-        node: Common.Models.LinkedListNode<Common.Interfaces.IRouteNode>;
+    interface IRouteNode extends Common.Interfaces.IFieldElement, Common.Interfaces.ILinkedListNode<Common.Interfaces.IRouteNode> {
         type: Common.Enums.RouteNodeTypes;
         routeAction: Common.Interfaces.IRouteAction;
         routeControlPath: Common.Interfaces.IRouteControlPath;
@@ -407,7 +409,9 @@ declare module Common.Interfaces {
     }
 }
 declare module Common.Interfaces {
-    interface IRoutePath {
+    interface IRoutePath extends Common.Interfaces.IFieldElement {
+        pathString: string;
+        draw(): void;
         remove(): void;
     }
 }
@@ -480,16 +484,16 @@ declare module Common.Models {
          * @return {string} the newly generated checksum
          */
         generateChecksum(): string;
-        copy(newElement: Common.Models.Modifiable, context: Common.Models.Modifiable): Common.Models.Modifiable;
+        copy(newElement: Common.Interfaces.IModifiable, context: Common.Interfaces.IModifiable): Common.Interfaces.IModifiable;
         toJson(): any;
         fromJson(json: any): void;
     }
 }
 declare module Common.Models {
-    class Collection<T extends Common.Models.Storable> extends Common.Models.Storable implements Common.Interfaces.ICollection<T> {
+    class Collection<T extends Common.Interfaces.IModifiable> extends Common.Models.Modifiable implements Common.Interfaces.ICollection<T> {
         private _count;
         private _keys;
-        constructor();
+        constructor(size?: number);
         private _getKey(data);
         private _ensureKeyType(key);
         size(): number;
@@ -510,7 +514,7 @@ declare module Common.Models {
         getLast(): T;
         set(key: string | number, data: T): void;
         replace(replaceKey: string | number, data: T): void;
-        setAtIndex(index: number, data: T): void;
+        setAtIndex(index: number, data: T): any;
         add(data: T): void;
         addAll(...args: T[]): void;
         addAtIndex(data: T, index: number): void;
@@ -521,6 +525,7 @@ declare module Common.Models {
         filter(predicate: Function): T[];
         filterFirst(predicate: Function): T;
         remove(key: string | number): T;
+        empty(): void;
         removeAll(): void;
         /**
          * Allows you to run an iterator method over each item
@@ -530,35 +535,45 @@ declare module Common.Models {
         removeEach(iterator: any): void;
         contains(key: string | number): boolean;
         toArray(): T[];
-        toJson(): any[];
+        toJson(): any;
         getGuids(): Array<string | number>;
     }
 }
 declare module Common.Models {
-    class LinkedList<T extends Common.Models.Storable> extends Common.Models.Storable {
-        root: Common.Models.LinkedListNode<T>;
-        last: Common.Models.LinkedListNode<T>;
+    class LinkedList<T extends Common.Interfaces.ILinkedListNode<Common.Interfaces.IModifiable>> extends Common.Models.Storable {
+        root: T;
+        last: T;
         private _length;
+        private _modifiable;
+        callbacks: Function[];
+        modified: boolean;
+        checksum: string;
+        original: string;
+        lastModified: number;
+        context: any;
+        isContextSet: boolean;
+        listening: boolean;
         constructor();
-        add(node: Common.Models.LinkedListNode<T>): void;
-        getIndex(index: number): Common.Models.LinkedListNode<T>;
+        setModified(forciblyModify?: boolean): boolean;
+        onModified(callback: Function): void;
+        isModified(): void;
+        /**
+         * When commanding the collection whether to listen,
+         * apply the true/false argument to all of its contents as well
+         * @param {boolean} startListening true to start listening, false to stop
+         */
+        listen(startListening: boolean): LinkedList<T>;
+        add(node: T): void;
+        getIndex(index: number): T;
         forEach(iterator: Function): void;
         toJson(): any[];
-        toDataArray<T>(): T[];
-        toArray(): Common.Models.LinkedListNode<T>[];
-        getLast(): Common.Models.LinkedListNode<T>;
-        remove(guid: string): Common.Models.LinkedListNode<T>;
+        toArray(): T[];
+        getLast(): T;
+        getRoot(): T;
+        remove(guid: string): T;
         size(): number;
         hasElements(): boolean;
-    }
-}
-declare module Common.Models {
-    class LinkedListNode<T extends Common.Models.Storable> extends Common.Models.Storable {
-        data: any;
-        next: LinkedListNode<T>;
-        prev: LinkedListNode<T>;
-        constructor(data: any, next: LinkedListNode<T>, prev?: LinkedListNode<T>);
-        toJson(): any;
+        isEmpty(): boolean;
     }
 }
 declare module Common.Models {
@@ -574,7 +589,7 @@ declare module Common.Models {
         private _modifiable;
         private _collection;
         guid: string;
-        constructor();
+        constructor(size?: number);
         setModified(forciblyModify?: boolean): boolean;
         onModified(callback: Function): void;
         isModified(): void;
@@ -626,29 +641,17 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
-    class ModifiableLinkedList<T extends Common.Models.Modifiable> extends Common.Models.LinkedList<T> {
-        private _modifiable;
-        constructor();
-        add(node: Common.Models.LinkedListNode<T>): void;
-        getIndex(index: number): Common.Models.LinkedListNode<T>;
-        forEach(iterator: Function): void;
-        toJson(): any[];
-        toDataArray<T>(): T[];
-        toArray(): Common.Models.LinkedListNode<T>[];
-        getLast(): Common.Models.LinkedListNode<T>;
-        remove(guid: string): Common.Models.LinkedListNode<T>;
-        size(): number;
-        hasElements(): boolean;
+    class ContextmenuData {
+        data: Common.Interfaces.IContextual;
+        url: string;
+        pageX: number;
+        pageY: number;
+        message: string;
+        constructor(data: Common.Interfaces.IContextual, pageX: number, pageY: number, message?: string);
     }
 }
 declare module Common.Models {
-    class ModifiableLinkedListNode extends Common.Models.LinkedListNode<Common.Models.Modifiable> {
-        constructor(data: any, next: Common.Models.ModifiableLinkedListNode, prev?: Common.Models.ModifiableLinkedListNode);
-        toJson(): any;
-    }
-}
-declare module Common.Models {
-    abstract class Actionable extends Common.Models.Modifiable implements Common.Interfaces.IActionable {
+    abstract class Actionable extends Common.Models.Modifiable implements Common.Interfaces.IActionable, Common.Interfaces.IContextual {
         impaktDataType: Common.Enums.ImpaktDataTypes;
         disabled: boolean;
         clickable: boolean;
@@ -658,12 +661,14 @@ declare module Common.Models {
         dragging: boolean;
         draggable: boolean;
         dragged: boolean;
+        contextmenuTemplateUrl: string;
         constructor(impaktDataType: Common.Enums.ImpaktDataTypes);
         toJson(): any;
         fromJson(json: any): void;
         /**
          * Generic selection toggle
          */
+        isSelectable(): boolean;
         toggleSelect(): void;
         /**
          * Generic selection method
@@ -683,10 +688,11 @@ declare module Common.Models {
         enable(): void;
         oncontextmenu(fn: any, context: any): void;
         contextmenu(e: any, context: any): void;
+        getContextmenuUrl(): string;
     }
 }
 declare module Common.Models {
-    class ActionableCollection<T extends Common.Models.Actionable> extends Common.Models.ModifiableCollection<T> implements Common.Interfaces.IActionableCollection {
+    class ActionableCollection<T extends Common.Models.Actionable> extends Common.Models.Collection<T> implements Common.Interfaces.IActionableCollection {
         constructor();
         toJson(): any;
         fromJson(json: any): void;
@@ -709,9 +715,9 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
-    abstract class AssociableCollectionEntity<T extends Common.Models.AssociableEntity> extends Common.Models.ModifiableCollection<T> {
-        private _associableEntity;
-        constructor(impaktDataType: Common.Enums.ImpaktDataTypes);
+    abstract class AssociableEntityCollection<T extends Common.Interfaces.IAssociable> extends Common.Models.Collection<T> {
+        protected _associableEntity: Common.Models.AssociableEntity;
+        constructor(impaktDataType: Common.Enums.ImpaktDataTypes, size?: number);
         toJson(): any;
         fromJson(json: any): void;
     }
@@ -787,6 +793,14 @@ declare module Common.Models {
          * @return {boolean}      true if it exists, otherwise false
          */
         exists(internalKey: string): boolean;
+        /**
+         * Returns whether there is an existing association between the given
+         * 'from' internalKey, 'to' the given internal key
+         * @param  {string}  fromInternalKey [description]
+         * @param  {string}  toInternalKey   [description]
+         * @return {boolean}                 [description]
+         */
+        associationExists(fromInternalKey: string, toInternalKey: string): boolean;
         /**
          * Replaces guid1, if found, with guid2
          * @param  {string} guid1 guid to be replaced
@@ -889,7 +903,7 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
-    class NotificationCollection extends Common.Models.ModifiableCollection<Common.Models.Notification> {
+    class NotificationCollection extends Common.Models.Collection<Common.Models.Notification> {
         constructor();
     }
 }
@@ -915,14 +929,22 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
-    class AssignmentCollection extends Common.Models.AssociableCollectionEntity<Common.Models.Assignment> {
-        setType: Common.Enums.SetTypes;
+    class AssignmentGroup extends Common.Models.AssociableEntity {
         unitType: Team.Enums.UnitTypes;
         name: string;
+        assignments: Common.Models.Collection<Common.Models.Assignment>;
         constructor(unitType: Team.Enums.UnitTypes, count?: number);
         toJson(): any;
         fromJson(json: any): any;
         getAssignmentByPositionIndex(index: number): any;
+    }
+}
+declare module Common.Models {
+    class AssignmentGroupCollection extends Common.Models.ActionableCollection<Common.Models.AssignmentGroup> {
+        unitType: Team.Enums.UnitTypes;
+        constructor(unitType: Team.Enums.UnitTypes);
+        toJson(): any;
+        fromJson(json: any): any;
     }
 }
 declare module Common.Models {
@@ -959,7 +981,7 @@ declare module Common.Models {
     class Play extends Common.Models.AssociableEntity {
         field: Common.Interfaces.IField;
         name: string;
-        assignments: Common.Models.AssignmentCollection;
+        assignmentGroup: Common.Models.AssignmentGroup;
         formation: Common.Models.Formation;
         personnel: Team.Models.Personnel;
         unitType: Team.Enums.UnitTypes;
@@ -968,7 +990,7 @@ declare module Common.Models {
         constructor(unitType: Team.Enums.UnitTypes);
         setPlaybook(playbook: Common.Models.PlaybookModel): void;
         setFormation(formation: Common.Models.Formation): void;
-        setAssignments(assignments: Common.Models.AssignmentCollection): void;
+        setAssignmentGroup(assignmentGroup: Common.Models.AssignmentGroup): void;
         setPersonnel(personnel: Team.Models.Personnel): void;
         setUnitType(unitType: Team.Enums.UnitTypes): void;
         draw(field: Common.Interfaces.IField): void;
@@ -1036,14 +1058,14 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
-    class TabCollection extends Common.Models.ModifiableCollection<Common.Models.Tab> {
+    class TabCollection extends Common.Models.Collection<Common.Models.Tab> {
         constructor();
         getByPlayGuid(guid: string): Common.Models.Tab;
         close(tab: Common.Models.Tab): void;
     }
 }
 declare module Common.Models {
-    class Template extends Common.Models.Storable {
+    class Template extends Common.Models.Modifiable {
         url: string;
         name: string;
         data: any;
@@ -1068,6 +1090,7 @@ declare module Common.Input {
     enum Which {
         LeftClick = 1,
         RightClick = 3,
+        Esc = 27,
         /**
          *
          * Uppercase (shift pressed)
@@ -1242,6 +1265,8 @@ declare module Common.Models {
         addLayer(layer: Common.Models.Layer): void;
         removeLayer(layer: Common.Models.Layer): Common.Models.Layer;
         removeAllLayers(): void;
+        toFront(): void;
+        toBack(): void;
         show(): void;
         showLayers(): void;
         hide(): void;
@@ -1260,7 +1285,7 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
-    class LayerCollection extends Common.Models.ModifiableCollection<Common.Models.Layer> {
+    class LayerCollection extends Common.Models.Collection<Common.Models.Layer> {
         constructor();
         dragAll(dx: number, dy: number): void;
         removeAll(): void;
@@ -1445,7 +1470,7 @@ declare module Common.Models {
         playPrimary: Common.Models.PlayPrimary;
         playOpponent: Common.Models.PlayOpponent;
         players: Common.Models.PlayerCollection;
-        selected: Common.Models.ModifiableCollection<Common.Interfaces.IFieldElement>;
+        selected: Common.Models.Collection<Common.Interfaces.IFieldElement>;
         layers: Common.Models.LayerCollection;
         cursorCoordinates: Common.Models.Coordinates;
         ball: Common.Interfaces.IBall;
@@ -1479,7 +1504,7 @@ declare module Common.Models {
         getPlayerWithPositionIndex(index: number): Common.Interfaces.IPlayer;
         applyPrimaryPlay(play: any): void;
         applyPrimaryFormation(formation: Common.Models.Formation): void;
-        applyPrimaryAssignments(assignments: Common.Models.AssignmentCollection): void;
+        applyPrimaryAssignmentGroup(assignmentGroup: Common.Models.AssignmentGroup): void;
         applyPrimaryPersonnel(personnel: Team.Models.Personnel): void;
         applyPrimaryUnitType(unitType: Team.Enums.UnitTypes): void;
         deselectAll(): void;
@@ -1515,6 +1540,8 @@ declare module Common.Models {
         layer: Common.Models.Layer;
         relativeElement: Common.Interfaces.IFieldElement;
         name: string;
+        private _originalScreenPositionX;
+        private _originalScreenPositionY;
         /**
          *
          * contextual attributes
@@ -1558,6 +1585,13 @@ declare module Common.Models {
         dragStart(x: number, y: number, e: any): void;
         dragEnd(e: any): void;
         drop(): void;
+        getOriginalScreenPosition(): {
+            x: number;
+            y: number;
+        };
+        setOriginalDragPosition(x: number, y: number): void;
+        isOriginalDragPositionSet(): boolean;
+        isOverDragThreshold(x: any, y: any): boolean;
     }
 }
 declare module Common.Models {
@@ -1655,7 +1689,7 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
-    class PlayerCollection extends Common.Models.ModifiableCollection<Common.Interfaces.IPlayer> {
+    class PlayerCollection extends Common.Models.Collection<Common.Interfaces.IPlayer> {
         constructor();
     }
 }
@@ -1698,10 +1732,10 @@ declare module Common.Models {
     abstract class Route extends Common.Models.FieldElement {
         paper: Common.Interfaces.IPaper;
         grid: Common.Interfaces.IGrid;
-        nodes: Common.Models.ModifiableLinkedList<Common.Models.RouteNode>;
+        nodes: Common.Models.LinkedList<Common.Interfaces.IRouteNode>;
         field: Common.Interfaces.IField;
         player: Common.Interfaces.IPlayer;
-        routePath: Common.Models.RoutePath;
+        routePath: Common.Interfaces.IRoutePath;
         layer: Common.Models.Layer;
         dragInitialized: boolean;
         type: Common.Enums.RouteTypes;
@@ -1715,11 +1749,12 @@ declare module Common.Models {
         draw(): void;
         drawCurve(node: Common.Models.RouteNode): void;
         drawLine(): void;
-        addNode(routeNode: Common.Interfaces.IRouteNode, render?: boolean): Common.Models.LinkedListNode<Common.Models.RouteNode>;
+        bringNodesToFront(): void;
+        addNode(routeNode: Common.Interfaces.IRouteNode, render?: boolean): Common.Interfaces.IRouteNode;
         getLastNode(): any;
-        getMixedStringFromNodes(nodeArray: Common.Models.LinkedListNode<Common.Models.RouteNode>[]): string;
-        getPathStringFromNodes(initialize: boolean, nodeArray: Common.Models.LinkedListNode<Common.Models.RouteNode>[]): string;
-        getCurveStringFromNodes(initialize: boolean, nodeArray: Common.Models.LinkedListNode<Common.Models.RouteNode>[]): string;
+        getMixedStringFromNodes(nodeArray: Common.Interfaces.IRouteNode[]): string;
+        getPathStringFromNodes(initialize: boolean, nodeArray: Common.Interfaces.IRouteNode[]): string;
+        getCurveStringFromNodes(initialize: boolean, nodeArray: Common.Interfaces.IRouteNode[]): string;
         private _prepareNodesForPath(nodeArray);
     }
 }
@@ -1735,7 +1770,7 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
-    class RouteCollection extends Common.Models.ModifiableCollection<Common.Interfaces.IRoute> {
+    class RouteCollection extends Common.Models.Collection<Common.Interfaces.IRoute> {
         constructor();
         toJson(): any;
         fromJson(json: any): void;
@@ -1752,15 +1787,17 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
-    abstract class RouteNode extends Common.Models.FieldElement {
-        node: Common.Models.LinkedListNode<Common.Interfaces.IRouteNode>;
+    abstract class RouteNode extends Common.Models.FieldElement implements Common.Interfaces.IRouteNode, Common.Interfaces.ILinkedListNode<Common.Interfaces.IRouteNode> {
+        route: Common.Interfaces.IRoute;
+        next: Common.Interfaces.IRouteNode;
+        prev: Common.Interfaces.IRouteNode;
         type: Common.Enums.RouteNodeTypes;
         routeAction: Common.Interfaces.IRouteAction;
         routeControlPath: Common.Interfaces.IRouteControlPath;
         player: Common.Interfaces.IPlayer;
-        constructor(context: Common.Interfaces.IPlayer, relativeCoordinates: Common.Models.RelativeCoordinates, type: Common.Enums.RouteNodeTypes);
+        constructor(route: Common.Interfaces.IRoute, relativeCoordinates: Common.Models.RelativeCoordinates, type: Common.Enums.RouteNodeTypes);
         draw(): void;
-        setContext(context: Common.Interfaces.IPlayer): void;
+        setContext(route: Common.Interfaces.IRoute): void;
         fromJson(json: any): void;
         toJson(): any;
         isCurveNode(): boolean;
@@ -1776,7 +1813,7 @@ declare module Common.Models {
         remove(): void;
         fromJson(json: any): void;
         /**
-         * Draws a RoutePath graphic onto thhe paper;
+         * Draws a RoutePath graphic onto the paper;
          * NOTE: assumes the pathString is already set to a valid SVG path string
          */
         draw(): void;
@@ -1793,10 +1830,11 @@ declare module Common.Models {
         toJson(): any;
         fromJson(json: any): any;
         updateFromCoordinates(x: number, y: number): void;
+        updateFromRelative(rx: number, ry: number, relativeElement?: Common.Interfaces.IFieldElement): void;
     }
 }
 declare module Common.Models {
-    class PlacementCollection extends Common.Models.ModifiableCollection<Common.Models.Placement> {
+    class PlacementCollection extends Common.Models.Collection<Common.Models.Placement> {
         constructor();
         fromJson(placements: any): void;
         toJson(): any;
@@ -1810,6 +1848,13 @@ declare module Common.Models {
         toJson(): any;
         fromJson(json: any): any;
         update(x: number, y: number): void;
+        /**
+         * Gets the relative coordinates from this' coordinates TO the given coordinates.
+         * Example: An element 3 grid squares to the right of 'this' would result in an x value of -3
+         * @param {Common.Models.Coordinates}       coords  [description]
+         * @param {Common.Interfaces.IFieldElement} element [description]
+         */
+        getRelativeTo(coords: Common.Models.Coordinates, element: Common.Interfaces.IFieldElement): Common.Models.RelativeCoordinates;
     }
 }
 declare module Common.Models {
@@ -1917,9 +1962,11 @@ declare module Common.Models {
         getStroke(): string;
         setStroke(stroke: string): Common.Models.Graphics;
         setOriginalStroke(stroke: string): Common.Models.Graphics;
+        setSelectedStroke(stroke: string): Common.Models.Graphics;
         getStrokeWidth(): number;
         setStrokeWidth(width: number): Common.Models.Graphics;
         setOriginalStrokeWidth(width: number): Common.Models.Graphics;
+        setHoverOpacity(opacity: number): Common.Models.Graphics;
         /**
          *
          * Dimension pass-through methods
@@ -1944,6 +1991,7 @@ declare module Common.Models {
         /**
          * Generic selection method
          */
+        toggleSelect(): void;
         select(): void;
         /**
          * Generic deselection method
@@ -1984,6 +2032,7 @@ declare module Common.Models {
         updateLocation(ax?: number, ay?: number): void;
         updateFromAbsolute(ax: number, ay: number): void;
         updateFromCoordinates(x: number, y: number): void;
+        updateFromRelative(rx: number, ry: number, relativeElement?: Common.Interfaces.IFieldElement): void;
         /**
          *
          * DRAWING METHODS
@@ -1997,12 +2046,12 @@ declare module Common.Models {
         triangle(): Common.Models.Graphics;
         text(text: string): Common.Models.Graphics;
         refresh(): void;
+        toFront(): Common.Models.Graphics;
+        toBack(): Common.Models.Graphics;
         attr(attrs: any): Common.Models.Graphics;
         setAttribute(attribute: string, value: string): void;
         getBBox(isWithoutTransforms?: boolean): void;
         transform(ax: number, ay: number): void;
-        toFront(): void;
-        toBack(): void;
         rotate(degrees: number): void;
         remove(): void;
         show(): void;
@@ -2203,6 +2252,13 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
+    class Quote {
+        quote: string;
+        author: string;
+        constructor(quote: string, author: string);
+    }
+}
+declare module Common.Models {
 }
 declare module Common.Enums {
     enum ImpaktDataTypes {
@@ -2378,6 +2434,7 @@ declare module Common.Constants {
      */
     const DEFAULT_CONTEXTMENU_TEMPLATE_URL: string;
     const EDITOR_ROUTENODE_CONTEXTMENU_TEMPLATE_URL: string;
+    const PLAY_CONTEXTMENU_TEMPLATE_URL: string;
 }
 declare module Common.Factories {
     class PlayerIconFactory {
@@ -2500,6 +2557,13 @@ declare module Common {
         static serializeXMLToString(xml: any): string;
         static parseData(data: any): any;
         static guid(): string;
+        /**
+         * Returns a random number between min (inclusive) and max (inclusive)
+         * @param  {number} min [description]
+         * @param  {number} max [description]
+         * @return {number}     [description]
+         */
+        static randomInt(min: number, max: number): number;
         static randomId(): number;
         static camelCaseToSpace(string: string, capitalizeFirst?: boolean): string;
         static sentenceCase(str: string): string;
@@ -2694,11 +2758,6 @@ declare module Playbook.Models {
 }
 declare module Playbook.Models {
     class EditorPlayer extends Common.Models.Player implements Common.Interfaces.IPlayer {
-        private _isCreatedNewFromAltDisabled;
-        private _newFromAlt;
-        private _isDraggingNewFromAlt;
-        private _originalScreenPositionX;
-        private _originalScreenPositionY;
         constructor(field: Common.Interfaces.IField, placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment);
         draw(): void;
         remove(): void;
@@ -2714,9 +2773,6 @@ declare module Playbook.Models {
         getCoordinatesFromAbsolute(): Common.Models.Coordinates;
         hasPlacement(): boolean;
         hasPosition(): boolean;
-        private _setOriginalDragPosition(x, y);
-        private _isOriginalDragPositionSet();
-        private _isOverDragThreshold(x, y);
     }
 }
 declare module Playbook.Models {
@@ -2790,7 +2846,6 @@ declare module Playbook.Models {
         setContext(player: Common.Interfaces.IPlayer): void;
         moveNodesByDelta(dx: number, dy: number): void;
         initializeCurve(coords: Common.Models.Coordinates, flip?: boolean): void;
-        toJson(): any;
         fromJson(json: any): any;
     }
 }
@@ -2798,7 +2853,6 @@ declare module Playbook.Models {
     class EditorRoute extends Common.Models.Route implements Common.Interfaces.IRoute {
         constructor(player: Common.Interfaces.IPlayer, dragInitialized?: boolean);
         setContext(player: Common.Interfaces.IPlayer): void;
-        toJson(): any;
         fromJson(json: any): any;
         initializeCurve(coords: Common.Models.Coordinates, flip?: boolean): void;
         moveNodesByDelta(dx: number, dy: number): void;
@@ -2806,17 +2860,19 @@ declare module Playbook.Models {
 }
 declare module Playbook.Models {
     class PreviewRouteNode extends Common.Models.RouteNode implements Common.Interfaces.IRouteNode {
-        constructor(context: Common.Interfaces.IPlayer, relativeCoordinates: Common.Models.RelativeCoordinates, type: Common.Enums.RouteNodeTypes);
+        constructor(route: Common.Interfaces.IRoute, relativeCoordinates: Common.Models.RelativeCoordinates, type: Common.Enums.RouteNodeTypes);
     }
 }
 declare module Playbook.Models {
     class EditorRouteNode extends Common.Models.RouteNode implements Common.Interfaces.IRouteNode {
-        constructor(context: Common.Interfaces.IPlayer, relativeCoordinates: Common.Models.RelativeCoordinates, type: Common.Enums.RouteNodeTypes);
+        constructor(route: Common.Interfaces.IRoute, relativeCoordinates: Common.Models.RelativeCoordinates, type: Common.Enums.RouteNodeTypes);
         draw(): void;
+        hoverIn(e: any): void;
+        hoverOut(e: any): void;
         click(e: any): void;
         contextmenu(e: any): void;
         dragMove(dx: any, dy: any, posx: any, posy: any, e: any): void;
-        dragStart(x: any, y: any, e: any): void;
+        dragStart(x: number, y: number, e: any): void;
         dragEnd(e: any): void;
         drop(): void;
     }
@@ -2925,7 +2981,7 @@ declare module Team.Models {
     }
 }
 declare module Team.Models {
-    class TeamModelCollection extends Common.Models.ModifiableCollection<Team.Models.TeamModel> {
+    class TeamModelCollection extends Common.Models.Collection<Team.Models.TeamModel> {
         teamType: Team.Enums.TeamTypes;
         constructor(teamType: Team.Enums.TeamTypes);
         toJson(): {
@@ -2947,7 +3003,7 @@ declare module Team.Models {
     }
 }
 declare module Team.Models {
-    class TeamRecordCollection extends Common.Models.ModifiableCollection<Team.Models.TeamRecord> {
+    class TeamRecordCollection extends Common.Models.Collection<Team.Models.TeamRecord> {
         constructor();
         toJson(): any;
         fromJson(json: any): void;
@@ -2986,7 +3042,7 @@ declare module Team.Models {
     }
 }
 declare module Team.Models {
-    class PersonnelCollection extends Common.Models.ModifiableCollection<Team.Models.Personnel> {
+    class PersonnelCollection extends Common.Models.Collection<Team.Models.Personnel> {
         unitType: Team.Enums.UnitTypes;
         setType: Common.Enums.SetTypes;
         constructor(unitType: Team.Enums.UnitTypes);
@@ -3056,7 +3112,7 @@ declare module Team.Models {
     }
 }
 declare module Team.Models {
-    class PositionCollection extends Common.Models.ModifiableCollection<Team.Models.Position> {
+    class PositionCollection extends Common.Models.Collection<Team.Models.Position> {
         unitType: Team.Enums.UnitTypes;
         constructor(unitType: Team.Enums.UnitTypes);
         listPositions(): any[];
@@ -3076,7 +3132,7 @@ declare module Team.Models {
     }
 }
 declare module Team.Models {
-    class UnitTypeCollection extends Common.Models.ModifiableCollection<Team.Models.UnitType> {
+    class UnitTypeCollection extends Common.Models.Collection<Team.Models.UnitType> {
         constructor();
         getByUnitType(unitTypeValue: Team.Enums.UnitTypes): UnitType;
         getAssociatedPlaybooks(): Common.Models.PlaybookModelCollection;
@@ -3112,7 +3168,7 @@ declare module Planning {
 declare module Navigation {
 }
 declare module Navigation.Models {
-    class NavigationItem extends Common.Models.Storable {
+    class NavigationItem extends Common.Models.Modifiable {
         name: string;
         label: string;
         glyphicon: string;
@@ -3147,7 +3203,7 @@ declare module League.Models {
     }
 }
 declare module League.Models {
-    class LeagueModelCollection extends Common.Models.ModifiableCollection<League.Models.LeagueModel> {
+    class LeagueModelCollection extends Common.Models.Collection<League.Models.LeagueModel> {
         constructor();
     }
 }
@@ -3158,7 +3214,7 @@ declare module League {
 declare module Stats {
 }
 declare module User.Models {
-    class Organization extends Common.Models.Storable {
+    class Organization extends Common.Models.Modifiable {
         accountKey: number;
         address1: string;
         address2: string;
@@ -3198,9 +3254,6 @@ declare var async: any;
 declare var objectHash: any;
 declare var LZString: any;
 declare var canvg: any;
-declare var impakt: any;
-declare var impakt: any, angular: any;
-declare var impakt: any;
 declare var impakt: any;
 declare var impakt: any;
 declare var impakt: any, playbook: any;

@@ -45,8 +45,8 @@ module Common.Models {
 
         public getClickCoordinates(offsetX: number, offsetY: number): Common.Models.Coordinates {
             return this.grid.getCoordinatesFromAbsolute(
-                this.layer.graphics.dimensions.offset.x - Math.abs(this.paper.x), 
-                Math.abs(this.paper.y) + this.layer.graphics.dimensions.offset.y
+                offsetX + this.layer.graphics.dimensions.offset.x - Math.abs(this.paper.x), 
+                offsetY + Math.abs(this.paper.y) + this.layer.graphics.dimensions.offset.y
             );
         }
     }

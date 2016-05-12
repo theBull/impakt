@@ -18,18 +18,18 @@ function(
 	$scope.newPlay = new Common.Models.Play($scope.selectedUnitType.unitType);
 	$scope.playbooks = impakt.context.Playbook.playbooks;
 	$scope.formations = impakt.context.Playbook.formations;
-	$scope.assignments = impakt.context.Playbook.assignments;
+	$scope.assignmentGroups = impakt.context.Playbook.assignmentGroups;
 
 	$scope.selectedPlaybook = $scope.playbooks.first();
 	$scope.selectedFormation = $scope.formations.first();
-	$scope.selectedAssignments = $scope.assignments.first();
+	$scope.selectedAssignmentGroup = $scope.assignmentGroups.first();
 	$scope.personnelCollection = impakt.context.Team.personnel;
 	$scope.selectedPersonnel = $scope.personnelCollection.first();
 	
 
 	// Intialize new Play with data
 	$scope.newPlay.setFormation($scope.selectedFormation);
-	$scope.newPlay.setAssignments($scope.selectedAssignments);
+	$scope.newPlay.setAssignmentGroup($scope.selectedAssignmentGroup);
 	$scope.newPlay.setPersonnel($scope.selectedPersonnel);
 
 	// Add the new play onto the creation context, to access from
@@ -47,8 +47,8 @@ function(
 	$scope.selectFormation = function(formation: Common.Models.Formation) {
 		$scope.newPlay.setFormation($scope.formations.get(formation.guid));
 	}
-	$scope.selectAssignments = function(assignments: Common.Models.AssignmentCollection) {
-		$scope.newPlay.setAssignments($scope.formations.get(assignments.guid));
+	$scope.selectAssignmentGroup = function(assignmentGroup: Common.Models.AssignmentGroup) {
+		$scope.newPlay.setAssignmentGroup($scope.assignmentGroups.get(assignmentGroup.guid));
 	}
 	$scope.selectPersonnel = function(personnel: Team.Models.Personnel) {
 		$scope.newPlay.setPersonnel($scope.personnelCollection.get(personnel.guid));
@@ -64,7 +64,7 @@ function(
 				$scope.selectedPlaybook,
 				$scope.selectedFormation,
 				$scope.selectedPersonnel,
-				$scope.selectedAssignments
+				$scope.selectedAssignmentGroup
 			]);
 			removePlayFromCreationContext();
 			$uibModalInstance.close(createdPlay);

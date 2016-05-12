@@ -1,0 +1,20 @@
+<div class='gray-bg-3-hover marginBottom1 height9 width18 pointer marginRight1 pad positionRelative'
+	ng-click='toggleSelection(assignmentGroup)'
+	ng-class='{"selected-border": assignmentGroup.selected}'>
+
+	<div class='marginBottom1'>
+		<p><strong>{{assignmentGroup.name}}</strong></p>
+	</div>
+
+	<div>
+		{{assignmentGroup.assignments.size()}} assignments
+	</div>
+
+	<div class='pad gray-bg-2 opacity09 bottom0 left0 fontSize8'>
+		<type-formatter
+			value='assignmentGroup.unitType'
+			type='Team.Enums.UnitTypes'>
+		</type-formatter>
+	</div>
+
+</div>

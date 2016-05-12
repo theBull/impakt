@@ -1,8 +1,7 @@
-<!-- TODO move to directive -->
-<div ng-if='visible' class='contextmenu-container'>
+<div ng-show='contextmenuVisible' class='contextmenu'>
 
  	<!-- contextmenu contents -->
- 	<ng-include src='template'></ng-include>
+ 	<div ng-include='contextmenuData.data.contextmenuTemplateUrl'></div>
 
-	<div id='contextmenuOverlay' ng-click='remove()'></div>
+	<div id='contextmenuOverlay' ng-click='close()'></div>
 </div>

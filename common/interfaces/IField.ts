@@ -20,7 +20,7 @@ module Common.Interfaces {
         hashmark_right: Common.Interfaces.IHashmark;
         hashmark_sideline_left: Common.Interfaces.IHashmark;
         hashmark_sideline_right: Common.Interfaces.IHashmark;
-        selected: Common.Models.ModifiableCollection<Common.Interfaces.IFieldElement>;
+        selected: Common.Interfaces.ICollection<Common.Interfaces.IFieldElement>;
 		cursorCoordinates: Common.Models.Coordinates;
 		
 		initialize(): void;

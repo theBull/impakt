@@ -2,7 +2,7 @@
 
 module Common.Models {
 	export class TabCollection
-	extends Common.Models.ModifiableCollection<Common.Models.Tab> {
+	extends Common.Models.Collection<Common.Models.Tab> {
 		constructor() {
 			super();
 		}

@@ -96,11 +96,12 @@ module Playbook.Models {
                 return;
             }
             let selectedPlayers = this.getSelectedByLayerType(Common.Enums.LayerTypes.Player);
+            let self = this;
             if(selectedPlayers.hasElements()) {
                 selectedPlayers.forEach(function(player: Common.Interfaces.IPlayer, index: number) {
                     if (player.assignment.routes &&
                         player.assignment.routes.size() == 0) {
-                        let route = new Playbook.Models.EditorRoute(player);
+                    let route = new Playbook.Models.EditorRoute(player);
                         player.assignment.routes.add(route);
                     }
                     // TODO: this will only get the first route, implement
@@ -110,14 +111,18 @@ module Playbook.Models {
                         return;
 
                     let newNode = new Playbook.Models.EditorRouteNode(
-                        player,
-                        new Common.Models.RelativeCoordinates(0, 0, player),
+                        playerRoute,
+                        player.layer.graphics.placement.coordinates.getRelativeTo(coords, player),
                         Common.Enums.RouteNodeTypes.Normal
                     );
                     // route exists, append the node
                     playerRoute.addNode(newNode);
                     console.log('set player route', player.relativeCoordinatesLabel, playerRoute);
-                    this.playPrimary.assignments.addAtIndex(player.assignment, player.position.index);
+                    
+                    self.playPrimary.assignmentGroup.assignments.addAtIndex(
+                        player.assignment, 
+                        player.position.index
+                    );
                 });
             }
         }

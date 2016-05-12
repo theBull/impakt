@@ -16,6 +16,7 @@
 /// <reference path='./interfaces.ts' />
 /// <reference path='./interfaces.ts' />
 /// <reference path='./interfaces.ts' />
+/// <reference path='./interfaces.ts' />
 /// <reference path='../models/models.ts' />
 /// <reference path='./interfaces.ts' />
 /// <reference path='./interfaces.ts' />
@@ -38,7 +39,7 @@
 /// <reference path='./interfaces.ts' />
 /// <reference path='./ICollection.ts' />
 /// <reference path='./ICollectionItem.ts' />
-/// <reference path='./ILinkedListItem.ts' />
+/// <reference path='./ILinkedListNode.ts' />
 /// <reference path='./IModifiable.ts' />
 /// <reference path='./IModifiableCollection.ts' />
 /// <reference path='./IStorable.ts' />
@@ -246,10 +247,13 @@ var Common;
     (function (Models) {
         var Collection = (function (_super) {
             __extends(Collection, _super);
-            function Collection() {
+            function Collection(size) {
+                if (!Common.Utilities.isNullOrUndefined(size) && size < 0)
+                    throw new Error('Collection constructor(): Cannot create a collection with size < 0');
                 _super.call(this);
+                _super.prototype.setContext.call(this, this);
                 this._count = 0;
-                this._keys = [];
+                this._keys = new Array(size || 0);
             }
             Collection.prototype._getKey = function (data) {
                 if (data && data.guid) {
@@ -316,14 +320,30 @@ var Common;
                 if (!this.hasOwnProperty(key.toString()))
                     throw Error('Object does not have key ' + key + '. Use the add(key) method.');
                 this[key] = data;
+                var self = this;
+                data.onModified(function () {
+                    self.setModified(true);
+                });
+                this.setModified(true);
             };
             Collection.prototype.replace = function (replaceKey, data) {
                 var key = this._getKey(data);
                 this._keys[this._keys.indexOf(replaceKey)] = key;
                 this[key] = data;
                 delete this[replaceKey];
+                var self = this;
+                data.onModified(function () {
+                    self.setModified(true);
+                });
+                this.setModified(true);
             };
             Collection.prototype.setAtIndex = function (index, data) {
+                if (index < 0 || index > this._count - 1)
+                    throw new Error('Collection setAtIndex(): index is out of bounds; ' + index);
+                var key = this._keys[index];
+                if (Common.Utilities.isNullOrUndefined(key))
+                    return null;
+                this.set(key, data);
             };
             Collection.prototype.add = function (data) {
                 var key = this._getKey(data);
@@ -334,6 +354,11 @@ var Common;
                     this[key] = data;
                     this._keys.push(key);
                     this._count++;
+                    var self_1 = this;
+                    data.onModified(function () {
+                        self_1.setModified(true);
+                    });
+                    this.setModified(true);
                 }
             };
             Collection.prototype.addAll = function () {
@@ -345,8 +370,9 @@ var Common;
                     return;
                 for (var i = 0; i < args.length; i++) {
                     var item = args[i];
-                    if (item)
+                    if (item) {
                         this.add(item);
+                    }
                 }
             };
             Collection.prototype.addAtIndex = function (data, index) {
@@ -357,8 +383,14 @@ var Common;
                     // OR, element does not exist, add at index
                     this[key] = data;
                     this._keys[index] = key;
-                    if (!exists)
+                    if (!exists) {
                         this._count++;
+                        var self_2 = this;
+                        data.onModified(function () {
+                            self_2.setModified(true);
+                        });
+                        this.setModified(true);
+                    }
                 }
                 else {
                     // element exists at different index...
@@ -385,6 +417,9 @@ var Common;
                 var self = this;
                 collection.forEach(function (item, index) {
                     if (item && item.guid) {
+                        if (this.clearListeners) {
+                            item.clearListeners();
+                        }
                         self.add(item);
                     }
                     else {
@@ -426,7 +461,11 @@ var Common;
                 delete this[key];
                 this._keys.splice(this._keys.indexOf(key), 1);
                 this._count--;
+                this.setModified(true);
                 return obj;
+            };
+            Collection.prototype.empty = function () {
+                this.removeAll();
             };
             Collection.prototype.removeAll = function () {
                 while (this._count > 0) {
@@ -459,7 +498,7 @@ var Common;
             Collection.prototype.toJson = function () {
                 var results = [];
                 this.forEach(function (element, index) {
-                    results.push(element.toJson());
+                    results.push(element ? element.toJson() : null);
                 });
                 return results;
             };
@@ -467,7 +506,7 @@ var Common;
                 return this._keys;
             };
             return Collection;
-        })(Common.Models.Storable);
+        })(Common.Models.Modifiable);
         Models.Collection = Collection;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -483,7 +522,51 @@ var Common;
                 this.root = null;
                 this.last = null;
                 this._length = 0;
+                this._modifiable = new Common.Models.Modifiable();
+                this._modifiable.setContext(this);
+                this.callbacks = this._modifiable.callbacks;
+                this.modified = this._modifiable.modified;
+                this.checksum = this._modifiable.checksum;
+                this.original = this._modifiable.original;
+                this.lastModified = this._modifiable.lastModified;
+                this.context = this._modifiable.context;
+                this.isContextSet = this._modifiable.isContextSet;
+                this.listening = this._modifiable.listening;
             }
+            LinkedList.prototype.setModified = function (forciblyModify) {
+                var modified = this._modifiable.setModified(forciblyModify === true);
+                this.modified = this._modifiable.modified;
+                this.checksum = this._modifiable.checksum;
+                this.lastModified = this._modifiable.lastModified;
+                return modified;
+            };
+            LinkedList.prototype.onModified = function (callback) {
+                var self = this;
+                this._modifiable.onModified(callback);
+                this.forEach(function (modifiableItem, index) {
+                    if (Common.Utilities.isNullOrUndefined(modifiableItem))
+                        return;
+                    modifiableItem.onModified(function () {
+                        // child elements modified, 
+                        // propegate changes up to the parent
+                        self.setModified(true);
+                    });
+                });
+            };
+            LinkedList.prototype.isModified = function () {
+                this._modifiable.isModified();
+                this.lastModified = this._modifiable.lastModified;
+            };
+            /**
+             * When commanding the collection whether to listen,
+             * apply the true/false argument to all of its contents as well
+             * @param {boolean} startListening true to start listening, false to stop
+             */
+            LinkedList.prototype.listen = function (startListening) {
+                this._modifiable.listening = startListening;
+                this.listening = startListening;
+                return this;
+            };
             LinkedList.prototype.add = function (node) {
                 if (!this.root) {
                     this.root = node;
@@ -499,6 +582,11 @@ var Common;
                 }
                 this.last = node;
                 this._length++;
+                var self = this;
+                node.onModified(function () {
+                    self.setModified(true);
+                });
+                this.setModified(true);
             };
             LinkedList.prototype.getIndex = function (index) {
                 var count = 0;
@@ -535,17 +623,6 @@ var Common;
                     if (node && node.toJson) {
                         arr.push(node.toJson());
                     }
-                    else {
-                        throw new Error('node data is null or toJson not implemented');
-                        arr.push(null);
-                    }
-                });
-                return arr;
-            };
-            LinkedList.prototype.toDataArray = function () {
-                var arr = Array();
-                this.forEach(function (node, i) {
-                    arr.push(node.data);
                 });
                 return arr;
             };
@@ -559,14 +636,20 @@ var Common;
             LinkedList.prototype.getLast = function () {
                 return this.last;
             };
+            LinkedList.prototype.getRoot = function () {
+                return this.root;
+            };
             LinkedList.prototype.remove = function (guid) {
-                throw Error('not implemented');
+                return;
             };
             LinkedList.prototype.size = function () {
                 return this._length;
             };
             LinkedList.prototype.hasElements = function () {
                 return this.size() > 0;
+            };
+            LinkedList.prototype.isEmpty = function () {
+                return !this.hasElements();
             };
             return LinkedList;
         })(Common.Models.Storable);
@@ -578,42 +661,34 @@ var Common;
 (function (Common) {
     var Models;
     (function (Models) {
-        var LinkedListNode = (function (_super) {
-            __extends(LinkedListNode, _super);
-            function LinkedListNode(data, next, prev) {
-                _super.call(this);
-                this.data = data;
-                this.data.node = this;
-                this.next = next;
-                this.prev = prev || null;
-            }
-            LinkedListNode.prototype.toJson = function () {
-                return Common.Utilities.toJson(this.data);
-            };
-            return LinkedListNode;
-        })(Common.Models.Storable);
-        Models.LinkedListNode = LinkedListNode;
-    })(Models = Common.Models || (Common.Models = {}));
-})(Common || (Common = {}));
-/// <reference path='./models.ts' />
-var Common;
-(function (Common) {
-    var Models;
-    (function (Models) {
         var ModifiableCollection = (function () {
-            function ModifiableCollection() {
+            function ModifiableCollection(size) {
                 this._modifiable = new Common.Models.Modifiable();
                 this._modifiable.setContext(this);
-                this._collection = new Common.Models.Collection();
+                this.callbacks = this._modifiable.callbacks;
+                this.modified = this._modifiable.modified;
+                this.lastModified = this._modifiable.lastModified;
+                this.original = this._modifiable.original;
+                this.checksum = this._modifiable.checksum;
+                this.context = this._modifiable.context;
+                this.isContextSet = this._modifiable.isContextSet;
+                this.listening = this._modifiable.listening;
+                this._collection = new Common.Models.Collection(size);
                 this.guid = this._modifiable.guid;
             }
             ModifiableCollection.prototype.setModified = function (forciblyModify) {
-                return this._modifiable.setModified(forciblyModify === true);
+                var modified = this._modifiable.setModified(forciblyModify === true);
+                this.modified = this._modifiable.modified;
+                this.checksum = this._modifiable.checksum;
+                this.lastModified = this._modifiable.lastModified;
+                return modified;
             };
             ModifiableCollection.prototype.onModified = function (callback) {
                 var self = this;
                 this._modifiable.onModified(callback);
                 this._collection.forEach(function (modifiableItem, index) {
+                    if (Common.Utilities.isNullOrUndefined(modifiableItem))
+                        return;
                     modifiableItem.onModified(function () {
                         // child elements modified, 
                         // propegate changes up to the parent
@@ -623,6 +698,7 @@ var Common;
             };
             ModifiableCollection.prototype.isModified = function () {
                 this._modifiable.isModified();
+                this.lastModified = this._modifiable.lastModified;
             };
             /**
              * When commanding the collection whether to listen,
@@ -631,6 +707,7 @@ var Common;
              */
             ModifiableCollection.prototype.listen = function (startListening) {
                 this._modifiable.listening = startListening;
+                this.listening = startListening;
                 return this;
             };
             ModifiableCollection.prototype.size = function () {
@@ -659,38 +736,38 @@ var Common;
             };
             ModifiableCollection.prototype.set = function (key, data) {
                 this._collection.set(key, data);
-                this._modifiable.setModified();
                 var self = this;
                 data.onModified(function () {
-                    self._modifiable.setModified();
+                    self.setModified(true);
                 });
+                this.setModified(true);
                 return this;
             };
             ModifiableCollection.prototype.replace = function (replaceKey, data) {
                 this._collection.replace(replaceKey, data);
-                this._modifiable.setModified();
                 var self = this;
                 data.onModified(function () {
-                    self._modifiable.setModified();
+                    self.setModified(true);
                 });
+                this.setModified(true);
                 return this;
             };
             ModifiableCollection.prototype.setAtIndex = function (index, data) {
                 this._collection.setAtIndex(index, data);
-                this._modifiable.setModified();
                 var self = this;
                 data.onModified(function () {
-                    self._modifiable.setModified();
+                    self.setModified(true);
                 });
+                this.setModified(true);
                 return this;
             };
             ModifiableCollection.prototype.add = function (data) {
                 this._collection.add(data);
-                this._modifiable.setModified();
                 var self = this;
                 data.onModified(function () {
-                    self._modifiable.setModified();
+                    self.setModified(true);
                 });
+                this.setModified(true);
                 return this;
             };
             ModifiableCollection.prototype.addAll = function () {
@@ -701,38 +778,37 @@ var Common;
                 if (!args || args.length == 0)
                     return this;
                 (_a = this._collection).addAll.apply(_a, args);
-                this._modifiable.setModified();
                 var self = this;
                 for (var i = 0; i < args.length; i++) {
                     var modifiable = args[i];
                     modifiable.onModified(function () {
-                        self._modifiable.setModified();
+                        self.setModified(true);
                     });
                 }
+                this.setModified(true);
                 return this;
                 var _a;
             };
             ModifiableCollection.prototype.addAtIndex = function (data, index) {
                 this._collection.addAtIndex(data, index);
-                this._modifiable.setModified();
                 var self = this;
                 data.onModified(function () {
-                    self._modifiable.setModified();
+                    self.setModified(true);
                 });
+                this.setModified(true);
                 return this;
             };
             ModifiableCollection.prototype.only = function (data) {
                 this._collection.only(data);
-                this._modifiable.setModified(true);
                 var self = this;
                 data.onModified(function () {
-                    self._modifiable.setModified();
+                    self.setModified(true);
                 });
+                this.setModified(true);
                 return this;
             };
             ModifiableCollection.prototype.append = function (collection, clearListeners) {
                 this._collection.append(collection);
-                this._modifiable.setModified();
                 var self = this;
                 collection.forEach(function (modifiable, index) {
                     // clear any existing listeners from the
@@ -741,9 +817,10 @@ var Common;
                     if (clearListeners)
                         modifiable.clearListeners();
                     modifiable.onModified(function () {
-                        self._modifiable.setModified();
+                        self.setModified(true);
                     });
                 });
+                this.setModified(true);
                 return this;
             };
             ModifiableCollection.prototype.forEach = function (iterator) {
@@ -760,12 +837,12 @@ var Common;
             };
             ModifiableCollection.prototype.remove = function (key) {
                 var results = this._collection.remove(key);
-                this._modifiable.setModified();
+                this.setModified(true);
                 return results;
             };
             ModifiableCollection.prototype.removeAll = function () {
                 this._collection.removeAll();
-                this._modifiable.setModified();
+                this.setModified(true);
             };
             ModifiableCollection.prototype.empty = function () {
                 this.removeAll();
@@ -777,7 +854,7 @@ var Common;
              */
             ModifiableCollection.prototype.removeEach = function (iterator) {
                 this._collection.removeEach(iterator);
-                this._modifiable.setModified();
+                this.setModified(true);
             };
             ModifiableCollection.prototype.contains = function (key) {
                 return this._collection.contains(key);
@@ -797,7 +874,7 @@ var Common;
             ModifiableCollection.prototype.fromJson = function (json) {
                 if (!json)
                     return;
-                this._collection.fromJson(json);
+                this._collection.fromJson(json._collection);
             };
             ModifiableCollection.prototype.copy = function (newElement, context) {
                 console.error('ModifiableCollection copy() not implemented');
@@ -816,67 +893,17 @@ var Common;
 (function (Common) {
     var Models;
     (function (Models) {
-        var ModifiableLinkedList = (function (_super) {
-            __extends(ModifiableLinkedList, _super);
-            function ModifiableLinkedList() {
-                _super.call(this);
-                this._modifiable = new Common.Models.Modifiable();
-                this._modifiable.setContext(this);
+        var ContextmenuData = (function () {
+            function ContextmenuData(data, pageX, pageY, message) {
+                this.data = data;
+                this.url = data.contextmenuTemplateUrl;
+                this.pageX = pageX;
+                this.pageY = pageY;
+                this.message = message || 'Contextmenu opened';
             }
-            ModifiableLinkedList.prototype.add = function (node) {
-                _super.prototype.add.call(this, node);
-                this._modifiable.setModified();
-            };
-            ModifiableLinkedList.prototype.getIndex = function (index) {
-                return _super.prototype.getIndex.call(this, index);
-            };
-            ModifiableLinkedList.prototype.forEach = function (iterator) {
-                _super.prototype.forEach.call(this, iterator);
-            };
-            ModifiableLinkedList.prototype.toJson = function () {
-                return _super.prototype.toJson.call(this);
-            };
-            ModifiableLinkedList.prototype.toDataArray = function () {
-                return _super.prototype.toDataArray.call(this);
-            };
-            ModifiableLinkedList.prototype.toArray = function () {
-                return _super.prototype.toArray.call(this);
-            };
-            ModifiableLinkedList.prototype.getLast = function () {
-                return _super.prototype.getLast.call(this);
-            };
-            ModifiableLinkedList.prototype.remove = function (guid) {
-                var results = _super.prototype.remove.call(this, guid);
-                this._modifiable.setModified();
-                return results;
-            };
-            ModifiableLinkedList.prototype.size = function () {
-                return _super.prototype.size.call(this);
-            };
-            ModifiableLinkedList.prototype.hasElements = function () {
-                return _super.prototype.hasElements.call(this);
-            };
-            return ModifiableLinkedList;
-        })(Common.Models.LinkedList);
-        Models.ModifiableLinkedList = ModifiableLinkedList;
-    })(Models = Common.Models || (Common.Models = {}));
-})(Common || (Common = {}));
-/// <reference path='./models.ts' />
-var Common;
-(function (Common) {
-    var Models;
-    (function (Models) {
-        var ModifiableLinkedListNode = (function (_super) {
-            __extends(ModifiableLinkedListNode, _super);
-            function ModifiableLinkedListNode(data, next, prev) {
-                _super.call(this, data, next, prev);
-            }
-            ModifiableLinkedListNode.prototype.toJson = function () {
-                return _super.prototype.toJson.call(this);
-            };
-            return ModifiableLinkedListNode;
-        })(Common.Models.LinkedListNode);
-        Models.ModifiableLinkedListNode = ModifiableLinkedListNode;
+            return ContextmenuData;
+        })();
+        Models.ContextmenuData = ContextmenuData;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
 /// <reference path='./models.ts' />
@@ -910,8 +937,11 @@ var Common;
             /**
              * Generic selection toggle
              */
+            Actionable.prototype.isSelectable = function () {
+                return !this.disabled && this.selectable;
+            };
             Actionable.prototype.toggleSelect = function () {
-                if (this.disabled || !this.selectable)
+                if (!this.isSelectable())
                     return;
                 if (this.selected)
                     this.deselect();
@@ -922,7 +952,7 @@ var Common;
              * Generic selection method
              */
             Actionable.prototype.select = function () {
-                if (this.disabled || !this.selectable)
+                if (!this.isSelectable())
                     return;
                 this.selected = true;
             };
@@ -930,7 +960,7 @@ var Common;
              * Generic deselection method
              */
             Actionable.prototype.deselect = function () {
-                if (this.disabled || !this.selectable)
+                if (!this.isSelectable())
                     return;
                 this.selected = false;
             };
@@ -951,6 +981,9 @@ var Common;
             };
             // TODO @theBull - implement here?
             Actionable.prototype.contextmenu = function (e, context) {
+            };
+            Actionable.prototype.getContextmenuUrl = function () {
+                return this.contextmenuTemplateUrl;
             };
             return Actionable;
         })(Common.Models.Modifiable);
@@ -1007,7 +1040,7 @@ var Common;
                     this.select(element);
             };
             return ActionableCollection;
-        })(Common.Models.ModifiableCollection);
+        })(Common.Models.Collection);
         Models.ActionableCollection = ActionableCollection;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -1063,24 +1096,24 @@ var Common;
 (function (Common) {
     var Models;
     (function (Models) {
-        var AssociableCollectionEntity = (function (_super) {
-            __extends(AssociableCollectionEntity, _super);
-            function AssociableCollectionEntity(impaktDataType) {
-                _super.call(this);
+        var AssociableEntityCollection = (function (_super) {
+            __extends(AssociableEntityCollection, _super);
+            function AssociableEntityCollection(impaktDataType, size) {
+                _super.call(this, size);
                 this._associableEntity = new Common.Models.AssociableEntity(impaktDataType);
             }
-            AssociableCollectionEntity.prototype.toJson = function () {
+            AssociableEntityCollection.prototype.toJson = function () {
                 return $.extend(this._associableEntity.toJson(), _super.prototype.toJson.call(this));
             };
-            AssociableCollectionEntity.prototype.fromJson = function (json) {
+            AssociableEntityCollection.prototype.fromJson = function (json) {
                 if (!json)
                     throw new Error('AssociableEntity fromJson(): json is null or undefined');
                 this._associableEntity.fromJson(json);
                 _super.prototype.fromJson.call(this, json);
             };
-            return AssociableCollectionEntity;
-        })(Common.Models.ModifiableCollection);
-        Models.AssociableCollectionEntity = AssociableCollectionEntity;
+            return AssociableEntityCollection;
+        })(Common.Models.Collection);
+        Models.AssociableEntityCollection = AssociableEntityCollection;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
 /// <reference path='./models.ts' />
@@ -1324,6 +1357,22 @@ var Common;
              */
             AssociationCollection.prototype.exists = function (internalKey) {
                 return !Common.Utilities.isNullOrUndefined(this._data[internalKey]);
+            };
+            /**
+             * Returns whether there is an existing association between the given
+             * 'from' internalKey, 'to' the given internal key
+             * @param  {string}  fromInternalKey [description]
+             * @param  {string}  toInternalKey   [description]
+             * @return {boolean}                 [description]
+             */
+            AssociationCollection.prototype.associationExists = function (fromInternalKey, toInternalKey) {
+                if (this.exists(fromInternalKey)) {
+                    var associations = this.getByInternalKey(fromInternalKey);
+                    return associations.indexOf(toInternalKey) >= 0;
+                }
+                else {
+                    return false;
+                }
             };
             /**
              * Replaces guid1, if found, with guid2
@@ -1624,7 +1673,7 @@ var Common;
                 _super.call(this);
             }
             return NotificationCollection;
-        })(Common.Models.ModifiableCollection);
+        })(Common.Models.Collection);
         Models.NotificationCollection = NotificationCollection;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -1668,6 +1717,10 @@ var Common;
                 this.routes = new Common.Models.RouteCollection();
                 this.positionIndex = -1;
                 this.setType = Common.Enums.SetTypes.Assignment;
+                var self = this;
+                this.routes.onModified(function () {
+                    self.setModified(true);
+                });
             }
             Assignment.prototype.remove = function () {
                 this.routes.forEach(function (route, index) {
@@ -1704,36 +1757,40 @@ var Common;
 (function (Common) {
     var Models;
     (function (Models) {
-        var AssignmentCollection = (function (_super) {
-            __extends(AssignmentCollection, _super);
+        var AssignmentGroup = (function (_super) {
+            __extends(AssignmentGroup, _super);
             // at this point I'm expecting an object literal with data / count
             // properties, but not a valid AssignmentCollection; Essentially
             // this is to get around 
-            function AssignmentCollection(unitType, count) {
+            function AssignmentGroup(unitType, count) {
                 _super.call(this, Common.Enums.ImpaktDataTypes.AssignmentGroup);
                 this.unitType = unitType;
+                this.assignments = new Common.Models.Collection(11);
                 if (count) {
                     for (var i = 0; i < count; i++) {
                         var assignment = new Common.Models.Assignment(this.unitType);
                         assignment.positionIndex = i;
-                        this.add(assignment);
+                        this.assignments.add(assignment);
                     }
                 }
-                this.setType = Common.Enums.SetTypes.Assignment;
                 this.name = 'Untitled';
+                this.key = -1;
+                this.onModified(function () {
+                    // TODO
+                });
             }
-            AssignmentCollection.prototype.toJson = function () {
-                return {
+            AssignmentGroup.prototype.toJson = function () {
+                return $.extend({
                     unitType: this.unitType,
-                    setType: this.setType,
-                    assignments: _super.prototype.toJson.call(this)
-                };
+                    name: this.name,
+                    assignments: this.assignments.toJson()
+                }, _super.prototype.toJson.call(this));
             };
-            AssignmentCollection.prototype.fromJson = function (json) {
+            AssignmentGroup.prototype.fromJson = function (json) {
                 if (!json)
                     return;
                 this.unitType = json.unitType;
-                this.setType = json.setType;
+                this.name = json.name;
                 var assignments = json.assignments || [];
                 for (var i = 0; i < assignments.length; i++) {
                     var rawAssignment = assignments[i];
@@ -1743,21 +1800,69 @@ var Common;
                         rawAssignment.unitType >= 0 ? rawAssignment.unitTpe : Team.Enums.UnitTypes.Other;
                     var assignmentModel = new Common.Models.Assignment(rawAssignment.unitType);
                     assignmentModel.fromJson(rawAssignment);
-                    this.add(assignmentModel);
+                    this.assignments.add(assignmentModel);
                 }
+                _super.prototype.fromJson.call(this, json);
             };
-            AssignmentCollection.prototype.getAssignmentByPositionIndex = function (index) {
+            AssignmentGroup.prototype.getAssignmentByPositionIndex = function (index) {
                 var result = null;
-                if (this.hasElements()) {
-                    result = this.filterFirst(function (assignment) {
+                if (this.assignments.hasElements()) {
+                    result = this.assignments.filterFirst(function (assignment) {
                         return assignment.positionIndex == index;
                     });
                 }
                 return result;
             };
-            return AssignmentCollection;
-        })(Common.Models.AssociableCollectionEntity);
-        Models.AssignmentCollection = AssignmentCollection;
+            return AssignmentGroup;
+        })(Common.Models.AssociableEntity);
+        Models.AssignmentGroup = AssignmentGroup;
+    })(Models = Common.Models || (Common.Models = {}));
+})(Common || (Common = {}));
+/// <reference path='./models.ts' />
+var Common;
+(function (Common) {
+    var Models;
+    (function (Models) {
+        var AssignmentGroupCollection = (function (_super) {
+            __extends(AssignmentGroupCollection, _super);
+            // at this point I'm expecting an object literal with data / count
+            // properties, but not a valid AssignmentCollection; Essentially
+            // this is to get around 
+            function AssignmentGroupCollection(unitType) {
+                _super.call(this);
+                this.unitType = unitType;
+                this.onModified(function () {
+                    // TODO
+                });
+            }
+            AssignmentGroupCollection.prototype.toJson = function () {
+                return {
+                    unitType: this.unitType,
+                    assignmentCollections: _super.prototype.toJson.call(this)
+                };
+            };
+            AssignmentGroupCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.unitType = json.unitType;
+                var assignmentCollections = json.assignmentCollections || [];
+                for (var i = 0; i < assignmentCollections.length; i++) {
+                    var rawAssignmentCollection = assignmentCollections[i];
+                    if (Common.Utilities.isNullOrUndefined(rawAssignmentCollection))
+                        continue;
+                    rawAssignmentCollection.unitType =
+                        !Common.Utilities.isNullOrUndefined(rawAssignmentCollection.unitType) &&
+                            rawAssignmentCollection.unitType >= 0 ?
+                            rawAssignmentCollection.unitTpe :
+                            Team.Enums.UnitTypes.Other;
+                    var assignmentCollection = new Common.Models.AssignmentGroup(rawAssignmentCollection.unitType);
+                    assignmentCollection.fromJson(rawAssignmentCollection);
+                    this.add(assignmentCollection);
+                }
+            };
+            return AssignmentGroupCollection;
+        })(Common.Models.ActionableCollection);
+        Models.AssignmentGroupCollection = AssignmentGroupCollection;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
 /// <reference path='./models.ts' />
@@ -1900,11 +2005,12 @@ var Common;
                 this.field = null;
                 this.name = 'New play';
                 this.unitType = unitType;
-                this.assignments = null;
+                this.assignmentGroup = null;
                 this.formation = null;
                 this.personnel = null;
                 this.editorType = Playbook.Enums.EditorTypes.Play;
                 this.png = null;
+                this.contextmenuTemplateUrl = Common.Constants.PLAY_CONTEXTMENU_TEMPLATE_URL;
             }
             Play.prototype.setPlaybook = function (playbook) {
                 // TODO @theBull - handle associations
@@ -1919,21 +2025,21 @@ var Common;
                     }
                 }
                 else {
-                    this.setAssignments(null);
+                    this.setAssignmentGroup(null);
                     this.setPersonnel(null);
                 }
                 this.formation = formation;
                 this.unitType = formation.unitType;
                 this.setModified(true);
             };
-            Play.prototype.setAssignments = function (assignments) {
-                if (!Common.Utilities.isNullOrUndefined(assignments)) {
-                    if (assignments.unitType != this.unitType)
-                        throw new Error('Play setAssignments(): Assignments unit type does not match play unit type');
+            Play.prototype.setAssignmentGroup = function (assignmentGroup) {
+                if (!Common.Utilities.isNullOrUndefined(assignmentGroup)) {
+                    if (assignmentGroup.unitType != this.unitType)
+                        throw new Error('Play setAssignmentGroup(): Assignments unit type does not match play unit type');
                 }
                 else {
                 }
-                this.assignments = assignments;
+                this.assignmentGroup = assignmentGroup;
                 this.setModified(true);
             };
             Play.prototype.setPersonnel = function (personnel) {
@@ -1970,8 +2076,8 @@ var Common;
                     this.personnel.setDefault();
                 }
                 // 3. if assignments do not match unit type, clear them.
-                if (this.assignments.unitType != this.unitType) {
-                    this.assignments = new Common.Models.AssignmentCollection(this.unitType);
+                if (this.assignmentGroup.unitType != this.unitType) {
+                    this.assignmentGroup = new Common.Models.AssignmentGroup(this.unitType);
                 }
             };
             Play.prototype.draw = function (field) {
@@ -1988,8 +2094,8 @@ var Common;
                 if (!this.personnel.positions) {
                     this.personnel.setDefault();
                 }
-                if (!this.assignments) {
-                    this.assignments = new Common.Models.AssignmentCollection(this.unitType);
+                if (!this.assignmentGroup) {
+                    this.assignmentGroup = new Common.Models.AssignmentGroup(this.unitType);
                 }
                 if (!this.formation) {
                     this.formation = new Common.Models.Formation(this.unitType);
@@ -1999,7 +2105,7 @@ var Common;
                 }
                 this.formation.placements.forEach(function (placement, index) {
                     var position = self.personnel.positions.getIndex(index);
-                    var assignment = self.assignments.getIndex(index);
+                    var assignment = self.assignmentGroup.assignments.getIndex(index);
                     self.field.addPlayer(placement, position, assignment);
                 });
             };
@@ -2020,7 +2126,7 @@ var Common;
                 }, _super.prototype.toJson.call(this));
             };
             Play.prototype.hasAssignments = function () {
-                return this.assignments && this.assignments.size() > 0;
+                return this.assignmentGroup && this.assignmentGroup.assignments.size() > 0;
             };
             Play.prototype.setDefault = function (field) {
                 this.isFieldSet(field);
@@ -2271,7 +2377,7 @@ var Common;
                 tab.close();
             };
             return TabCollection;
-        })(Common.Models.ModifiableCollection);
+        })(Common.Models.Collection);
         Models.TabCollection = TabCollection;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -2284,12 +2390,13 @@ var Common;
             __extends(Template, _super);
             function Template(name, url) {
                 _super.call(this);
+                _super.prototype.setContext.call(this, this);
                 this.name = name;
                 this.url = url;
                 this.data = {};
             }
             return Template;
-        })(Common.Models.Storable);
+        })(Common.Models.Modifiable);
         Models.Template = Template;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -2337,6 +2444,7 @@ var Common;
         (function (Which) {
             Which[Which["LeftClick"] = 1] = "LeftClick";
             Which[Which["RightClick"] = 3] = "RightClick";
+            Which[Which["Esc"] = 27] = "Esc";
             /**
              *
              * Uppercase (shift pressed)
@@ -2802,6 +2910,24 @@ var Common;
                 if (this.hasLayers())
                     this.layers.removeAll();
             };
+            Layer.prototype.toFront = function () {
+                if (this.hasLayers()) {
+                    this.layers.forEach(function (layer, index) {
+                        if (layer && layer.graphics) {
+                            layer.graphics.toFront();
+                        }
+                    });
+                }
+            };
+            Layer.prototype.toBack = function () {
+                if (this.hasLayers()) {
+                    this.layers.forEach(function (layer, index) {
+                        if (layer && layer.graphics) {
+                            layer.graphics.toBack();
+                        }
+                    });
+                }
+            };
             Layer.prototype.show = function () {
                 this.visible = true;
                 this.graphics.show();
@@ -2835,15 +2961,19 @@ var Common;
             };
             Layer.prototype.moveByDelta = function (dx, dy) {
                 this.graphics.moveByDelta(dx, dy);
-                this.layers.forEach(function (layer, index) {
-                    layer.graphics.moveByDelta(dx, dy);
-                });
+                if (this.hasLayers()) {
+                    this.layers.forEach(function (layer, index) {
+                        layer.moveByDelta(dx, dy);
+                    });
+                }
             };
             Layer.prototype.drop = function () {
                 this.graphics.drop();
-                this.layers.forEach(function (layer, index) {
-                    layer.graphics.drop();
-                });
+                if (this.hasLayers()) {
+                    this.layers.forEach(function (layer, index) {
+                        layer.drop();
+                    });
+                }
             };
             Layer.prototype.hasLayers = function () {
                 return this.layers != null && this.layers != undefined;
@@ -2908,7 +3038,7 @@ var Common;
                 });
             };
             return LayerCollection;
-        })(Common.Models.ModifiableCollection);
+        })(Common.Models.Collection);
         Models.LayerCollection = LayerCollection;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -3321,7 +3451,7 @@ var Common;
                 this.playPrimary = playPrimary;
                 this.playOpponent = playOpponent;
                 this.players = new Common.Models.PlayerCollection();
-                this.selected = new Common.Models.ModifiableCollection();
+                this.selected = new Common.Models.Collection();
                 this.layers = new Common.Models.LayerCollection();
                 this.cursorCoordinates = new Common.Models.Coordinates(0, 0);
                 var self = this;
@@ -3394,6 +3524,8 @@ var Common;
                 throw new Error('field applyPrimaryPlay() not implemented');
             };
             Field.prototype.applyPrimaryFormation = function (formation) {
+                if (Common.Utilities.isNullOrUndefined(formation))
+                    return;
                 //console.log(formation);
                 // the order of placements within the formation get applied straight across
                 // to the order of personnel and positions.
@@ -3417,10 +3549,14 @@ var Common;
                 this.playPrimary.setFormation(formation);
                 // TODO @theBull - implement set formation for opponent formation
             };
-            Field.prototype.applyPrimaryAssignments = function (assignments) {
+            Field.prototype.applyPrimaryAssignmentGroup = function (assignmentGroup) {
+                if (Common.Utilities.isNullOrUndefined(assignmentGroup))
+                    return;
                 var self = this;
-                if (assignments.hasElements()) {
-                    assignments.forEach(function (assignment, index) {
+                if (assignmentGroup.assignments.hasElements()) {
+                    assignmentGroup.assignments.forEach(function (assignment, index) {
+                        if (Common.Utilities.isNullOrUndefined(assignment))
+                            return;
                         var player = self.getPlayerWithPositionIndex(assignment.positionIndex);
                         if (player) {
                             assignment.setContext(player);
@@ -3430,10 +3566,12 @@ var Common;
                         }
                     });
                     // TODO @theBull - implement apply opponent assignments
-                    this.playPrimary.setAssignments(assignments);
+                    this.playPrimary.setAssignmentGroup(assignmentGroup);
                 }
             };
             Field.prototype.applyPrimaryPersonnel = function (personnel) {
+                if (Common.Utilities.isNullOrUndefined(personnel))
+                    return;
                 var self = this;
                 if (personnel && personnel.hasPositions()) {
                     this.players.forEach(function (player, index) {
@@ -3458,6 +3596,8 @@ var Common;
                 }
             };
             Field.prototype.applyPrimaryUnitType = function (unitType) {
+                if (Common.Utilities.isNullOrUndefined(unitType))
+                    return;
                 if (Common.Utilities.isNullOrUndefined(this.playPrimary))
                     return;
                 this.playPrimary.setUnitType(unitType);
@@ -3558,6 +3698,8 @@ var Common;
                 this.grid = this.paper.grid;
                 this.contextmenuTemplateUrl = Common.Constants.DEFAULT_CONTEXTMENU_TEMPLATE_URL;
                 this.layer = new Common.Models.Layer(this.paper, Common.Enums.LayerTypes.FieldElement);
+                this._originalScreenPositionX = null;
+                this._originalScreenPositionY = null;
                 var self = this;
                 this.onModified(function () {
                     self.field.setModified(true);
@@ -3624,11 +3766,35 @@ var Common;
             FieldElement.prototype.dragMove = function (dx, dy, posx, posy, e) {
             };
             FieldElement.prototype.dragStart = function (x, y, e) {
+                this.setOriginalDragPosition(x, y);
+                if (this.isOverDragThreshold(this.getOriginalScreenPosition().x - x, this.getOriginalScreenPosition().y - y)) {
+                    this.layer.graphics.dragging = true;
+                }
             };
             FieldElement.prototype.dragEnd = function (e) {
+                this.setOriginalDragPosition(null, null);
+                this.layer.graphics.dragging = false;
             };
             FieldElement.prototype.drop = function () {
                 this.layer.drop();
+            };
+            FieldElement.prototype.getOriginalScreenPosition = function () {
+                return {
+                    x: this._originalScreenPositionX,
+                    y: this._originalScreenPositionY
+                };
+            };
+            FieldElement.prototype.setOriginalDragPosition = function (x, y) {
+                this._originalScreenPositionX = x;
+                this._originalScreenPositionY = y;
+            };
+            FieldElement.prototype.isOriginalDragPositionSet = function () {
+                return !Common.Utilities.isNull(this._originalScreenPositionX) &&
+                    !Common.Utilities.isNull(this._originalScreenPositionY);
+            };
+            FieldElement.prototype.isOverDragThreshold = function (x, y) {
+                return Math.abs(x) > Playbook.Constants.DRAG_THRESHOLD_X ||
+                    Math.abs(y) > Playbook.Constants.DRAG_THRESHOLD_Y;
             };
             return FieldElement;
         })(Common.Models.Modifiable);
@@ -3695,7 +3861,7 @@ var Common;
                 console.log('ground drag end');
             };
             Ground.prototype.getClickCoordinates = function (offsetX, offsetY) {
-                return this.grid.getCoordinatesFromAbsolute(this.layer.graphics.dimensions.offset.x - Math.abs(this.paper.x), Math.abs(this.paper.y) + this.layer.graphics.dimensions.offset.y);
+                return this.grid.getCoordinatesFromAbsolute(offsetX + this.layer.graphics.dimensions.offset.x - Math.abs(this.paper.x), offsetY + Math.abs(this.paper.y) + this.layer.graphics.dimensions.offset.y);
             };
             return Ground;
         })(Common.Models.FieldElement);
@@ -3903,7 +4069,7 @@ var Common;
                 this.onModified(function () { });
             }
             return PlayerCollection;
-        })(Common.Models.ModifiableCollection);
+        })(Common.Models.Collection);
         Models.PlayerCollection = PlayerCollection;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -4065,16 +4231,25 @@ var Common;
             function Route(player) {
                 _super.call(this, player.field, player);
                 this.player = player;
-                if (this.player)
-                    this.nodes = new Common.Models.ModifiableLinkedList();
+                if (this.player) {
+                    this.nodes = new Common.Models.LinkedList();
+                    var self_3 = this;
+                    this.nodes.onModified(function () {
+                        self_3.setModified(true);
+                    });
+                }
+                /**
+                 * Add layer to Player layers
+                 * @type {[type]}
+                 */
+                this.layer.type = Common.Enums.LayerTypes.PlayerRoute;
             }
             Route.prototype.fromJson = function (json) {
                 this.guid = json.guid;
             };
             Route.prototype.toJson = function () {
                 return {
-                    nodes: this.nodes.toJson(),
-                    guid: this.guid
+                    nodes: this.nodes.toJson()
                 };
             };
             Route.prototype.remove = function () {
@@ -4089,6 +4264,8 @@ var Common;
                 }
                 this.routePath.pathString = this.getMixedStringFromNodes(this.nodes.toArray());
                 this.routePath.draw();
+                // ensure the route nodes are above the route path
+                this.bringNodesToFront();
             };
             Route.prototype.drawCurve = function (node) {
                 if (!this.player) {
@@ -4099,6 +4276,8 @@ var Common;
                 // update path
                 this.routePath.pathString = this.getCurveStringFromNodes(true, this.nodes.toArray());
                 this.routePath.draw();
+                // ensure the route nodes are above the route path
+                this.bringNodesToFront();
             };
             Route.prototype.drawLine = function () {
                 if (!this.player) {
@@ -4106,59 +4285,65 @@ var Common;
                 }
                 this.routePath.pathString = this.getPathStringFromNodes(true, this.nodes.toArray());
                 this.routePath.draw();
+                // ensure the route nodes are above the route path
+                this.bringNodesToFront();
+            };
+            Route.prototype.bringNodesToFront = function () {
+                this.nodes.forEach(function (routeNode) {
+                    routeNode.layer.graphics.toFront();
+                });
+                // move the player to the front above the route
+                this.player.layer.toFront();
             };
             Route.prototype.addNode = function (routeNode, render) {
-                if (!this.nodes.hasElements() && Common.Enums.RouteNodeTypes.Root)
-                    throw new Error('Route addNode(): first route node must be of type Root');
-                var node = new Common.Models.LinkedListNode(routeNode, null);
-                this.nodes.add(node);
-                this.layer.addLayer(routeNode.layer);
+                if (this.nodes.isEmpty() && (routeNode.type != Common.Enums.RouteNodeTypes.Root &&
+                    routeNode.type != Common.Enums.RouteNodeTypes.CurveStart)) {
+                    throw new Error('Route addNode(): first route node must be of type Root or CurveStart');
+                }
+                this.nodes.add(routeNode);
+                routeNode.draw();
                 if (render !== false) {
-                    node.data.draw();
-                    //this.player.set.push(node.data);
                     this.draw();
                 }
-                return node;
+                return routeNode;
             };
             Route.prototype.getLastNode = function () {
                 //return this.nodes.getLast<Common.Models.FieldElement>();
                 return null;
             };
             Route.prototype.getMixedStringFromNodes = function (nodeArray) {
-                if (!nodeArray || nodeArray.length == 0) {
-                    throw new Error('Cannot get mixed path string on empty node array');
-                }
-                // must always have at least 2 nodes
-                if (nodeArray.length == 1) {
+                if (!nodeArray || nodeArray.length <= 1) {
                     return '';
                 }
                 var str = '';
                 for (var i = 0; i < nodeArray.length; i++) {
-                    var node = nodeArray[i];
-                    if (!node.next) {
+                    var routeNode = nodeArray[i];
+                    if (Common.Utilities.isNullOrUndefined(routeNode))
+                        continue;
+                    if (!routeNode.next) {
                         // just in case
                         break;
                     }
                     // must always have at least 2 nodes
-                    var type = node.data.type;
-                    var nextType = node.next.data.type;
+                    var type = routeNode.type;
+                    var nextType = routeNode.next.type;
                     if (type == Common.Enums.RouteNodeTypes.CurveStart) {
                         if (nextType != Common.Enums.RouteNodeTypes.CurveControl) {
                             throw new Error('A curve start node must be followed by a curve control node');
                         }
                         // Good: next node is curve control
                         // check for 2 subsequent nodes
-                        if (!node.next.next) {
+                        if (!routeNode.next.next) {
                             throw new Error('a curve must have a control and end node');
                         }
-                        var endType = node.next.next.data.type;
+                        var endType = routeNode.next.next.type;
                         if (endType != Common.Enums.RouteNodeTypes.CurveEnd) {
                             throw new Error('A curve must end with a curve end node');
                         }
                         str += this.getCurveStringFromNodes(true, [
-                            node.data,
-                            node.next.data,
-                            node.next.next.data // next (end)
+                            routeNode,
+                            routeNode.next,
+                            routeNode.next.next // next (end)
                         ]);
                         i++;
                     }
@@ -4168,33 +4353,33 @@ var Common;
                         }
                         if (nextType == Common.Enums.RouteNodeTypes.CurveControl) {
                             // check for 2 subsequent nodes
-                            if (!node.next.next) {
+                            if (!routeNode.next.next) {
                                 throw new Error('a curve must have a control and end node');
                             }
-                            var endType = node.next.next.data.type;
+                            var endType = routeNode.next.next.type;
                             if (endType != Common.Enums.RouteNodeTypes.CurveEnd) {
                                 throw new Error('A curve must end with a curve end node');
                             }
                             str += this.getCurveStringFromNodes(false, [
-                                node.data,
-                                node.next.data,
-                                node.next.next.data // next (end)
+                                routeNode,
+                                routeNode.next,
+                                routeNode.next.next // next (end)
                             ]);
                             i++;
                         }
                         else {
                             // next node is normal node
                             str += this.getPathStringFromNodes(false, [
-                                node.data,
-                                node.next.data
+                                routeNode,
+                                routeNode.next
                             ]);
                         }
                     }
                     else {
                         // assuming we are drawing a straight path
                         str += this.getPathStringFromNodes(i == 0, [
-                            node.data,
-                            node.next.data
+                            routeNode,
+                            routeNode.next
                         ]);
                     }
                 }
@@ -4209,8 +4394,10 @@ var Common;
             Route.prototype._prepareNodesForPath = function (nodeArray) {
                 var coords = [];
                 for (var i = 0; i < nodeArray.length; i++) {
-                    var node = nodeArray[i];
-                    coords.push(node.data.graphics.location.ax, node.data.graphics.location.ay);
+                    var routeNode = nodeArray[i];
+                    if (Common.Utilities.isNullOrUndefined(routeNode))
+                        continue;
+                    coords.push(routeNode.layer.graphics.location.ax, routeNode.layer.graphics.location.ay);
                 }
                 return coords;
             };
@@ -4264,10 +4451,7 @@ var Common;
                 _super.call(this);
             }
             RouteCollection.prototype.toJson = function () {
-                return {
-                    guid: this.guid,
-                    rotues: _super.prototype.toJson.call(this)
-                };
+                return _super.prototype.toJson.call(this);
             };
             RouteCollection.prototype.fromJson = function (json) {
                 var routes = json.routes || [];
@@ -4285,7 +4469,7 @@ var Common;
                 }
             };
             return RouteCollection;
-        })(Common.Models.ModifiableCollection);
+        })(Common.Models.Collection);
         Models.RouteCollection = RouteCollection;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -4359,24 +4543,28 @@ var Common;
     (function (Models) {
         var RouteNode = (function (_super) {
             __extends(RouteNode, _super);
-            function RouteNode(context, relativeCoordinates, type) {
-                _super.call(this, context.field, context);
-                this.player = context;
-                var coords = relativeCoordinates.getCoordinates();
-                this.layer.graphics.updateFromCoordinates(coords.x, coords.y);
-                this.layer.graphics.dimensions.radius = this.grid.getSize() / 4;
+            function RouteNode(route, relativeCoordinates, type) {
+                _super.call(this, route.field, route.player);
+                this.route = route;
+                this.player = route.player;
+                this.layer.graphics.updateFromRelative(relativeCoordinates.rx, relativeCoordinates.ry, this.player);
+                this.layer.graphics.dimensions.radius = this.grid.getSize() / 3.5;
                 this.layer.graphics.dimensions.width = this.layer.graphics.dimensions.radius * 2;
                 this.layer.graphics.dimensions.height = this.layer.graphics.dimensions.radius * 2;
                 this.type = type;
-                this.node = new Common.Models.LinkedListNode(this, null);
+                /**
+                 * Add layer to route layers
+                 * @type {[type]}
+                 */
                 this.layer.type = Common.Enums.LayerTypes.PlayerRouteNode;
             }
             RouteNode.prototype.draw = function () {
                 this.layer.graphics.circle();
             };
-            RouteNode.prototype.setContext = function (context) {
-                this.player = context;
-                this.field = context.field;
+            RouteNode.prototype.setContext = function (route) {
+                this.route = route;
+                this.player = route.player;
+                this.field = route.field;
                 this.grid = this.context.grid;
                 this.paper = this.context.paper;
                 this.layer.graphics.updateLocation();
@@ -4431,8 +4619,10 @@ var Common;
             function RoutePath(route) {
                 _super.call(this, route.player.field, route.player);
                 this.route = route;
-                this.layer.graphics.originalFill = 'black';
-                this.layer.graphics.originalStrokeWidth = 2;
+                this.layer.graphics.setOriginalFill(null);
+                this.layer.graphics.setOriginalStroke('black');
+                this.layer.graphics.setOriginalStrokeWidth(3);
+                this.layer.type = Common.Enums.LayerTypes.PlayerRoutePath;
             }
             RoutePath.prototype.toJson = function () {
                 return {
@@ -4448,7 +4638,7 @@ var Common;
                 this.pathString = json.pathString;
             };
             /**
-             * Draws a RoutePath graphic onto thhe paper;
+             * Draws a RoutePath graphic onto the paper;
              * NOTE: assumes the pathString is already set to a valid SVG path string
              */
             RoutePath.prototype.draw = function () {
@@ -4470,16 +4660,7 @@ var Common;
             function Placement(rx, ry, relativeElement, index) {
                 _super.call(this);
                 _super.prototype.setContext.call(this, this);
-                if (!relativeElement) {
-                    this.coordinates = new Common.Models.Coordinates(rx, ry);
-                    this.relative = new Common.Models.RelativeCoordinates(0, 0, null);
-                }
-                else {
-                    this.relativeElement = relativeElement;
-                    this.grid = this.relativeElement.grid;
-                    this.relative = new Common.Models.RelativeCoordinates(rx, ry, this.relativeElement);
-                    this.coordinates = this.relative.getCoordinates();
-                }
+                this.updateFromRelative(rx, ry, relativeElement);
                 this.index = index >= 0 ? index : -1;
                 //this.onModified(function() {});
             }
@@ -4502,6 +4683,20 @@ var Common;
                 this.coordinates.update(x, y);
                 this.relative.updateFromGridCoordinates(this.coordinates.x, this.coordinates.y);
                 //this.setModified(true);
+            };
+            Placement.prototype.updateFromRelative = function (rx, ry, relativeElement) {
+                if (!relativeElement) {
+                    this.coordinates = new Common.Models.Coordinates(rx, ry);
+                    this.relative = new Common.Models.RelativeCoordinates(0, 0, null);
+                    this.relativeElement = null;
+                    this.grid = null;
+                }
+                else {
+                    this.relativeElement = relativeElement;
+                    this.grid = this.relativeElement.grid;
+                    this.relative = new Common.Models.RelativeCoordinates(rx, ry, this.relativeElement);
+                    this.coordinates = this.relative.getCoordinates();
+                }
             };
             return Placement;
         })(Common.Models.Modifiable);
@@ -4541,7 +4736,7 @@ var Common;
                 return _super.prototype.toJson.call(this);
             };
             return PlacementCollection;
-        })(Common.Models.ModifiableCollection);
+        })(Common.Models.Collection);
         Models.PlacementCollection = PlacementCollection;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -4582,6 +4777,15 @@ var Common;
                 this.x = x;
                 this.y = y;
                 //this.setModified(true);
+            };
+            /**
+             * Gets the relative coordinates from this' coordinates TO the given coordinates.
+             * Example: An element 3 grid squares to the right of 'this' would result in an x value of -3
+             * @param {Common.Models.Coordinates}       coords  [description]
+             * @param {Common.Interfaces.IFieldElement} element [description]
+             */
+            Coordinates.prototype.getRelativeTo = function (coords, element) {
+                return new Common.Models.RelativeCoordinates(coords.x - this.x, this.y - coords.y, element);
             };
             return Coordinates;
         })(Common.Models.Modifiable);
@@ -4637,8 +4841,8 @@ var Common;
             RelativeCoordinates.prototype.updateFromGridCoordinates = function (x, y) {
                 if (Common.Utilities.isNullOrUndefined(this.relativeElement))
                     return;
-                this.rx = (this.relativeElement.layer.graphics.placement.coordinates.x - x);
-                this.ry = (this.relativeElement.layer.graphics.placement.coordinates.y - y);
+                this.rx = x - this.relativeElement.layer.graphics.placement.coordinates.x;
+                this.ry = this.relativeElement.layer.graphics.placement.coordinates.y - y;
             };
             RelativeCoordinates.prototype.updateFromAbsoluteCoordinates = function (ax, ay) {
                 // snap absolute coordinates to grid coordinates first...
@@ -4794,7 +4998,9 @@ var Common;
                     hoverable: this.hoverable,
                     dragging: this.dragging,
                     draggable: this.draggable,
-                    dragged: this.dragged
+                    dragged: this.dragged,
+                    placement: this.placement.toJson(),
+                    location: this.location.toJson()
                 };
             };
             Graphics.prototype.fromJson = function (json) {
@@ -4873,6 +5079,11 @@ var Common;
                 this.originalStroke = stroke;
                 return this;
             };
+            Graphics.prototype.setSelectedStroke = function (stroke) {
+                this.setStroke(stroke);
+                this.selectedStroke = stroke;
+                return this;
+            };
             Graphics.prototype.getStrokeWidth = function () {
                 return this.strokeWidth;
             };
@@ -4883,6 +5094,12 @@ var Common;
             Graphics.prototype.setOriginalStrokeWidth = function (width) {
                 this.setStrokeWidth(width);
                 this.originalStrokeWidth = width;
+                return this;
+            };
+            Graphics.prototype.setHoverOpacity = function (opacity) {
+                if (opacity < 0 || opacity > 1)
+                    throw new Error('Graphics setHoverOpacity(): opacity must be between 0 and 1, inclusive');
+                this.hoverOpacity = opacity;
                 return this;
             };
             /**
@@ -4929,6 +5146,11 @@ var Common;
             /**
              * Generic selection method
              */
+            Graphics.prototype.toggleSelect = function () {
+                if (!_super.prototype.isSelectable.call(this))
+                    return;
+                this.selected ? this.deselect() : this.select();
+            };
             Graphics.prototype.select = function () {
                 _super.prototype.select.call(this);
                 this.fill = this.selectedFill;
@@ -5066,6 +5288,12 @@ var Common;
                 this.placement.updateFromCoordinates(x, y);
                 this.refresh();
             };
+            Graphics.prototype.updateFromRelative = function (rx, ry, relativeElement) {
+                this.placement.updateFromRelative(rx, ry, relativeElement);
+                var absCoords = this.grid.getAbsoluteFromCoordinates(this.placement.coordinates.x, this.placement.coordinates.y);
+                this.location.updateFromAbsolute(absCoords.x + this.dimensions.offset.x, absCoords.y + this.dimensions.offset.y);
+                this.refresh();
+            };
             /**
              *
              * DRAWING METHODS
@@ -5074,6 +5302,7 @@ var Common;
             Graphics.prototype.path = function (path) {
                 this.remove();
                 this.raphael = this.paper.drawing.path(path);
+                this.refresh();
                 return this;
             };
             Graphics.prototype.rect = function () {
@@ -5114,6 +5343,8 @@ var Common;
                 return this;
             };
             Graphics.prototype.refresh = function () {
+                if (!this.hasRaphael())
+                    return;
                 var attrs = {
                     x: this.location.ax,
                     y: this.location.ay,
@@ -5124,11 +5355,24 @@ var Common;
                 }
                 if (this.getType() != 'text') {
                     attrs['fill'] = this.fill;
+                    attrs['fill-opacity'] = !Common.Utilities.isNullOrUndefined(this.fill) ? 1 : 0;
                     attrs['opacity'] = this.opacity;
                     attrs['stroke'] = this.stroke;
                     attrs['stroke-width'] = this.strokeWidth;
                 }
                 this.attr(attrs);
+            };
+            Graphics.prototype.toFront = function () {
+                if (!this.hasRaphael())
+                    return this;
+                this.raphael.toFront();
+                return this;
+            };
+            Graphics.prototype.toBack = function () {
+                if (!this.hasRaphael())
+                    return this;
+                this.raphael.toBack();
+                return this;
             };
             Graphics.prototype.attr = function (attrs) {
                 if (!this.hasRaphael())
@@ -5149,12 +5393,6 @@ var Common;
                 if (!this.hasRaphael())
                     return;
                 this.raphael.transform(['t', ax, ', ', ay, 'r', this.dimensions.rotation].join(''));
-            };
-            Graphics.prototype.toFront = function () {
-                this.raphael.toFront();
-            };
-            Graphics.prototype.toBack = function () {
-                this.raphael.toBack();
             };
             Graphics.prototype.rotate = function (degrees) {
                 if (!this.hasRaphael())
@@ -5323,8 +5561,6 @@ var Common;
                 this.raphael.drag(dragMove, dragStart, dragEnd, context, context, context);
             };
             Graphics.prototype.drop = function () {
-                if (!this.hasRaphael())
-                    return;
                 this.dragged = false;
                 this.dragging = false;
                 if (this.location.hasChanged())
@@ -5802,27 +6038,41 @@ var Common;
         Models.DrawingHandler = DrawingHandler;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
+/// <reference path='./models.ts' />
+var Common;
+(function (Common) {
+    var Models;
+    (function (Models) {
+        var Quote = (function () {
+            function Quote(quote, author) {
+                this.quote = quote;
+                this.author = author;
+            }
+            return Quote;
+        })();
+        Models.Quote = Quote;
+    })(Models = Common.Models || (Common.Models = {}));
+})(Common || (Common = {}));
 /// <reference path='../common.ts' />
 /// <reference path='../interfaces/interfaces.ts' />
 /// <reference path='./Storable.ts' />
 /// <reference path='./Modifiable.ts' />
 /// <reference path='./Collection.ts' />
 /// <reference path='./LinkedList.ts' />
-/// <reference path='./LinkedListNode.ts' />
 /// <reference path='./ModifiableCollection.ts' />
-/// <reference path='./ModifiableLinkedList.ts' />
-/// <reference path='./ModifiableLinkedListNode.ts' />
+/// <reference path='./ContextmenuData.ts' />
 /// <reference path='./Actionable.ts' />
 /// <reference path='./ActionableCollection.ts' />
 /// <reference path='./AssociableEntity.ts' />
-/// <reference path='./AssociableCollectionEntity.ts' />
+/// <reference path='./AssociableEntityCollection.ts' />
 /// <reference path='./AssociationCollection.ts' />
 /// <reference path='./Association.ts' />
 /// <reference path='./Notification.ts' />
 /// <reference path='./NotificationCollection.ts' />
 /// <reference path='./Icon.ts' />
 /// <reference path='./Assignment.ts' />
-/// <reference path='./AssignmentCollection.ts' />
+/// <reference path='./AssignmentGroup.ts' />
+/// <reference path='./AssignmentGroupCollection.ts' />
 /// <reference path='./Formation.ts' />
 /// <reference path='./FormationCollection.ts' />
 /// <reference path='./Play.ts' />
@@ -5878,6 +6128,7 @@ var Common;
 /// <reference path='./Containment.ts' />
 /// <reference path='./RelativeContainment.ts' />
 /// <reference path='./DrawingHandler.ts' />
+/// <reference path='./Quote.ts' />
 /// <reference path='../common.ts' />
 var Common;
 (function (Common) {
@@ -6081,7 +6332,13 @@ var Common;
             Common.Constants.MODULES_URL,
             Common.Constants.PLAYBOOK_URL,
             Common.Constants.CONTEXTMENUS_URL,
-            'editorRouteNode/editorRouteNode-contextmenu.tpl.html'
+            'routeNode/contextmenu-routeNode.tpl.html'
+        ].join('');
+        Constants.PLAY_CONTEXTMENU_TEMPLATE_URL = [
+            Common.Constants.MODULES_URL,
+            Common.Constants.PLAYBOOK_URL,
+            Common.Constants.CONTEXTMENUS_URL,
+            'play/contextmenu-play.tpl.html'
         ].join('');
     })(Constants = Common.Constants || (Common.Constants = {}));
 })(Common || (Common = {}));
@@ -6398,6 +6655,15 @@ var Common;
                 return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
             });
             return uuid;
+        };
+        /**
+         * Returns a random number between min (inclusive) and max (inclusive)
+         * @param  {number} min [description]
+         * @param  {number} max [description]
+         * @return {number}     [description]
+         */
+        Utilities.randomInt = function (min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
         };
         Utilities.randomId = function () {
             return (Math.floor(Math.random() * (9999999999 - 1000000000)) + 999999999);
@@ -6770,6 +7036,7 @@ var Playbook;
                     return;
                 }
                 var selectedPlayers = this.getSelectedByLayerType(Common.Enums.LayerTypes.Player);
+                var self = this;
                 if (selectedPlayers.hasElements()) {
                     selectedPlayers.forEach(function (player, index) {
                         if (player.assignment.routes &&
@@ -6782,11 +7049,11 @@ var Playbook;
                         var playerRoute = player.assignment.routes.getOne();
                         if (playerRoute.dragInitialized)
                             return;
-                        var newNode = new Playbook.Models.EditorRouteNode(player, new Common.Models.RelativeCoordinates(0, 0, player), Common.Enums.RouteNodeTypes.Normal);
+                        var newNode = new Playbook.Models.EditorRouteNode(playerRoute, player.layer.graphics.placement.coordinates.getRelativeTo(coords, player), Common.Enums.RouteNodeTypes.Normal);
                         // route exists, append the node
                         playerRoute.addNode(newNode);
                         console.log('set player route', player.relativeCoordinatesLabel, playerRoute);
-                        this.playPrimary.assignments.addAtIndex(player.assignment, player.position.index);
+                        self.playPrimary.assignmentGroup.assignments.addAtIndex(player.assignment, player.position.index);
                     });
                 }
             };
@@ -7309,11 +7576,6 @@ var Playbook;
             __extends(EditorPlayer, _super);
             function EditorPlayer(field, placement, position, assignment) {
                 _super.call(this, field, placement, position, assignment);
-                this._isCreatedNewFromAltDisabled = false;
-                this._newFromAlt = null;
-                this._isDraggingNewFromAlt = false;
-                this._originalScreenPositionX = null;
-                this._originalScreenPositionY = null;
                 this.contextmenuTemplateUrl
                     = 'modules/playbook/editor/canvas/player/playbook-editor-canvas-player-contextmenu.tpl.html';
                 // the set acts as a group for the other graphical elements
@@ -7401,17 +7663,11 @@ var Playbook;
             EditorPlayer.prototype.dragMove = function (dx, dy, posx, posy, e) {
                 // Ignore drag motions under specified threshold to prevent
                 // click/mousedown from triggering drag method
-                if (!this._isOverDragThreshold(dx, dy))
+                if (!this.isOverDragThreshold(dx, dy))
                     return;
-                // (snapping) only adjust the positioning of the player
-                // for every grid-unit worth of movement
-                var snapDx = dx; //this.grid.snapPixel(dx);
-                var snapDy = dy; //this.grid.snapPixel(dy);
-                console.log(snapDx, snapDy);
                 this.layer.graphics.dragged = true;
                 // do not allow dragging while in route mode
                 if (this.canvas.toolMode == Playbook.Enums.ToolModes.Assignment) {
-                    //console.log('drawing route', dx, dy, posx, posy);
                     if (!this.assignment) {
                         this.assignment = new Common.Models.Assignment(this.position.unitType);
                         this.assignment.positionIndex = this.position.index;
@@ -7419,46 +7675,30 @@ var Playbook;
                     var route = this.assignment.routes.getOne();
                     // TODO: Implement route switching
                     if (!route) {
-                        //console.log('creating route');
                         var newRoute = new Playbook.Models.EditorRoute(this, true);
                         this.assignment.routes.add(newRoute);
                         route = this.assignment.routes.get(newRoute.guid);
                     }
                     if (route.dragInitialized) {
-                        var coords = new Common.Models.Coordinates(this.layer.graphics.location.ax + snapDx, this.layer.graphics.location.ay + snapDy);
+                        var coords = new Common.Models.Coordinates(this.layer.graphics.location.ax + dx, this.layer.graphics.location.ay + dy);
                         route.initializeCurve(coords, e.shiftKey);
                     }
                     // prevent remaining logic from getting executed.
                     return;
                 }
-                else if (this.canvas.toolMode == Playbook.Enums.ToolModes.Select) {
-                }
-                if (e.which == Common.Input.Which.r) {
-                    // draw line from player
-                    return;
-                }
                 else if (!e.shiftKey && e.which != Common.Input.Which.RightClick) {
-                    var context = this._newFromAlt ? this._newFromAlt : this;
-                    var grid = this.grid;
-                    // alt-drag
-                    if (e.altKey && !this._isCreatedNewFromAltDisabled) {
-                        var newPlayer = this.field.addPlayer(this.layer.graphics.placement, this.position, null);
-                        context = this.field.players[newPlayer.guid];
-                        this._newFromAlt = context;
-                        this._isCreatedNewFromAltDisabled = true;
-                        this._isDraggingNewFromAlt = true;
-                    }
-                    if (this.grid.isDivisible(dx) && this.grid.isDivisible(dy)) {
-                    }
                     // Update the placement to track for modification
-                    this.layer.moveByDelta(snapDx, snapDy);
+                    this.layer.moveByDelta(dx, dy);
                     // Update relative coordinates label, if it exists
-                    if (this.relativeCoordinatesLabel)
+                    if (this.relativeCoordinatesLabel) {
                         this.relativeCoordinatesLabel.layer.graphics.text([
                             this.layer.graphics.placement.relative.rx,
                             ', ',
                             this.layer.graphics.placement.relative.ry
                         ].join(''));
+                    }
+                }
+                else if (this.canvas.toolMode == Playbook.Enums.ToolModes.Select) {
                 }
                 else if (e.shiftKey) {
                 }
@@ -7466,21 +7706,14 @@ var Playbook;
                 }
             };
             EditorPlayer.prototype.dragStart = function (x, y, e) {
-                this._setOriginalDragPosition(x, y);
-                if (this._isOverDragThreshold(this._originalScreenPositionX - x, this._originalScreenPositionY - y)) {
-                    this.layer.graphics.dragging = true;
-                    if (this.relativeCoordinatesLabel)
-                        this.relativeCoordinatesLabel.layer.show();
-                    this.field.toggleSelection(this);
-                }
+                _super.prototype.dragStart.call(this, x, y, e);
+                if (this.relativeCoordinatesLabel)
+                    this.relativeCoordinatesLabel.layer.show();
+                this.field.toggleSelection(this);
             };
             EditorPlayer.prototype.dragEnd = function (e) {
-                this._isCreatedNewFromAltDisabled = false;
-                this._isDraggingNewFromAlt = true;
-                this._newFromAlt = null;
-                this._setOriginalDragPosition(null, null);
+                _super.prototype.dragEnd.call(this, e);
                 this.drop();
-                this.layer.graphics.dragging = false;
                 if (this.assignment) {
                     // TODO: implement route switching
                     var route = this.assignment.routes.getOne();
@@ -7489,10 +7722,6 @@ var Playbook;
                             route.dragInitialized = false;
                         }
                         route.draw();
-                        if (route.nodes &&
-                            route.nodes.root &&
-                            route.nodes.root.data.isCurveNode()) {
-                        }
                     }
                 }
                 if (this.relativeCoordinatesLabel)
@@ -7515,18 +7744,6 @@ var Playbook;
             };
             EditorPlayer.prototype.hasPosition = function () {
                 return this.position != null;
-            };
-            EditorPlayer.prototype._setOriginalDragPosition = function (x, y) {
-                this._originalScreenPositionX = x;
-                this._originalScreenPositionY = y;
-            };
-            EditorPlayer.prototype._isOriginalDragPositionSet = function () {
-                return !Common.Utilities.isNull(this._originalScreenPositionX) &&
-                    !Common.Utilities.isNull(this._originalScreenPositionY);
-            };
-            EditorPlayer.prototype._isOverDragThreshold = function (x, y) {
-                return Math.abs(x) > Playbook.Constants.DRAG_THRESHOLD_X ||
-                    Math.abs(y) > Playbook.Constants.DRAG_THRESHOLD_Y;
             };
             return EditorPlayer;
         })(Common.Models.Player);
@@ -7572,7 +7789,7 @@ var Playbook;
             __extends(EditorPlayerIcon, _super);
             function EditorPlayerIcon(player) {
                 _super.call(this, player);
-                this.layer.graphics.hoverOpacity = 0.6;
+                this.layer.graphics.setHoverOpacity(0.6);
             }
             EditorPlayerIcon.prototype.draw = function () {
                 _super.prototype.draw.call(this);
@@ -7756,12 +7973,12 @@ var Playbook;
                 this.layer.graphics.disable();
                 if (this.player) {
                     // add root node
-                    var rootNode = new Playbook.Models.PreviewRouteNode(this.player, new Common.Models.RelativeCoordinates(0, 0, this.player), Common.Enums.RouteNodeTypes.Root);
+                    var rootNode = new Playbook.Models.PreviewRouteNode(this, new Common.Models.RelativeCoordinates(0, 0, this.player), Common.Enums.RouteNodeTypes.Root);
                     this.addNode(rootNode, false);
                 }
                 this.routePath = new Playbook.Models.PreviewRoutePath(this);
-                this.layer.type = Common.Enums.LayerTypes.PlayerRoute;
                 this.layer.addLayer(this.routePath.layer);
+                this.player.layer.addLayer(this.layer);
             }
             PreviewRoute.prototype.draw = function () {
                 // route nodes not visible in preview
@@ -7775,10 +7992,6 @@ var Playbook;
             PreviewRoute.prototype.initializeCurve = function (coords, flip) {
                 // initialize Curve not available for preview
             };
-            PreviewRoute.prototype.toJson = function () {
-                var json = {};
-                return $.extend(json, _super.prototype.toJson.call(this));
-            };
             PreviewRoute.prototype.fromJson = function (json) {
                 _super.prototype.fromJson.call(this, json);
                 // initialize route nodes
@@ -7786,7 +7999,7 @@ var Playbook;
                     for (var i = 0; i < json.nodes.length; i++) {
                         var rawNode = json.nodes[i];
                         var relativeCoordinates = new Common.Models.RelativeCoordinates(rawNode.layer.graphics.placement.coordinates.x, rawNode.layer.graphics.placement.coordinates.y, this.player);
-                        var routeNodeModel = new Playbook.Models.PreviewRouteNode(this.player, relativeCoordinates, rawNode.type);
+                        var routeNodeModel = new Playbook.Models.PreviewRouteNode(this, relativeCoordinates, rawNode.type);
                         routeNodeModel.fromJson(rawNode);
                         this.addNode(routeNodeModel, false);
                     }
@@ -7808,14 +8021,15 @@ var Playbook;
                 _super.call(this, player);
                 this.type = Common.Enums.RouteTypes.Generic;
                 this.dragInitialized = dragInitialized === true;
+                this.routePath = new Playbook.Models.EditorRoutePath(this);
                 if (this.player) {
                     // add root node
-                    var rootNode = new Playbook.Models.EditorRouteNode(this.player, new Common.Models.RelativeCoordinates(0, 0, this.player), Common.Enums.RouteNodeTypes.Root);
+                    var rootNode = new Playbook.Models.EditorRouteNode(this, new Common.Models.RelativeCoordinates(0, 0, this.player), Common.Enums.RouteNodeTypes.Root);
+                    rootNode.layer.graphics.disable();
                     this.addNode(rootNode, false);
                 }
-                this.routePath = new Playbook.Models.EditorRoutePath(this);
-                this.layer.type = Common.Enums.LayerTypes.PlayerRoute;
                 this.layer.addLayer(this.routePath.layer);
+                this.player.layer.addLayer(this.layer);
             }
             EditorRoute.prototype.setContext = function (player) {
                 if (player) {
@@ -7823,21 +8037,15 @@ var Playbook;
                     this.grid = this.player.grid;
                     this.field = this.player.field;
                     this.paper = this.player.paper;
-                    var self_1 = this;
+                    var self_4 = this;
                     this.nodes.forEach(function (node, index) {
-                        node.data.setContext(self_1);
-                        if (!self_1.layer.containsLayer(node.data.layer)) {
-                            self_1.layer.addLayer(node.data.layer);
+                        node.setContext(self_4);
+                        if (!self_4.layer.containsLayer(node.layer)) {
+                            self_4.layer.addLayer(node.layer);
                         }
                     });
                     this.draw();
                 }
-            };
-            EditorRoute.prototype.toJson = function () {
-                var json = {
-                    dragInitialized: this.dragInitialized
-                };
-                return $.extend(json, _super.prototype.toJson.call(this));
             };
             EditorRoute.prototype.fromJson = function (json) {
                 _super.prototype.fromJson.call(this, json);
@@ -7848,7 +8056,7 @@ var Playbook;
                     for (var i = 0; i < json.nodes.length; i++) {
                         var rawNode = json.nodes[i];
                         var relativeCoordinates = new Common.Models.RelativeCoordinates(rawNode.layer.graphics.placement.coordinates.x, rawNode.layer.graphics.placement.coordinates.y, this.player);
-                        var routeNodeModel = new Playbook.Models.EditorRouteNode(this.player, relativeCoordinates, rawNode.type);
+                        var routeNodeModel = new Playbook.Models.EditorRouteNode(this, relativeCoordinates, rawNode.type);
                         routeNodeModel.fromJson(rawNode);
                         this.addNode(routeNodeModel, false);
                     }
@@ -7868,31 +8076,36 @@ var Playbook;
                     return;
                 }
                 var lastNode, controlNode, endNode;
-                if (this.nodes.hasElements()) {
+                if (this.nodes.hasElements() && this.nodes.size() == 1) {
                     // last node is our start node
                     lastNode = this.nodes.getLast();
-                    lastNode.data.type = Common.Enums.RouteNodeTypes.CurveStart;
+                    lastNode.type = Common.Enums.RouteNodeTypes.CurveStart;
                     // add control node and end node. They share the
                     // same relative coordinates as the root/last node to start
-                    controlNode = new Playbook.Models.EditorRouteNode(this.player, new Common.Models.RelativeCoordinates(this.nodes.root.data.relative.rx, this.nodes.root.data.relative.ry), Common.Enums.RouteNodeTypes.CurveControl);
-                    endNode = new Playbook.Models.EditorRouteNode(this.player, new Common.Models.RelativeCoordinates(0, 0), Common.Enums.RouteNodeTypes.CurveEnd);
+                    controlNode = new Playbook.Models.EditorRouteNode(this, new Common.Models.RelativeCoordinates(lastNode.layer.graphics.placement.relative.rx, lastNode.layer.graphics.placement.relative.ry, this.player), Common.Enums.RouteNodeTypes.CurveControl);
+                    endNode = new Playbook.Models.EditorRouteNode(this, new Common.Models.RelativeCoordinates(lastNode.layer.graphics.placement.relative.rx, lastNode.layer.graphics.placement.relative.ry, this.player), Common.Enums.RouteNodeTypes.CurveEnd);
                     // false: do not render nodes
                     this.addNode(controlNode, false);
-                    this.addNode(endNode, false);
-                }
-                if (flip === true) {
-                    controlNode.data.layer.graphics.updateLocation(coords.x, lastNode.data.layer.graphics.placement.coordinates.ay);
+                    this.addNode(endNode, true);
                 }
                 else {
-                    controlNode.data.layer.graphics.updateLocation(lastNode.data.layer.graphics.placement.coordinates.ax, coords.y);
+                    lastNode = this.nodes.getRoot();
+                    controlNode = this.nodes.getIndex(1);
+                    endNode = this.nodes.getIndex(2);
                 }
-                endNode.updateLocation(coords.x, coords.y);
-                this.drawCurve(controlNode.data);
+                if (flip === true) {
+                    controlNode.layer.graphics.updateLocation(coords.x, lastNode.layer.graphics.location.ay);
+                }
+                else {
+                    controlNode.layer.graphics.updateLocation(lastNode.layer.graphics.location.ax, coords.y);
+                }
+                endNode.layer.graphics.updateLocation(coords.x, coords.y);
+                this.drawCurve(controlNode);
             };
             EditorRoute.prototype.moveNodesByDelta = function (dx, dy) {
                 this.nodes.forEach(function (node, index) {
-                    if (node && node.data) {
-                        node.data.moveByDelta(dx, dy);
+                    if (node) {
+                        node.moveByDelta(dx, dy);
                     }
                 });
             };
@@ -7908,8 +8121,8 @@ var Playbook;
     (function (Models) {
         var PreviewRouteNode = (function (_super) {
             __extends(PreviewRouteNode, _super);
-            function PreviewRouteNode(context, relativeCoordinates, type) {
-                _super.call(this, context, relativeCoordinates, type);
+            function PreviewRouteNode(route, relativeCoordinates, type) {
+                _super.call(this, route, relativeCoordinates, type);
                 // preview route node does not have a contextmenu
                 this.contextmenuTemplateUrl = null;
                 // Related route node graphics
@@ -7917,6 +8130,7 @@ var Playbook;
                 this.routeControlPath = new Playbook.Models.PreviewRouteControlPath(this);
                 this.layer.addLayer(this.routeAction.layer);
                 this.layer.addLayer(this.routeControlPath.layer);
+                this.route.layer.addLayer(this.layer);
             }
             return PreviewRouteNode;
         })(Common.Models.RouteNode);
@@ -7930,9 +8144,12 @@ var Playbook;
     (function (Models) {
         var EditorRouteNode = (function (_super) {
             __extends(EditorRouteNode, _super);
-            function EditorRouteNode(context, relativeCoordinates, type) {
-                _super.call(this, context, relativeCoordinates, type);
+            function EditorRouteNode(route, relativeCoordinates, type) {
+                _super.call(this, route, relativeCoordinates, type);
                 this.layer.graphics.enable();
+                this.layer.graphics.setOriginalFill('#222222');
+                this.layer.graphics.setHoverOpacity(1);
+                this.layer.graphics.setOriginalOpacity(0.05);
                 this.contextmenuTemplateUrl = Common.Constants.EDITOR_ROUTENODE_CONTEXTMENU_TEMPLATE_URL;
                 // Related route node graphics
                 this.routeAction = new Playbook.Models.EditorRouteAction(this, Common.Enums.RouteNodeActions.None);
@@ -7940,6 +8157,7 @@ var Playbook;
                 // Add layers
                 this.layer.addLayer(this.routeAction.layer);
                 this.layer.addLayer(this.routeControlPath.layer);
+                this.route.layer.addLayer(this.layer);
             }
             EditorRouteNode.prototype.draw = function () {
                 _super.prototype.draw.call(this);
@@ -7952,27 +8170,30 @@ var Playbook;
                 if (this.type == Common.Enums.RouteNodeTypes.CurveControl) {
                 }
             };
+            EditorRouteNode.prototype.hoverIn = function (e) {
+                this.layer.graphics.toggleOpacity();
+            };
+            EditorRouteNode.prototype.hoverOut = function (e) {
+                this.layer.graphics.toggleOpacity();
+            };
             EditorRouteNode.prototype.click = function (e) {
-                console.log('route node clicked');
+                // Toggle the selection of this routeNode
+                this.field.toggleSelection(this);
             };
             EditorRouteNode.prototype.contextmenu = function (e) {
-                this.paper.canvas.listener.invoke(Playbook.Enums.Actions.RouteNodeContextmenu, this);
+                this.paper.canvas.listener.invoke(Playbook.Enums.Actions.RouteNodeContextmenu, new Common.Models.ContextmenuData(this, e.pageX, e.pageY));
             };
             EditorRouteNode.prototype.dragMove = function (dx, dy, posx, posy, e) {
                 if (this.layer.graphics.disabled) {
                     return;
                 }
-                // (snapping) only adjust the positioning of the player
-                // for every grid-unit worth of movement
-                var snapDx = this.grid.snapPixel(dx);
-                var snapDy = this.grid.snapPixel(dy);
                 // Update RouteNode graphical position
-                this.layer.graphics.moveByDelta(snapDx, snapDy);
+                this.layer.graphics.moveByDelta(dx, dy);
                 // Update RouteAction graphical position (if applicable)
                 if (this.routeAction) {
-                    this.routeAction.layer.moveByDelta(snapDx, snapDy);
+                    this.routeAction.layer.moveByDelta(dx, dy);
                     // Rotate the route action to stay perpendicular to the node/route orientation
-                    var theta = Common.Drawing.Utilities.theta(this.node.prev.data.layer.graphics.location.ax, this.node.prev.data.layer.graphics.location.ay, this.layer.graphics.location.ax, this.layer.graphics.location.ay);
+                    var theta = Common.Drawing.Utilities.theta(this.prev.layer.graphics.location.ax, this.prev.layer.graphics.location.ay, this.layer.graphics.location.ax, this.layer.graphics.location.ay);
                     var thetaDegrees = Common.Drawing.Utilities.toDegrees(theta);
                     this.routeAction.layer.graphics.rotate(90 - thetaDegrees);
                 }
@@ -7980,12 +8201,20 @@ var Playbook;
                 if (this.isCurveNode()) {
                     console.log('dragging control:', this.type);
                 }
-                this.context.draw();
+                this.route.draw();
                 this.setModified(true);
             };
-            EditorRouteNode.prototype.dragStart = function (x, y, e) { };
+            EditorRouteNode.prototype.dragStart = function (x, y, e) {
+                _super.prototype.dragStart.call(this, x, y, e);
+            };
             EditorRouteNode.prototype.dragEnd = function (e) {
+                _super.prototype.dragEnd.call(this, e);
                 this.drop();
+                // re-draw the route again after dropping,
+                // since .drop() will force the absolute
+                // coordinates to snap to a grid point, which
+                // doesn't happen during the onDrag method
+                this.route.draw();
             };
             EditorRouteNode.prototype.drop = function () {
                 _super.prototype.drop.call(this);
@@ -8010,6 +8239,7 @@ var Playbook;
                 _super.call(this, route);
                 this.layer.graphics.setStrokeWidth(1);
                 this.layer.graphics.refresh();
+                this.route.layer.addLayer(this.layer);
             }
             return PreviewRoutePath;
         })(Common.Models.RoutePath);
@@ -8025,6 +8255,8 @@ var Playbook;
             __extends(EditorRoutePath, _super);
             function EditorRoutePath(route) {
                 _super.call(this, route);
+                this.layer.graphics.setOriginalStroke('#001199');
+                this.route.layer.addLayer(this.layer);
             }
             return EditorRoutePath;
         })(Common.Models.RoutePath);
@@ -8290,7 +8522,7 @@ var Team;
                 }
             };
             return TeamModelCollection;
-        })(Common.Models.ModifiableCollection);
+        })(Common.Models.Collection);
         Models.TeamModelCollection = TeamModelCollection;
     })(Models = Team.Models || (Team.Models = {}));
 })(Team || (Team = {}));
@@ -8355,7 +8587,7 @@ var Team;
                 }
             };
             return TeamRecordCollection;
-        })(Common.Models.ModifiableCollection);
+        })(Common.Models.Collection);
         Models.TeamRecordCollection = TeamRecordCollection;
     })(Models = Team.Models || (Team.Models = {}));
 })(Team || (Team = {}));
@@ -8508,7 +8740,7 @@ var Team;
                 }
             };
             return PersonnelCollection;
-        })(Common.Models.ModifiableCollection);
+        })(Common.Models.Collection);
         Models.PersonnelCollection = PersonnelCollection;
     })(Models = Team.Models || (Team.Models = {}));
 })(Team || (Team = {}));
@@ -8980,7 +9212,7 @@ var Team;
             PositionCollection.prototype.setDefault = function () {
             };
             return PositionCollection;
-        })(Common.Models.ModifiableCollection);
+        })(Common.Models.Collection);
         Models.PositionCollection = PositionCollection;
     })(Models = Team.Models || (Team.Models = {}));
 })(Team || (Team = {}));
@@ -9070,7 +9302,7 @@ var Team;
                 this.guid = json.guid || this.guid;
             };
             return UnitTypeCollection;
-        })(Common.Models.ModifiableCollection);
+        })(Common.Models.Collection);
         Models.UnitTypeCollection = UnitTypeCollection;
     })(Models = Team.Models || (Team.Models = {}));
 })(Team || (Team = {}));
@@ -9127,6 +9359,7 @@ var Navigation;
             __extends(NavigationItem, _super);
             function NavigationItem(name, label, glyphicon, path, active, activationCallback) {
                 _super.call(this);
+                _super.prototype.setContext.call(this, this);
                 this.name = name;
                 this.label = label;
                 this.glyphicon = glyphicon;
@@ -9147,7 +9380,7 @@ var Navigation;
                     this.activate();
             };
             return NavigationItem;
-        })(Common.Models.Storable);
+        })(Common.Models.Modifiable);
         Models.NavigationItem = NavigationItem;
     })(Models = Navigation.Models || (Navigation.Models = {}));
 })(Navigation || (Navigation = {}));
@@ -9223,7 +9456,7 @@ var League;
                 _super.call(this);
             }
             return LeagueModelCollection;
-        })(Common.Models.ModifiableCollection);
+        })(Common.Models.Collection);
         Models.LeagueModelCollection = LeagueModelCollection;
     })(Models = League.Models || (League.Models = {}));
 })(League || (League = {}));
@@ -9242,6 +9475,7 @@ var User;
             __extends(Organization, _super);
             function Organization() {
                 _super.call(this);
+                _super.prototype.setContext.call(this, this);
                 this.accountKey = 0;
                 this.address1 = null;
                 this.address2 = null;
@@ -9300,7 +9534,7 @@ var User;
                 this.stateProvince = json.stateProvince;
             };
             return Organization;
-        })(Common.Models.Storable);
+        })(Common.Models.Modifiable);
         Models.Organization = Organization;
     })(Models = User.Models || (User.Models = {}));
 })(User || (User = {}));
@@ -9819,7 +10053,9 @@ impakt.common.associations.service('_associations', [
             var results = {
                 playbooks: new Common.Models.PlaybookModelCollection(Team.Enums.UnitTypes.Mixed),
                 plays: new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed),
-                formations: new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed)
+                formations: new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed),
+                personnel: new Team.Models.PersonnelCollection(Team.Enums.UnitTypes.Mixed),
+                assignmentGroups: new Common.Models.AssignmentGroupCollection(Team.Enums.UnitTypes.Mixed)
             };
             //
             // Clients of this service should expect to receive back
@@ -9866,9 +10102,22 @@ impakt.common.associations.service('_associations', [
                         if (formation)
                             results.formations.add(formation);
                         break;
+                    case Common.Enums.ImpaktDataTypes.PersonnelGroup:
+                        var personnel = impakt.context.Playbook.personnel.get(guid);
+                        if (personnel)
+                            results.personnel.add(personnel);
+                        break;
+                    case Common.Enums.ImpaktDataTypes.AssignmentGroup:
+                        var assignmentGroup = impakt.context.Playbook.assignmentGroups.get(guid);
+                        if (assignmentGroup)
+                            results.assignmentGroups.add(assignmentGroup);
+                        break;
                 }
             }
             return results;
+        };
+        this.associationExists = function (fromInternalKey, toInternalKey) {
+            return this.associations.associationExists(fromInternalKey, toInternalKey);
         };
     }]);
 /// <reference path='../common.mdl.ts' />
@@ -9952,7 +10201,7 @@ impakt.common.context.factory('__context', ['$q',
              */
             context.Playbook.playbooks = new Common.Models.PlaybookModelCollection(Team.Enums.UnitTypes.Mixed);
             context.Playbook.formations = new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed);
-            context.Playbook.assignments = new Common.Models.AssignmentCollection(Team.Enums.UnitTypes.Mixed);
+            context.Playbook.assignmentGroups = new Common.Models.AssignmentGroupCollection(Team.Enums.UnitTypes.Mixed);
             context.Playbook.plays = new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed);
             /**
              * Team context
@@ -10040,14 +10289,22 @@ impakt.common.context.factory('__context', ['$q',
                 // Retrieve personnel sets
                 // Retrieve personnel sets
                 function (callback) {
-                    _playbook.getSets().then(function (results) {
-                        if (!Common.Utilities.isNullOrUndefined(results.personnel))
-                            context.Team.personnel = results.personnel;
-                        if (!Common.Utilities.isNullOrUndefined(results.assignments))
-                            context.Playbook.assignments = results.assignments;
-                        __notifications.success('Personnel successfully loaded');
+                    _playbook.getAssignmentGroups()
+                        .then(function (assignmentGroupCollection) {
+                        if (!Common.Utilities.isNullOrUndefined(assignmentGroupCollection))
+                            context.Playbook.assignmentGroups = assignmentGroupCollection;
                         __notifications.success('Assignments successfully loaded');
-                        callback(null, results.personnel, results.assignments);
+                        callback(null, assignmentGroupCollection);
+                    }, function (err) {
+                        callback(err);
+                    });
+                },
+                function (callback) {
+                    _team.getPersonnel().then(function (personnelCollection) {
+                        if (!Common.Utilities.isNullOrUndefined(personnelCollection))
+                            context.Team.personnel = personnelCollection;
+                        __notifications.success('Personnel successfully loaded');
+                        callback(null, personnelCollection);
                     }, function (err) {
                         callback(err);
                     });
@@ -10081,118 +10338,100 @@ impakt.common.context.factory('__context', ['$q',
 /// <reference path='../common.mdl.ts' />
 impakt.common.contextmenu = angular.module('impakt.common.contextmenu', []);
 /// <reference path='./common-contextmenu.mdl.ts' />
-impakt.common.contextmenu.controller('common.contextmenu.ctrl', ['$scope', '__contextmenu',
-    function ($scope, __contextmenu) {
-        console.log('common.contextmenu.ctrl');
-        $scope.$element = {};
-        $scope.template = '';
+impakt.common.contextmenu.controller('common.contextmenu.ctrl', [
+    '$scope',
+    '_contextmenu',
+    function ($scope, _contextmenu) {
+        $scope.$contextmenuElement;
+        $scope.contextmenuData = _contextmenu.contextmenuData;
         $scope.left = 0;
         $scope.top = 0;
         $scope.width = 200;
         $scope.height = 200;
         $scope.guid = '';
-        $scope.visible = true;
-        $scope.remove = function () {
-            console.log('remove contextmenu');
-            $scope.$destroy();
-            if ($scope.$element) {
-                $scope.$element.remove();
-                $scope.$element = null;
+        $scope.contextmenuVisible = false;
+        _contextmenu.onopen(function (data) {
+            $scope.contextmenuData = data;
+            $scope.contextmenuVisible = true;
+            if (!$scope.$$phase) {
+                $scope.$apply();
             }
-            $scope = null;
+            $scope.$contextmenuElement.offset({ top: data.pageY, left: data.pageX });
+        });
+        _contextmenu.onclose(function () {
+            $scope.contextmenuData = null;
+            $scope.contextmenuVisible = false;
+            if (!$scope.$$phase) {
+                $scope.$apply();
+            }
+        });
+        $scope.open = function (data) {
+            _contextmenu.open(data);
         };
-        $scope.$on('$destroy', function () {
-            // say goodbye to your controller here
-            // release resources, cancel request...
-            console.debug('destroying contextmenu controller');
-        });
-        __contextmenu.onclose(function (context) {
-            $scope.remove();
-        });
-    }]).directive('contextmenu', ['__contextmenu',
-    function (__contextmenu) {
+        $scope.close = function () {
+            _contextmenu.close();
+        };
+    }]).directive('contextmenu', [
+    '_contextmenu',
+    function (_contextmenu) {
         console.debug('directive: contextmenu - register');
         return {
             controller: 'common.contextmenu.ctrl',
             restrict: 'E',
             templateUrl: 'common/contextmenu/common-contextmenu.tpl.html',
+            transclude: true,
+            replace: true,
+            link: function ($scope, $element, attrs) {
+                $scope.$contextmenuElement = $element;
+                $(document).keyup(function (e) {
+                    if (e.which == Common.Input.Which.Esc) {
+                        $scope.close();
+                    }
+                });
+            }
+        };
+    }])
+    .directive('enableContextmenu', [
+    '_contextmenu',
+    function (_contextmenu) {
+        return {
+            restrict: 'A',
             scope: {
-                guid: '@',
-                template: '@',
-                left: '@',
-                top: '@'
+                entity: '='
             },
             link: function ($scope, $element, attrs) {
-                console.debug('directive: impakt.common.contextmenu - link');
-            },
-            compile: function ($element, $attrs) {
-                console.debug('directive: impakt.common.contextmenu - compile');
-                return {
-                    pre: function ($scope, element, attrs) {
-                        console.debug('directive: impakt.common.contextmenu - pre');
-                    },
-                    post: function ($scope, element, attrs) {
-                        console.debug('directive: impakt.common.contextmenu - post');
-                        $scope.$element = $element;
-                        console.log('contextmenu left: ', attrs.left, 'contextmenu top: ', attrs.top);
-                        __contextmenu.calculatePosition(parseInt(attrs.left), parseInt(attrs.top), $scope.$element);
+                $element.mousedown(function (e) {
+                    if (e.which == Common.Input.Which.RightClick) {
+                        _contextmenu.open(new Common.Models.ContextmenuData($scope.entity, e.pageX, e.pageY));
                     }
-                };
+                });
             }
         };
     }]);
 /// <reference path='./common-contextmenu.mdl.ts' />
-impakt.common.contextmenu.factory('__contextmenu', function () {
-    console.log('creating contextmenu factory');
-    var context = null;
-    var closeCallbacks = [];
-    var updateCallbacks = [];
-    var self = {
-        getContext: function () {
-            return context;
-        },
-        setContext: function (obj) {
-            console.log('set context', obj);
-            context = obj;
-            if (!obj)
-                return;
-            for (var i = 0; i < updateCallbacks.length; i++) {
-                updateCallbacks[i](context);
-            }
-        },
-        onContextUpdate: function (callback) {
-            updateCallbacks.push(callback);
-        },
-        onclose: function (callback) {
-            closeCallbacks.push(callback);
-        },
-        close: function () {
-            console.log('closing contextmenu');
-            self.setContext(null);
-            while (closeCallbacks.length > 0) {
-                var callback = closeCallbacks.pop();
-                callback();
-            }
-            // updateCallbacks = [];
-        },
-        calculatePosition: function (left, top, $element) {
-            var target = context;
-            console.log('calculating contextmenu position', target);
-            var canvasWidth = target.canvas.$container.width();
-            var canvasHeight = target.canvas.$container.height();
-            var contextmenuWidth = $element.width();
-            var contextmenuHeight = $element.height();
-            if (left + contextmenuWidth > canvasWidth) {
-                left -= contextmenuWidth;
-            }
-            if (top + contextmenuHeight > canvasHeight) {
-                top -= contextmenuHeight;
-            }
-            $element.css({ 'left': left + 'px', 'top': top + 'px' });
-        }
-    };
-    return self;
-});
+impakt.common.contextmenu.service('_contextmenu', [
+    function () {
+        var closeCallback = function () { };
+        var openCallback = function (data) { };
+        this.contextmenuData = null;
+        this.open = function (data) {
+            this.contextmenuData = data;
+            openCallback(data);
+        };
+        this.onopen = function (callback) {
+            openCallback = callback;
+        };
+        this.close = function () {
+            this.data = null;
+            closeCallback();
+        };
+        this.onclose = function (callback) {
+            closeCallback = callback;
+        };
+        this.calculatePosition = function () {
+            // todo
+        };
+    }]);
 /// <reference path='../common.mdl.ts' />
 impakt.common.localStorage = angular.module('impakt.common.localStorage', [])
     .config(function () {
@@ -11226,7 +11465,9 @@ impakt.common.signin.factory('__signin', [
         return self;
     }]);
 /// <reference path='../common.mdl.ts' />
-impakt.common.ui = angular.module('impakt.common.ui', [])
+impakt.common.ui = angular.module('impakt.common.ui', [
+    'impakt.quotes'
+])
     .config([function () {
         console.debug('impakt.common.ui - config');
     }])
@@ -11267,6 +11508,47 @@ impakt.common.ui.controller('appLoading.ctrl', [
             transclude: true,
             replace: true,
             controller: 'appLoading.ctrl',
+            link: function ($scope, $element, attrs) {
+                $scope.$element = $element;
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('assignmentGroupItem.ctrl', [
+    '$scope',
+    '_playbook',
+    '_details',
+    function ($scope, _playbook, _details) {
+        $scope.assignmentGroup;
+        $scope.element;
+        /**
+         *
+         *	Item selection
+         *
+         */
+        $scope.toggleSelection = function (assignmentGroup) {
+            impakt.context.Playbook.assignmentGroups.toggleSelect(assignmentGroup);
+            if (assignmentGroup.selected) {
+                _details.selectedElements.only(assignmentGroup);
+            }
+            else {
+                _details.selectedElements.remove(assignmentGroup.guid);
+            }
+        };
+    }]).directive('assignmentGroupItem', [
+    function () {
+        /**
+         * assignment-group-item directive
+         */
+        return {
+            restrict: 'E',
+            controller: 'assignmentGroupItem.ctrl',
+            scope: {
+                assignmentGroup: '=assignmentgroup'
+            },
+            templateUrl: 'common/ui/assignment-group-item/assignment-group-item.tpl.html',
+            transclude: true,
+            replace: true,
             link: function ($scope, $element, attrs) {
                 $scope.$element = $element;
             }
@@ -12078,6 +12360,68 @@ impakt.common.ui.directive('popout', [
         };
     }]);
 /// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('quotes.ctrl', [
+    '$scope',
+    '$interval',
+    '_quotes',
+    function ($scope, $interval, _quotes) {
+        $scope.$element;
+        $scope.quote = _quotes.getRandomQuote();
+        $interval(function () {
+            $scope.quote = _quotes.getRandomQuote();
+        }, 10000);
+    }])
+    .directive('quotes', [
+    function () {
+        return {
+            restrict: 'E',
+            templateUrl: 'common/ui/quotes/quotes.tpl.html',
+            transclude: true,
+            replace: true,
+            controller: 'quotes.ctrl',
+            link: function ($scope, $element, attrs) {
+                $scope.$element = $element;
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.quotes = angular.module('impakt.quotes', [])
+    .config([function () {
+        console.debug('impakt.quotes - config');
+    }])
+    .run([function () {
+        console.debug('impakt.quotes - run');
+    }]);
+/// <reference path='./quotes.mdl.ts' />
+impakt.common.ui.quotes.service('_quotes', [
+    function () {
+        var quotes = [
+            new Common.Models.Quote("It's not whether you get knocked down; \
+			it's whether you get back up.", "Vince Lombardi"),
+            new Common.Models.Quote("Attitude is a little thing that makes a big \
+			difference between football success and \
+			football failure.", "Felicity Luckey"),
+            new Common.Models.Quote("Winning isn't everything...it's the only thing.", "Vince Lombardi"),
+            new Common.Models.Quote("The essence of football was blocking, tackling, \
+			and execution based on timing, rhythm and deception.", "Knute Rockne"),
+            new Common.Models.Quote("There's two times of year for me: Football season \
+			and waiting for football season.", "Darius Rucker"),
+            new Common.Models.Quote("In football, the good thing is things can change in a second.", "Didier Drogba"),
+            new Common.Models.Quote("It's not the will to win, but the will to prepare \
+			to win that makes the difference.", "Bear Bryant"),
+            new Common.Models.Quote("We love football.", "Impakt Athletics"),
+            new Common.Models.Quote("To me football is like family. We must strive together.", "Mike Lynch"),
+            new Common.Models.Quote("Football doesn't build character. It eliminates weak ones.", "Darrell Royal"),
+            new Common.Models.Quote("Football is like life. It requires perseverance, self denial \
+			hard work, sacrifice, dedication, and respect for authority.", "Vince Lombardi"),
+            new Common.Models.Quote("If tomorrow wasn't promised, what would you give for today?", "Ray Lewis"),
+        ];
+        this.getRandomQuote = function () {
+            var index = Common.Utilities.randomInt(0, quotes.length - 1);
+            return quotes[index];
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
 impakt.common.ui.factory('__router', [function () {
         var self = {
             templates: {},
@@ -12254,6 +12598,7 @@ impakt.common.ui.controller('stepper.ctrl', [
 ]);
 /// <reference path='../js/impakt.ts' />
 impakt.modules = angular.module('impakt.modules', [
+    'impakt.main',
     'impakt.home',
     'impakt.league',
     'impakt.season',
@@ -12849,6 +13194,27 @@ impakt.league.modals.service('_leagueModals', [
         };
     }]);
 /// <reference path='../modules.mdl.ts' />
+impakt.main = angular.module('impakt.main', [])
+    .config([function () {
+        console.debug('impakt.main - config');
+    }])
+    .run([function () {
+        console.debug('impakt.main - run');
+    }]);
+/// <reference path='./main.mdl.ts' />
+impakt.main.controller('main.ctrl', [
+    '$scope',
+    '__context',
+    function ($scope, __context) {
+        $scope.appVisible = false;
+        __context.onReady(function () {
+            $scope.appVisible = true;
+            if (!$scope.$$phase) {
+                $scope.$apply();
+            }
+        });
+    }]);
+/// <reference path='../modules.mdl.ts' />
 impakt.nav = angular.module('impakt.nav', [
     'impakt.user',
     'impakt.playbook.nav'
@@ -12873,7 +13239,7 @@ impakt.nav.controller('nav.ctrl', [
         $scope.notificationsMenuItem = __nav.notificationsMenuItem;
         $scope.searchMenuItem = __nav.searchMenuItem;
         // set default view to the Home module
-        $location.path('/playbook');
+        $location.path('/home');
         $scope.navigatorNavSelection = getActiveNavItemLabel();
         $scope.searchItemClick = function () {
             $scope.searchMenuItem.toggleActivation();
@@ -13022,12 +13388,14 @@ impakt.playbook.browser.controller('playbook.browser.ctrl', [
         $scope.playbooks;
         $scope.formations;
         $scope.plays;
+        $scope.assignmentGroups;
         _details.selectedPlay = null;
         __context.onReady(function () {
             $scope.editor = impakt.context.Playbook.editor;
             $scope.playbooks = impakt.context.Playbook.playbooks;
             $scope.formations = impakt.context.Playbook.formations;
             $scope.plays = impakt.context.Playbook.plays;
+            $scope.assignmentGroups = impakt.context.Playbook.assignmentGroups;
         });
         $scope.getEditorTypeClass = function (editorType) {
             return _playbook.getEditorTypeClass(editorType);
@@ -13065,6 +13433,13 @@ impakt.playbook.browser.controller('playbook.browser.ctrl', [
         $scope.deleteFormation = function (formation) {
             _playbookModals.deleteFormation(formation);
         };
+        $scope.createAssignmentGroup = function () {
+            // create default assignment group?
+            //_playbookModals.createAssignmentGroup();
+        };
+        $scope.deleteAssignmentGroup = function (assignmentGroup) {
+            _playbookModals.deleteAssignmentGroup(assignmentGroup);
+        };
         /**
          *
          * Item Drilldown
@@ -13079,7 +13454,8 @@ impakt.playbook.browser.service('_playbookBrowser', [function () {
     }]);
 /// <reference path='../playbook.mdl.ts' />
 impakt.playbook.contextmenus = angular.module('impakt.playbook.contextmenus', [
-    'impakt.playbook.contextmenus.routeNode'
+    'impakt.playbook.contextmenus.routeNode',
+    'impakt.playbook.contextmenus.play'
 ])
     .config(function () {
     console.debug('impakt.playbook.contextmenus - config');
@@ -13087,6 +13463,20 @@ impakt.playbook.contextmenus = angular.module('impakt.playbook.contextmenus', [
     .run(function () {
     console.debug('impakt.playbook.contextmenus - run');
 });
+/// <reference path='../playbook-contextmenus.mdl.ts' />
+impakt.playbook.contextmenus.play =
+    angular.module('impakt.playbook.contextmenus.play', [])
+        .config(function () {
+        console.debug('impakt.playbook.contextmenus.play - config');
+    })
+        .run(function () {
+        console.debug('impakt.playbook.contextmenus.play - run');
+    });
+/// <reference path='./contextmenu-play.mdl.ts' />
+impakt.playbook.contextmenus.play.controller('impakt.playbook.contextmenus.play.ctrl', [
+    '$scope',
+    function ($scope) {
+    }]);
 /// <reference path='../playbook-contextmenus.mdl.ts' />
 impakt.playbook.contextmenus.routeNode =
     angular.module('impakt.playbook.contextmenus.routeNode', [])
@@ -13096,41 +13486,10 @@ impakt.playbook.contextmenus.routeNode =
         .run(function () {
         console.debug('impakt.playbook.contextmenus.routeNode - run');
     });
-/// <reference path='./playbook-contextmenus-routeNode.mdl.ts' />
-impakt.playbook.contextmenus.routeNode.controller('impakt.playbook.contextmenus.routeNode.ctrl', ['$scope', '_playbookContextmenusRouteNode',
-    function ($scope, _playbookContextmenusRouteNode) {
-        console.log('assignment node controller', _playbookContextmenusRouteNode.context);
-        $scope.context = _playbookContextmenusRouteNode.context;
-        $scope.actions = _playbookContextmenusRouteNode.getActions();
-        $scope.actionClick = function (action) {
-            if ($scope.context.actionable) {
-                _playbookContextmenusRouteNode.selectAction(action);
-            }
-            else {
-                console.log('Route node is non-actionable');
-            }
-        };
-    }]);
-/// <reference path='./playbook-contextmenus-routeNode.mdl.ts' />
-impakt.playbook.contextmenus.routeNode.service('_playbookContextmenusRouteNode', ['__contextmenu', '__parser',
-    function (__contextmenu, __parser) {
-        this.context = __contextmenu.getContext();
-        this.actions = __parser.convertEnumToList(Common.Enums.RouteNodeActions);
-        this.init = function () {
-            var self = this;
-            __contextmenu.onContextUpdate(function (context) {
-                self.context = context;
-            });
-        };
-        this.getActions = function () {
-            return __parser.convertEnumToList(Common.Enums.RouteNodeActions);
-        };
-        this.selectAction = function (action) {
-            this.context.setAction(parseInt(Common.Enums.RouteNodeActions[action]));
-            __contextmenu.close();
-        };
-        console.log('_playbookContextmenusRouteNode service loaded');
-        this.init();
+/// <reference path='./contextmenu-routeNode.mdl.ts' />
+impakt.playbook.contextmenus.routeNode.controller('impakt.playbook.contextmenus.routeNode.ctrl', [
+    '$scope',
+    function ($scope) {
     }]);
 /// <reference path='../playbook.mdl.ts' />
 impakt.playbook.drilldown = angular.module('impakt.playbook.drilldown', [
@@ -13233,6 +13592,7 @@ impakt.playbook.editor.canvas.controller('playbook.editor.canvas.ctrl', [
         $scope.unitTypes = _playbookEditorCanvas.unitTypes;
         $scope.formations = _playbookEditorCanvas.formations;
         $scope.personnelCollection = _playbookEditorCanvas.personnelCollection;
+        $scope.assignmentGroups = _playbookEditorCanvas.assignmentGroups;
         $scope.plays = _playbookEditorCanvas.plays;
         $scope.tab = _playbookEditorCanvas.getActiveTab();
         $scope.tabs = _playbookEditorCanvas.tabs;
@@ -13294,6 +13654,9 @@ impakt.playbook.editor.canvas.controller('playbook.editor.canvas.ctrl', [
         $scope.applyPlay = function (play) {
             _playbookEditorCanvas.applyPrimaryPlay(play);
         };
+        $scope.applyAssignmentGroup = function (assignmentGroup) {
+            _playbookEditorCanvas.applyPrimaryAssignmentGroup(assignmentGroup);
+        };
         $scope.applyUnitType = function (unitType) {
             if (unitType.unitType == $scope.canvas.playPrimary.unitType)
                 return;
@@ -13320,7 +13683,7 @@ impakt.playbook.editor.canvas.controller('playbook.editor.canvas.ctrl', [
             return editorType == Playbook.Enums.EditorTypes.Assignment ||
                 editorType == Playbook.Enums.EditorTypes.Play;
         };
-        $scope.isAssignmentVisible = function (editorType) {
+        $scope.isAssignmentGroupsVisible = function (editorType) {
             return editorType == Playbook.Enums.EditorTypes.Assignment ||
                 editorType == Playbook.Enums.EditorTypes.Play;
         };
@@ -13334,11 +13697,11 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas', ['$rootScope',
     '$compile',
     '$templateCache',
     '$timeout',
-    '__contextmenu',
+    '_contextmenu',
     '_playPreview',
     '_playbookEditorCanvas',
     '_scrollable',
-    function ($rootScope, $compile, $templateCache, $timeout, __contextmenu, _playPreview, _playbookEditorCanvas, _scrollable) {
+    function ($rootScope, $compile, $templateCache, $timeout, _contextmenu, _playPreview, _playbookEditorCanvas, _scrollable) {
         console.debug('directive: impakt.playbook.editor.canvas - register');
         return {
             restrict: 'E',
@@ -13381,41 +13744,6 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas', ['$rootScope',
                         console.log('A pressed - playbook-editor-canvas.drv.ts');
                     }
                 });
-                // $rootScope.$on('playbook-editor-canvas.playerContextmenu',
-                // 	function(e: any, data: any) {
-                // 		var player = data.player;					
-                // 		console.log('playbook-editor-canvas.playerContextmenu', player);
-                // 		var markup = [
-                // 			'<contextmenu ',
-                // 			'guid="', 
-                // 			player.guid, 
-                // 			'" template="', 
-                // 			player.contextmenuTemplateUrl,
-                // 			'" left="', data.left, 
-                // 			'" top="', data.top,
-                // 			'"></contextmenu>'
-                // 		].join('');
-                // 		var c = $compile(markup)($scope);
-                // 		__contextmenu.set(player.guid, player);
-                // 		$element.after(c);
-                // 	});
-                $rootScope.$on('playbook-editor-canvas.routeNodeContextmenu', function (e, data) {
-                    var node = data.node;
-                    console.log('playbook-editor-canvas.routeNodeContextmenu', node);
-                    var markup = [
-                        '<contextmenu ',
-                        'guid="',
-                        node.guid,
-                        '" template="',
-                        node.contextmenuTemplateUrl,
-                        '" left="', data.left,
-                        '" top="', data.top,
-                        '"></contextmenu>'
-                    ].join('');
-                    var c = $compile(markup)($scope);
-                    __contextmenu.setContext(node);
-                    $element.after(c);
-                });
             }
         };
     }]);
@@ -13425,10 +13753,11 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas', [
     '$rootScope',
     '$timeout',
     '_base',
+    '_contextmenu',
     '_playPreview',
     '_playbook',
     '_playbookEditor',
-    function ($rootScope, $timeout, _base, _playPreview, _playbook, _playbookEditor) {
+    function ($rootScope, $timeout, _base, _contextmenu, _playPreview, _playbook, _playbookEditor) {
         console.debug('service: impakt.playbook.editor.canvas');
         var self = this;
         this.activeTab = _playbookEditor.activeTab;
@@ -13436,7 +13765,7 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas', [
         this.playbooks = impakt.context.Playbook.playbooks;
         this.formations = impakt.context.Playbook.formations;
         this.personnelCollection = impakt.context.Team.personnel;
-        this.assignments = impakt.context.Playbook.assignments;
+        this.assignmentGroups = impakt.context.Playbook.assignmentGroups;
         this.plays = impakt.context.Playbook.plays;
         this.readyCallbacks = [function () { console.log('canvas ready'); }];
         this.canvas = _playbookEditor.canvas;
@@ -13493,15 +13822,9 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas', [
             // 			}
             // 		);
             // 	});
-            canvas.listener.listen(Playbook.Enums.Actions.RouteNodeContextmenu, function (node) {
-                console.log('action commanded: route node contextmenu');
-                var absCoords = getAbsolutePosition(node);
-                $rootScope.$broadcast('playbook-editor-canvas.routeNodeContextmenu', {
-                    message: 'contextmenu opened',
-                    node: node,
-                    left: absCoords.left,
-                    top: absCoords.top
-                });
+            // Listen for routenode contextmenu
+            canvas.listener.listen(Playbook.Enums.Actions.RouteNodeContextmenu, function (data) {
+                _contextmenu.open(data);
             });
             canvas.initialize($element);
             return canvas;
@@ -13522,6 +13845,15 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas', [
         this.applyPrimaryPersonnel = function (personnel) {
             if (canApplyData()) {
                 _playbookEditor.canvas.paper.field.applyPrimaryPersonnel(personnel);
+            }
+        };
+        /**
+         * Applies the given assignmentGroup data to the field
+         * @param {Common.Models.AssignmentGroup} assignmentGroup The AssignmentGroup to apply
+         */
+        this.applyPrimaryAssignmentGroup = function (assignmentGroup) {
+            if (canApplyData()) {
+                _playbookEditor.canvas.paper.field.applyPrimaryAssignmentGroup(assignmentGroup);
             }
         };
         /**
@@ -13733,9 +14065,10 @@ impakt.playbook.editor.service('_playbookEditor', [
     '$rootScope',
     '$q',
     '_base',
+    '_associations',
     '_playbook',
     '_playbookModals',
-    function ($rootScope, $q, _base, _playbook, _playbookModals) {
+    function ($rootScope, $q, _base, _associations, _playbook, _playbookModals) {
         console.debug('service: impakt.playbook.editor');
         var self = this;
         this.component = new Common.Base.Component('_playbookEditor', Common.Base.ComponentType.Service, [
@@ -13782,6 +14115,10 @@ impakt.playbook.editor.service('_playbookEditor', [
                     initialPlay = self.plays.filterFirst(function (play) {
                         return play.guid == tab.playPrimary.guid;
                     });
+                    var associations = _associations.getAssociated(initialPlay);
+                    var assignmentGroup = associations.assignmentGroups.first();
+                    var formation = associations.formations.first();
+                    var personnel = associations.personnel.first();
                     // let opponentPlayTest = new Common.Models.PlayOpponent();
                     // // initialize the default formation & personnel
                     // opponentPlayTest.setDefault(tab.canvas.field);
@@ -14261,15 +14598,15 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl', [
         $scope.newPlay = new Common.Models.Play($scope.selectedUnitType.unitType);
         $scope.playbooks = impakt.context.Playbook.playbooks;
         $scope.formations = impakt.context.Playbook.formations;
-        $scope.assignments = impakt.context.Playbook.assignments;
+        $scope.assignmentGroups = impakt.context.Playbook.assignmentGroups;
         $scope.selectedPlaybook = $scope.playbooks.first();
         $scope.selectedFormation = $scope.formations.first();
-        $scope.selectedAssignments = $scope.assignments.first();
+        $scope.selectedAssignmentGroup = $scope.assignmentGroups.first();
         $scope.personnelCollection = impakt.context.Team.personnel;
         $scope.selectedPersonnel = $scope.personnelCollection.first();
         // Intialize new Play with data
         $scope.newPlay.setFormation($scope.selectedFormation);
-        $scope.newPlay.setAssignments($scope.selectedAssignments);
+        $scope.newPlay.setAssignmentGroup($scope.selectedAssignmentGroup);
         $scope.newPlay.setPersonnel($scope.selectedPersonnel);
         // Add the new play onto the creation context, to access from
         // other parts of the application
@@ -14283,8 +14620,8 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl', [
         $scope.selectFormation = function (formation) {
             $scope.newPlay.setFormation($scope.formations.get(formation.guid));
         };
-        $scope.selectAssignments = function (assignments) {
-            $scope.newPlay.setAssignments($scope.formations.get(assignments.guid));
+        $scope.selectAssignmentGroup = function (assignmentGroup) {
+            $scope.newPlay.setAssignmentGroup($scope.assignmentGroups.get(assignmentGroup.guid));
         };
         $scope.selectPersonnel = function (personnel) {
             $scope.newPlay.setPersonnel($scope.personnelCollection.get(personnel.guid));
@@ -14298,7 +14635,7 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl', [
                     $scope.selectedPlaybook,
                     $scope.selectedFormation,
                     $scope.selectedPersonnel,
-                    $scope.selectedAssignments
+                    $scope.selectedAssignmentGroup
                 ]);
                 removePlayFromCreationContext();
                 $uibModalInstance.close(createdPlay);
@@ -14354,6 +14691,29 @@ impakt.playbook.modals.controller('playbook.modals.createPlaybook.ctrl', [
             _playbook.createPlaybook($scope.newPlaybookModel)
                 .then(function (createdPlaybook) {
                 $uibModalInstance.close(createdPlaybook);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../playbook-modals.mdl.ts' />
+impakt.playbook.modals.controller('playbook.modals.deleteAssignmentGroup.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_associations',
+    '_playbook',
+    'assignmentGroup',
+    function ($scope, $uibModalInstance, _associations, _playbook, assignmentGroup) {
+        $scope.assignmentGroup = assignmentGroup;
+        $scope.ok = function () {
+            _playbook.deleteAssignmentGroup($scope.assignmentGroup)
+                .then(function (results) {
+                _associations.deleteAssociations($scope.assignmentGroup.associationKey);
+                $uibModalInstance.close(results);
             }, function (err) {
                 console.error(err);
                 $uibModalInstance.close(err);
@@ -14613,6 +14973,21 @@ impakt.playbook.modals.service('_playbookModals', [
             });
             return d.promise;
         };
+        this.deleteAssignmentGroup = function (assignmentGroup) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/playbook/modals/delete-assignmentGroup/delete-assignmentGroup.tpl.html', 'playbook.modals.deleteAssignmentGroup.ctrl', {
+                formation: function () {
+                    return assignmentGroup;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
         this.openNewEditorTab = function () {
             var d = $q.defer();
             console.log('new editor tab');
@@ -14704,11 +15079,11 @@ impakt.playbook.modals.controller('playbook.modals.savePlay.ctrl', [
         $scope.copyPlay = false;
         $scope.copyFormation = false;
         $scope.copyPersonnel = false;
-        $scope.copyAssignments = false;
+        $scope.copyAssignmentGroup = false;
         // retain the orginal keys for toggling copy state
         var originalPlayKey = $scope.play.key;
         var originalFormationKey = $scope.play.formation.key;
-        var originalAssignmentsKey = $scope.play.assignments.key;
+        var originalAssignmentGroupKey = $scope.play.assignmentGroup.key;
         $scope.copyPlayChange = function () {
             $scope.play.key =
                 $scope.copyPlay ? -1 :
@@ -14719,10 +15094,10 @@ impakt.playbook.modals.controller('playbook.modals.savePlay.ctrl', [
                 $scope.copyFormation ? -1 :
                     originalFormationKey;
         };
-        $scope.copyAssignmentsChange = function () {
-            $scope.play.assignments.key =
-                $scope.copyAssignments ? -1 :
-                    originalAssignmentsKey;
+        $scope.copyAssignmentGroupChange = function () {
+            $scope.play.assignmentGroup.key =
+                $scope.copyAssignmentGroup ? -1 :
+                    originalAssignmentGroupKey;
         };
         $scope.ok = function () {
             var play = $scope.play;
@@ -14737,15 +15112,18 @@ impakt.playbook.modals.controller('playbook.modals.savePlay.ctrl', [
                 formation: {
                     action: play.formation.modified ? Common.API.Actions.Overwrite : Common.API.Actions.Nothing
                 },
-                // TO-DO: implement assignments
-                assignments: {
-                    action: Common.API.Actions.Nothing
+                assignmentGroup: {
+                    action: play.assignmentGroup.key == -1 ?
+                        Common.API.Actions.Create :
+                        (play.assignmentGroup.modified ?
+                            Common.API.Actions.Overwrite :
+                            Common.API.Actions.Nothing)
                 }
             };
-            // If any of the following entities (play, formation, assignments)
+            // If any of the following entities (play, formation, assignmentGroup)
             // exist on the play and their corresponding copy boolean
-            // (copyPlay, copyFormation, copyPersonnel, copyAssignments) is set to true,
-            // a new corresponding entity (Play, Formation, Assigments)
+            // (copyPlay, copyFormation, copyPersonnel, copyAssignmentGroup) is set to true,
+            // a new corresponding entity (Play, Formation, AssigmentGroup)
             // will be created and the new entity will have its values copied 
             // from the existing entity.
             // this new copied entity gets sent to server-side for creation.
@@ -14761,8 +15139,11 @@ impakt.playbook.modals.controller('playbook.modals.savePlay.ctrl', [
                 options.formation.action = Common.API.Actions.Copy;
                 play.formation = $scope.formation;
             }
-            if ($scope.play.assignments && $scope.copyAssignments) {
-                console.error('save play assignments not implemented');
+            if ($scope.play.assignmentGroup && $scope.copyAssignmentGroup) {
+                originalAssignmentGroupKey = $scope.play.assignmentGroup.key;
+                $scope.play.assignmentGroup.key = -1;
+                options.assignmentGroup.action = Common.API.Actions.Copy;
+                play.assignmentGroup = $scope.assignmentGroup;
             }
             _playbook.savePlay(play, options)
                 .then(function (savedPlay) {
@@ -14811,11 +15192,11 @@ impakt.playbook.constant('PLAYBOOK', {
     GET_FORMATION: '/getFormation',
     DELETE_FORMATION: '/deleteFormation',
     UPDATE_FORMATION: '/updateFormation',
-    // Sets
-    CREATE_SET: '/createSet',
-    GET_SETS: '/getSets',
-    UPDATE_SET: '/updateSet',
-    DELETE_SET: '/deleteSet',
+    // Assignments
+    CREATE_ASSIGNMENTGROUP: '/createAssignmentGroup',
+    GET_ASSIGNMENTGROUPS: '/getAssignmentGroups',
+    UPDATE_ASSIGNMENTGROUP: '/updateAssignmentGroup',
+    DELETE_ASSIGNMENTGROUP: '/deleteAssignmentGroup',
     // Plays
     CREATE_PLAY: '/createPlay',
     UPDATE_PLAY: '/updatePlay',
@@ -14840,8 +15221,9 @@ impakt.playbook.service('_playbook', [
     '__api',
     '__localStorage',
     '__notifications',
+    '_associations',
     '_playbookModals',
-    function (PLAYBOOK, $rootScope, $q, $state, __api, __localStorage, __notifications, _playbookModals) {
+    function (PLAYBOOK, $rootScope, $q, $state, __api, __localStorage, __notifications, _associations, _playbookModals) {
         var self = this;
         this.drilldown = {
             playbook: null
@@ -15192,92 +15574,106 @@ impakt.playbook.service('_playbook', [
             return d.promise;
         };
         /**
-         * Retrieves all sets (for the given playbook?) of the current user
-         * @param {[type]} playbook ???
+         * Retrieves all assignment groups for the current user
          */
-        this.getSets = function () {
+        this.getAssignmentGroups = function () {
             var d = $q.defer();
-            var personnelNotification = __notifications.pending('Getting Personnel...');
             var assignmentsNotification = __notifications.pending('Getting Assignments...');
-            __api.get(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.GET_SETS))
+            __api.get(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.GET_ASSIGNMENTGROUPS))
                 .then(function (response) {
                 var results = Common.Utilities.parseData(response.data.results);
-                var personnelResults = [];
-                var personnelCollection = new Team.Models.PersonnelCollection(Team.Enums.UnitTypes.Mixed);
-                var assignmentResults = [];
-                var assignmentCollection = new Common.Models.AssignmentCollection(Team.Enums.UnitTypes.Mixed);
-                // get personnel & assignments from `sets`
+                var assignmentGroupCollection = new Common.Models.AssignmentGroupCollection(Team.Enums.UnitTypes.Mixed);
                 for (var i = 0; i < results.length; i++) {
                     var result = results[i];
-                    if (result && result.data) {
-                        var data = result.data;
-                        switch (data.setType) {
-                            case Common.Enums.SetTypes.Personnel:
-                                data.personnel.key = result.key;
-                                personnelResults.push(data.personnel);
-                                break;
-                            case Common.Enums.SetTypes.Assignment:
-                                data.assignment.key = result.key;
-                                assignmentResults.push(data.assignment);
-                                break;
-                        }
+                    if (result && result.data && result.data.assignmentGroup) {
+                        var assignmentGroupModel = new Common.Models.AssignmentGroup(Team.Enums.UnitTypes.Other);
+                        assignmentGroupModel.key = result.key;
+                        result.data.assignmentGroup.key = result.key;
+                        assignmentGroupModel.fromJson(result.data.assignmentGroup);
+                        assignmentGroupCollection.add(assignmentGroupModel);
                     }
                 }
-                for (var i_2 = 0; i_2 < personnelResults.length; i_2++) {
-                    var personnel = personnelResults[i_2];
-                    var personnelModel = new Team.Models.Personnel(Team.Enums.UnitTypes.Other);
-                    personnelModel.fromJson(personnel);
-                    personnelCollection.add(personnelModel);
-                }
-                for (var i_3 = 0; i_3 < assignmentResults.length; i_3++) {
-                    var assignment = assignmentResults[i_3];
-                    var assignmentModel = new Common.Models.Assignment(Team.Enums.UnitTypes.Other);
-                    assignmentModel.fromJson(assignment);
-                    assignmentCollection.add(assignmentModel);
-                }
-                personnelNotification.success(personnelCollection.size(), ' Personnel groups successfully retrieved');
-                assignmentsNotification.success(assignmentCollection.size(), ' Assignment sets successfully retrieved');
-                d.resolve({
-                    personnel: personnelCollection,
-                    assignments: assignmentCollection
-                });
+                assignmentsNotification.success(assignmentGroupCollection.size(), ' Assignment groups successfully retrieved');
+                d.resolve(assignmentGroupCollection);
             }, function (error) {
-                personnelNotification.error('Failed to retrieve Personnel groups');
                 assignmentsNotification.error('Failed to retrieve Assignment groups');
                 d.reject(error);
             });
             return d.promise;
         };
         /**
-         * Creates a set (TO-DO)
-         * @param {[type]} set The set to create
+         * Creates a collection group
+         * @param {[type]} assignments The assignments to create
          */
-        this.createSet = function (set) {
+        this.createAssignmentGroup = function (assignmentGroup) {
             var d = $q.defer();
-            var notification = __notifications.pending('Creating set "', set.name, '"...');
-            __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.CREATE_SET), {
+            var notification = __notifications.pending('Creating assignment group "', assignmentGroup.name, '"...');
+            __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.CREATE_ASSIGNMENTGROUP), {
                 version: 1,
-                name: set.name,
+                name: assignmentGroup.name,
                 ownerRK: 1,
                 parentRK: 1,
                 data: {
                     version: 1,
-                    name: set.name,
+                    name: assignmentGroup.name,
                     ownerRK: 1,
                     parentRK: 1,
-                    set: set
+                    assignmentGroup: assignmentGroup.toJson()
                 }
             })
                 .then(function (response) {
-                var set = Common.Utilities.parseData(response.data.results);
-                // let setModel = new Playbook.Models.Set(
-                //     set.name, set.type, set.positions
-                // );
-                // setModel.fromJson(set);
-                notification.success('Successfully created set "', set.name, '"');
-                d.resolve(null);
+                var results = Common.Utilities.parseData(response.data.results);
+                var assignmentGroup = new Common.Models.AssignmentGroup(Team.Enums.UnitTypes.Other);
+                if (results && results.data && results.data.assignmentGroup) {
+                    var rawAssignmentGroup = results.data.assignmentGroup;
+                    assignmentGroup.key = results.key;
+                    assignmentGroup.fromJson(rawAssignmentGroup);
+                    notification.success('Successfully created assignment group "', assignmentGroup.name, '"');
+                    d.resolve(assignmentGroup);
+                }
+                else {
+                    notification.warning('Created assignment group "', assignmentGroup.name, '" but an error may have occurred \
+                         in the process. You may need to refresh your browser if you experience issues.');
+                    d.reject(null);
+                }
             }, function (error) {
-                notification.success('Failed to create set "', set.name, '"');
+                notification.success('Failed to create assignment group "', assignmentGroup.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Updates the given assignment collection (group) for the current user
+         * @param {Common.Models.AssignmentGroup} assignments The assignment collection (group) to update
+         */
+        this.updateAssignmentGroup = function (assignmentGroup) {
+            var d = $q.defer();
+            // update assignment group to json object
+            var assignmentGroupData = assignmentGroup.toJson();
+            var notification = __notifications.pending('Updating assignment group "', assignmentGroup.name, '"...');
+            __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.UPDATE_ASSIGNMENTGROUP), {
+                version: 1,
+                name: assignmentGroupData.name,
+                key: assignmentGroupData.key,
+                data: {
+                    version: 1,
+                    name: assignmentGroupData.name,
+                    key: assignmentGroupData.key,
+                    assignmentGroup: assignmentGroup
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var assignmentGroupModel = new Common.Models.AssignmentGroup(Team.Enums.UnitTypes.Other);
+                if (results && results.data && results.data.assignmentGroup) {
+                    assignmentGroupModel.fromJson(results.data.assignmentGroup);
+                    // update the context
+                    impakt.context.Playbook.assignmentGroups.set(assignmentGroupModel.guid, assignmentGroupModel);
+                }
+                notification.success('Successfully updated assignment group "', assignmentGroupModel.name, '"');
+                d.resolve(assignmentGroupModel);
+            }, function (error) {
+                notification.error('Failed to update assignment group "', assignmentGroup.name, '"');
                 d.reject(error);
             });
             return d.promise;
@@ -15373,22 +15769,51 @@ impakt.playbook.service('_playbook', [
                 //     console.warn('Save Play > Personnel not implemented, skipping...');
                 //     callback(null, play);
                 // },
-                // // save assignments
-                // function(callback) {
-                //     console.warn('Save Play > Assignments not implemented, skipping...');
-                //     callback(null, play);
-                // },
-                // save play
+                // save assignments
                 // save personnel
                 // function(callback) {
                 //     console.warn('Save Play > Personnel not implemented, skipping...');
                 //     callback(null, play);
                 // },
-                // // save assignments
-                // function(callback) {
-                //     console.warn('Save Play > Assignments not implemented, skipping...');
-                //     callback(null, play);
-                // },
+                // save assignments
+                function (callback) {
+                    if (Common.Utilities.isNullOrUndefined(play.assignmentGroup))
+                        callback(null, play);
+                    if (options.assignmentGroup.action == Common.API.Actions.Create ||
+                        options.assignmentGroup.action == Common.API.Actions.Copy) {
+                        // ensure play has no key
+                        play.assignmentGroup.key = -1;
+                        self.createAssignmentGroup(play.assignmentGroup)
+                            .then(function (createdAssignmentGroup) {
+                            if (!_associations.associationExists(play.associationKey, createdAssignmentGroup.associationKey)) {
+                                _associations.createAssociation(play, createdAssignmentGroup).then(function () {
+                                    callback(null, play);
+                                }, function (err) {
+                                    callback(err);
+                                });
+                            }
+                        }, function (err) {
+                            callback(err);
+                        });
+                    }
+                    else if (options.assignmentGroup.action == Common.API.Actions.Overwrite) {
+                        if (play.assignmentGroup.modified) {
+                            self.updateAssignmentGroup(play.assignmentGroup)
+                                .then(function (updatedAssignmentGroup) {
+                                callback(null, updatedAssignmentGroup);
+                            }, function (err) {
+                                callback(err);
+                            });
+                        }
+                        else {
+                            callback(null, play);
+                        }
+                    }
+                    else {
+                        callback(null, play);
+                    }
+                },
+                // save play
                 // save play
                 function (callback) {
                     if (options.play.action == Common.API.Actions.Create ||
@@ -15993,6 +16418,17 @@ impakt.team.personnel.controller('impakt.team.personnel.ctrl', [
  */
 impakt.team.constant('TEAM', {
     ENDPOINT: '/playbook',
+    // Personnel
+    CREATE_PERSONNEL: '/createPersonnel',
+    UPDATE_PERSONNEL: '/updatePlay',
+    GET_PERSONNEL: '/getPlay',
+    GET_PERSONNELGROUPS: '/getPlays',
+    DELETE_PERSONNEL: '/deletePlay',
+    // Sets
+    CREATE_SET: '/createSet',
+    GET_SETS: '/getSets',
+    UPDATE_SET: '/updateSet',
+    DELETE_SET: '/deleteSet'
 });
 /// <reference path='./team.mdl.ts' />
 impakt.team.controller('team.ctrl', ['$scope', '_team',
@@ -16185,6 +16621,30 @@ impakt.team.service('_team', [
             });
             return d.promise;
         };
+        this.getPersonnel = function () {
+            var d = $q.defer();
+            var personnelNotification = __notifications.pending('Getting Personnel...');
+            __api.get(__api.path(TEAM.ENDPOINT, TEAM.GET_SETS))
+                .then(function (response) {
+                var personnelResults = Common.Utilities.parseData(response.data.results);
+                var personnelCollection = new Team.Models.PersonnelCollection(Team.Enums.UnitTypes.Mixed);
+                for (var i = 0; i < personnelResults.length; i++) {
+                    var results = personnelResults[i];
+                    if (results && results.data && results.data.personnel) {
+                        var rawPersonnel = results.data.personnel;
+                        var personnelModel = new Team.Models.Personnel(Team.Enums.UnitTypes.Other);
+                        personnelModel.fromJson(rawPersonnel);
+                        personnelCollection.add(personnelModel);
+                    }
+                }
+                personnelNotification.success(personnelCollection.size(), ' Personnel groups successfully retrieved');
+                d.resolve(personnelCollection);
+            }, function (error) {
+                personnelNotification.error('Failed to retrieve Personnel groups');
+                d.reject(error);
+            });
+            return d.promise;
+        };
         this.savePersonnel = function (personnelModel, createNew) {
             var d = $q.defer();
             var result;
@@ -16210,7 +16670,7 @@ impakt.team.service('_team', [
             var d = $q.defer();
             var personnelJson = personnelModel.toJson();
             var notification = __notifications.pending('Creating personnel group "', personnelModel.name, '"...');
-            __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.CREATE_SET), {
+            __api.post(__api.path(TEAM.ENDPOINT, TEAM.CREATE_SET), {
                 version: 1,
                 ownerRK: 1,
                 parentRK: 1,
@@ -16243,7 +16703,7 @@ impakt.team.service('_team', [
             var d = $q.defer();
             var personnelJson = personnelModel.toJson();
             var notification = __notifications.pending('Updating personnel "', personnelModel.name, '"...');
-            __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.UPDATE_SET), {
+            __api.post(__api.path(TEAM.ENDPOINT, TEAM.UPDATE_SET), {
                 version: 1,
                 name: personnelJson.name,
                 key: personnelJson.key,
@@ -16273,7 +16733,7 @@ impakt.team.service('_team', [
         this.deletePersonnel = function (personnelModel) {
             var d = $q.defer();
             var notification = __notifications.pending('Deleting personnel "', personnelModel.name, '"...');
-            __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.DELETE_SET), {
+            __api.post(__api.path(TEAM.ENDPOINT, TEAM.DELETE_SET), {
                 key: personnelModel.key
             }).then(function (response) {
                 impakt.context.Team.personnel.remove(personnelModel.guid);

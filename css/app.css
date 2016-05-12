@@ -47,10 +47,20 @@ input:focus, textarea:focus {
   border: 1px solid #444444;
 }
 
-input[disabled], textarea[disabled], select[disabled] {
-  color: #aaa;
-  background-color: #444444;
-  border-color: #aaaaaa;
+input[disabled], input[disabled]:-webkit-autofill, textarea[disabled], select[disabled] {
+  color: #888 !important;
+  background-color: #111111 !important;
+  border: 1px solid #777777;
+  -webkit-box-shadow: 0 0 0px 1000px #111111 inset;
+  -webkit-text-fill-color: #888 !important;
+  font-weight: 200;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  cursor: not-allowed !important;
 }
 
 input[type="checkbox"], input[type="radio"] {
@@ -624,27 +634,22 @@ path.painted-fill, rect.painted-fill, circle.painted-fill {
 /*
 *	CONTEXT MENU MODULE
 */
-contextmenu {
+.contextmenu {
   position: absolute;
   min-width: 200px;
   min-height: 200px;
   height: auto;
-  background-color: #ebebeb;
+  background-color: rgba(230, 230, 230, 0.98);
   padding: 0;
-  font-weight: 500;
-  border: 1px solid gainsboro;
+  font-weight: 200;
+  color: #222;
+  text-shadow: 0px 1px #ddd;
+  border: 1px solid #333;
   z-index: 999999;
-  box-shadow: 0px 0px 5px #000;
-  border-radius: 2px;
+  box-shadow: 0px 0px 10px #000;
 }
 
-contextmenu .contextmenu-container {
-  position: relative;
-  height: auto;
-  z-index: 1000;
-}
-
-contextmenu #contextmenuOverlay {
+.contextmenu #contextmenuOverlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -653,8 +658,8 @@ contextmenu #contextmenuOverlay {
   z-index: -1;
 }
 
-contextmenu ul,
-contextmenu ol {
+.contextmenu ul,
+.contextmenu ol {
   position: relative;
   margin: 0;
   padding: 0;
@@ -663,14 +668,14 @@ contextmenu ol {
   z-index: 2;
 }
 
-contextmenu li {
+.contextmenu li {
   cursor: pointer;
   list-style-type: none;
   list-style-position: inside;
   margin: 0;
 }
 
-contextmenu li:hover {
+.contextmenu li:hover {
   background-color: rgba(0, 0, 0, 0.35);
 }
 
@@ -780,22 +785,18 @@ expandable {
   box-shadow: 0 0 5px rgba(255, 255, 255, 0.15);
 }
 
-expandable[direction=left] {
-  border-left: 1px solid rgba(150, 150, 150, 0.3);
+/*expandable[direction=left] {
+	border-left: 1px solid $lightBorderColor;
 }
-
 expandable[direction=right] {
-  border-right: 1px solid rgba(150, 150, 150, 0.3);
+	border-right: 1px solid $lightBorderColor;
 }
-
 expandable[direction=top] {
-  border-top: 1px solid rgba(150, 150, 150, 0.3);
+	border-top: 1px solid $lightBorderColor;
 }
-
 expandable[direction=botom] {
-  border-bottom: 1px solid rgba(150, 150, 150, 0.3);
-}
-
+	border-bottom: 1px solid $lightBorderColor;
+}*/
 play-preview {
   position: relative;
   overflow-y: scroll;

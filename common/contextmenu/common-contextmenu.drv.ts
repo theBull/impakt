@@ -1,86 +1,89 @@
 /// <reference path='./common-contextmenu.mdl.ts' />
 
-declare var impakt: any;
+impakt.common.contextmenu.controller('common.contextmenu.ctrl',[
+'$scope', 
+'_contextmenu',
+function(
+	$scope: any, 
+	_contextmenu: any
+) {
+	
+	$scope.$contextmenuElement;
+	$scope.contextmenuData = _contextmenu.contextmenuData;
+	$scope.left = 0;
+	$scope.top = 0;
+	$scope.width = 200;
+	$scope.height = 200;
+	$scope.guid = '';
+	$scope.contextmenuVisible = false;
 
-impakt.common.contextmenu.controller('common.contextmenu.ctrl',
-	['$scope', '__contextmenu',
-		function($scope: any, __contextmenu: any) {
-			console.log('common.contextmenu.ctrl');
-			
-			$scope.$element = {};
-			$scope.template = '';
-			$scope.left = 0;
-			$scope.top = 0;
-			$scope.width = 200;
-			$scope.height = 200;
-			$scope.guid = '';
-			$scope.visible = true;
+	_contextmenu.onopen(function(data: Common.Models.ContextmenuData) {
+		$scope.contextmenuData = data;
+		$scope.contextmenuVisible = true;
+		if (!$scope.$$phase) {
+			$scope.$apply();
+		}
+		$scope.$contextmenuElement.offset({ top: data.pageY, left: data.pageX });
+	});
 
-			$scope.remove = function() {
-				console.log('remove contextmenu');
-				$scope.$destroy();
-				
-				if($scope.$element) {
-					$scope.$element.remove();
-					$scope.$element = null;
-				}
-				$scope = null;
-			}
+	_contextmenu.onclose(function() {
+		$scope.contextmenuData = null;
+		$scope.contextmenuVisible = false;
 
-			$scope.$on('$destroy', function() {
-				// say goodbye to your controller here
-				// release resources, cancel request...
-				console.debug('destroying contextmenu controller');
-			})
+		if (!$scope.$$phase) {
+			$scope.$apply();
+		}
+	});
 
-			__contextmenu.onclose(function(context: any) {
-				$scope.remove();
-			});
+	$scope.open = function(data: Common.Interfaces.IContextual) {
+		_contextmenu.open(data);
+	}
 
-}]).directive('contextmenu',
-['__contextmenu',
-function(__contextmenu: any) {
+	$scope.close = function() {
+		_contextmenu.close();
+	}
+
+}]).directive('contextmenu',[
+'_contextmenu',
+function(_contextmenu: any) {
 console.debug('directive: contextmenu - register');
 	return {
 		controller: 'common.contextmenu.ctrl',
 		restrict: 'E',
 		templateUrl: 'common/contextmenu/common-contextmenu.tpl.html',
-		scope: {
-			guid: '@',
-			template: '@',
-			left: '@',
-			top: '@'
-		},
-		link: function($scope: any, $element: any, attrs: any) {
-			console.debug('directive: impakt.common.contextmenu - link');
-			
-		},
-        compile: function($element: any, $attrs: any) {
-            console.debug('directive: impakt.common.contextmenu - compile');
+		transclude: true,
+		replace: true,
+        link: function($scope: any, $element: any, attrs: any) {
+			$scope.$contextmenuElement = $element;
 
-            return {
-                pre: function($scope: any, element: any, attrs: any) {
-                    console.debug('directive: impakt.common.contextmenu - pre');
-                },
-                post: function($scope: any, element: any, attrs: any) {
-					console.debug('directive: impakt.common.contextmenu - post');
-
-					$scope.$element = $element;
-					console.log(
-						'contextmenu left: ',
-						attrs.left,
-						'contextmenu top: ',
-						attrs.top
-					);
-					__contextmenu.calculatePosition(
-						parseInt(attrs.left),
-						parseInt(attrs.top),
-						$scope.$element
-					);
-                }
-            }
+			$(document).keyup(function(e: any) {
+				if (e.which == Common.Input.Which.Esc) {
+					$scope.close();
+				}
+			});
         }
 	};
+}])
+.directive('enableContextmenu', [
+'_contextmenu',
+function(
+	_contextmenu: any
+) {
+	return {
+		restrict: 'A',
+		scope: {
+			entity: '='
+		},
+		link: function($scope: any, $element: any, attrs: any) {
+			$element.mousedown(function(e: any) {
+				if(e.which == Common.Input.Which.RightClick) {
+					_contextmenu.open(
+						new Common.Models.ContextmenuData($scope.entity, e.pageX, e.pageY)
+					);
+				}
+			});
+		}
+	}
 }]);
 
 

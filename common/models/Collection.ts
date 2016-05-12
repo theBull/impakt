@@ -2,17 +2,21 @@
 
 module Common.Models {
 
-	export class Collection<T extends Common.Models.Storable>
-	extends Common.Models.Storable
+	export class Collection<T extends Common.Interfaces.IModifiable>
+	extends Common.Models.Modifiable
 	implements Common.Interfaces.ICollection<T> {
 		
 		private _count: number;
 		private _keys: Array<string | number>;
 
-		constructor() {
+		constructor(size?: number) {
+			if (!Common.Utilities.isNullOrUndefined(size) && size < 0)
+				throw new Error('Collection constructor(): Cannot create a collection with size < 0');
+			
 			super();
+			super.setContext(this);
 			this._count = 0;
-			this._keys = [];
+			this._keys = new Array(size || 0);
 		}
 		private _getKey(data: T) {
 			if (data && data.guid) {
@@ -81,16 +85,34 @@ module Common.Models {
 				throw Error('Object does not have key ' + key + '. Use the add(key) method.');
 
 			this[key] = data;
+			
+			let self = this;
+			data.onModified(function() {
+				self.setModified(true);
+			});
+			this.setModified(true);
 		}
 		public replace(replaceKey: string | number, data: T) {
 			let key = this._getKey(data);
 			this._keys[this._keys.indexOf(replaceKey)] = key;
 			this[key] = data;
-
 			delete this[replaceKey];
+
+			let self = this;
+			data.onModified(function() {
+				self.setModified(true);
+			});
+			this.setModified(true);
 		}
 		public setAtIndex(index: number, data: T) {
+			if (index < 0 || index > this._count - 1)
+				throw new Error('Collection setAtIndex(): index is out of bounds; ' + index);
 
+			let key = this._keys[index];
+			if (Common.Utilities.isNullOrUndefined(key))
+				return null;
+
+			this.set(key, data);
 		}
 		public add(data: T) {
 			let key = this._getKey(data);
@@ -100,15 +122,23 @@ module Common.Models {
 				this[key] = data;
 				this._keys.push(key);
 				this._count++;	
+				let self = this;
+				data.onModified(function() {
+					self.setModified(true);
+				});
+				this.setModified(true);
 			}			
+
 		}
 		public addAll(...args: T[]) {
 			if (!args)
 				return;
+
 			for (let i = 0; i < args.length; i++) {
 				let item = args[i];
-				if (item)
+				if (item) {
 					this.add(item);
+				}
 			}
 		}
 		public addAtIndex(data: T, index: number) {
@@ -121,8 +151,15 @@ module Common.Models {
 				this[key] = data;
 				this._keys[index] = key;
 
-				if (!exists)
+				if (!exists) {
 					this._count++;
+
+					let self = this;
+					data.onModified(function() {
+						self.setModified(true);
+					});
+					this.setModified(true);
+				}
 			} else {
 				// element exists at different index...
 				// ignore for now...
@@ -148,6 +185,9 @@ module Common.Models {
 			let self = this;
 			collection.forEach(function(item: T, index) {
 				if(item && item.guid) {
+					if(this.clearListeners) {
+						item.clearListeners();
+					}
 					self.add(item);	
 				} else {
 					throw new Error('item is null or does not have guid');
@@ -191,7 +231,11 @@ module Common.Models {
 			this._keys.splice(this._keys.indexOf(key), 1);
 
 			this._count--;
+			this.setModified(true);
 			return obj;
+		}
+		public empty(): void {
+			this.removeAll();
 		}
 		public removeAll(): void {
 			while (this._count > 0) {
@@ -222,10 +266,10 @@ module Common.Models {
 			}
 			return arr;
 		}
-		public toJson(): any[] {
+		public toJson(): any {
 			let results = [];
 			this.forEach(function(element, index) {
-				results.push(element.toJson());
+				results.push(element ? element.toJson() : null);
 			});
 			return results;
 		}

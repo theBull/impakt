@@ -2,7 +2,7 @@
 
 module Team.Models {
 	export class TeamRecordCollection
-	extends Common.Models.ModifiableCollection<Team.Models.TeamRecord> {
+	extends Common.Models.Collection<Team.Models.TeamRecord> {
 				
 		constructor() {
 			super();

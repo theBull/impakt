@@ -7,6 +7,7 @@ module Common.Interfaces {
 
 		contextmenuTemplateUrl: string;
 		getContextmenuUrl(): string;
+		
 	}
 
 }

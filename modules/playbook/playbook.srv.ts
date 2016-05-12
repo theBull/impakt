@@ -11,6 +11,7 @@ impakt.playbook.service('_playbook',
 '__api',
 '__localStorage',
 '__notifications',
+'_associations',
 '_playbookModals',
 function(
     PLAYBOOK: any,
@@ -20,6 +21,7 @@ function(
     __api: any,
     __localStorage: any,
     __notifications: any,
+    _associations: any,
     _playbookModals: any) {
 
     var self = this;
@@ -516,71 +518,38 @@ function(
     }
 
     /**
-     * Retrieves all sets (for the given playbook?) of the current user
-     * @param {[type]} playbook ???
+     * Retrieves all assignment groups for the current user
      */
-    this.getSets = function() {
+    this.getAssignmentGroups = function() {
         var d = $q.defer();
         
-        let personnelNotification = __notifications.pending(
-            'Getting Personnel...'
-        );
         let assignmentsNotification = __notifications.pending(
             'Getting Assignments...'
         );
 
         __api.get(__api.path(
             PLAYBOOK.ENDPOINT,
-            PLAYBOOK.GET_SETS)
+            PLAYBOOK.GET_ASSIGNMENTGROUPS)
         )
             .then(function(response: any) {
                 let results = Common.Utilities.parseData(response.data.results);
-
-                let personnelResults = [];
-                let personnelCollection = new Team.Models.PersonnelCollection(Team.Enums.UnitTypes.Mixed);
-                let assignmentResults = [];
-                let assignmentCollection = new Common.Models.AssignmentCollection(Team.Enums.UnitTypes.Mixed);
+                let assignmentGroupCollection = new Common.Models.AssignmentGroupCollection(Team.Enums.UnitTypes.Mixed);
                 
-                // get personnel & assignments from `sets`
-                for (var i = 0; i < results.length; i++) {
+                for (let i = 0; i < results.length; i++) {
                     let result = results[i];
-                    if (result && result.data) {
-                        let data = result.data;
-                        switch (data.setType) {
-                            case Common.Enums.SetTypes.Personnel:
-                                data.personnel.key = result.key;
-                                personnelResults.push(data.personnel);
-                                break;
-                            case Common.Enums.SetTypes.Assignment:
-                                data.assignment.key = result.key;
-                                assignmentResults.push(data.assignment);
-                                break;
-                        }
+                    if(result && result.data && result.data.assignmentGroup) {
+                        let assignmentGroupModel = new Common.Models.AssignmentGroup(Team.Enums.UnitTypes.Other);
+                        assignmentGroupModel.key = result.key;
+                        result.data.assignmentGroup.key = result.key;
+                        assignmentGroupModel.fromJson(result.data.assignmentGroup);
+                        assignmentGroupCollection.add(assignmentGroupModel);
                     }
                 }
 
-                for (let i = 0; i < personnelResults.length; i++) {
-                    let personnel = personnelResults[i];
-                    let personnelModel = new Team.Models.Personnel(Team.Enums.UnitTypes.Other);
-                    personnelModel.fromJson(personnel);
-                    personnelCollection.add(personnelModel);
-                }
-                for (let i = 0; i < assignmentResults.length; i++) {
-                    let assignment = assignmentResults[i];
-                    let assignmentModel = new Common.Models.Assignment(Team.Enums.UnitTypes.Other);
-                    assignmentModel.fromJson(assignment);
-                    assignmentCollection.add(assignmentModel);
-                }
-
-                personnelNotification.success(personnelCollection.size(), ' Personnel groups successfully retrieved');
-                assignmentsNotification.success(assignmentCollection.size(), ' Assignment sets successfully retrieved');
+                assignmentsNotification.success(assignmentGroupCollection.size(), ' Assignment groups successfully retrieved');
                             
-                d.resolve({
-                    personnel: personnelCollection,
-                    assignments: assignmentCollection
-                });
+                d.resolve(assignmentGroupCollection);
             }, function(error: any) {
-                personnelNotification.error('Failed to retrieve Personnel groups');
                 assignmentsNotification.error('Failed to retrieve Assignment groups');
                 d.reject(error);
             });
@@ -589,53 +558,114 @@ function(
     }
 
     /**
-     * Creates a set (TO-DO)
-     * @param {[type]} set The set to create
+     * Creates a collection group
+     * @param {[type]} assignments The assignments to create
      */
-    this.createSet = function(set) {
+    this.createAssignmentGroup = function(assignmentGroup: Common.Models.AssignmentGroup) {
         var d = $q.defer();
 
         let notification = __notifications.pending(
-            'Creating set "', set.name, '"...'
+            'Creating assignment group "', assignmentGroup.name, '"...'
         );
 
         __api.post(
             __api.path(
                 PLAYBOOK.ENDPOINT, 
-                PLAYBOOK.CREATE_SET
+                PLAYBOOK.CREATE_ASSIGNMENTGROUP
             ),
             {
                 version: 1,
-                name: set.name,
+                name: assignmentGroup.name,
                 ownerRK: 1,
                 parentRK: 1,
                 data: {
                     version: 1,
-                    name: set.name,
+                    name: assignmentGroup.name,
                     ownerRK: 1,
                     parentRK: 1,
-                    set: set
+                    assignmentGroup: assignmentGroup.toJson()
                 }
             }
         )
             .then(function(response: any) {
-                let set = Common.Utilities.parseData(response.data.results);
+                let results = Common.Utilities.parseData(response.data.results);
 
+                let assignmentGroup = new Common.Models.AssignmentGroup(Team.Enums.UnitTypes.Other);
+                if(results && results.data && results.data.assignmentGroup) {
+                    let rawAssignmentGroup = results.data.assignmentGroup;
 
-                // let setModel = new Playbook.Models.Set(
-                //     set.name, set.type, set.positions
-                // );
-                // setModel.fromJson(set);
+                    assignmentGroup.key = results.key;
+                    assignmentGroup.fromJson(rawAssignmentGroup);
 
-                notification.success(
-                    'Successfully created set "', set.name, '"'
-                );
-
-                d.resolve(null);
+                    notification.success(
+                        'Successfully created assignment group "', assignmentGroup.name, '"'
+                    );
+                    d.resolve(assignmentGroup);
+                } else {
+                    notification.warning(
+                        'Created assignment group "', assignmentGroup.name, '" but an error may have occurred \
+                         in the process. You may need to refresh your browser if you experience issues.'
+                    );
+                    d.reject(null);
+                }
             }, function(error: any) {
                 notification.success(
-                    'Failed to create set "', set.name, '"'
+                    'Failed to create assignment group "', assignmentGroup.name, '"'
                 );
+                d.reject(error);
+            });
+
+        return d.promise;
+    }
+
+    /**
+     * Updates the given assignment collection (group) for the current user
+     * @param {Common.Models.AssignmentGroup} assignments The assignment collection (group) to update
+     */
+    this.updateAssignmentGroup = function(assignmentGroup: Common.Models.AssignmentGroup) {
+        var d = $q.defer();
+
+        // update assignment group to json object
+        let assignmentGroupData = assignmentGroup.toJson();
+
+        let notification = __notifications.pending('Updating assignment group "', assignmentGroup.name, '"...');
+
+        __api.post(__api.path(
+            PLAYBOOK.ENDPOINT,
+            PLAYBOOK.UPDATE_ASSIGNMENTGROUP),
+            {
+                version: 1,
+                name: assignmentGroupData.name,
+                key: assignmentGroupData.key,
+                data: {
+                    version: 1,
+                    name: assignmentGroupData.name,
+                    key: assignmentGroupData.key,
+                    assignmentGroup: assignmentGroup
+                }
+            }
+        )
+            .then(function(response: any) {
+                let results = Common.Utilities.parseData(response.data.results);
+                let assignmentGroupModel = new Common.Models.AssignmentGroup(Team.Enums.UnitTypes.Other);
+                if (results && results.data && results.data.assignmentGroup) {
+                    assignmentGroupModel.fromJson(results.data.assignmentGroup);
+
+                    // update the context
+                    impakt.context.Playbook.assignmentGroups.set(
+                        assignmentGroupModel.guid, 
+                        assignmentGroupModel
+                    );
+                }
+
+                notification.success('Successfully updated assignment group "', assignmentGroupModel.name, '"');
+
+                d.resolve(assignmentGroupModel);
+            }, function(error: any) {
+                notification.error(
+                    'Failed to update assignment group "', assignmentGroup.name, '"'
+                );
+
                 d.reject(error);
             });
 
@@ -756,11 +786,53 @@ function(
             //     console.warn('Save Play > Personnel not implemented, skipping...');
             //     callback(null, play);
             // },
-            // // save assignments
-            // function(callback) {
-            //     console.warn('Save Play > Assignments not implemented, skipping...');
-            //     callback(null, play);
-            // },
+            // save assignments
+            function(callback) {
+                if (Common.Utilities.isNullOrUndefined(play.assignmentGroup))
+                    callback(null, play);
+
+                if (options.assignmentGroup.action == Common.API.Actions.Create ||
+                    options.assignmentGroup.action == Common.API.Actions.Copy) {
+
+                    // ensure play has no key
+                    play.assignmentGroup.key = -1;
+                    self.createAssignmentGroup(play.assignmentGroup)
+                        .then(function(createdAssignmentGroup: Common.Models.AssignmentGroup) {
+
+                            if(!_associations.associationExists(
+                                play.associationKey, 
+                                createdAssignmentGroup.associationKey
+                            )) {
+                                _associations.createAssociation(
+                                    play,
+                                    createdAssignmentGroup
+                                ).then(function() {
+                                    callback(null, play);
+                                }, function(err: any) {
+                                    callback(err);
+                                });
+                            }
+                        }, function(err) {
+                            callback(err);
+                        });
+
+                } else if (options.assignmentGroup.action == Common.API.Actions.Overwrite) {
+                    if (play.assignmentGroup.modified) {
+
+                        self.updateAssignmentGroup(play.assignmentGroup)
+                            .then(function(updatedAssignmentGroup: Common.Models.AssignmentGroup) {
+                                callback(null, updatedAssignmentGroup);
+                            }, function(err) {
+                                callback(err);
+                            });
+
+                    } else {
+                        callback(null, play);
+                    }
+                } else {
+                    callback(null, play);
+                }
+            },
             // save play
             function(callback) {
            

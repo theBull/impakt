@@ -1,6 +1,6 @@
 /// <reference path='./ICollection.ts' />
 /// <reference path='./ICollectionItem.ts' />
-/// <reference path='./ILinkedListItem.ts' />
+/// <reference path='./ILinkedListNode.ts' />
 /// <reference path='./IModifiable.ts' />
 /// <reference path='./IModifiableCollection.ts' />
 /// <reference path='./IStorable.ts' />

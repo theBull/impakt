@@ -2,16 +2,13 @@
 
 module Common.Models {
     export class RouteCollection
-        extends Common.Models.ModifiableCollection<Common.Interfaces.IRoute> {
+        extends Common.Models.Collection<Common.Interfaces.IRoute> {
 
         constructor() {
             super();
         }
         public toJson(): any {
-            return {
-                guid: this.guid,
-                rotues: super.toJson()
-            };
+            return super.toJson();
         }
         public fromJson(json: any) {
             let routes = json.routes || [];

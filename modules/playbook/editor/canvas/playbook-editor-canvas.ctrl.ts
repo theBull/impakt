@@ -15,6 +15,7 @@ function(
 	$scope.unitTypes = _playbookEditorCanvas.unitTypes;
 	$scope.formations = _playbookEditorCanvas.formations;
 	$scope.personnelCollection = _playbookEditorCanvas.personnelCollection;
+	$scope.assignmentGroups = _playbookEditorCanvas.assignmentGroups;
 	$scope.plays = _playbookEditorCanvas.plays;
 	$scope.tab = _playbookEditorCanvas.getActiveTab();
 	$scope.tabs = _playbookEditorCanvas.tabs;
@@ -84,6 +85,9 @@ function(
 	$scope.applyPlay = function(play: Common.Models.Play) {
 		_playbookEditorCanvas.applyPrimaryPlay(play);
 	}
+	$scope.applyAssignmentGroup = function(assignmentGroup: Common.Models.AssignmentGroup) {
+		_playbookEditorCanvas.applyPrimaryAssignmentGroup(assignmentGroup);
+	}
 	$scope.applyUnitType = function(unitType: Team.Models.UnitType) {
 		if (unitType.unitType == $scope.canvas.playPrimary.unitType)
 			return;
@@ -112,7 +116,7 @@ function(
 		return editorType == Playbook.Enums.EditorTypes.Assignment ||
 			editorType == Playbook.Enums.EditorTypes.Play;
 	}
-	$scope.isAssignmentVisible = function(editorType: Playbook.Enums.EditorTypes) {
+	$scope.isAssignmentGroupsVisible = function(editorType: Playbook.Enums.EditorTypes) {
 		return editorType == Playbook.Enums.EditorTypes.Assignment ||
 			editorType == Playbook.Enums.EditorTypes.Play;
 	}

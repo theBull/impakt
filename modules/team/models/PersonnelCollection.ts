@@ -2,7 +2,7 @@
 
 module Team.Models {
     export class PersonnelCollection
-    extends Common.Models.ModifiableCollection<Team.Models.Personnel> {
+    extends Common.Models.Collection<Team.Models.Personnel> {
         
         public unitType: Team.Enums.UnitTypes;
         public setType: Common.Enums.SetTypes;

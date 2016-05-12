@@ -348,6 +348,22 @@ module Common.Models {
 		}
 
 		/**
+		 * Returns whether there is an existing association between the given
+		 * 'from' internalKey, 'to' the given internal key
+		 * @param  {string}  fromInternalKey [description]
+		 * @param  {string}  toInternalKey   [description]
+		 * @return {boolean}                 [description]
+		 */
+		public associationExists(fromInternalKey: string, toInternalKey: string): boolean {
+			if(this.exists(fromInternalKey)) {
+				let associations = this.getByInternalKey(fromInternalKey);
+				return associations.indexOf(toInternalKey) >= 0;
+			} else {
+				return false;
+			}
+		}
+
+		/**
 		 * Replaces guid1, if found, with guid2
 		 * @param  {string} guid1 guid to be replaced
 		 * @param  {string} guid2 guid to replace with

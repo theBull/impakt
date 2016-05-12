@@ -20,11 +20,11 @@ impakt.playbook.constant('PLAYBOOK', {
     DELETE_FORMATION: '/deleteFormation',
     UPDATE_FORMATION: '/updateFormation',
 
-    // Sets
-    CREATE_SET: '/createSet',
-    GET_SETS: '/getSets',
-    UPDATE_SET: '/updateSet',
-    DELETE_SET: '/deleteSet',
+    // Assignments
+    CREATE_ASSIGNMENTGROUP: '/createAssignmentGroup',
+    GET_ASSIGNMENTGROUPS: '/getAssignmentGroups',
+    UPDATE_ASSIGNMENTGROUP: '/updateAssignmentGroup',
+    DELETE_ASSIGNMENTGROUP: '/deleteAssignmentGroup',
 
     // Plays
     CREATE_PLAY: '/createPlay',

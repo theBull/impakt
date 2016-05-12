@@ -2,7 +2,7 @@
 
 module Common.Models {
     export class PlayerCollection
-        extends Common.Models.ModifiableCollection<Common.Interfaces.IPlayer> {
+        extends Common.Models.Collection<Common.Interfaces.IPlayer> {
         constructor() {
             super();
 

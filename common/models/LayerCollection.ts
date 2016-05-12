@@ -3,7 +3,7 @@
 module Common.Models {
 
 	export class LayerCollection
-	extends Common.Models.ModifiableCollection<Common.Models.Layer> {
+	extends Common.Models.Collection<Common.Models.Layer> {
 
 		constructor() {
 			super();

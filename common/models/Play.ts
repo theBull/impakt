@@ -7,7 +7,7 @@ module Common.Models {
 
         public field: Common.Interfaces.IField;
         public name: string;
-        public assignments: Common.Models.AssignmentCollection;
+        public assignmentGroup: Common.Models.AssignmentGroup;
         public formation: Common.Models.Formation;
         public personnel: Team.Models.Personnel;
         public unitType: Team.Enums.UnitTypes;
@@ -20,11 +20,12 @@ module Common.Models {
             this.field = null;
             this.name = 'New play';
             this.unitType = unitType;
-            this.assignments = null;
+            this.assignmentGroup = null;
             this.formation = null;
             this.personnel = null;
             this.editorType = Playbook.Enums.EditorTypes.Play;
             this.png = null;
+            this.contextmenuTemplateUrl = Common.Constants.PLAY_CONTEXTMENU_TEMPLATE_URL;
         }
         public setPlaybook(playbook: Common.Models.PlaybookModel): void {
             // TODO @theBull - handle associations
@@ -42,22 +43,22 @@ module Common.Models {
 
             }
             else {
-                this.setAssignments(null);
+                this.setAssignmentGroup(null);
                 this.setPersonnel(null);
             }
             this.formation = formation;
             this.unitType = formation.unitType;
             this.setModified(true);
         }
-        public setAssignments(assignments: Common.Models.AssignmentCollection): void {
-            if (!Common.Utilities.isNullOrUndefined(assignments)) {
-                if(assignments.unitType != this.unitType)
-                    throw new Error('Play setAssignments(): Assignments unit type does not match play unit type');
+        public setAssignmentGroup(assignmentGroup: Common.Models.AssignmentGroup): void {
+            if (!Common.Utilities.isNullOrUndefined(assignmentGroup)) {
+                if(assignmentGroup.unitType != this.unitType)
+                    throw new Error('Play setAssignmentGroup(): Assignments unit type does not match play unit type');
                 
             }
             else {
             }
-            this.assignments = assignments;
+            this.assignmentGroup = assignmentGroup;
             this.setModified(true);
         }
         public setPersonnel(personnel: Team.Models.Personnel): void {
@@ -97,8 +98,8 @@ module Common.Models {
             }
 
             // 3. if assignments do not match unit type, clear them.
-            if(this.assignments.unitType != this.unitType) {
-                this.assignments = new Common.Models.AssignmentCollection(this.unitType);
+            if(this.assignmentGroup.unitType != this.unitType) {
+                this.assignmentGroup = new Common.Models.AssignmentGroup(this.unitType);
             }
         }
         public draw(field: Common.Interfaces.IField): void {
@@ -118,8 +119,8 @@ module Common.Models {
             if(!this.personnel.positions) {
                 this.personnel.setDefault();
             }
-            if (!this.assignments) {
-                this.assignments = new Common.Models.AssignmentCollection(this.unitType);
+            if (!this.assignmentGroup) {
+                this.assignmentGroup = new Common.Models.AssignmentGroup(this.unitType);
             }
             if (!this.formation) {
                 this.formation = new Common.Models.Formation(this.unitType);
@@ -129,7 +130,7 @@ module Common.Models {
             }
             this.formation.placements.forEach(function(placement, index) {
                 var position = self.personnel.positions.getIndex(index);
-                var assignment = self.assignments.getIndex(index);
+                var assignment = self.assignmentGroup.assignments.getIndex(index);
                 self.field.addPlayer(placement, position, assignment);
             });
         }
@@ -151,7 +152,7 @@ module Common.Models {
             }, super.toJson());
         }
         public hasAssignments() {
-            return this.assignments && this.assignments.size() > 0;
+            return this.assignmentGroup && this.assignmentGroup.assignments.size() > 0;
         }
         public setDefault(field: Common.Interfaces.IField) {
             this.isFieldSet(field);

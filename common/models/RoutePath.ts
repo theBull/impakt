@@ -12,8 +12,10 @@ module Common.Models {
 			super(route.player.field, route.player);
 
 			this.route = route;
-            this.layer.graphics.originalFill = 'black';
-            this.layer.graphics.originalStrokeWidth = 2;
+			this.layer.graphics.setOriginalFill(null);
+            this.layer.graphics.setOriginalStroke('black');
+            this.layer.graphics.setOriginalStrokeWidth(3);
+            this.layer.type = Common.Enums.LayerTypes.PlayerRoutePath;
 		}
 
 		public toJson(): any {
@@ -34,7 +36,7 @@ module Common.Models {
 		}
 
 		/**
-		 * Draws a RoutePath graphic onto thhe paper;
+		 * Draws a RoutePath graphic onto the paper;
 		 * NOTE: assumes the pathString is already set to a valid SVG path string
 		 */
 		public draw(): void {

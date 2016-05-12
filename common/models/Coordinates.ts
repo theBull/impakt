@@ -47,6 +47,22 @@ module Common.Models {
 
 			//this.setModified(true);
 		}
+
+		/**
+		 * Gets the relative coordinates from this' coordinates TO the given coordinates.
+		 * Example: An element 3 grid squares to the right of 'this' would result in an x value of -3
+		 * @param {Common.Models.Coordinates}       coords  [description]
+		 * @param {Common.Interfaces.IFieldElement} element [description]
+		 */
+		public getRelativeTo(coords: Common.Models.Coordinates, element: Common.Interfaces.IFieldElement)
+			: Common.Models.RelativeCoordinates 
+		{
+			return new Common.Models.RelativeCoordinates(
+				coords.x - this.x,
+				this.y - coords.y,
+				element
+			);
+		}
 	}
 	
 }

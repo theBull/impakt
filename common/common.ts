@@ -262,6 +262,16 @@ module Common {
 			return uuid;
 		}
 
+		/**
+		 * Returns a random number between min (inclusive) and max (inclusive)
+		 * @param  {number} min [description]
+		 * @param  {number} max [description]
+		 * @return {number}     [description]
+		 */
+		public static randomInt(min: number, max: number): number {
+			return Math.floor(Math.random() * (max - min + 1)) + min;
+		}
+
 		public static randomId(): number {
 			return (Math.floor(Math.random() * (9999999999 - 1000000000)) + 999999999);
 		}

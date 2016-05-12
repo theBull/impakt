@@ -16,6 +16,8 @@ module Common.Models {
 		public layer: Common.Models.Layer;
 		public relativeElement: Common.Interfaces.IFieldElement;
 		public name: string;
+        private _originalScreenPositionX: number;
+        private _originalScreenPositionY: number;
 
 		/**
          *
@@ -39,6 +41,9 @@ module Common.Models {
 			this.grid = this.paper.grid;
 		    this.contextmenuTemplateUrl = Common.Constants.DEFAULT_CONTEXTMENU_TEMPLATE_URL;
             this.layer = new Common.Models.Layer(this.paper, Common.Enums.LayerTypes.FieldElement);
+
+            this._originalScreenPositionX = null;
+            this._originalScreenPositionY = null;
 
             let self = this;
             this.onModified(function() {
@@ -130,11 +135,43 @@ module Common.Models {
 		public dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void {
         }
 		public dragStart(x: number, y: number, e: any): void {
+            this.setOriginalDragPosition(x, y);
+
+            if (this.isOverDragThreshold(
+                this.getOriginalScreenPosition().x - x,
+                this.getOriginalScreenPosition().y - y)) {
+
+                this.layer.graphics.dragging = true;
+            }
         }
 		public dragEnd(e: any): void {
+            this.setOriginalDragPosition(null, null);
+            this.layer.graphics.dragging = false;
         }
 		public drop(): void {
             this.layer.drop();
+        }
+
+        public getOriginalScreenPosition(): {x: number, y: number} {
+            return {
+                x: this._originalScreenPositionX,
+                y: this._originalScreenPositionY
+            };
+        }
+
+        public setOriginalDragPosition(x: number, y: number) {
+            this._originalScreenPositionX = x;
+            this._originalScreenPositionY = y;
+        }
+
+        public isOriginalDragPositionSet(): boolean {
+            return !Common.Utilities.isNull(this._originalScreenPositionX) &&
+                !Common.Utilities.isNull(this._originalScreenPositionY);
+        }
+
+        public isOverDragThreshold(x, y): boolean {
+            return Math.abs(x) > Playbook.Constants.DRAG_THRESHOLD_X ||
+                Math.abs(y) > Playbook.Constants.DRAG_THRESHOLD_Y;
         }
 	}
 }

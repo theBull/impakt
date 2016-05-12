@@ -1,15 +1,16 @@
 /// <reference path='./models.ts' />
 
 module Common.Models {
-	export abstract class AssociableCollectionEntity<T extends Common.Models.AssociableEntity>
-	extends Common.Models.ModifiableCollection<T> {
+	export abstract class AssociableEntityCollection<T extends Common.Interfaces.IAssociable>
+	extends Common.Models.Collection<T> {
 
-		private _associableEntity: Common.Models.AssociableEntity;
+		protected _associableEntity: Common.Models.AssociableEntity;
 
 		constructor(
-			impaktDataType: Common.Enums.ImpaktDataTypes
+			impaktDataType: Common.Enums.ImpaktDataTypes,
+			size?: number
 		) {
-			super();
+			super(size);
 			this._associableEntity = new Common.Models.AssociableEntity(impaktDataType);
 		}
 

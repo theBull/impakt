@@ -11,6 +11,7 @@ module Playbook.Models {
 
 			this.layer.graphics.setStrokeWidth(1);
 			this.layer.graphics.refresh();
+			this.route.layer.addLayer(this.layer);
 		}
 	}
 

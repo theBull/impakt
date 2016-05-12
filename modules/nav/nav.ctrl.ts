@@ -22,7 +22,7 @@ impakt.nav.controller('nav.ctrl', [
 		$scope.searchMenuItem = __nav.searchMenuItem;
 
 		// set default view to the Home module
-		$location.path('/playbook');
+		$location.path('/home');
 		
 		$scope.navigatorNavSelection = getActiveNavItemLabel();
 

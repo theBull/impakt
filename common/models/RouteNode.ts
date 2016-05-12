@@ -3,32 +3,39 @@
 module Common.Models {
 
     export abstract class RouteNode 
-    extends Common.Models.FieldElement {
+    extends Common.Models.FieldElement
+    implements Common.Interfaces.IRouteNode,
+    Common.Interfaces.ILinkedListNode<Common.Interfaces.IRouteNode> {
 
-        public node: Common.Models.LinkedListNode<Common.Interfaces.IRouteNode>;
+        public route: Common.Interfaces.IRoute;
+        public next: Common.Interfaces.IRouteNode;
+        public prev: Common.Interfaces.IRouteNode;
         public type: Common.Enums.RouteNodeTypes;
         public routeAction: Common.Interfaces.IRouteAction;
         public routeControlPath: Common.Interfaces.IRouteControlPath;
         public player: Common.Interfaces.IPlayer;
 
         constructor(
-            context: Common.Interfaces.IPlayer, 
+            route: Common.Interfaces.IRoute, 
             relativeCoordinates: Common.Models.RelativeCoordinates, 
             type: Common.Enums.RouteNodeTypes
         ) {
-            super(context.field, context);
+            super(route.field, route.player);
 
-            this.player = context;
+            this.route = route;
+            this.player = route.player;
 
-            let coords = relativeCoordinates.getCoordinates();
-            this.layer.graphics.updateFromCoordinates(coords.x, coords.y);
-
-            this.layer.graphics.dimensions.radius = this.grid.getSize() / 4;
+            this.layer.graphics.updateFromRelative(relativeCoordinates.rx, relativeCoordinates.ry, this.player);
+            this.layer.graphics.dimensions.radius = this.grid.getSize() / 3.5;
             this.layer.graphics.dimensions.width = this.layer.graphics.dimensions.radius * 2;
             this.layer.graphics.dimensions.height = this.layer.graphics.dimensions.radius * 2;
             
             this.type = type;
-            this.node = new Common.Models.LinkedListNode(this, null);            
+
+            /**
+             * Add layer to route layers
+             * @type {[type]}
+             */
             this.layer.type = Common.Enums.LayerTypes.PlayerRouteNode;
         }
 
@@ -36,9 +43,10 @@ module Common.Models {
             this.layer.graphics.circle();
         }
         
-        public setContext(context: Common.Interfaces.IPlayer) {
-            this.player = context;
-            this.field = context.field;
+        public setContext(route: Common.Interfaces.IRoute) {
+            this.route = route;
+            this.player = route.player;
+            this.field = route.field;
             this.grid = this.context.grid;
             this.paper = this.context.paper;
             this.layer.graphics.updateLocation();

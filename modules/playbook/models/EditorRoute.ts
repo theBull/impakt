@@ -15,21 +15,23 @@ module Playbook.Models {
             this.type = Common.Enums.RouteTypes.Generic;
             this.dragInitialized = dragInitialized === true;
 
+            this.routePath = new Playbook.Models.EditorRoutePath(this);
+
             if (this.player) {
                 // add root node
                 let rootNode = new Playbook.Models.EditorRouteNode(
-                    this.player, 
+                    this, 
                     new Common.Models.RelativeCoordinates(
                         0, 0, this.player
                     ),
                     Common.Enums.RouteNodeTypes.Root 
                 );
+                rootNode.layer.graphics.disable();
                 this.addNode(rootNode, false);
             }
 
-            this.routePath = new Playbook.Models.EditorRoutePath(this);
-            this.layer.type = Common.Enums.LayerTypes.PlayerRoute;
             this.layer.addLayer(this.routePath.layer);
+            this.player.layer.addLayer(this.layer);
         }
 
         public setContext(player: Common.Interfaces.IPlayer) {
@@ -40,22 +42,15 @@ module Playbook.Models {
                 this.paper = this.player.paper;
                 let self = this;
                 this.nodes.forEach(function (
-                    node: Common.Models.LinkedListNode<Common.Models.RouteNode>, index: number) {
-                        node.data.setContext(self);
+                    node: Common.Interfaces.IRouteNode, index: number) {
+                        node.setContext(self);
                         
-                        if (!self.layer.containsLayer(node.data.layer)) {
-                            self.layer.addLayer(node.data.layer);
+                        if (!self.layer.containsLayer(node.layer)) {
+                            self.layer.addLayer(node.layer);
                         }
                 });
                 this.draw();
             }
-        }
-
-        public toJson(): any {
-            let json = {
-                dragInitialized: this.dragInitialized
-            };
-            return $.extend(json, super.toJson());
         }
 
         public fromJson(json: any): any {
@@ -72,7 +67,7 @@ module Playbook.Models {
                         this.player
                     );
                     let routeNodeModel = new Playbook.Models.EditorRouteNode(
-                        this.player, 
+                        this, 
                         relativeCoordinates, 
                         rawNode.type
                     );
@@ -99,60 +94,67 @@ module Playbook.Models {
 
             let lastNode, controlNode, endNode;
 
-            if (this.nodes.hasElements()) {
+            if (this.nodes.hasElements() && this.nodes.size() == 1) {
                 
                 // last node is our start node
                 lastNode = this.nodes.getLast();
-                lastNode.data.type = Common.Enums.RouteNodeTypes.CurveStart;
+                lastNode.type = Common.Enums.RouteNodeTypes.CurveStart;
 
                 
                 // add control node and end node. They share the
                 // same relative coordinates as the root/last node to start
                 
                 controlNode = new Playbook.Models.EditorRouteNode(
-                    this.player,
+                    this,
                     new Common.Models.RelativeCoordinates(
-                        this.nodes.root.data.relative.rx,
-                        this.nodes.root.data.relative.ry
+                        lastNode.layer.graphics.placement.relative.rx,
+                        lastNode.layer.graphics.placement.relative.ry,
+                        this.player
                     ),
                     Common.Enums.RouteNodeTypes.CurveControl
                 );
                 endNode = new Playbook.Models.EditorRouteNode(
-                    this.player,
+                    this,
                     new Common.Models.RelativeCoordinates(
-                        0,
-                        0
+                        lastNode.layer.graphics.placement.relative.rx,
+                        lastNode.layer.graphics.placement.relative.ry,
+                        this.player
                     ),
                     Common.Enums.RouteNodeTypes.CurveEnd
                 );
 
                 // false: do not render nodes
                 this.addNode(controlNode, false);
-                this.addNode(endNode, false);
+                this.addNode(endNode, true);
+            } else {
+                lastNode = this.nodes.getRoot();
+                controlNode = this.nodes.getIndex(1);
+                endNode = this.nodes.getIndex(2);
             }
 
             if (flip === true) {
-                controlNode.data.layer.graphics.updateLocation(
+                controlNode.layer.graphics.updateLocation(
                     coords.x,
-                    lastNode.data.layer.graphics.placement.coordinates.ay
+                    lastNode.layer.graphics.location.ay
                 );
             }
             else {
-                controlNode.data.layer.graphics.updateLocation(
-                    lastNode.data.layer.graphics.placement.coordinates.ax,
+
+                controlNode.layer.graphics.updateLocation(
+                    lastNode.layer.graphics.location.ax,
                     coords.y
                 );
             }
 
-            endNode.updateLocation(coords.x, coords.y);
+            endNode.layer.graphics.updateLocation(coords.x, coords.y);
 
-            this.drawCurve(controlNode.data);
+            this.drawCurve(controlNode);
         }
 
         public moveNodesByDelta(dx: number, dy: number) {
             this.nodes.forEach(function(node, index) {
-                if (node && node.data) {
-                    node.data.moveByDelta(dx, dy);
+                if (node ) {
+                    node.moveByDelta(dx, dy);
                 }
             });
         }

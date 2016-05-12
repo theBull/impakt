@@ -17,20 +17,36 @@ module Common.Models {
 		private _collection: Common.Models.Collection<T>;
 		public guid: string;
 
-		constructor() {
+		constructor(size?: number) {
 			this._modifiable = new Common.Models.Modifiable();
 			this._modifiable.setContext(this);
+
+			this.callbacks = this._modifiable.callbacks;
+			this.modified = this._modifiable.modified;
+			this.lastModified = this._modifiable.lastModified;
+			this.original = this._modifiable.original;
+			this.checksum = this._modifiable.checksum;
+			this.context = this._modifiable.context;
+			this.isContextSet = this._modifiable.isContextSet;
+			this.listening = this._modifiable.listening;
 			
-			this._collection = new Common.Models.Collection<T>();
+			this._collection = new Common.Models.Collection<T>(size);
 			this.guid = this._modifiable.guid;
 		}
 		public setModified(forciblyModify?: boolean): boolean {
-			return this._modifiable.setModified(forciblyModify === true);
+			let modified = this._modifiable.setModified(forciblyModify === true);
+			this.modified = this._modifiable.modified;
+			this.checksum = this._modifiable.checksum;
+			this.lastModified = this._modifiable.lastModified;
+			return modified;
 		}
 		public onModified(callback: Function): void {
 			let self = this;
 			this._modifiable.onModified(callback);
 			this._collection.forEach(function(modifiableItem, index) {
+				if (Common.Utilities.isNullOrUndefined(modifiableItem))
+					return;
+				
 				modifiableItem.onModified(function() {
 					// child elements modified, 
 					// propegate changes up to the parent
@@ -40,6 +56,7 @@ module Common.Models {
 		}
 		public isModified(): void {
 			this._modifiable.isModified();
+			this.lastModified = this._modifiable.lastModified;
 		}
 		/**
 		 * When commanding the collection whether to listen, 
@@ -49,6 +66,7 @@ module Common.Models {
 		public listen(startListening: boolean) {
 			
 			this._modifiable.listening = startListening;
+			this.listening = startListening;
 			
 			return this;
 		}
@@ -78,42 +96,42 @@ module Common.Models {
 		}
 		public set(key: string | number, data: T) {
 			this._collection.set(key, data);
-			this._modifiable.setModified();
 
 			let self = this;
 			data.onModified(function() {
-				self._modifiable.setModified();
+				self.setModified(true);
 			});
+			this.setModified(true);
 			return this;
 		}
 		public replace(replaceKey: string | number, data: T) {
 			this._collection.replace(replaceKey, data);
-			this._modifiable.setModified();
 
 			let self = this;
 			data.onModified(function() {
-				self._modifiable.setModified();
+				self.setModified(true);
 			});
+			this.setModified(true);
 			return this;
 		}
 		public setAtIndex(index: number, data: T) {
 			this._collection.setAtIndex(index, data);
-			this._modifiable.setModified();
 
 			let self = this;
 			data.onModified(function() {
-				self._modifiable.setModified();
+				self.setModified(true);
 			});
+			this.setModified(true);
 			return this;
 		}
 		public add(data: T) {
 			this._collection.add(data);
-			this._modifiable.setModified();
 
 			let self = this;
 			data.onModified(function() {
-				self._modifiable.setModified();
+				self.setModified(true);
 			});
+			this.setModified(true);
 			return this;
 		}
 		public addAll(...args: T[]) {
@@ -121,39 +139,40 @@ module Common.Models {
 				return this;
 
 			this._collection.addAll(...args);
-			this._modifiable.setModified();
 
 			let self = this;
 			for (let i = 0; i < args.length; i++) {
 				let modifiable = args[i];
 				modifiable.onModified(function() {
-					self._modifiable.setModified();
+					self.setModified(true);
 				});
 			}
+
+			this.setModified(true);
 			return this;
 		}
 		public addAtIndex(data: T, index: number) {
 			this._collection.addAtIndex(data, index);
-			this._modifiable.setModified();
 
 			let self = this;
 			data.onModified(function() {
-				self._modifiable.setModified();
+				self.setModified(true);
 			});
+			this.setModified(true);
 			return this;
 		}
 		public only(data: T) {
 			this._collection.only(data);
-			this._modifiable.setModified(true);
+
 			let self = this;
 			data.onModified(function() {
-				self._modifiable.setModified();
+				self.setModified(true);
 			});
+			this.setModified(true);
 			return this;
 		}
 		public append(collection: Common.Models.Collection<T>, clearListeners?: boolean) {
 			this._collection.append(collection);
-			this._modifiable.setModified();
 
 			let self = this;
 			collection.forEach(function(modifiable: Common.Models.Modifiable, index: number) {
@@ -164,9 +183,10 @@ module Common.Models {
 					modifiable.clearListeners();
 
 				modifiable.onModified(function() {
-					self._modifiable.setModified();
+					self.setModified(true);
 				});
 			});
+			this.setModified(true);
 			return this;
 		}
 		public forEach(iterator: Function): void {
@@ -183,12 +203,13 @@ module Common.Models {
 		}
 		public remove(key: string | number): T {
 			let results = this._collection.remove(key); 
-			this._modifiable.setModified();
+			this.setModified(true);
+
 			return results;
 		}
 		public removeAll(): void {
-			this._collection.removeAll(); 
-			this._modifiable.setModified();
+			this._collection.removeAll();
+			this.setModified(true);
 		}
 		public empty(): void {
 			this.removeAll();
@@ -199,8 +220,8 @@ module Common.Models {
 		 * emptied.
 		 */
 		public removeEach(iterator): void {
-			this._collection.removeEach(iterator); 
-			this._modifiable.setModified();
+			this._collection.removeEach(iterator);
+			this.setModified(true);
 		}
 		public contains(key: string | number): boolean {
 			return this._collection.contains(key);
@@ -224,7 +245,7 @@ module Common.Models {
 			if (!json)
 				return;
 			
-			this._collection.fromJson(json);
+			this._collection.fromJson(json._collection);
 		}
 
 		public copy(

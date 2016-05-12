@@ -9,7 +9,7 @@ module Common.Models {
         public playPrimary: Common.Models.PlayPrimary;
         public playOpponent: Common.Models.PlayOpponent;
         public players: Common.Models.PlayerCollection;
-        public selected: Common.Models.ModifiableCollection<Common.Interfaces.IFieldElement>;
+        public selected: Common.Models.Collection<Common.Interfaces.IFieldElement>;
         public layers: Common.Models.LayerCollection;
         public cursorCoordinates: Common.Models.Coordinates;
 
@@ -38,7 +38,7 @@ module Common.Models {
             this.playPrimary = playPrimary;
             this.playOpponent = playOpponent;
             this.players = new Common.Models.PlayerCollection();
-            this.selected = new Common.Models.ModifiableCollection<Common.Interfaces.IFieldElement>();
+            this.selected = new Common.Models.Collection<Common.Interfaces.IFieldElement>();
             this.layers = new Common.Models.LayerCollection();
             this.cursorCoordinates = new Common.Models.Coordinates(0, 0);
 
@@ -139,6 +139,9 @@ module Common.Models {
         }
 
         public applyPrimaryFormation(formation: Common.Models.Formation): void {
+            if (Common.Utilities.isNullOrUndefined(formation))
+                return;
+
             //console.log(formation);
             // the order of placements within the formation get applied straight across
             // to the order of personnel and positions.
@@ -163,10 +166,16 @@ module Common.Models {
             // TODO @theBull - implement set formation for opponent formation
         }
 
-        public applyPrimaryAssignments(assignments: Common.Models.AssignmentCollection): void {
+        public applyPrimaryAssignmentGroup(assignmentGroup: Common.Models.AssignmentGroup): void {
+            if (Common.Utilities.isNullOrUndefined(assignmentGroup))
+                return;
+
             let self = this;
-            if (assignments.hasElements()) {
-                assignments.forEach(function(assignment, index) {
+            if (assignmentGroup.assignments.hasElements()) {
+                assignmentGroup.assignments.forEach(function(assignment, index) {
+                    if (Common.Utilities.isNullOrUndefined(assignment))
+                        return;
+                    
                     let player = self.getPlayerWithPositionIndex(assignment.positionIndex);
                     if (player) {
                         assignment.setContext(player);
@@ -176,10 +185,14 @@ module Common.Models {
                     }
                 });
                 // TODO @theBull - implement apply opponent assignments
-                this.playPrimary.setAssignments(assignments);
+                this.playPrimary.setAssignmentGroup(assignmentGroup);
             }
         }
         public applyPrimaryPersonnel(personnel: Team.Models.Personnel): void {
+            if (Common.Utilities.isNullOrUndefined(personnel))
+                return;
+
+            
             let self = this;
             if (personnel && personnel.hasPositions()) {
                 this.players.forEach(function(player, index) {
@@ -205,6 +218,9 @@ module Common.Models {
         }
 
         public applyPrimaryUnitType(unitType: Team.Enums.UnitTypes): void {
+            if (Common.Utilities.isNullOrUndefined(unitType))
+                return;
+
             if (Common.Utilities.isNullOrUndefined(this.playPrimary))
                 return;
 

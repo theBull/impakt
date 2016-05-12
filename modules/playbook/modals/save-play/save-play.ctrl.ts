@@ -17,12 +17,12 @@ function(
 	$scope.copyPlay = false;
 	$scope.copyFormation = false;
 	$scope.copyPersonnel = false;
-	$scope.copyAssignments = false;
+	$scope.copyAssignmentGroup = false;
 
 	// retain the orginal keys for toggling copy state
 	var originalPlayKey = $scope.play.key;
 	var originalFormationKey = $scope.play.formation.key;
-	var originalAssignmentsKey = $scope.play.assignments.key;
+	var originalAssignmentGroupKey = $scope.play.assignmentGroup.key;
 
 	$scope.copyPlayChange = function() {
 		$scope.play.key = 
@@ -34,10 +34,10 @@ function(
 			$scope.copyFormation ? -1 :
 				originalFormationKey;
 	}	
-	$scope.copyAssignmentsChange = function() {
-		$scope.play.assignments.key =
-			$scope.copyAssignments ? -1 :
-				originalAssignmentsKey;
+	$scope.copyAssignmentGroupChange = function() {
+		$scope.play.assignmentGroup.key =
+			$scope.copyAssignmentGroup ? -1 :
+				originalAssignmentGroupKey;
 	}
 
 
@@ -56,16 +56,21 @@ function(
 			formation: {
 				action: play.formation.modified ? Common.API.Actions.Overwrite : Common.API.Actions.Nothing
 			},
-			// TO-DO: implement assignments
-			assignments: {
-				action: Common.API.Actions.Nothing
+			assignmentGroup: {
+				action: play.assignmentGroup.key == -1 ? 
+					Common.API.Actions.Create :
+					(
+						play.assignmentGroup.modified ? 
+						Common.API.Actions.Overwrite : 
+						Common.API.Actions.Nothing
+					)
 			}
 		}
 
-		// If any of the following entities (play, formation, assignments)
+		// If any of the following entities (play, formation, assignmentGroup)
 		// exist on the play and their corresponding copy boolean
-		// (copyPlay, copyFormation, copyPersonnel, copyAssignments) is set to true,
-		// a new corresponding entity (Play, Formation, Assigments)
+		// (copyPlay, copyFormation, copyPersonnel, copyAssignmentGroup) is set to true,
+		// a new corresponding entity (Play, Formation, AssigmentGroup)
 		// will be created and the new entity will have its values copied 
 		// from the existing entity.
 		// this new copied entity gets sent to server-side for creation.
@@ -81,8 +86,11 @@ function(
 			options.formation.action = Common.API.Actions.Copy;
 			play.formation = $scope.formation;
 		}
-		if ($scope.play.assignments && $scope.copyAssignments) {
-			console.error('save play assignments not implemented');
+		if ($scope.play.assignmentGroup && $scope.copyAssignmentGroup) {
+			originalAssignmentGroupKey = $scope.play.assignmentGroup.key;
+			$scope.play.assignmentGroup.key = -1;
+			options.assignmentGroup.action = Common.API.Actions.Copy;
+			play.assignmentGroup = $scope.assignmentGroup;	
 		}
 		
 		_playbook.savePlay(play, options)

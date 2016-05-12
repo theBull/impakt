@@ -2,7 +2,7 @@
 
 module League.Models {
 	export class LeagueModelCollection
-	extends Common.Models.ModifiableCollection<League.Models.LeagueModel> {
+	extends Common.Models.Collection<League.Models.LeagueModel> {
 
 		constructor() {
 			super();

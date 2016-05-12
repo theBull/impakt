@@ -116,7 +116,9 @@ module Common.Models {
                 hoverable: this.hoverable,
                 dragging: this.dragging,
                 draggable: this.draggable,
-                dragged: this.dragged
+                dragged: this.dragged,
+                placement: this.placement.toJson(),
+                location: this.location.toJson()
             }
         }
 
@@ -202,6 +204,11 @@ module Common.Models {
             this.originalStroke = stroke;
             return this;
         } 
+        public setSelectedStroke(stroke: string): Common.Models.Graphics {
+            this.setStroke(stroke);
+            this.selectedStroke = stroke;
+            return this;
+        }
         public getStrokeWidth(): number {
             return this.strokeWidth;
         }
@@ -212,6 +219,13 @@ module Common.Models {
         public setOriginalStrokeWidth(width: number): Common.Models.Graphics {
             this.setStrokeWidth(width);
             this.originalStrokeWidth = width;
+            return this;
+        }
+        public setHoverOpacity(opacity: number): Common.Models.Graphics {
+            if (opacity < 0 || opacity > 1)
+                throw new Error('Graphics setHoverOpacity(): opacity must be between 0 and 1, inclusive');
+
+            this.hoverOpacity = opacity;
             return this;
         }
 
@@ -266,6 +280,13 @@ module Common.Models {
         /**
          * Generic selection method
          */
+        public toggleSelect(): void {
+            if (!super.isSelectable())
+                return;
+
+            this.selected ? this.deselect() : this.select();
+        }
+        
         public select(): void {
             super.select();
 
@@ -445,6 +466,19 @@ module Common.Models {
             this.refresh();
         }
 
+        public updateFromRelative(rx: number, ry: number, relativeElement?: Common.Interfaces.IFieldElement) {
+            this.placement.updateFromRelative(rx, ry, relativeElement);
+            let absCoords = this.grid.getAbsoluteFromCoordinates(
+                this.placement.coordinates.x, 
+                this.placement.coordinates.y
+            );
+            this.location.updateFromAbsolute(
+                absCoords.x + this.dimensions.offset.x,
+                absCoords.y + this.dimensions.offset.y
+            );
+            this.refresh();
+        }
+
         /**
          *
          * DRAWING METHODS
@@ -453,6 +487,7 @@ module Common.Models {
         public path(path: string): Common.Models.Graphics {
             this.remove();
             this.raphael = this.paper.drawing.path(path);
+            this.refresh();
             return this;
         }
 
@@ -537,6 +572,9 @@ module Common.Models {
         }
 
         public refresh(): void {
+            if (!this.hasRaphael())
+                return;
+
             let attrs = {
                 x: this.location.ax,
                 y: this.location.ay,
@@ -549,12 +587,31 @@ module Common.Models {
 
             if (this.getType() != 'text') {
                 attrs['fill'] = this.fill;
+                attrs['fill-opacity'] = !Common.Utilities.isNullOrUndefined(this.fill) ? 1 : 0;
                 attrs['opacity'] = this.opacity;
                 attrs['stroke'] = this.stroke;
                 attrs['stroke-width'] = this.strokeWidth;
             }
 
             this.attr(attrs);
+        }
+
+        public toFront(): Common.Models.Graphics {
+            if (!this.hasRaphael())
+                return this;
+
+            this.raphael.toFront();
+
+            return this;
+        }
+
+        public toBack(): Common.Models.Graphics {
+            if (!this.hasRaphael())
+                return this;
+
+            this.raphael.toBack();
+
+            return this;
         }
 
         public attr(attrs: any): Common.Models.Graphics {
@@ -583,14 +640,6 @@ module Common.Models {
                 return;
 
             this.raphael.transform(['t', ax, ', ', ay, 'r', this.dimensions.rotation].join(''));
-        }
-
-        public toFront(): void {
-            this.raphael.toFront();
-        }
-
-        public toBack(): void {
-            this.raphael.toBack();
         }
 
         public rotate(degrees: number): void {
@@ -799,9 +848,6 @@ module Common.Models {
         }
 
         public drop(): void {
-            if (!this.hasRaphael())
-                return;
-
             this.dragged = false;
             this.dragging = false;
 

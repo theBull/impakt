@@ -2,7 +2,8 @@
 
 module Navigation.Models {
 	export class NavigationItem
-	extends Common.Models.Storable {
+	extends Common.Models.Modifiable {
+
 		public name: string; // the name of the navigation item - used as a handle
 		public label: string; // the text display label
 		public glyphicon: string; // just the suffix ('glyphicon glyphicon-xxxx', you provide xxxx)
@@ -19,6 +20,8 @@ module Navigation.Models {
 			activationCallback: Function
 		) {
 			super();
+			super.setContext(this);
+			
 			this.name = name;
 			this.label = label;
 			this.glyphicon = glyphicon;

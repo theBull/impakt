@@ -1,7 +1,7 @@
 /// <reference path='./interfaces.ts' />
 
 module Common.Interfaces {
-	export interface ICollection<T extends Common.Interfaces.IStorable> {
+	export interface ICollection<T extends Common.Interfaces.IModifiable> {
 		size(): number;
 		isEmpty(): boolean;
 		hasElements(): boolean;
@@ -19,11 +19,12 @@ module Common.Interfaces {
 		addAll(...args: T[]): void;
 		addAtIndex(data: T, index: number): void;
 		only(data: T): void;
-		append(collection: Common.Models.Collection<T>): void;
+		append(collection: Common.Interfaces.ICollection<T>): void;
 		forEach(iterator: Function): void;
 		hasElementWhich(predicate: Function): boolean;
 		filter(predicate: Function): T[];
 		filterFirst(predicate: Function): T;
+		empty(): void;
 		removeAll(): void;
 		removeEach(iterator): void;
 		contains(key: string | number): boolean;

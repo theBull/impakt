@@ -4,7 +4,8 @@ module Common.Models {
 
 	export abstract class Actionable
 	extends Common.Models.Modifiable
-	implements Common.Interfaces.IActionable {
+	implements Common.Interfaces.IActionable,
+    Common.Interfaces.IContextual {
 
 		public impaktDataType: Common.Enums.ImpaktDataTypes;
 		public disabled: boolean;
@@ -15,6 +16,7 @@ module Common.Models {
         public dragging: boolean;
         public draggable: boolean;
         public dragged: boolean;
+        public contextmenuTemplateUrl: string;
 
 		constructor(impaktDataType: Common.Enums.ImpaktDataTypes) {
 			super();
@@ -45,8 +47,11 @@ module Common.Models {
 		/**
          * Generic selection toggle
          */
+        public isSelectable(): boolean {
+            return !this.disabled && this.selectable;
+        }
         public toggleSelect(): void {
-            if (this.disabled || !this.selectable)
+            if (!this.isSelectable())
                 return;
 
             if (this.selected)
@@ -58,7 +63,7 @@ module Common.Models {
          * Generic selection method
          */
         public select(): void {
-            if (this.disabled || !this.selectable)
+            if (!this.isSelectable())
                 return;
 
             this.selected = true;
@@ -67,7 +72,7 @@ module Common.Models {
          * Generic deselection method
          */
         public deselect(): void {
-            if (this.disabled || !this.selectable)
+            if (!this.isSelectable())
                 return;
 
             this.selected = false;
@@ -93,6 +98,10 @@ module Common.Models {
 		public contextmenu(e: any, context: any): void {
 
 		}
+
+        public getContextmenuUrl(): string {
+            return this.contextmenuTemplateUrl;
+        }
 
 	}
 

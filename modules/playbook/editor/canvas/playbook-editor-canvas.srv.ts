@@ -7,13 +7,15 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 	'$rootScope', 
 	'$timeout', 
 	'_base', 
+	'_contextmenu',
 	'_playPreview',
 	'_playbook',
 	'_playbookEditor',
 	function(
 		$rootScope: any, 
 		$timeout: any, 
-		_base: any, 
+		_base: any,
+		_contextmenu: any, 
 		_playPreview: any,
 		_playbook: any,
 		_playbookEditor: any
@@ -27,7 +29,7 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 		this.playbooks = impakt.context.Playbook.playbooks;
 		this.formations = impakt.context.Playbook.formations;
 		this.personnelCollection = impakt.context.Team.personnel;
-		this.assignments = impakt.context.Playbook.assignments;
+		this.assignmentGroups = impakt.context.Playbook.assignmentGroups;
 		this.plays = impakt.context.Playbook.plays;
 		this.readyCallbacks = [function() { console.log('canvas ready'); }]
 		this.canvas = _playbookEditor.canvas;
@@ -108,24 +110,11 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 
 			// 	});
 
+			// Listen for routenode contextmenu
 			canvas.listener.listen(
 				Playbook.Enums.Actions.RouteNodeContextmenu, 
-				function(node: Common.Models.RouteNode) {
-
-					console.log('action commanded: route node contextmenu');
-
-					var absCoords = getAbsolutePosition(node);
-					
-					$rootScope.$broadcast(
-						'playbook-editor-canvas.routeNodeContextmenu', 
-						{ 
-							message: 'contextmenu opened',
-							node: node,
-							left: absCoords.left,
-							top: absCoords.top
-						}
-					);
-
+				function(data: Common.Models.ContextmenuData) {
+					_contextmenu.open(data);
 				});
 
 			canvas.initialize($element);
@@ -151,6 +140,16 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 		this.applyPrimaryPersonnel = function(personnel: Team.Models.Personnel) {
 			if(canApplyData()) {
 				_playbookEditor.canvas.paper.field.applyPrimaryPersonnel(personnel);
+			}
+		}
+
+		/**
+		 * Applies the given assignmentGroup data to the field
+		 * @param {Common.Models.AssignmentGroup} assignmentGroup The AssignmentGroup to apply
+		 */
+		this.applyPrimaryAssignmentGroup = function(assignmentGroup: Common.Models.AssignmentGroup) {
+			if(canApplyData()) {
+				_playbookEditor.canvas.paper.field.applyPrimaryAssignmentGroup(assignmentGroup);
 			}
 		}
 

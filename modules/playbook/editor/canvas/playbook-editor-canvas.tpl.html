@@ -24,6 +24,10 @@
 			gray-bg-3
 			height3 font-white overflowVisible {{editorModeClass}}'>
 
+			<div class='pad'>
+				<strong>(Primary: &quot;{{canvas.playPrimary.name}}&quot;)</strong>
+			</div>
+
 			<!-- Unit type -->
 			<div class='pointer positionRelative'
 				ng-init='unitTypeDropdownVisible = false'>
@@ -123,10 +127,10 @@
 
 			<!-- Personnel dropdown -->
 			<div class='pointer positionRelative'
-				ng-init='setDropdownVisible = false'
+				ng-init='personnelDropdownVisible = false'
 				ng-show='isPersonnelVisible(canvas.playPrimary.editorType)'>
 				<div class='row height3 pad'
-					ng-click='setDropdownVisible = !setDropdownVisible'>
+					ng-click='personnelDropdownVisible = !personnelDropdownVisible'>
 					<div class='marginRight1'>
 						Personnel:  <strong>{{canvas.playPrimary.personnel.name}}</strong>
 					</div>
@@ -134,7 +138,7 @@
 					</div>
 				</div>
 				<div class='col minWidth20 dropdown heightAuto'
-					ng-show='setDropdownVisible'>
+					ng-show='personnelDropdownVisible'>
 					<!-- list of personnel -->
 					<ul>
 						<li ng-repeat='personnel in personnelCollection.toArray() | filter:{unitType: canvas.playPrimary.unitType}'
@@ -148,27 +152,27 @@
 
 			<!-- Assignments dropdown -->
 			<div class='pointer positionRelative'
-				ng-init='playDropdownVisible = false'
-				ng-show='isAssignmentsVisible(canvas.playPrimary.editorType)'>
+				ng-init='assignmentGroupsDropdownVisible = false'
+				ng-show='isAssignmentGroupsVisible(canvas.playPrimary.editorType)'>
 				<div class='row height3 pad'
-					ng-click='playDropdownVisible = !playDropdownVisible'>
+					ng-click='assignmentGroupsDropdownVisible = !assignmentGroupsDropdownVisible'>
 					<div class='marginRight1'>
 						Assignments:  
 						<strong>
-							{{canvas.playPrimary.assignments.name}}
+							{{canvas.playPrimary.assignmentGroup.name}}
 						</strong>
 					</div>
 					<div class='glyphicon glyphicon-chevron-down'>
 					</div>
 				</div>
 				<div class='col minWidth20 dropdown heightAuto'
-					ng-show='playDropdownVisible'>
+					ng-show='assignmentGroupsDropdownVisible'>
 					<!-- list of plays -->
 					<ul>
-						<li ng-repeat='(key, assignment) in assignments.getAll()'
+						<li ng-repeat='assignmentGroup in assignmentGroups.toArray() | filter:{unitType: canvas.playPrimary.unitType}'
 							class='pad pointer gray-bg-4-hover'
-							ng-click='applyAssignment(assignment)'>
-							{{assignment.name}}
+							ng-click='applyAssignmentGroup(assignmentGroup)'>
+							{{assignmentGroup.name}}
 						</li>
 					</ul>
 				</div>
@@ -191,7 +195,6 @@
 					key='{{key}}'
 					scrollable
 					class='col playbook-editor-canvas'>
-					<!-- oncontextmenu='return false;'> -->
 				</playbook-editor-canvas>
 
 				<!-- canvas info -->

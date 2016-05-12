@@ -88,24 +88,24 @@
                     <div class='pad shrink minWidth10'>
                         <strong>Formation:</strong>
                     </div>
-                    <div class='pad'>
-                        {{play.formation.name}}
+                    <div>
+                        <input type='text' ng-model='play.formation.name' disabled />
                     </div>
                 </div>
                 <div class='row minHeight3'>
                     <div class='pad shrink minWidth10'>
-                        <strong>Assignments:</strong>
+                        <strong>Assignments ({{play.assignmentGroup.assignments.size()}}):</strong>
                     </div>
-                    <div class='pad'>
-                        {{play.assignments.name}}
+                    <div>
+                        <input type='text' ng-model='play.assignmentGroup.name' />
                     </div>
                 </div>
                 <div class='row minHeight3'>
                     <div class='pad shrink minWidth10'>
                         <strong>Personnel:</strong>
                     </div>
-                    <div class='pad'>
-                        {{play.personnel.name}}
+                    <div>
+                        <input type='text' ng-model='play.personnel.name' disabled />
                     </div>
                 </div>
             </div>

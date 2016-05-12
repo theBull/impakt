@@ -140,9 +140,9 @@ module Common.Models {
 		}
 
 		public copy(
-			newElement: Common.Models.Modifiable, 
-			context: Common.Models.Modifiable
-		): Common.Models.Modifiable {
+			newElement: Common.Interfaces.IModifiable, 
+			context: Common.Interfaces.IModifiable
+		): Common.Interfaces.IModifiable {
 			this.checkContextSet();
 			
 			let copiedJson = context.toJson();

@@ -2,7 +2,7 @@
 
 module User.Models {
 	export class Organization
-	extends Common.Models.Storable {
+	extends Common.Models.Modifiable {
 
 		public accountKey: number; 
 		public address1: string;
@@ -23,6 +23,7 @@ module User.Models {
 		
 		constructor() {
 			super();
+			super.setContext(this);
 
 			this.accountKey = 0;
 			this.address1 = null;

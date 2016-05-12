@@ -8,6 +8,9 @@ module Playbook.Models {
 
 		constructor(route: Common.Interfaces.IRoute) {
 			super(route);
+
+            this.layer.graphics.setOriginalStroke('#001199');
+            this.route.layer.addLayer(this.layer);
 		}
 	}
 

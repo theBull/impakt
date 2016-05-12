@@ -2,7 +2,7 @@
 
 module Common.Models {
 	export class PlacementCollection 
-		extends Common.Models.ModifiableCollection<Common.Models.Placement> {
+		extends Common.Models.Collection<Common.Models.Placement> {
 
 		constructor() {
 			super();

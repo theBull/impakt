@@ -1,18 +1,18 @@
 <div class='col scrollY positionRelative'>
 
 	<div class='pad'>
-		<div ng-show='editor.plays.hasElements()'>
+		<div ng-show='editor.plays.hasElements()' class='marginBottom1 light-border-bottom'>
 			<h4>Open in editor</h4>
 			
 			<span ng-repeat='play in editor.plays.toArray() | orderBy: "editorType"'
-				class='gray-bg-3-hover pad marginRight1 pointer {{getEditorTypeClass(play.editorType)}}'
+				class='gray-bg-3-hover pad marginRight1 marginBottom1 pointer {{getEditorTypeClass(play.editorType)}}'
 				ng-click='openEditor()'>
 				{{play.name}}
 			</span>
 			
 		</div>
 
-		<div>
+		<div class='marginBottom1 light-border-bottom'>
 			<h4>Playbooks ({{playbooks.size()}})</h4>
 			<div class='pad green-bg-hover pointer marginBottom1 width6'
 				ng-click='createPlaybook()'>
@@ -56,7 +56,7 @@
 		</div>
 
 		<!-- PLAYS -->
-		<div>
+		<div class='marginBottom1 light-border-bottom'>
 			<h4>Plays ({{plays.size()}})</h4>
 			<div ng-show='formations.hasElements()'>
 				<div class='pad green-bg-hover pointer marginBottom1 width6'
@@ -92,7 +92,7 @@
 		</div>
 
 		<!-- SCENARIOS -->
-		<div>
+		<div class='marginBottom1 light-border-bottom'>
 			<h4>Scenarios ({{scenarios.size()}})</h4>
 			<div ng-show='plays.hasElements()'>
 				<div class='pad green-bg-hover pointer marginBottom1 width6'
@@ -162,7 +162,7 @@
 		</div>
 
 		<!-- FORMATIONS -->
-		<div>
+		<div class='marginBottom1 light-border-bottom'>
 			<h4>Formations ({{formations.size()}})</h4>
 			
 			<div class='pad green-bg-hover pointer marginBottom1 width6'
@@ -192,6 +192,20 @@
 					ng-repeat='formation in formations.toArray()'
 					formation='formation'>
 				</formation-item>
+
+			</div>
+		</div>
+
+		<!-- ASSIGNMENTS -->
+		<div class='marginBottom1 minHeight5'>
+			<h4>Assignments ({{assignmentGroups.size()}})</h4>
+
+			<div class='grid'>
+				
+				<assignment-group-item
+					ng-repeat='assignmentGroup in assignmentGroups.toArray()'
+					assignmentgroup='assignmentGroup'>
+				</assignment-group-item>
 
 			</div>
 		</div>

@@ -1,6 +1,7 @@
 /// <reference path='../js/impakt.ts' />
 
 impakt.modules = angular.module('impakt.modules', [
+	'impakt.main',
 	'impakt.home',
 	'impakt.league',
 	'impakt.season',

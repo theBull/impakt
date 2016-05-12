@@ -64,6 +64,26 @@ module Common.Models {
 				this.layers.removeAll();
 		}
 
+		public toFront(): void {
+			if(this.hasLayers()) {
+				this.layers.forEach(function(layer: Common.Models.Layer, index: number) {
+					if(layer && layer.graphics) {
+						layer.graphics.toFront();
+					}
+				});
+			}
+		}
+
+		public toBack(): void {
+			if (this.hasLayers()) {
+				this.layers.forEach(function(layer: Common.Models.Layer, index: number) {
+					if (layer && layer.graphics) {
+						layer.graphics.toBack();
+					}
+				});
+			}
+		}
+
 		public show(): void {
 			this.visible = true;
 			this.graphics.show();
@@ -103,16 +123,20 @@ module Common.Models {
 
 		public moveByDelta(dx: number, dy: number) {
 			this.graphics.moveByDelta(dx, dy);
-			this.layers.forEach(function(layer: Common.Models.Layer, index: number) {
-				layer.graphics.moveByDelta(dx, dy);
-			});
+			if(this.hasLayers()) {
+				this.layers.forEach(function(layer: Common.Models.Layer, index: number) {
+					layer.moveByDelta(dx, dy);
+				});
+			}
 		}
 
 		public drop(): void {
 			this.graphics.drop();
-			this.layers.forEach(function(layer: Common.Models.Layer, index: number) {
-				layer.graphics.drop();
-			});
+			if(this.hasLayers()) {
+				this.layers.forEach(function(layer: Common.Models.Layer, index: number) {
+					layer.drop();
+				});
+			}
 		}
 
 		public hasLayers(): boolean {

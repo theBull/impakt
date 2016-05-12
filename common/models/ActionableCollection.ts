@@ -3,7 +3,7 @@
 module Common.Models {
 
 	export class ActionableCollection<T extends Common.Models.Actionable>
-	extends Common.Models.ModifiableCollection<T>
+	extends Common.Models.Collection<T>
 	implements Common.Interfaces.IActionableCollection {
 
 		constructor() {

@@ -48,12 +48,15 @@
 
 
 </head>
-<body>
+<body oncontextmenu='return false;' ng-controller='main.ctrl'>
 
 	<app-loading></app-loading>
 
+	<!-- application contextmenu -->
+	<contextmenu></contextmenu>
+
 	<!-- main -->
-	<div class='blueprint col'>
+	<div class='blueprint col' ng-show='appVisible'>
 		
 		<!-- control-bar module -->
 		<!-- <div id='impakt-top-nav' class='black-bg row height5'>
@@ -64,7 +67,7 @@
 		</div> -->
 	
 		<div class='row'>
-			<div id='impakt-navigator' class='col light-border-right' ng-controller='nav.ctrl'
+			<div id='impakt-navigator' class='col' ng-controller='nav.ctrl'
 				ng-class='{width6: isMenuCollapsed, width38: !isMenuCollapsed}'
 				ng-include='"modules/nav/nav.tpl.html"'></div>
 

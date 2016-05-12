@@ -18,6 +18,7 @@ function(
 	$scope.playbooks;
 	$scope.formations;
 	$scope.plays;
+	$scope.assignmentGroups;
 	
 	_details.selectedPlay = null;
 
@@ -26,6 +27,7 @@ function(
 		$scope.playbooks = impakt.context.Playbook.playbooks;
 		$scope.formations = impakt.context.Playbook.formations;
 		$scope.plays = impakt.context.Playbook.plays;
+		$scope.assignmentGroups = impakt.context.Playbook.assignmentGroups;
 	});
 
 
@@ -66,6 +68,14 @@ function(
 	}
 	$scope.deleteFormation = function(formation: Common.Models.Formation) {
 		_playbookModals.deleteFormation(formation);
+	}
+
+	$scope.createAssignmentGroup = function() {
+		// create default assignment group?
+		//_playbookModals.createAssignmentGroup();
+	}
+	$scope.deleteAssignmentGroup = function(assignmentGroup: Common.Models.AssignmentGroup) {
+		_playbookModals.deleteAssignmentGroup(assignmentGroup);
 	}
 
 	/**

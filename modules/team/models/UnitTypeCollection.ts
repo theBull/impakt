@@ -2,7 +2,7 @@
 
 module Team.Models {
     export class UnitTypeCollection
-        extends Common.Models.ModifiableCollection<Team.Models.UnitType> {
+        extends Common.Models.Collection<Team.Models.UnitType> {
 
         constructor() {
             super();

@@ -7,21 +7,28 @@ module Playbook.Models {
     implements Common.Interfaces.IRouteNode {
 
         constructor(
-            context: Common.Interfaces.IPlayer, 
+            route: Common.Interfaces.IRoute, 
             relativeCoordinates: Common.Models.RelativeCoordinates, 
             type: Common.Enums.RouteNodeTypes
         ) {
-            super(context, relativeCoordinates, type); 
+            super(route, relativeCoordinates, type); 
             this.layer.graphics.enable();
+            this.layer.graphics.setOriginalFill('#222222');
+            this.layer.graphics.setHoverOpacity(1);
+            this.layer.graphics.setOriginalOpacity(0.05);
+
             this.contextmenuTemplateUrl = Common.Constants.EDITOR_ROUTENODE_CONTEXTMENU_TEMPLATE_URL;
            
             // Related route node graphics
-            this.routeAction = new Playbook.Models.EditorRouteAction(this, Common.Enums.RouteNodeActions.None);           
+            this.routeAction = new Playbook.Models.EditorRouteAction(
+                this, Common.Enums.RouteNodeActions.None
+            );           
             this.routeControlPath = new Playbook.Models.EditorRouteControlPath(this);
 
             // Add layers
             this.layer.addLayer(this.routeAction.layer);
-            this.layer.addLayer(this.routeControlPath.layer);            
+            this.layer.addLayer(this.routeControlPath.layer);
+            this.route.layer.addLayer(this.layer);           
         }
 
         public draw() {
@@ -57,14 +64,23 @@ module Playbook.Models {
             }
         }
 
+        public hoverIn(e: any) {
+            this.layer.graphics.toggleOpacity();
+        }
+
+        public hoverOut(e: any) {
+            this.layer.graphics.toggleOpacity();
+        }
+
         public click(e: any) {
-            console.log('route node clicked');
+            // Toggle the selection of this routeNode
+            this.field.toggleSelection(this);
         }
 
         public contextmenu(e: any) {
             this.paper.canvas.listener.invoke(
                 Playbook.Enums.Actions.RouteNodeContextmenu, 
-                this
+                new Common.Models.ContextmenuData(this, e.pageX, e.pageY)
             );
         }
 
@@ -73,22 +89,17 @@ module Playbook.Models {
                 return;
             }
 
-            // (snapping) only adjust the positioning of the player
-            // for every grid-unit worth of movement
-            let snapDx = this.grid.snapPixel(dx);
-            let snapDy = this.grid.snapPixel(dy);
-
             // Update RouteNode graphical position
-            this.layer.graphics.moveByDelta(snapDx, snapDy);
+            this.layer.graphics.moveByDelta(dx, dy);
             
             // Update RouteAction graphical position (if applicable)
             if (this.routeAction) {
-                this.routeAction.layer.moveByDelta(snapDx, snapDy);
+                this.routeAction.layer.moveByDelta(dx, dy);
 
                 // Rotate the route action to stay perpendicular to the node/route orientation
                 let theta = Common.Drawing.Utilities.theta(
-                    this.node.prev.data.layer.graphics.location.ax, 
-                    this.node.prev.data.layer.graphics.location.ay,
+                    this.prev.layer.graphics.location.ax, 
+                    this.prev.layer.graphics.location.ay,
                     this.layer.graphics.location.ax, 
                     this.layer.graphics.location.ay
                 );
@@ -101,15 +112,25 @@ module Playbook.Models {
                 console.log('dragging control:', this.type);
             }
 
-            this.context.draw();
+            this.route.draw();
 
             this.setModified(true);
         }
         
-        public dragStart(x, y, e) {}
+        public dragStart(x: number, y: number, e: any) {
+            super.dragStart(x, y, e);
+        }
 
-        public dragEnd(e) {
+        public dragEnd(e: any) {
+            super.dragEnd(e);
+
             this.drop();
+
+            // re-draw the route again after dropping,
+            // since .drop() will force the absolute
+            // coordinates to snap to a grid point, which
+            // doesn't happen during the onDrag method
+            this.route.draw();
         }
 
         public drop(): void {

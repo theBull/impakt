@@ -18,7 +18,7 @@ module Playbook.Models {
             if (this.player) {
                 // add root node
                 let rootNode = new Playbook.Models.PreviewRouteNode(
-                    this.player,
+                    this,
                     new Common.Models.RelativeCoordinates(
                         0, 0, this.player
                     ),
@@ -28,8 +28,8 @@ module Playbook.Models {
             }
 
             this.routePath = new Playbook.Models.PreviewRoutePath(this);
-            this.layer.type = Common.Enums.LayerTypes.PlayerRoute;
             this.layer.addLayer(this.routePath.layer);
+            this.player.layer.addLayer(this.layer);
         }
 
         public draw(): void {
@@ -48,11 +48,6 @@ module Playbook.Models {
             // initialize Curve not available for preview
         }
 
-        public toJson(): any {
-            let json = {};
-            return $.extend(json, super.toJson());
-        }
-
         public fromJson(json: any): any {
             super.fromJson(json);
 
@@ -66,7 +61,7 @@ module Playbook.Models {
                         this.player
                     );
                     let routeNodeModel = new Playbook.Models.PreviewRouteNode(
-                        this.player, 
+                        this, 
                         relativeCoordinates, 
                         rawNode.type
                     );

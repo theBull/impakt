@@ -212,6 +212,12 @@ function(
 			),
 			formations: new Common.Models.FormationCollection(
 				Team.Enums.UnitTypes.Mixed
+			),
+			personnel: new Team.Models.PersonnelCollection(
+				Team.Enums.UnitTypes.Mixed
+			),
+			assignmentGroups: new Common.Models.AssignmentGroupCollection(
+				Team.Enums.UnitTypes.Mixed
 			)
 		};
 
@@ -264,10 +270,24 @@ function(
 					if (formation)
 						results.formations.add(formation);
 					break;
+				case Common.Enums.ImpaktDataTypes.PersonnelGroup:
+					let personnel = impakt.context.Playbook.personnel.get(guid);
+					if (personnel)
+						results.personnel.add(personnel);
+					break;
+				case Common.Enums.ImpaktDataTypes.AssignmentGroup:
+					let assignmentGroup = impakt.context.Playbook.assignmentGroups.get(guid);
+					if (assignmentGroup)
+						results.assignmentGroups.add(assignmentGroup);
+					break;
 			}		
 		}
 
 		return results;
+	}
+
+	this.associationExists = function(fromInternalKey: string, toInternalKey: string): boolean {
+		return this.associations.associationExists(fromInternalKey, toInternalKey);
 	}
 
 }]);

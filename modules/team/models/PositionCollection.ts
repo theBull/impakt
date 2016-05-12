@@ -3,7 +3,7 @@
 
 module Team.Models {
     export class PositionCollection
-    extends Common.Models.ModifiableCollection<Team.Models.Position> {
+    extends Common.Models.Collection<Team.Models.Position> {
 
         public unitType: Team.Enums.UnitTypes;
 

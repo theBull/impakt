@@ -24,6 +24,13 @@ module Common.Constants {
 		Common.Constants.MODULES_URL,
 		Common.Constants.PLAYBOOK_URL,
 		Common.Constants.CONTEXTMENUS_URL,
-		'editorRouteNode/editorRouteNode-contextmenu.tpl.html'
+		'routeNode/contextmenu-routeNode.tpl.html'
+	].join('');
+
+	export const PLAY_CONTEXTMENU_TEMPLATE_URL = [
+		Common.Constants.MODULES_URL,
+		Common.Constants.PLAYBOOK_URL,
+		Common.Constants.CONTEXTMENUS_URL,
+		'play/contextmenu-play.tpl.html'
 	].join('');
 }

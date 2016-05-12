@@ -2,7 +2,7 @@
 
 module Common.Models {
 	export class NotificationCollection
-	extends Common.Models.ModifiableCollection<Common.Models.Notification> {
+	extends Common.Models.Collection<Common.Models.Notification> {
 		constructor() {
 			super();
 		}

@@ -8,13 +8,15 @@ impakt.playbook.editor.service('_playbookEditor',
 [
 '$rootScope',
 '$q',
-'_base', 
+'_base',
+'_associations',
 '_playbook',
 '_playbookModals',
 function(
 	$rootScope: any,
 	$q: any,
 	_base: any, 
+	_associations: any,
 	_playbook: any,
 	_playbookModals: any) {
 	console.debug('service: impakt.playbook.editor')
@@ -80,6 +82,13 @@ function(
 				initialPlay = self.plays.filterFirst(function(play) {
 					return play.guid == tab.playPrimary.guid;
 				});
+
+				let associations = _associations.getAssociated(initialPlay);
+				let assignmentGroup = associations.assignmentGroups.first();
+				let formation = associations.formations.first();
+				let personnel = associations.personnel.first();
+
+
 
 				// let opponentPlayTest = new Common.Models.PlayOpponent();
 				// // initialize the default formation & personnel

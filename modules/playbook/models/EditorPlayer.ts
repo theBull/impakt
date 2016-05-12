@@ -6,12 +6,6 @@ module Playbook.Models {
 	extends Common.Models.Player
 	implements Common.Interfaces.IPlayer {
 
-		private _isCreatedNewFromAltDisabled: any;
-		private _newFromAlt: any;
-		private _isDraggingNewFromAlt: any;
-		private _originalScreenPositionX: number;
-		private _originalScreenPositionY: number;
-
 		constructor(
 			field: Common.Interfaces.IField,
 			placement: Common.Models.Placement,
@@ -19,12 +13,6 @@ module Playbook.Models {
 			assignment: Common.Models.Assignment
 		) {
 			super(field, placement, position, assignment);
-
-			this._isCreatedNewFromAltDisabled = false;
-			this._newFromAlt = null;
-			this._isDraggingNewFromAlt = false;
-			this._originalScreenPositionX = null;
-			this._originalScreenPositionY = null;
 
 			this.contextmenuTemplateUrl
 				= 'modules/playbook/editor/canvas/player/playbook-editor-canvas-player-contextmenu.tpl.html';
@@ -138,19 +126,13 @@ module Playbook.Models {
 		public dragMove(dx: number, dy: number, posx: number, posy: number, e: any) {
 			// Ignore drag motions under specified threshold to prevent
 			// click/mousedown from triggering drag method
-			if (!this._isOverDragThreshold(dx, dy))
+			if (!this.isOverDragThreshold(dx, dy))
 				return;
-
-			// (snapping) only adjust the positioning of the player
-			// for every grid-unit worth of movement
-			let snapDx = dx;//this.grid.snapPixel(dx);
-			let snapDy = dy;//this.grid.snapPixel(dy);
-			console.log(snapDx, snapDy);
+			
 			this.layer.graphics.dragged = true;
 
 			// do not allow dragging while in route mode
 			if (this.canvas.toolMode == Playbook.Enums.ToolModes.Assignment) {
-				//console.log('drawing route', dx, dy, posx, posy);
 
 				if (!this.assignment) {
 					this.assignment = new Common.Models.Assignment(this.position.unitType);
@@ -161,7 +143,6 @@ module Playbook.Models {
 
 				// TODO: Implement route switching
 				if (!route) {
-					//console.log('creating route');
 					let newRoute = new Playbook.Models.EditorRoute(this, true);
 					this.assignment.routes.add(newRoute);
 					route = this.assignment.routes.get(newRoute.guid);
@@ -169,8 +150,8 @@ module Playbook.Models {
 				if (route.dragInitialized) {
 
 					let coords = new Common.Models.Coordinates(
-						this.layer.graphics.location.ax + snapDx,
-						this.layer.graphics.location.ay + snapDy
+						this.layer.graphics.location.ax + dx,
+						this.layer.graphics.location.ay + dy
 					);
 
 					route.initializeCurve(coords, e.shiftKey);
@@ -178,53 +159,24 @@ module Playbook.Models {
 
 				// prevent remaining logic from getting executed.
 				return;
-				
-			} else if (this.canvas.toolMode == Playbook.Enums.ToolModes.Select) {
-				//console.log('dragging player & route');
-			}
 
-			if(e.which == Common.Input.Which.r) {
-				// draw line from player
-				return;
-			}
-			else if(!e.shiftKey && e.which != Common.Input.Which.RightClick) {
-
-				let context = this._newFromAlt ? this._newFromAlt : this;
-				let grid = this.grid;
-
-				// alt-drag
-				if (e.altKey && !this._isCreatedNewFromAltDisabled) {
-
-					var newPlayer = this.field.addPlayer(
-						this.layer.graphics.placement,
-						this.position,
-						null
-					)
-			
-					context = this.field.players[newPlayer.guid];
-
-					this._newFromAlt = context;
-					this._isCreatedNewFromAltDisabled = true;
-					this._isDraggingNewFromAlt = true;
-				}
-				
-				if (this.grid.isDivisible(dx) && this.grid.isDivisible(dy)) {
-					//console.log('snap:', snapDx, snapDy);
-				}
+			} else if (!e.shiftKey && e.which != Common.Input.Which.RightClick) {
 
 				// Update the placement to track for modification
-				this.layer.moveByDelta(snapDx, snapDy);
+				this.layer.moveByDelta(dx, dy);
 
 				// Update relative coordinates label, if it exists
-				if(this.relativeCoordinatesLabel)
+				if (this.relativeCoordinatesLabel) {
 					this.relativeCoordinatesLabel.layer.graphics.text([
 						this.layer.graphics.placement.relative.rx,
 						', ',
 						this.layer.graphics.placement.relative.ry
 					].join(''));
+				}
 										
-
-			} else if(e.shiftKey) {
+			} else if (this.canvas.toolMode == Playbook.Enums.ToolModes.Select) {
+				//console.log('dragging player & route');
+			} else if (e.shiftKey) {
 				// shift key clicked
 				// if(!this.route) {
 				// 	//this.route = new Route();
@@ -235,30 +187,18 @@ module Playbook.Models {
 			}
 		}
 		public dragStart(x: number, y: number, e: any) {
-			this._setOriginalDragPosition(x, y);
+			super.dragStart(x, y, e);
 
-			if(this._isOverDragThreshold(
-				this._originalScreenPositionX - x, 
-				this._originalScreenPositionY - y)) {
-				
-				this.layer.graphics.dragging = true;
+			if (this.relativeCoordinatesLabel)
+				this.relativeCoordinatesLabel.layer.show();
 
-				if (this.relativeCoordinatesLabel)
-					this.relativeCoordinatesLabel.layer.show();
-
-				this.field.toggleSelection(this);
-			}
+			this.field.toggleSelection(this);
 		}
 		public dragEnd(e: any) {
-			this._isCreatedNewFromAltDisabled = false;
-			this._isDraggingNewFromAlt = true;
-			this._newFromAlt = null;
-			this._setOriginalDragPosition(null, null);
+			super.dragEnd(e);
 			
 			this.drop();
 			
-			this.layer.graphics.dragging = false;
-
 			if(this.assignment) {
 				// TODO: implement route switching
 				let route = this.assignment.routes.getOne();
@@ -266,12 +206,8 @@ module Playbook.Models {
 					if (route.dragInitialized) {
 						route.dragInitialized = false;
 					}
+					
 					route.draw();
-					if (route.nodes && 
-						route.nodes.root && 
-						route.nodes.root.data.isCurveNode()) {
-						//route.root.data.routeControlPath.draw();
-					}
 				}
 			}
 
@@ -301,21 +237,6 @@ module Playbook.Models {
 		}
 		public hasPosition(): boolean {
 			return this.position != null;
-		}
-
-		private _setOriginalDragPosition(x: number, y: number) {
-			this._originalScreenPositionX = x;
-			this._originalScreenPositionY = y;
-		}
-
-		private _isOriginalDragPositionSet(): boolean {
-			return !Common.Utilities.isNull(this._originalScreenPositionX) &&
-				!Common.Utilities.isNull(this._originalScreenPositionY);
-		}
-
-		private _isOverDragThreshold(x, y): boolean {
-			return Math.abs(x) > Playbook.Constants.DRAG_THRESHOLD_X ||
-				Math.abs(y) > Playbook.Constants.DRAG_THRESHOLD_Y;
 		}
 	}
 }

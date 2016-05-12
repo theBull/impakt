@@ -3,7 +3,7 @@
 module Common.Interfaces {
 
 	export interface IActionableCollection
-	extends Common.Interfaces.IModifiableCollection<Common.Interfaces.IActionable> {
+	extends Common.Interfaces.ICollection<Common.Interfaces.IActionable> {
 
 		toggleSelect(element: Common.Interfaces.IActionable): void;
 		deselectAll(): void;

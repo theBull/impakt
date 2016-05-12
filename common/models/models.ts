@@ -6,17 +6,14 @@
 /// <reference path='./Modifiable.ts' />
 /// <reference path='./Collection.ts' />
 /// <reference path='./LinkedList.ts' />
-/// <reference path='./LinkedListNode.ts' />
-
 /// <reference path='./ModifiableCollection.ts' />
-/// <reference path='./ModifiableLinkedList.ts' />
-/// <reference path='./ModifiableLinkedListNode.ts' />
 
+/// <reference path='./ContextmenuData.ts' />
 /// <reference path='./Actionable.ts' />
 /// <reference path='./ActionableCollection.ts' />
 
 /// <reference path='./AssociableEntity.ts' />
-/// <reference path='./AssociableCollectionEntity.ts' />
+/// <reference path='./AssociableEntityCollection.ts' />
 /// <reference path='./AssociationCollection.ts' />
 /// <reference path='./Association.ts' />
 /// <reference path='./Notification.ts' />
@@ -25,7 +22,8 @@
 /// <reference path='./Icon.ts' />
 
 /// <reference path='./Assignment.ts' />
-/// <reference path='./AssignmentCollection.ts' />
+/// <reference path='./AssignmentGroup.ts' />
+/// <reference path='./AssignmentGroupCollection.ts' />
 /// <reference path='./Formation.ts' />
 /// <reference path='./FormationCollection.ts' />
 /// <reference path='./Play.ts' />
@@ -87,5 +85,7 @@
 /// <reference path='./Containment.ts' />
 /// <reference path='./RelativeContainment.ts' />
 /// <reference path='./DrawingHandler.ts' />
+
+/// <reference path='./Quote.ts' />
 
 module Common.Models {}

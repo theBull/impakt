@@ -218,6 +218,31 @@ function($q: any, __modals: any) {
 		return d.promise;
 	}
 
+
+	this.deleteAssignmentGroup = function(assignmentGroup: Common.Models.AssignmentGroup) {
+		let d = $q.defer();
+
+		let modalInstance = __modals.open(
+			'',
+			'modules/playbook/modals/delete-assignmentGroup/delete-assignmentGroup.tpl.html',
+			'playbook.modals.deleteAssignmentGroup.ctrl',
+			{
+				formation: function() {
+					return assignmentGroup;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(results) {
+			d.resolve();			
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+
+		return d.promise;
+	}
+
 	this.openNewEditorTab = function() {
 		let d = $q.defer();
 		console.log('new editor tab');

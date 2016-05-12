@@ -17,6 +17,11 @@ module Common.Models {
             this.routes = new Common.Models.RouteCollection();
             this.positionIndex = -1;
             this.setType = Common.Enums.SetTypes.Assignment;
+
+            let self = this;
+            this.routes.onModified(function() {
+                self.setModified(true);
+            });
         }
 
         public remove() {

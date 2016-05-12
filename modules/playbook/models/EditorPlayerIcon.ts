@@ -8,7 +8,7 @@ module Playbook.Models {
 		constructor(player: Common.Interfaces.IPlayer) {
 			super(player);
 
-			this.layer.graphics.hoverOpacity = 0.6;
+			this.layer.graphics.setHoverOpacity(0.6);
 		}
 
 		public draw(): void {

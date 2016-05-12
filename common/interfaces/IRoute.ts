@@ -7,26 +7,27 @@ module Common.Interfaces {
 
 		player: Common.Interfaces.IPlayer;
 		field: Common.Interfaces.IField;
+		layer: Common.Models.Layer;
 		paper: Common.Interfaces.IPaper;
 		grid: Common.Interfaces.IGrid;
-        nodes: Common.Models.ModifiableLinkedList<Common.Interfaces.IRouteNode>;
+        nodes: Common.Models.LinkedList<Common.Interfaces.IRouteNode>;
         routePath: Common.Interfaces.IRoutePath;
         dragInitialized: boolean;
 
 		draw(): void;
 		initializeCurve(coords: Common.Models.Coordinates, flip?: boolean); 
 		addNode(routeNode: Common.Interfaces.IRouteNode, render?: boolean)
-			: Common.Models.LinkedListNode<Common.Models.RouteNode>;
+			: Common.Interfaces.IRouteNode;
 		getMixedStringFromNodes(
-			nodeArray: Common.Models.LinkedListNode<Common.Models.RouteNode>[]
+			nodeArray: Common.Interfaces.IRouteNode[]
 		): string;
 		getPathStringFromNodes(
 			initialize: boolean, 
-			nodeArray: Common.Models.LinkedListNode<Common.Models.RouteNode>[]
+			nodeArray: Common.Interfaces.IRouteNode[]
 		): string;
 		getCurveStringFromNodes(
 			initialize: boolean, 
-			nodeArray: Common.Models.LinkedListNode<Common.Models.RouteNode>[]
+			nodeArray: Common.Interfaces.IRouteNode[]
 		): string;
 	}
 }

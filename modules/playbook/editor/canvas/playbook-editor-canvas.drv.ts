@@ -8,7 +8,7 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas',
 	'$compile', 
 	'$templateCache',
 	'$timeout',
-	'__contextmenu',
+	'_contextmenu',
 	'_playPreview',
 	'_playbookEditorCanvas', 
 	'_scrollable',
@@ -17,7 +17,7 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas',
 		$compile: any, 
 		$templateCache: any, 
 		$timeout: any,
-		__contextmenu: any,
+		_contextmenu: any,
 		_playPreview: any,
 		_playbookEditorCanvas: any,
 		_scrollable: any
@@ -84,58 +84,6 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas',
 				}
 			});
 
-
-			// $rootScope.$on('playbook-editor-canvas.playerContextmenu',
-			// 	function(e: any, data: any) {
-					
-			// 		var player = data.player;					
-			// 		console.log('playbook-editor-canvas.playerContextmenu', player);
-
-			// 		var markup = [
-			// 			'<contextmenu ',
-			// 			'guid="', 
-			// 			player.guid, 
-			// 			'" template="', 
-			// 			player.contextmenuTemplateUrl,
-			// 			'" left="', data.left, 
-			// 			'" top="', data.top,
-			// 			'"></contextmenu>'
-			// 		].join('');
-
-			// 		var c = $compile(markup)($scope);
-					
-			// 		__contextmenu.set(player.guid, player);
-					
-			// 		$element.after(c);
-		
-				
-			// 	});
-
-			$rootScope.$on('playbook-editor-canvas.routeNodeContextmenu',
-				function(e: any, data: any) {
-					
-					var node = data.node;					
-					console.log('playbook-editor-canvas.routeNodeContextmenu', node);
-
-					var markup = [
-						'<contextmenu ',
-						'guid="', 
-						node.guid, 
-						'" template="', 
-						node.contextmenuTemplateUrl,
-						'" left="', data.left, 
-						'" top="', data.top,
-						'"></contextmenu>'
-					].join('');
-
-					var c = $compile(markup)($scope);
-					
-					__contextmenu.setContext(node);
-					
-					$element.after(c);
-		
-				
-				});
 		}
 	}
 

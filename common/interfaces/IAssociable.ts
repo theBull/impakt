@@ -2,7 +2,8 @@
 
 module Common.Interfaces {
 	
-	export interface IAssociable {
+	export interface IAssociable
+	extends Common.Interfaces.IModifiable {
 		
 		key: number;
 		impaktDataType: Common.Enums.ImpaktDataTypes;

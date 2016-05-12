@@ -94,7 +94,7 @@ function(
 		 */
 		context.Playbook.playbooks = new Common.Models.PlaybookModelCollection(Team.Enums.UnitTypes.Mixed);
 		context.Playbook.formations = new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed);
-		context.Playbook.assignments = new Common.Models.AssignmentCollection(Team.Enums.UnitTypes.Mixed);
+		context.Playbook.assignmentGroups = new Common.Models.AssignmentGroupCollection(Team.Enums.UnitTypes.Mixed);
 		context.Playbook.plays = new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed);
 
 		/**
@@ -193,18 +193,27 @@ function(
 
 			// Retrieve personnel sets
 			function(callback) {
-				_playbook.getSets().then(function(results) {
-					
-					if(!Common.Utilities.isNullOrUndefined(results.personnel))
-						context.Team.personnel = results.personnel;
+				_playbook.getAssignmentGroups()
+				.then(function(assignmentGroupCollection: Common.Models.AssignmentGroupCollection) {
+					if (!Common.Utilities.isNullOrUndefined(assignmentGroupCollection))
+						context.Playbook.assignmentGroups = assignmentGroupCollection;
 
-					if (!Common.Utilities.isNullOrUndefined(results.assignments))
-						context.Playbook.assignments = results.assignments;
+					
+					__notifications.success('Assignments successfully loaded');
+					callback(null, assignmentGroupCollection);
+				}, function(err) {
+					callback(err);
+				});
+			},
+
+			function(callback) {
+				_team.getPersonnel().then(function(personnelCollection: Team.Models.PersonnelCollection) {
+					if (!Common.Utilities.isNullOrUndefined(personnelCollection))
+						context.Team.personnel = personnelCollection;
 
 					__notifications.success('Personnel successfully loaded');
-					__notifications.success('Assignments successfully loaded');
-					callback(null, results.personnel, results.assignments);
-				}, function(err) {
+					callback(null, personnelCollection);
+				}, function(err: any) {
 					callback(err);
 				});
 			},

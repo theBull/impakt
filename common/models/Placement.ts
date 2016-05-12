@@ -20,15 +20,7 @@ module Common.Models {
 			super();
 			super.setContext(this);
 
-			if (!relativeElement) {
-				this.coordinates = new Common.Models.Coordinates(rx, ry);
-				this.relative = new Common.Models.RelativeCoordinates(0, 0, null);
-			} else {
-				this.relativeElement = relativeElement;
-				this.grid = this.relativeElement.grid;
-				this.relative = new Common.Models.RelativeCoordinates(rx, ry, this.relativeElement);
-				this.coordinates = this.relative.getCoordinates();
-			}
+			this.updateFromRelative(rx, ry, relativeElement);
 
 			this.index = index >= 0 ? index : -1;
 			
@@ -59,6 +51,20 @@ module Common.Models {
 				this.coordinates.y
 			);
 			//this.setModified(true);
+		}
+
+		public updateFromRelative(rx: number, ry: number, relativeElement?: Common.Interfaces.IFieldElement) {
+			if (!relativeElement) {
+				this.coordinates = new Common.Models.Coordinates(rx, ry);
+				this.relative = new Common.Models.RelativeCoordinates(0, 0, null);
+				this.relativeElement = null;
+				this.grid = null;
+			} else {
+				this.relativeElement = relativeElement;
+				this.grid = this.relativeElement.grid;
+				this.relative = new Common.Models.RelativeCoordinates(rx, ry, this.relativeElement);
+				this.coordinates = this.relative.getCoordinates();
+			}
 		}
 	}
 }
