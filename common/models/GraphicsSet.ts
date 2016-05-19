@@ -58,7 +58,7 @@ module Common.Models {
 
             for (let i = 0; i < this.items.length; i++) {
                 let item = this.items[i];
-                if(item.guid == matchingGraphics.guid) {
+                if (item.guid == matchingGraphics.guid) {
                     this.splice(i, 1);
                     this.length--;
                     break;

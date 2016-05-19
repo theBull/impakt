@@ -67,6 +67,7 @@
                 		<select ng-options='assignmentGroup as assignmentGroup.name for assignmentGroup in assignmentGroups.toArray()'
                 			ng-model='selectedAssignmentGroup'
                 			ng-change='selectAssignmentGroup(selectedAssignmentGroup)'>
+                            <option value=''>Start from scratch</option>
                 		</select>
                     </div>
                     <div ng-show='assignmentGroups.isEmpty()'>

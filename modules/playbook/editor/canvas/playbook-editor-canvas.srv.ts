@@ -184,14 +184,14 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 
 		function getAbsolutePosition(element: Common.Models.RouteNode) {
 			
-			let $dom = $(element.layer.graphics.raphael.node);
+			let $dom = $(element.graphics.raphael.node);
 
 			console.log(
 				'$dom offsets: ',
 				$dom.offset().left,
 				$dom.offset().top,
-				element.layer.graphics.dimensions.width,
-				element.layer.graphics.dimensions.height
+				element.graphics.dimensions.width,
+				element.graphics.dimensions.height
 			);
 
 			//let $playbookCanvas = $dom.closest('playbook-editor-canvas');

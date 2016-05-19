@@ -83,11 +83,23 @@ function(
 					return play.guid == tab.playPrimary.guid;
 				});
 
-				let associations = _associations.getAssociated(initialPlay);
-				let assignmentGroup = associations.assignmentGroups.first();
-				let formation = associations.formations.first();
-				let personnel = associations.personnel.first();
 
+				let associations = null;
+				switch(tab.editorType) {
+					case Playbook.Enums.EditorTypes.Formation:
+						associations = _associations.getAssociated(initialPlay.formation);
+						// don't set the formation here (it's already set)
+						break;
+					case Playbook.Enums.EditorTypes.Play:
+						associations = _associations.getAssociated(initialPlay);
+						// set the formation to the associated formation
+						initialPlay.formation = associations.formations.first();
+						initialPlay.assignmentGroup = associations.assignmentGroups.first();
+						break;
+				}
+
+				if(Common.Utilities.isNotNullOrUndefined(associations))
+					initialPlay.personnel = associations.personnel.first();
 
 
 				// let opponentPlayTest = new Common.Models.PlayOpponent();

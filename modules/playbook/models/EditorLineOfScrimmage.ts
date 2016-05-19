@@ -6,34 +6,38 @@ module Playbook.Models {
     export class EditorLineOfScrimmage
     extends Common.Models.LineOfScrimmage {
 
-        constructor(field: Common.Interfaces.IField) {
-            super(field);
-
-            this.layer.graphics.dimensions.offset.x = 0;
-            this.layer.graphics.dimensions.offset.y = 8;
-            this.layer.graphics.dimensions.setHeight(4);
-            this.layer.graphics.selectedFill = 'blue';
+        constructor() {
+            super();
         }
-        public draw(): void {
-            this.layer.graphics.rect();
-            this.layer.graphics.setAttribute('class', 'ns-resize');
 
-            // this.layer.graphics.onmousedown(
+        public initialize(field: Common.Interfaces.IField): void {
+            super.initialize(field);
+            this.graphics.dimensions.offset.x = 0;
+            this.graphics.dimensions.offset.y = 8;
+            this.graphics.dimensions.setHeight(4);
+            this.graphics.selectedFill = 'blue';
+        }
+
+        public draw(): void {
+            this.graphics.rect();
+            this.graphics.setAttribute('class', 'ns-resize');
+
+            // this.graphics.onmousedown(
             //     this.mousedown,
             //     this
             // );
 
-            // this.layer.graphics.onmouseup(
+            // this.graphics.onmouseup(
             //     this.mouseup,
             //     this
             // );
 
-            // this.layer.graphics.onclick(
+            // this.graphics.onclick(
             //     this.click,
             //     this
             // );
             
-            this.layer.graphics.ondrag(
+            this.graphics.ondrag(
                 this.dragMove,
                 this.dragStart,
                 this.dragEnd,
@@ -44,37 +48,37 @@ module Playbook.Models {
         //     if (e.keyCode == Common.Input.Which.RightClick) {
         //         context.contextmenu(e, context);
         //     }
-        //     this.layer.graphics.select();
+        //     this.graphics.select();
         // }
         // public mouseup(e: any, context: Common.Interfaces.IFieldElement): void {
-        //     this.layer.graphics.deselect();
+        //     this.graphics.deselect();
         // }
         public dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void {
             let snapDx = this.grid.snapping ? this.grid.snapPixel(dx) : dx;
             let snapDy = this.grid.snapping ? this.grid.snapPixel(dy) : dy;
-            this.layer.graphics.moveByDelta(
-                this.layer.graphics.placement.coordinates.x, 
+            this.graphics.moveByDelta(
+                this.graphics.placement.coordinates.x, 
                 snapDy
             );
             
-            this.field.ball.layer.graphics.dragging = true;
-            this.field.ball.layer.graphics.moveByDelta(
-                this.field.ball.layer.graphics.placement.coordinates.x,
+            this.field.ball.dragging = true;
+            this.field.ball.layer.moveByDelta(
+                this.field.ball.graphics.placement.coordinates.x,
                 snapDy
             );
 
             this.field.players.forEach(
                 function(player: Common.Interfaces.IPlayer, index: number) {
                     player.layer.layers.forEach(function(layer: Common.Models.Layer) {
-                        layer.graphics.moveByDelta(
-                            player.layer.graphics.placement.coordinates.x,
+                        layer.moveByDelta(
+                            player.graphics.placement.coordinates.x,
                             snapDy
                         );
                     });
                 });
         }
         public dragStart(e: any): void {
-            this.layer.graphics.dragging = true;
+            this.dragging = true;
         }
         public dragEnd(e: any): void {
             this.drop();

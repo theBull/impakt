@@ -57,7 +57,7 @@ function(
 					 * Set up the play data to render the formation
 					 * 
 					 */
-					if(!Common.Utilities.isNullOrUndefined($scope.formation)) {
+					if(Common.Utilities.isNotNullOrUndefined($scope.formation)) {
 						// check to see if the formation is being edited; 
 						// in which case a temporary play has already been constructed
 						// 
@@ -69,11 +69,11 @@ function(
 								// - the play must have a formation
 								// - the play formation guid must match the scope guid
 								return play.editorType == Playbook.Enums.EditorTypes.Formation &&
-									!Common.Utilities.isNullOrUndefined(play.formation) &&
+									Common.Utilities.isNotNullOrUndefined(play.formation) &&
 									play.formation.guid == $scope.formation.guid;
 							});
 
-						if (!Common.Utilities.isNullOrUndefined(editorPlay)) {
+						if (Common.Utilities.isNotNullOrUndefined(editorPlay)) {
 							// there is a temp. play existing in the editor context,
 							// so let's use that play to render the preview
 							$scope.play = editorPlay;

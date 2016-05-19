@@ -199,7 +199,7 @@ module Common.Models {
 		}
 
 		public hasOffset(): boolean {
-			return !Common.Utilities.isNullOrUndefined(this.offset);
+			return Common.Utilities.isNotNullOrUndefined(this.offset);
 		}
 		public getOffset(): Common.Models.Offset {
 			return this.offset;

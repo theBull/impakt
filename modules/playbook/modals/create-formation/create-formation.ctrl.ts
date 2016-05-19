@@ -60,7 +60,7 @@ function(
 
 	$scope.selectBaseFormation = function(formation: Common.Models.Formation) {
 		if($scope.selectedBaseFormation != '' && 
-			!Common.Utilities.isNullOrUndefined($scope.selectedBaseFormation)) {
+			Common.Utilities.isNotNullOrUndefined($scope.selectedBaseFormation)) {
 			$scope.formation.setPlacements($scope.selectedBaseFormation.placements);
 		}			
 	}
@@ -93,7 +93,7 @@ function(
 	function removeFormationFromCreationContext() {
 		// Remove the formation from the creation context
 		// after creating the new formation or cancelling
-		if (!Common.Utilities.isNullOrUndefined($scope.formation)) {
+		if (Common.Utilities.isNotNullOrUndefined($scope.formation)) {
 			impakt.context.Playbook.creation.formations.remove($scope.formation.guid);
 		}
 	}
@@ -104,7 +104,7 @@ function(
 		// the createFormation request, since the formation is temporarily
 		// added to the formation collection in the situation where
 		// there are 0 formations in the user's collection.
-		if (!Common.Utilities.isNullOrUndefined($scope.formation)) {
+		if (Common.Utilities.isNotNullOrUndefined($scope.formation)) {
 			$scope.formations.remove($scope.formation.guid);
 		}
 	}

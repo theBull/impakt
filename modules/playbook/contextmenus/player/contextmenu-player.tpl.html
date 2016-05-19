@@ -1,0 +1,19 @@
+<div ng-controller='impakt.playbook.contextmenus.player.ctrl'>
+
+	<div class='pad'>
+		<p><strong>Actions</strong></p>
+		<em ng-if='!context.actionable'>
+			There are no applicable actions for this
+			node.
+		</em>
+	</div>
+
+	<ul ng-if='context.actionable'>
+		<li ng-repeat='(key, action) in actions'
+			ng-click='actionClick(action)'
+			class='pad'>
+				{{action}}
+		</li>
+	</ul>
+
+</div>

@@ -100,7 +100,7 @@ function(
     this.createLeague = function(newLeagueModel: League.Models.LeagueModel) {
         var d = $q.defer();
 
-        if (!Common.Utilities.isNullOrUndefined(newLeagueModel)) {
+        if (Common.Utilities.isNotNullOrUndefined(newLeagueModel)) {
             let nameExists = impakt.context.League.leagues.hasElementWhich(
                 function(leagueModel: League.Models.LeagueModel, index: number) {
                     return leagueModel.name == newLeagueModel.name;

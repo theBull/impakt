@@ -6,11 +6,14 @@ module Playbook.Models {
 	extends Common.Models.RoutePath
 	implements Common.Interfaces.IRoutePath {
 
-		constructor(route: Common.Interfaces.IRoute) {
-			super(route);
+		constructor() {
+			super();
+		}
 
-			this.layer.graphics.setStrokeWidth(1);
-			this.layer.graphics.refresh();
+		public initialize(field: Common.Interfaces.IField, route: Common.Interfaces.IFieldElement): void {
+			super.initialize(field, route);
+			this.graphics.setOriginalStrokeWidth(2);
+			this.graphics.setOriginalStroke('#0000ff');
 			this.route.layer.addLayer(this.layer);
 		}
 	}

@@ -37,7 +37,7 @@ module Common.Models {
                 let rawFormation = formations[i];
                 if (Common.Utilities.isNullOrUndefined(rawFormation))
                     continue;
-                rawFormation.unitType = !Common.Utilities.isNullOrUndefined(rawFormation.unitType) &&
+                rawFormation.unitType = Common.Utilities.isNotNullOrUndefined(rawFormation.unitType) &&
                     rawFormation.unitType >= 0 ? rawFormation.unitType : Team.Enums.UnitTypes.Other;
 
                 let formationModel = new Common.Models.Formation(rawFormation.unitType);

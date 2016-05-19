@@ -1,8 +1,16 @@
 /// <reference path='./playbook-editor-details.mdl.ts' />
 
-impakt.playbook.editor.details.controller('playbook.editor.details.ctrl', 
-['$scope', '_playbookModals', '_playbookEditorDetails', 
-function($scope: any, _playbookModals: any, _playbookEditorDetails: any) {
+impakt.playbook.editor.details.controller('playbook.editor.details.ctrl', [
+'$scope', 
+'$timeout',
+'_playbookModals', 
+'_playbookEditorDetails', 
+function(
+	$scope: any, 
+	$timeout: any,
+	_playbookModals: any, 
+	_playbookEditorDetails: any
+) {
 	
 	$scope.canvas = _playbookEditorDetails.canvas;
 	$scope.paper;
@@ -26,8 +34,9 @@ function($scope: any, _playbookModals: any, _playbookEditorDetails: any) {
 
 		// update scope when changes to field occur
 		$scope.field.onModified(function() {
-			if(!$scope.$$phase)
+			$timeout(function() {
 				$scope.$apply();
+			}, 0);				
 		});
 	});	
 

@@ -195,7 +195,7 @@ function(
 			function(callback) {
 				_playbook.getAssignmentGroups()
 				.then(function(assignmentGroupCollection: Common.Models.AssignmentGroupCollection) {
-					if (!Common.Utilities.isNullOrUndefined(assignmentGroupCollection))
+					if (Common.Utilities.isNotNullOrUndefined(assignmentGroupCollection))
 						context.Playbook.assignmentGroups = assignmentGroupCollection;
 
 					
@@ -208,7 +208,7 @@ function(
 
 			function(callback) {
 				_team.getPersonnel().then(function(personnelCollection: Team.Models.PersonnelCollection) {
-					if (!Common.Utilities.isNullOrUndefined(personnelCollection))
+					if (Common.Utilities.isNotNullOrUndefined(personnelCollection))
 						context.Team.personnel = personnelCollection;
 
 					__notifications.success('Personnel successfully loaded');

@@ -6,34 +6,30 @@ module Playbook.Models {
     extends Common.Models.Route
     implements Common.Interfaces.IRoute {
 
-        constructor(
-            player: Common.Interfaces.IPlayer
-        ) {
-            super(player);
-
-            this.dragInitialized = false; 
-            this.type = Common.Enums.RouteTypes.Preview;
-            this.layer.graphics.disable();
-
-            if (this.player) {
-                // add root node
-                let rootNode = new Playbook.Models.PreviewRouteNode(
-                    this,
-                    new Common.Models.RelativeCoordinates(
-                        0, 0, this.player
-                    ),
-                    Common.Enums.RouteNodeTypes.Root
-                );
-                this.addNode(rootNode, false);
-            }
-
-            this.routePath = new Playbook.Models.PreviewRoutePath(this);
-            this.layer.addLayer(this.routePath.layer);
-            this.player.layer.addLayer(this.layer);
+        constructor() {
+            super();
         }
 
-        public draw(): void {
-            // route nodes not visible in preview
+        public setPlayer(player: Common.Interfaces.IPlayer): void {
+            super.setPlayer(player);
+
+            if (this.player) {
+                // // add root node
+                // let rootNode = new Playbook.Models.PreviewRouteNode(
+                //     new Common.Models.RelativeCoordinates(
+                //         0, 0, this.player
+                //     ),
+                //     Common.Enums.RouteNodeTypes.Root
+                // );
+                // rootNode.initialize(this.field, this.player);
+                // this.addNode(rootNode, false);
+            }
+            this.routePath = new Playbook.Models.PreviewRoutePath();
+            this.routePath.initialize(this.field, this.player);
+
+            this.layer.addLayer(this.routePath.layer);
+            this.graphics.disable();
+            this.renderType = Common.Enums.RenderTypes.Preview;
         }
 
         public setContext(player: Common.Interfaces.IPlayer): void {
@@ -46,29 +42,6 @@ module Playbook.Models {
 
         public initializeCurve(coords: Common.Models.Coordinates, flip?: boolean) {
             // initialize Curve not available for preview
-        }
-
-        public fromJson(json: any): any {
-            super.fromJson(json);
-
-            // initialize route nodes
-            if (json.nodes) {
-                for (let i = 0; i < json.nodes.length; i++) {
-                    let rawNode = json.nodes[i];
-                    let relativeCoordinates = new Common.Models.RelativeCoordinates(
-                        rawNode.layer.graphics.placement.coordinates.x, 
-                        rawNode.layer.graphics.placement.coordinates.y, 
-                        this.player
-                    );
-                    let routeNodeModel = new Playbook.Models.PreviewRouteNode(
-                        this, 
-                        relativeCoordinates, 
-                        rawNode.type
-                    );
-                    routeNodeModel.fromJson(rawNode);
-                    this.addNode(routeNodeModel, false);
-                }
-            }
-        }        
+        }      
     }
 }

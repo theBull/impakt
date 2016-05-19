@@ -5,9 +5,10 @@ module Playbook.Models {
     export class PreviewGround
     extends Common.Models.Ground {
 
-        constructor(field: Common.Interfaces.IField) {
-            super(field);
+        constructor() {
+            super();
         }
+
         public draw(): void {
             super.draw();
         }

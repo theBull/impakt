@@ -305,7 +305,7 @@ module Common.Models {
 			);
 
 			let fromAssociations = this._data[fromAssociation.internalKey];
-			if (!Common.Utilities.isNullOrUndefined(fromAssociations)) {
+			if (Common.Utilities.isNotNullOrUndefined(fromAssociations)) {
 				
 				if(fromAssociations.length > 1) {
 					let index = fromAssociations.indexOf(toAssociation.internalKey);	
@@ -321,7 +321,7 @@ module Common.Models {
 			}
 
 			let toAssociations = this._data[toAssociation.internalKey];
-			if (!Common.Utilities.isNullOrUndefined(toAssociations)) {
+			if (Common.Utilities.isNotNullOrUndefined(toAssociations)) {
 
 				if (toAssociations.length > 1) {
 					let index = toAssociations.indexOf(fromAssociation.internalKey);
@@ -344,7 +344,7 @@ module Common.Models {
 		 * @return {boolean}      true if it exists, otherwise false
 		 */
 		public exists(internalKey: string): boolean {
-			return !Common.Utilities.isNullOrUndefined(this._data[internalKey]);
+			return Common.Utilities.isNotNullOrUndefined(this._data[internalKey]);
 		}
 
 		/**
@@ -440,9 +440,8 @@ module Common.Models {
 					rawAssociation.data.toGuid,
 					rawAssociation.contextID
 				);
-				if(!this.exists(association.internalKey)) {
-					this.addAssociation(association);
-				}
+				
+				this.addAssociation(association);
 			}
 		}
 

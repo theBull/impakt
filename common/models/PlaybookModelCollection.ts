@@ -29,7 +29,7 @@ module Common.Models {
                 if (Common.Utilities.isNullOrUndefined(rawPlaybook))
                     continue;
 
-                rawPlaybook.unitType = !Common.Utilities.isNullOrUndefined(rawPlaybook.unitType) &&
+                rawPlaybook.unitType = Common.Utilities.isNotNullOrUndefined(rawPlaybook.unitType) &&
                     rawPlaybook.unitType >= 0 ? rawPlaybook.unitType : Team.Enums.UnitTypes.Mixed;
 
                 // Allow mixed unit types to be added to the playbookmodel collection;

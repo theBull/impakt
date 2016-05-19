@@ -6,8 +6,8 @@ module Playbook.Models {
     extends Common.Models.RouteControlPath
     implements Common.Interfaces.IRouteControlPath {
 
-		constructor(routeNode: Common.Models.RouteNode) {
-			super(routeNode);
+		constructor() {
+			super();
 		}
 	}
 

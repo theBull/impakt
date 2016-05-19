@@ -7,26 +7,28 @@ module Common.Models {
 		
 		public routeNode: Common.Interfaces.IRouteNode;
 		public action: Common.Enums.RouteNodeActions;
-		public actionable: boolean;
 
-		constructor(routeNode: Common.Models.RouteNode, action: Common.Enums.RouteNodeActions) {
-			super(routeNode.field, routeNode);
-
-			this.routeNode = routeNode;
+		constructor(action: Common.Enums.RouteNodeActions) {
+			super();
 			this.action = action;
-			this.actionable = !(this.routeNode.type == Common.Enums.RouteNodeTypes.CurveControl);
-            this.layer.type = Common.Enums.LayerTypes.PlayerRouteAction;
 		}			
+
+		public initialize(field: Common.Interfaces.IField, routeNode: Common.Interfaces.IFieldElement): void {
+			super.initialize(field, routeNode);
+			this.routeNode = <Common.Interfaces.IRouteNode>routeNode;
+			this.disabled = this.routeNode.type == Common.Enums.RouteNodeTypes.CurveControl;
+            this.layer.type = Common.Enums.LayerTypes.PlayerRouteAction;
+            this.graphics.setOffsetXY(0.5, 0.5);
+		}
 
         public draw(): void {
             Common.Factories.RouteActionFactory.draw(this);
 		}
 
 		public toJson(): any {
-			return {
-				action: this.action,
-				actionable: this.actionable
-			}
+			return $.extend({
+				action: this.action
+			}, super.toJson());
 		}
 
 		public fromJson(json: any): void {
@@ -34,7 +36,7 @@ module Common.Models {
 				return;
 
 			this.action = json.action;
-			this.actionable = json.actionable;
+			super.fromJson(json);
 		}
 	}
 }

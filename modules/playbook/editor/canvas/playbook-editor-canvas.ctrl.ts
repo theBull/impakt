@@ -25,7 +25,7 @@ function(
 
 	// check if there are any open tabs; if not, hide the canvas and
 	// clear the canvas data.
-	if(!Common.Utilities.isNullOrUndefined($scope.tab)) {
+	if(Common.Utilities.isNotNullOrUndefined($scope.tab)) {
 		$scope.tab.onclose(function() {
 			$scope.hasOpenTabs = _playbookEditorCanvas.hasTabs();
 		});
@@ -43,7 +43,7 @@ function(
 			});
 		});
 	}
-	if(!Common.Utilities.isNullOrUndefined($scope.tabs)) {
+	if(Common.Utilities.isNotNullOrUndefined($scope.tabs)) {
 		$scope.tabs.onModified(function(tabs: Common.Models.TabCollection) {
 			$scope.hasOpenTabs = tabs.hasElements();
 		});

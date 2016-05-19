@@ -9,6 +9,7 @@
 /// <reference path='./ModifiableCollection.ts' />
 
 /// <reference path='./ContextmenuData.ts' />
+/// <reference path='./ActionRegistry.ts' />
 /// <reference path='./Actionable.ts' />
 /// <reference path='./ActionableCollection.ts' />
 
@@ -57,6 +58,8 @@
 /// <reference path='./Hashmark.ts' />
 /// <reference path='./Ground.ts' />
 /// <reference path='./Sideline.ts' />
+/// <reference path='./FieldSelectionBox.ts' />
+
 
 /// <reference path='./Player.ts' />
 /// <reference path='./PlayerCollection.ts' />

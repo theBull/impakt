@@ -4,9 +4,13 @@ module Playbook.Models {
     export class PreviewSideline
     extends Common.Models.Sideline {
 
-        constructor(field: Common.Interfaces.IField, offsetX: number) {
-            super(field, offsetX);
-            this.layer.graphics.opacity = 0.35;
+        constructor(offsetX: number) {
+            super(offsetX);
+        }
+
+        public initialize(field: Common.Interfaces.IField): void {
+			super.initialize(field);
+			this.graphics.opacity = 0.35;
         }
     }
 }

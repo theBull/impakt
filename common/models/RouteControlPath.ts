@@ -5,19 +5,22 @@ module Common.Models {
 	export abstract class RouteControlPath
 	extends Common.Models.FieldElement {
 
-		public routeNode: Common.Models.RouteNode;
+		public routeNode: Common.Interfaces.IRouteNode;
         public pathString: string;
 
-		constructor(routeNode: Common.Models.RouteNode) {
-			super(routeNode.field, routeNode);
+		constructor() {
+			super();
+        }
 
-			this.routeNode = routeNode;
+        public initialize(field: Common.Interfaces.IField, routeNode: Common.Interfaces.IFieldElement): void {
+            super.initialize(field, routeNode);
+            this.routeNode = <Common.Interfaces.IRouteNode>routeNode;
             this.layer.type = Common.Enums.LayerTypes.PlayerRouteControlPath;
 
-            this.layer.graphics.setStroke('grey');
-            this.layer.graphics.setStrokeWidth(1);
-            this.layer.graphics.setOpacity(0.2);
-		}
+            this.graphics.setStroke('grey');
+            this.graphics.setStrokeWidth(1);
+            this.graphics.setOpacity(0.2);
+        }
 
         public toJson(): any {
             return {
@@ -67,7 +70,7 @@ module Common.Models {
             // // Generate a path string between the given startNode, controlNode, and endNode nodes
             // this.pathString = this.routeNode.player.route.getPathStringFromNodes(true, [startNode, controlNode, endNode]);
 
-            // startNode.layer.graphics.path(this.pathString);
+            // startNode.graphics.path(this.pathString);
 		}
 
 	}

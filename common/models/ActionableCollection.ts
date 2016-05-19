@@ -36,7 +36,7 @@ module Common.Models {
 
             this.deselectAll();
             let selectedElement = this.get(element.guid);
-            if (!Common.Utilities.isNullOrUndefined(selectedElement))
+            if (Common.Utilities.isNotNullOrUndefined(selectedElement))
                 selectedElement.select();
         }
 
@@ -45,7 +45,7 @@ module Common.Models {
                 return;
 
             let deselectedElement = this.get(element.guid);
-            if (!Common.Utilities.isNullOrUndefined(deselectedElement))
+            if (Common.Utilities.isNotNullOrUndefined(deselectedElement))
                 deselectedElement.deselect();
         }
 

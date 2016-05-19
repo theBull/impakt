@@ -79,17 +79,34 @@ declare module Common.Interfaces {
 declare module Common.Interfaces {
     interface IActionable extends Common.Interfaces.IModifiable {
         impaktDataType: Common.Enums.ImpaktDataTypes;
+        graphics: Common.Models.Graphics;
         disabled: boolean;
         clickable: boolean;
         hoverable: boolean;
         selected: boolean;
         selectable: boolean;
         draggable: boolean;
+        dragging: boolean;
         select(): void;
         deselect(): void;
-        toggleSelect(): void;
+        toggleSelect(metaKey?: boolean): void;
         disable(): void;
         enable(): void;
+        getContextmenuUrl(): string;
+        drop(): void;
+        onhover(hoverIn: any, hoverOut: any, context: Common.Interfaces.IActionable): void;
+        hoverIn(e: any): void;
+        hoverOut(e: any): void;
+        onclick(fn: any, context: Common.Interfaces.IActionable): void;
+        click(e: any): void;
+        oncontextmenu(fn: any, context: Common.Interfaces.IActionable): void;
+        contextmenu(e: any): void;
+        onmousedown(fn: any, context: Common.Interfaces.IActionable): void;
+        onmouseup(fn: any, context: Common.Interfaces.IActionable): void;
+        mousedown(e: any): void;
+        onmousemove(fn: any, context: Common.Interfaces.IActionable): void;
+        mousemove(e: any): void;
+        ondrag(dragMove: Function, dragStart: Function, dragEnd: Function, context: Common.Interfaces.IActionable): void;
     }
 }
 declare module Common.Interfaces {
@@ -124,15 +141,15 @@ declare module Common.Interfaces {
         selectedStroke: string;
         selectedOpacity: number;
         onhover(hoverIn: any, hoverOut: any, context: any): void;
-        hoverIn(e: any, context?: any): void;
-        hoverOut(e: any, context?: any): void;
+        hoverIn(e: any): void;
+        hoverOut(e: any): void;
         onclick(fn: any, context: any): void;
-        click(e: any, context: any): void;
+        click(e: any): void;
         onmousedown(fn: any, context: any): void;
         onmouseup(fn: any, context: any): void;
-        mousedown(e: any, context: any): void;
+        mousedown(e: any): void;
         oncontextmenu(fn: any, context: any): void;
-        contextmenu(e: any, context: any): void;
+        contextmenu(e: any): void;
     }
 }
 declare module Common.Interfaces {
@@ -162,6 +179,7 @@ declare module Common.Interfaces {
     interface IContextual extends Common.Interfaces.IStorable {
         contextmenuTemplateUrl: string;
         getContextmenuUrl(): string;
+        actions: Common.Models.ActionRegistry;
     }
 }
 declare module Common.Interfaces {
@@ -288,18 +306,21 @@ declare module Common.Interfaces {
     }
 }
 declare module Common.Interfaces {
-    interface IFieldElement extends Common.Interfaces.IModifiable {
+    interface IFieldElement extends Common.Interfaces.IActionable {
         field: Common.Interfaces.IField;
         ball: Common.Interfaces.IBall;
         relativeElement: Common.Interfaces.IFieldElement;
         paper: Common.Interfaces.IPaper;
         grid: Common.Interfaces.IGrid;
         layer: Common.Models.Layer;
-        contextmenuTemplateUrl: string;
+        initialize(field: Common.Interfaces.IField, relativeElement: Common.Interfaces.IFieldElement): void;
         draw(): void;
         hoverIn(e: any): void;
         hoverOut(e: any): void;
         click(e: any): void;
+        deselect(): void;
+        select(): void;
+        toggleSelect(metaKey: boolean): void;
         mousedown(e: any): void;
         mousemove(e: any): void;
         contextmenu(e: any): void;
@@ -372,7 +393,7 @@ declare module Common.Interfaces {
     }
 }
 declare module Common.Interfaces {
-    interface IRoute extends Common.Interfaces.IModifiable {
+    interface IRoute extends Common.Interfaces.IFieldElement {
         player: Common.Interfaces.IPlayer;
         field: Common.Interfaces.IField;
         layer: Common.Models.Layer;
@@ -381,6 +402,8 @@ declare module Common.Interfaces {
         nodes: Common.Models.LinkedList<Common.Interfaces.IRouteNode>;
         routePath: Common.Interfaces.IRoutePath;
         dragInitialized: boolean;
+        type: Common.Enums.RouteTypes;
+        renderType: Common.Enums.RenderTypes;
         draw(): void;
         initializeCurve(coords: Common.Models.Coordinates, flip?: boolean): any;
         addNode(routeNode: Common.Interfaces.IRouteNode, render?: boolean): Common.Interfaces.IRouteNode;
@@ -393,7 +416,6 @@ declare module Common.Interfaces {
     interface IRouteAction extends Common.Interfaces.IFieldElement {
         routeNode: Common.Interfaces.IRouteNode;
         action: Common.Enums.RouteNodeActions;
-        actionable: boolean;
     }
 }
 declare module Common.Interfaces {
@@ -405,7 +427,7 @@ declare module Common.Interfaces {
         type: Common.Enums.RouteNodeTypes;
         routeAction: Common.Interfaces.IRouteAction;
         routeControlPath: Common.Interfaces.IRouteControlPath;
-        player: Common.Interfaces.IPlayer;
+        route: Common.Interfaces.IRoute;
     }
 }
 declare module Common.Interfaces {
@@ -486,7 +508,7 @@ declare module Common.Models {
         generateChecksum(): string;
         copy(newElement: Common.Interfaces.IModifiable, context: Common.Interfaces.IModifiable): Common.Interfaces.IModifiable;
         toJson(): any;
-        fromJson(json: any): void;
+        fromJson(json: any, ...args: any[]): void;
     }
 }
 declare module Common.Models {
@@ -651,8 +673,20 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
-    abstract class Actionable extends Common.Models.Modifiable implements Common.Interfaces.IActionable, Common.Interfaces.IContextual {
+    class ActionRegistry {
+        delete: Function[];
+        edit: Function[];
+        save: Function[];
+        update: Function[];
+        create: Function[];
+        details: Function[];
+        constructor();
+    }
+}
+declare module Common.Models {
+    abstract class Actionable extends Common.Models.Modifiable implements Common.Interfaces.IActionable, Common.Interfaces.IContextual, Common.Interfaces.IHoverable {
         impaktDataType: Common.Enums.ImpaktDataTypes;
+        graphics: Common.Models.Graphics;
         disabled: boolean;
         clickable: boolean;
         hoverable: boolean;
@@ -662,14 +696,20 @@ declare module Common.Models {
         draggable: boolean;
         dragged: boolean;
         contextmenuTemplateUrl: string;
+        actions: Common.Models.ActionRegistry;
         constructor(impaktDataType: Common.Enums.ImpaktDataTypes);
         toJson(): any;
         fromJson(json: any): void;
+        hasGraphics(): boolean;
+        /**
+         * Toggles the opacity for show/hide effect
+         */
+        toggleOpacity(): void;
         /**
          * Generic selection toggle
          */
         isSelectable(): boolean;
-        toggleSelect(): void;
+        toggleSelect(metaKey?: boolean): void;
         /**
          * Generic selection method
          */
@@ -686,9 +726,21 @@ declare module Common.Models {
          * Generic enable method
          */
         enable(): void;
-        oncontextmenu(fn: any, context: any): void;
-        contextmenu(e: any, context: any): void;
         getContextmenuUrl(): string;
+        drop(): void;
+        onhover(hoverIn: any, hoverOut: any, context: Common.Interfaces.IActionable): void;
+        hoverIn(e: any): void;
+        hoverOut(e: any): void;
+        onclick(fn: any, context: Common.Interfaces.IActionable): void;
+        click(e: any): void;
+        oncontextmenu(fn: any, context: Common.Interfaces.IActionable): void;
+        contextmenu(e: any): void;
+        onmousedown(fn: any, context: Common.Interfaces.IActionable): void;
+        onmouseup(fn: any, context: Common.Interfaces.IActionable): void;
+        mousedown(e: any): void;
+        onmousemove(fn: any, context: Common.Interfaces.IActionable): void;
+        mousemove(e: any): void;
+        ondrag(dragMove: Function, dragStart: Function, dragEnd: Function, context: Common.Interfaces.IActionable): void;
     }
 }
 declare module Common.Models {
@@ -918,12 +970,16 @@ declare module Common.Icons {
 declare module Common.Models {
     class Assignment extends Common.Models.AssociableEntity {
         routes: Common.Models.RouteCollection;
+        routeArray: any[];
         positionIndex: number;
         setType: Common.Enums.SetTypes;
         unitType: Team.Enums.UnitTypes;
         constructor(unitType: Team.Enums.UnitTypes);
         remove(): void;
         setContext(context: any): void;
+        draw(): void;
+        setRoutes(player: Common.Interfaces.IPlayer, routeType: Common.Enums.RenderTypes): void;
+        hasRouteArray(): boolean;
         fromJson(json: any): void;
         toJson(): any;
     }
@@ -1254,13 +1310,12 @@ declare module Common.Drawing {
 }
 declare module Common.Models {
     class Layer extends Common.Models.Modifiable {
-        paper: Common.Interfaces.IPaper;
-        graphics: Common.Models.Graphics;
+        actionable: Common.Interfaces.IActionable;
         type: Common.Enums.LayerTypes;
         zIndex: number;
         layers: Common.Models.LayerCollection;
         visible: boolean;
-        constructor(paper: Common.Interfaces.IPaper, layerType: Common.Enums.LayerTypes);
+        constructor(actionable: Common.Interfaces.IActionable, layerType: Common.Enums.LayerTypes);
         containsLayer(layer: Common.Models.Layer): boolean;
         addLayer(layer: Common.Models.Layer): void;
         removeLayer(layer: Common.Models.Layer): Common.Models.Layer;
@@ -1273,6 +1328,7 @@ declare module Common.Models {
         hideLayers(): void;
         remove(): void;
         removeGraphics(): void;
+        setPlacement(placement: Common.Models.Placement): void;
         moveByDelta(dx: number, dy: number): void;
         drop(): void;
         hasLayers(): boolean;
@@ -1531,7 +1587,7 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
-    abstract class FieldElement extends Common.Models.Modifiable implements Common.Interfaces.IFieldElement, Common.Interfaces.ILayerable, Common.Interfaces.IContextual {
+    abstract class FieldElement extends Common.Models.Actionable implements Common.Interfaces.IFieldElement, Common.Interfaces.ILayerable {
         field: Common.Interfaces.IField;
         ball: Common.Interfaces.IBall;
         canvas: Common.Interfaces.ICanvas;
@@ -1542,20 +1598,13 @@ declare module Common.Models {
         name: string;
         private _originalScreenPositionX;
         private _originalScreenPositionY;
-        /**
-         *
-         * contextual attributes
-         *
-         */
-        contextmenuTemplateUrl: string;
-        constructor(field: Common.Interfaces.IField, relativeElement: Common.Interfaces.IFieldElement);
+        constructor();
+        initialize(field: Common.Interfaces.IField, relativeElement: Common.Interfaces.IFieldElement): void;
+        getContextmenuUrl(): string;
         hasLayer(): boolean;
         getLayer(): Common.Models.Layer;
-        hasGraphics(): boolean;
         getGraphics(): Common.Models.Graphics;
         hasPlacement(): boolean;
-        getContextmenuUrl(): string;
-        toggleSelect(metaKey: boolean): void;
         /**
          *
          *
@@ -1577,10 +1626,8 @@ declare module Common.Models {
         hoverIn(e: any): void;
         hoverOut(e: any): void;
         click(e: any): void;
-        mouseup(e: any): void;
+        toggleSelect(metaKey?: boolean): void;
         mousedown(e: any): void;
-        mousemove(e: any): void;
-        contextmenu(e: any): void;
         dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void;
         dragStart(x: number, y: number, e: any): void;
         dragEnd(e: any): void;
@@ -1597,43 +1644,57 @@ declare module Common.Models {
 declare module Common.Models {
     abstract class Ball extends Common.Models.FieldElement {
         offset: number;
-        constructor(field: Common.Interfaces.IField);
+        constructor();
+        initialize(field: Common.Interfaces.IField): void;
         draw(): void;
     }
 }
 declare module Common.Models {
     abstract class Ground extends Common.Models.FieldElement {
-        constructor(field: Common.Interfaces.IField);
+        constructor();
+        initialize(field: Common.Interfaces.IField, relativeElement: Common.Interfaces.IFieldElement): void;
         draw(): void;
         click(e: any): void;
-        dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void;
-        dragStart(x: number, y: number, e: any): void;
-        dragEnd(e: any): void;
         getClickCoordinates(offsetX: number, offsetY: number): Common.Models.Coordinates;
+        getClickAbsolute(offsetX: number, offsetY: number): Common.Models.Coordinates;
     }
 }
 declare module Common.Models {
     abstract class LineOfScrimmage extends Common.Models.FieldElement {
-        constructor(field: Common.Interfaces.IField);
+        constructor();
+        initialize(field: Common.Interfaces.IField): void;
     }
 }
 declare module Common.Models {
     abstract class Endzone extends Common.Models.FieldElement {
-        constructor(context: Common.Interfaces.IField, offsetY: number);
+        offsetY: number;
+        constructor(offsetY: number);
+        initialize(field: Common.Interfaces.IField): void;
         draw(): void;
     }
 }
 declare module Common.Models {
     abstract class Hashmark extends Common.Models.FieldElement {
+        offsetX: number;
         start: number;
         yards: number;
-        constructor(field: Common.Interfaces.IField, x: number);
+        constructor(offsetX: number);
+        initialize(field: Common.Interfaces.IField): void;
         draw(): void;
     }
 }
 declare module Common.Models {
     abstract class Sideline extends Common.Models.FieldElement {
-        constructor(field: Common.Interfaces.IField, x: number);
+        offsetX: number;
+        constructor(offsetX: number);
+        initialize(field: Common.Interfaces.IField): void;
+        draw(): void;
+    }
+}
+declare module Common.Models {
+    class FieldSelectionBox extends Common.Models.FieldElement {
+        constructor();
+        initialize(field: Common.Interfaces.IField, relativeElement: Common.Interfaces.IFieldElement): void;
         draw(): void;
     }
 }
@@ -1646,6 +1707,7 @@ declare module Common.Models {
          */
         position: Team.Models.Position;
         assignment: Common.Models.Assignment;
+        placement: Common.Models.Placement;
         /**
          *
          * Graphics layers
@@ -1657,7 +1719,8 @@ declare module Common.Models {
         relativeCoordinatesLabel: Common.Interfaces.IPlayerRelativeCoordinatesLabel;
         personnelLabel: Common.Interfaces.IPlayerPersonnelLabel;
         indexLabel: any;
-        constructor(field: Common.Interfaces.IField, placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment);
+        constructor(placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment);
+        initialize(field: Common.Interfaces.IField): void;
         remove(): void;
         abstract draw(): void;
         getPositionRelativeToBall(): Common.Models.RelativeCoordinates;
@@ -1739,7 +1802,9 @@ declare module Common.Models {
         layer: Common.Models.Layer;
         dragInitialized: boolean;
         type: Common.Enums.RouteTypes;
-        constructor(player: Common.Interfaces.IPlayer);
+        renderType: Common.Enums.RenderTypes;
+        constructor(dragInitialized?: boolean);
+        setPlayer(player: Common.Interfaces.IPlayer): void;
         abstract moveNodesByDelta(dx: number, dy: number): any;
         abstract setContext(player: Common.Interfaces.IPlayer): any;
         abstract initializeCurve(coords: Common.Models.Coordinates, flip?: boolean): any;
@@ -1762,8 +1827,8 @@ declare module Common.Models {
     abstract class RouteAction extends Common.Models.FieldElement {
         routeNode: Common.Interfaces.IRouteNode;
         action: Common.Enums.RouteNodeActions;
-        actionable: boolean;
-        constructor(routeNode: Common.Models.RouteNode, action: Common.Enums.RouteNodeActions);
+        constructor(action: Common.Enums.RouteNodeActions);
+        initialize(field: Common.Interfaces.IField, routeNode: Common.Interfaces.IFieldElement): void;
         draw(): void;
         toJson(): any;
         fromJson(json: any): void;
@@ -1773,14 +1838,15 @@ declare module Common.Models {
     class RouteCollection extends Common.Models.Collection<Common.Interfaces.IRoute> {
         constructor();
         toJson(): any;
-        fromJson(json: any): void;
+        fromJson(routes: any[]): void;
     }
 }
 declare module Common.Models {
     abstract class RouteControlPath extends Common.Models.FieldElement {
-        routeNode: Common.Models.RouteNode;
+        routeNode: Common.Interfaces.IRouteNode;
         pathString: string;
-        constructor(routeNode: Common.Models.RouteNode);
+        constructor();
+        initialize(field: Common.Interfaces.IField, routeNode: Common.Interfaces.IFieldElement): void;
         toJson(): any;
         fromJson(json: any): void;
         draw(): void;
@@ -1788,18 +1854,25 @@ declare module Common.Models {
 }
 declare module Common.Models {
     abstract class RouteNode extends Common.Models.FieldElement implements Common.Interfaces.IRouteNode, Common.Interfaces.ILinkedListNode<Common.Interfaces.IRouteNode> {
-        route: Common.Interfaces.IRoute;
         next: Common.Interfaces.IRouteNode;
         prev: Common.Interfaces.IRouteNode;
         type: Common.Enums.RouteNodeTypes;
         routeAction: Common.Interfaces.IRouteAction;
         routeControlPath: Common.Interfaces.IRouteControlPath;
-        player: Common.Interfaces.IPlayer;
-        constructor(route: Common.Interfaces.IRoute, relativeCoordinates: Common.Models.RelativeCoordinates, type: Common.Enums.RouteNodeTypes);
+        route: Common.Interfaces.IRoute;
+        renderType: Common.Enums.RenderTypes;
+        relativeCoordinates: Common.Models.RelativeCoordinates;
+        constructor(relativeCoordinates: Common.Models.RelativeCoordinates, type: Common.Enums.RouteNodeTypes);
+        initialize(field: Common.Interfaces.IField, route: Common.Interfaces.IFieldElement): void;
         draw(): void;
-        setContext(route: Common.Interfaces.IRoute): void;
         fromJson(json: any): void;
-        toJson(): any;
+        toJson(): {
+            relative: any;
+            type: Enums.RouteNodeTypes;
+            routeAction: any;
+            renderType: Enums.RenderTypes;
+            guid: string;
+        };
         isCurveNode(): boolean;
         setAction(action: Common.Enums.RouteNodeActions): void;
     }
@@ -1808,7 +1881,8 @@ declare module Common.Models {
     abstract class RoutePath extends Common.Models.FieldElement {
         route: Common.Interfaces.IRoute;
         pathString: string;
-        constructor(route: Common.Interfaces.IRoute);
+        constructor();
+        initialize(field: Common.Interfaces.IField, route: Common.Interfaces.IFieldElement): void;
         toJson(): any;
         remove(): void;
         fromJson(json: any): void;
@@ -1902,7 +1976,7 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
-    class Graphics extends Common.Models.Actionable implements Common.Interfaces.IDrawable, Common.Interfaces.IHoverable {
+    class Graphics extends Common.Models.Modifiable implements Common.Interfaces.IDrawable {
         paper: Common.Interfaces.IPaper;
         grid: Common.Interfaces.IGrid;
         raphael: any;
@@ -1920,6 +1994,7 @@ declare module Common.Models {
          */
         opacity: number;
         fill: string;
+        fillOpacity: number;
         stroke: string;
         strokeWidth: number;
         /**
@@ -1928,6 +2003,7 @@ declare module Common.Models {
          *
          */
         originalOpacity: number;
+        originalFillOpacity: number;
         originalFill: string;
         originalStroke: string;
         originalStrokeWidth: number;
@@ -1937,12 +2013,15 @@ declare module Common.Models {
          *
          */
         selectedFill: string;
+        selectedFillOpacity: number;
         selectedStroke: string;
         selectedOpacity: number;
         disabledFill: string;
+        disabledFillOpacity: number;
         disabledStroke: string;
         disabledOpacity: number;
         hoverOpacity: number;
+        hoverFillOpacity: number;
         constructor(paper: Common.Interfaces.IPaper);
         toJson(): any;
         fromJson(json: any): any;
@@ -1959,6 +2038,9 @@ declare module Common.Models {
         getFill(): string;
         setFill(fill: string): Common.Models.Graphics;
         setOriginalFill(fill: string): Common.Models.Graphics;
+        getFillOpacity(): number;
+        setFillOpacity(opacity: number): Common.Models.Graphics;
+        setOriginalFillOpacity(opacity: number): Common.Models.Graphics;
         getStroke(): string;
         setStroke(stroke: string): Common.Models.Graphics;
         setOriginalStroke(stroke: string): Common.Models.Graphics;
@@ -1967,6 +2049,7 @@ declare module Common.Models {
         setStrokeWidth(width: number): Common.Models.Graphics;
         setOriginalStrokeWidth(width: number): Common.Models.Graphics;
         setHoverOpacity(opacity: number): Common.Models.Graphics;
+        setHoverFillOpacity(opacity: number): Common.Models.Graphics;
         /**
          *
          * Dimension pass-through methods
@@ -1978,20 +2061,12 @@ declare module Common.Models {
          * @return {number} [description]
          */
         getOpacity(): number;
-        /**
-         * Sets the opacity to the given value
-         * @param {number} value The opacity to set
-         */
         setOpacity(opacity: number): Common.Models.Graphics;
         setOriginalOpacity(opacity: number): Common.Models.Graphics;
         /**
          * Toggles the opacity for show/hide effect
          */
         toggleOpacity(): void;
-        /**
-         * Generic selection method
-         */
-        toggleSelect(): void;
         select(): void;
         /**
          * Generic deselection method
@@ -2050,7 +2125,12 @@ declare module Common.Models {
         toBack(): Common.Models.Graphics;
         attr(attrs: any): Common.Models.Graphics;
         setAttribute(attribute: string, value: string): void;
-        getBBox(isWithoutTransforms?: boolean): void;
+        getBBox(isWithoutTransforms?: boolean): {
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+        };
         transform(ax: number, ay: number): void;
         rotate(degrees: number): void;
         remove(): void;
@@ -2073,52 +2153,52 @@ declare module Common.Models {
          * @param {any} hoverOut [description]
          * @param {any} context  [description]
          */
-        onhover(hoverIn: any, hoverOut: any, context: Common.Interfaces.IFieldElement): void;
-        hoverIn(e: any, context: Common.Interfaces.IFieldElement): void;
-        hoverOut(e: any, context: Common.Interfaces.IFieldElement): void;
+        onhover(hoverIn: any, hoverOut: any, context: Common.Interfaces.IActionable): void;
+        hoverIn(e: any): void;
+        hoverOut(e: any): void;
         /**
          * Click events
          * @param {any} fn      [description]
          * @param {any} context [description]
          */
-        onclick(fn: any, context: Common.Interfaces.IFieldElement): void;
-        click(e: any, context: Common.Interfaces.IFieldElement): void;
-        oncontextmenu(fn: any, context: Common.Interfaces.IFieldElement): void;
-        contextmenu(e: any, context: Common.Interfaces.IFieldElement): void;
+        onclick(fn: any, context: Common.Interfaces.IActionable): void;
+        click(e: any): void;
+        oncontextmenu(fn: any, context: Common.Interfaces.IActionable): void;
+        contextmenu(e: any): void;
         /**
          * Mouse down event handler registration method
          * @param {any}                             fn      [description]
-         * @param {Common.Interfaces.IFieldElement} context [description]
+         * @param {Common.Interfaces.IActionable} context [description]
          */
-        onmousedown(fn: any, context: Common.Interfaces.IFieldElement): void;
+        onmousedown(fn: any, context: Common.Interfaces.IActionable): void;
         /**
          * Mouse up event handler registration method
          * @param {any}                             fn      [description]
-         * @param {Common.Interfaces.IFieldElement} context [description]
+         * @param {Common.Interfaces.IActionable} context [description]
          */
-        onmouseup(fn: any, context: Common.Interfaces.IFieldElement): void;
+        onmouseup(fn: any, context: Common.Interfaces.IActionable): void;
         /**
          * Default mousedown handler to be called if no other handlers are
          * registered with onmousedown
          * @param {any}                             e       [description]
-         * @param {Common.Interfaces.IFieldElement} context [description]
+         * @param {Common.Interfaces.IActionable} context [description]
          */
-        mousedown(e: any, context: Common.Interfaces.IFieldElement): void;
+        mousedown(e: any): void;
         /**
          * Mouse move event handler registration method; attaches listeners
          * to be fired when the cursor moves over an element (such as for cursor tracking)
          * @param {any}                             fn      [description]
-         * @param {Common.Interfaces.IFieldElement} context [description]
+         * @param {Common.Interfaces.IActionable} context [description]
          */
-        onmousemove(fn: any, context: Common.Interfaces.IFieldElement): void;
+        onmousemove(fn: any, context: Common.Interfaces.IActionable): void;
         /**
          * Default mouse move handler to be called if no other handlers are
          * registered with onmousedown
          * @param {any}                             e       [description]
-         * @param {Common.Interfaces.IFieldElement} context [description]
+         * @param {Common.Interfaces.IActionable} context [description]
          */
-        mousemove(e: any, context: Common.Interfaces.IFieldElement): void;
-        ondrag(dragMove: Function, dragStart: Function, dragEnd: Function, context: Common.Interfaces.IFieldElement): void;
+        mousemove(e: any): void;
+        ondrag(dragMove: Function, dragStart: Function, dragEnd: Function, context: Common.Interfaces.IActionable): void;
         drop(): void;
     }
 }
@@ -2400,7 +2480,10 @@ declare module Common.Enums {
         Option = 9,
         HandOff = 10,
         Pitch = 11,
-        Preview = 12,
+    }
+    enum RenderTypes {
+        Preview = 0,
+        Editor = 1,
     }
     enum RouteNodeTypes {
         None = 0,
@@ -2419,6 +2502,19 @@ declare module Common.Enums {
         Juke = 4,
         ZigZag = 5,
     }
+    enum Actions {
+        None = 0,
+        Create = 1,
+        Save = 2,
+        Overwrite = 3,
+        Copy = 4,
+        Edit = 5,
+        Update = 6,
+        Delete = 7,
+        View = 8,
+        Details = 9,
+        Select = 10,
+    }
 }
 declare module Common.Constants {
     const DEFAULT_GRID_COLS: number;
@@ -2435,6 +2531,7 @@ declare module Common.Constants {
     const DEFAULT_CONTEXTMENU_TEMPLATE_URL: string;
     const EDITOR_ROUTENODE_CONTEXTMENU_TEMPLATE_URL: string;
     const PLAY_CONTEXTMENU_TEMPLATE_URL: string;
+    const PLAYER_CONTEXTMENU_TEMPLATE_URL: string;
 }
 declare module Common.Factories {
     class PlayerIconFactory {
@@ -2582,6 +2679,7 @@ declare module Common {
          */
         static generateChecksum(json: any): any;
         private static prepareObjectForEncoding(obj);
+        static isNotNullOrUndefined(obj: any): boolean;
         static isNullOrUndefined(obj: any): boolean;
         static isNull(obj: any): boolean;
         static isUndefined(obj: any): boolean;
@@ -2614,17 +2712,20 @@ declare module Playbook.Models {
 }
 declare module Playbook.Models {
     class EditorEndzone extends Common.Models.Endzone implements Common.Interfaces.IEndzone {
-        constructor(context: Common.Interfaces.IField, offsetY: number);
+        constructor(offsetY: number);
+        initialize(field: Common.Interfaces.IField): void;
     }
 }
 declare module Playbook.Models {
     class PreviewEndzone extends Common.Models.Endzone implements Common.Interfaces.IEndzone {
-        constructor(context: Common.Interfaces.IField, offsetY: number);
+        constructor(offsetY: number);
+        initialize(field: Common.Interfaces.IField): void;
     }
 }
 declare module Playbook.Models {
     class EditorBall extends Common.Models.Ball implements Common.Interfaces.IBall {
-        constructor(field: Common.Interfaces.IField);
+        constructor();
+        initialize(field: Common.Interfaces.IField): void;
         draw(): void;
         dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void;
         dragStart(x: number, y: number, e: any): void;
@@ -2633,7 +2734,8 @@ declare module Playbook.Models {
 }
 declare module Playbook.Models {
     class PreviewBall extends Common.Models.Ball implements Common.Interfaces.IBall {
-        constructor(field: Common.Interfaces.IField);
+        constructor();
+        initialize(field: Common.Interfaces.IField): void;
         dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void;
         dragStart(x: number, y: number, e: any): void;
         dragEnd(e: any): void;
@@ -2649,6 +2751,7 @@ declare module Playbook.Models {
         initialize(): void;
         draw(): void;
         useAssignmentTool(coords: Common.Models.Coordinates): void;
+        private _addAssignmentToPlayer(player, relativeCoords);
         export(): any;
         placeAtYardline(element: any, yardline: any): void;
         remove(): void;
@@ -2702,13 +2805,15 @@ declare module Playbook.Models {
 }
 declare module Playbook.Models {
     class PreviewLineOfScrimmage extends Common.Models.LineOfScrimmage {
-        constructor(field: Common.Interfaces.IField);
+        constructor();
+        initialize(field: Common.Interfaces.IField): void;
         draw(): void;
     }
 }
 declare module Playbook.Models {
     class EditorLineOfScrimmage extends Common.Models.LineOfScrimmage {
-        constructor(field: Common.Interfaces.IField);
+        constructor();
+        initialize(field: Common.Interfaces.IField): void;
         draw(): void;
         dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void;
         dragStart(e: any): void;
@@ -2717,7 +2822,7 @@ declare module Playbook.Models {
 }
 declare module Playbook.Models {
     class PreviewGround extends Common.Models.Ground {
-        constructor(field: Common.Interfaces.IField);
+        constructor();
         draw(): void;
         hoverIn(e: any): void;
         hoverOut(e: any): void;
@@ -2730,39 +2835,49 @@ declare module Playbook.Models {
 }
 declare module Playbook.Models {
     class EditorGround extends Common.Models.Ground {
-        constructor(field: Common.Interfaces.IField);
+        selectionBox: Common.Models.FieldSelectionBox;
+        constructor();
+        initialize(field: Common.Interfaces.IField, relativeElement: Common.Interfaces.IFieldElement): void;
         draw(): void;
         mousemove(e: any): void;
         click(e: any): void;
+        dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void;
+        dragStart(x: number, y: number, e: any): void;
+        dragEnd(e: any): void;
     }
 }
 declare module Playbook.Models {
     class PreviewHashmark extends Common.Models.Hashmark implements Common.Interfaces.IHashmark {
-        constructor(field: Common.Interfaces.IField, x: number);
+        constructor(offsetX: number);
     }
 }
 declare module Playbook.Models {
     class EditorHashmark extends Common.Models.Hashmark implements Common.Interfaces.IHashmark {
-        constructor(field: Common.Interfaces.IField, x: number);
+        constructor(offsetX: number);
     }
 }
 declare module Playbook.Models {
     class PreviewSideline extends Common.Models.Sideline {
-        constructor(field: Common.Interfaces.IField, offsetX: number);
+        constructor(offsetX: number);
+        initialize(field: Common.Interfaces.IField): void;
     }
 }
 declare module Playbook.Models {
     class EditorSideline extends Common.Models.Sideline {
-        constructor(field: Common.Interfaces.IField, offsetX: number);
+        constructor(offsetX: number);
     }
 }
 declare module Playbook.Models {
     class EditorPlayer extends Common.Models.Player implements Common.Interfaces.IPlayer {
-        constructor(field: Common.Interfaces.IField, placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment);
+        constructor(placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment);
+        initialize(field: Common.Interfaces.IField): void;
         draw(): void;
         remove(): void;
         mousedown(e: any): void;
         click(e: any): any;
+        toggleSelect(metaKey: boolean): void;
+        deselect(): void;
+        select(): void;
         dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void;
         dragStart(x: number, y: number, e: any): void;
         dragEnd(e: any): void;
@@ -2777,7 +2892,8 @@ declare module Playbook.Models {
 }
 declare module Playbook.Models {
     class PreviewPlayer extends Common.Models.Player implements Common.Interfaces.IPlayer, Common.Interfaces.IPlaceable, Common.Interfaces.ILayerable {
-        constructor(context: Common.Interfaces.IField, placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment);
+        constructor(placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment);
+        initialize(field: Common.Interfaces.IField): void;
         draw(): void;
         dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void;
         dragStart(x: number, y: number, e: any): void;
@@ -2841,31 +2957,32 @@ declare module Playbook.Models {
 }
 declare module Playbook.Models {
     class PreviewRoute extends Common.Models.Route implements Common.Interfaces.IRoute {
-        constructor(player: Common.Interfaces.IPlayer);
-        draw(): void;
+        constructor();
+        setPlayer(player: Common.Interfaces.IPlayer): void;
         setContext(player: Common.Interfaces.IPlayer): void;
         moveNodesByDelta(dx: number, dy: number): void;
         initializeCurve(coords: Common.Models.Coordinates, flip?: boolean): void;
-        fromJson(json: any): any;
     }
 }
 declare module Playbook.Models {
     class EditorRoute extends Common.Models.Route implements Common.Interfaces.IRoute {
-        constructor(player: Common.Interfaces.IPlayer, dragInitialized?: boolean);
+        constructor(dragInitialized?: boolean);
+        setPlayer(player: Common.Interfaces.IPlayer): void;
         setContext(player: Common.Interfaces.IPlayer): void;
-        fromJson(json: any): any;
         initializeCurve(coords: Common.Models.Coordinates, flip?: boolean): void;
         moveNodesByDelta(dx: number, dy: number): void;
     }
 }
 declare module Playbook.Models {
     class PreviewRouteNode extends Common.Models.RouteNode implements Common.Interfaces.IRouteNode {
-        constructor(route: Common.Interfaces.IRoute, relativeCoordinates: Common.Models.RelativeCoordinates, type: Common.Enums.RouteNodeTypes);
+        constructor(relativeCoordinates: Common.Models.RelativeCoordinates, type: Common.Enums.RouteNodeTypes);
+        initialize(field: Common.Interfaces.IField, route: Common.Interfaces.IFieldElement): void;
     }
 }
 declare module Playbook.Models {
     class EditorRouteNode extends Common.Models.RouteNode implements Common.Interfaces.IRouteNode {
-        constructor(route: Common.Interfaces.IRoute, relativeCoordinates: Common.Models.RelativeCoordinates, type: Common.Enums.RouteNodeTypes);
+        constructor(relativeCoordinates: Common.Models.RelativeCoordinates, type: Common.Enums.RouteNodeTypes);
+        initialize(field: Common.Interfaces.IField, route: Common.Interfaces.IFieldElement): void;
         draw(): void;
         hoverIn(e: any): void;
         hoverOut(e: any): void;
@@ -2879,34 +2996,38 @@ declare module Playbook.Models {
 }
 declare module Playbook.Models {
     class PreviewRoutePath extends Common.Models.RoutePath implements Common.Interfaces.IRoutePath {
-        constructor(route: Common.Interfaces.IRoute);
+        constructor();
+        initialize(field: Common.Interfaces.IField, route: Common.Interfaces.IFieldElement): void;
     }
 }
 declare module Playbook.Models {
     class EditorRoutePath extends Common.Models.RoutePath implements Common.Interfaces.IRoutePath {
-        constructor(route: Common.Interfaces.IRoute);
+        constructor();
+        initialize(field: Common.Interfaces.IField, route: Common.Interfaces.IFieldElement): void;
     }
 }
 declare module Playbook.Models {
     class PreviewRouteAction extends Common.Models.RouteAction implements Common.Interfaces.IRouteAction {
-        constructor(routeNode: Common.Models.RouteNode, action: Common.Enums.RouteNodeActions);
+        constructor(action: Common.Enums.RouteNodeActions);
+        initialize(field: Common.Interfaces.IField, relativeElement: Common.Interfaces.IFieldElement): void;
         draw(): void;
     }
 }
 declare module Playbook.Models {
     class EditorRouteAction extends Common.Models.RouteAction implements Common.Interfaces.IRouteAction {
-        constructor(routeNode: Common.Models.RouteNode, action: Common.Enums.RouteNodeActions);
+        constructor(action: Common.Enums.RouteNodeActions);
+        initialize(field: Common.Interfaces.IField, relativeElement: Common.Interfaces.IFieldElement): void;
     }
 }
 declare module Playbook.Models {
     class PreviewRouteControlPath extends Common.Models.RouteControlPath implements Common.Interfaces.IRouteControlPath {
-        constructor(routeNode: Common.Models.RouteNode);
+        constructor();
         draw(): void;
     }
 }
 declare module Playbook.Models {
     class EditorRouteControlPath extends Common.Models.RouteControlPath implements Common.Interfaces.IRouteControlPath {
-        constructor(routeNode: Common.Models.RouteNode);
+        constructor();
     }
 }
 declare module Playbook.Models {

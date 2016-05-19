@@ -15,17 +15,38 @@ module Playbook.Models {
         }
 
         public initialize(): void {
-            this.ball = new Playbook.Models.PreviewBall(this);
-            this.ground = new Playbook.Models.PreviewGround(this);
-            this.los = new Playbook.Models.PreviewLineOfScrimmage(this);
-            this.endzone_top = new Playbook.Models.PreviewEndzone(this, 0);
-            this.endzone_bottom = new Playbook.Models.PreviewEndzone(this, 110);
-            this.sideline_left = new Playbook.Models.PreviewSideline(this, 0);
-            this.sideline_right = new Playbook.Models.PreviewSideline(this, 51);
-            this.hashmark_left = new Playbook.Models.PreviewHashmark(this, 22);
-            this.hashmark_right = new Playbook.Models.PreviewHashmark(this, 28);
-            this.hashmark_sideline_left = new Playbook.Models.PreviewHashmark(this, 2);
-            this.hashmark_sideline_right = new Playbook.Models.PreviewHashmark(this, 50);
+            this.ball = new Playbook.Models.PreviewBall();
+            this.ball.initialize(this, null);
+            
+            this.ground = new Playbook.Models.PreviewGround();
+            this.ground.initialize(this, null);
+
+            this.los = new Playbook.Models.PreviewLineOfScrimmage();
+            this.los.initialize(this, null);
+
+            this.endzone_top = new Playbook.Models.PreviewEndzone(0);
+            this.endzone_top.initialize(this, null);
+
+            this.endzone_bottom = new Playbook.Models.PreviewEndzone(110);
+            this.endzone_bottom.initialize(this, null);
+
+            this.sideline_left = new Playbook.Models.PreviewSideline(0);
+            this.sideline_left.initialize(this, null);
+
+            this.sideline_right = new Playbook.Models.PreviewSideline(51);
+            this.sideline_right.initialize(this, null);
+
+            this.hashmark_left = new Playbook.Models.PreviewHashmark(22);
+            this.hashmark_left.initialize(this, null);
+
+            this.hashmark_right = new Playbook.Models.PreviewHashmark(28);
+            this.hashmark_right.initialize(this, null);
+
+            this.hashmark_sideline_left = new Playbook.Models.PreviewHashmark(2);
+            this.hashmark_sideline_left.initialize(this, null);
+
+            this.hashmark_sideline_right = new Playbook.Models.PreviewHashmark(50);
+            this.hashmark_sideline_right.initialize(this, null);
 
             this.layers.add(this.ball.layer);
             this.layers.add(this.ground.layer);
@@ -68,14 +89,16 @@ module Playbook.Models {
             // adjust for no sidelines...
             //placement.x -= 1;
             let player = new Playbook.Models.PreviewPlayer(
-                this, 
                 placement, 
                 position, 
                 assignment
             );
 
+            player.initialize(this);
+
             // TODO @theBull - add players to new layers
             player.draw();
+            
             this.players.add(player);
             return player;
         }

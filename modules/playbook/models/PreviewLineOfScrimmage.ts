@@ -6,16 +6,20 @@ module Playbook.Models {
     export class PreviewLineOfScrimmage
     extends Common.Models.LineOfScrimmage {
 
-        constructor(field: Common.Interfaces.IField) {
-            super(field);
-            this.layer.graphics.setOffsetXY(0, 2);
-            this.layer.graphics.dimensions.setHeight(1);
-            this.layer.graphics.hoverable = false;
-            this.layer.graphics.selectable = false;
+        constructor() {
+            super();
+            
+        }
+        public initialize(field: Common.Interfaces.IField): void {
+            super.initialize(field);
+            this.graphics.setOffsetXY(0, 2);
+            this.graphics.dimensions.setHeight(1);
+            this.hoverable = false;
+            this.selectable = false;
         }
         public draw(): void {
-            this.layer.graphics.rect();
-            //this.layer.graphics.disable();
+            this.graphics.rect();
+            //this.graphics.disable();
         }
     }
 }

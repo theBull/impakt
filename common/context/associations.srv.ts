@@ -83,7 +83,7 @@ function(
 		let notification = __notifications.pending(
 			'Updating data associations...');
 		
-		let associations = impakt.context.Associations.creation.toJson();
+		let associationsJson = impakt.context.Associations.associations.toJson();
 
 		__api.post(__api.path(
 			ASSOCIATIONS.ENDPOINT,
@@ -91,14 +91,12 @@ function(
 		), {
 			version: 1,
 			contextID: organizationKey + '',
-			associations: associations
+			associations: associationsJson
 		}).then(function(updatedAssociations: any) {
 			notification.success(
-				impakt.context.Associations.creation.size(), 
+				impakt.context.Associations.associations.size(), 
 				' Associations successfully updated'
 			);
-			impakt.context.Associations.associations.merge(impakt.context.Associations.creation);
-			impakt.context.Associations.creation.empty();
 			d.resolve();
 		}, function(err: any) {
 			notification.error('Failed to update Associations');
@@ -151,7 +149,7 @@ function(
 		toEntity: Common.Interfaces.IAssociable
 	): void {
 		let d = $q.defer();
-		impakt.context.Associations.creation.add(fromEntity, toEntity);
+		impakt.context.Associations.associations.add(fromEntity, toEntity);
 
 		this.updateAssociations()
 		.then(function() {
@@ -168,7 +166,7 @@ function(
 		associatedEntities: Common.Interfaces.IAssociable[]
 	): void {
 		let d = $q.defer();
-		impakt.context.Associations.creation.addAll(fromEntity, associatedEntities);
+		impakt.context.Associations.associations.addAll(fromEntity, associatedEntities);
 
 		this.updateAssociations()
 		.then(function() {
@@ -271,7 +269,7 @@ function(
 						results.formations.add(formation);
 					break;
 				case Common.Enums.ImpaktDataTypes.PersonnelGroup:
-					let personnel = impakt.context.Playbook.personnel.get(guid);
+					let personnel = impakt.context.Team.personnel.get(guid);
 					if (personnel)
 						results.personnel.add(personnel);
 					break;

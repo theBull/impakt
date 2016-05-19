@@ -6,11 +6,12 @@ module Playbook.Models {
     extends Common.Models.Endzone
     implements Common.Interfaces.IEndzone {
 
-        constructor(
-            context: Common.Interfaces.IField, 
-            offsetY: number
-        ) {
-            super(context, offsetY);
+        constructor(offsetY: number) {
+            super(offsetY);
+        }
+
+        public initialize(field: Common.Interfaces.IField) {
+            super.initialize(field);
         }
     }
 }

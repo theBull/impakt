@@ -155,8 +155,12 @@ module Common.Enums {
         Spy,
         Option,
         HandOff,
-        Pitch,
-        Preview
+        Pitch
+    }
+
+    export enum RenderTypes {
+    	Preview,
+    	Editor
     }
 
 	export enum RouteNodeTypes {
@@ -176,5 +180,19 @@ module Common.Enums {
         Continue,
         Juke,
         ZigZag
+    }
+
+    export enum Actions {
+    	None,
+    	Create,
+    	Save,
+    	Overwrite,
+    	Copy,
+    	Edit,
+    	Update,
+    	Delete,
+    	View,
+    	Details,
+    	Select
     }
 }

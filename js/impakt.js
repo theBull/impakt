@@ -229,7 +229,10 @@ var Common;
                 }, _super.prototype.toJson.call(this));
             };
             Modifiable.prototype.fromJson = function (json) {
-                this.modified = json.modified;
+                var args = [];
+                for (var _i = 1; _i < arguments.length; _i++) {
+                    args[_i - 1] = arguments[_i];
+                }
                 this.lastModified = json.lastModified;
                 this.original = json.checksum;
                 this.checksum = Common.Utilities.generateChecksum(this.toJson());
@@ -248,7 +251,7 @@ var Common;
         var Collection = (function (_super) {
             __extends(Collection, _super);
             function Collection(size) {
-                if (!Common.Utilities.isNullOrUndefined(size) && size < 0)
+                if (Common.Utilities.isNotNullOrUndefined(size) && size < 0)
                     throw new Error('Collection constructor(): Cannot create a collection with size < 0');
                 _super.call(this);
                 _super.prototype.setContext.call(this, this);
@@ -352,7 +355,16 @@ var Common;
                 }
                 else {
                     this[key] = data;
-                    this._keys.push(key);
+                    // NOTE:
+                    // Here, we must consider that since the collection can
+                    // be initialized with a given size, we don't want to just
+                    // arbitrarily 'push()' the added data on to the end of the
+                    // array; instead, we must use the internal _count variable
+                    // which keeps track of the actual number of elements in the
+                    // array, regardless of its initialized size, and always
+                    // add the new element at the index after the last-inserted
+                    // element.
+                    this._keys[this._count] = key;
                     this._count++;
                     var self_1 = this;
                     data.onModified(function () {
@@ -911,6 +923,19 @@ var Common;
 (function (Common) {
     var Models;
     (function (Models) {
+        var ActionRegistry = (function () {
+            function ActionRegistry() {
+            }
+            return ActionRegistry;
+        })();
+        Models.ActionRegistry = ActionRegistry;
+    })(Models = Common.Models || (Common.Models = {}));
+})(Common || (Common = {}));
+/// <reference path='./models.ts' />
+var Common;
+(function (Common) {
+    var Models;
+    (function (Models) {
         var Actionable = (function (_super) {
             __extends(Actionable, _super);
             function Actionable(impaktDataType) {
@@ -927,12 +952,29 @@ var Common;
                 this.selectable = true;
             }
             Actionable.prototype.toJson = function () {
-                return _super.prototype.toJson.call(this);
+                return $.extend({
+                    graphics: this.hasGraphics() ? this.graphics.toJson() : null
+                }, _super.prototype.toJson.call(this));
             };
             Actionable.prototype.fromJson = function (json) {
                 if (!json)
                     return;
+                // if(json.graphics)
+                //     this.graphics.fromJson(json.graphics);
                 _super.prototype.fromJson.call(this, json);
+            };
+            Actionable.prototype.hasGraphics = function () {
+                return Common.Utilities.isNotNullOrUndefined(this.graphics);
+            };
+            /**
+             * Toggles the opacity for show/hide effect
+             */
+            Actionable.prototype.toggleOpacity = function () {
+                if (!this.disabled &&
+                    !this.selected &&
+                    this.hoverable) {
+                    this.graphics.toggleOpacity();
+                }
             };
             /**
              * Generic selection toggle
@@ -940,7 +982,8 @@ var Common;
             Actionable.prototype.isSelectable = function () {
                 return !this.disabled && this.selectable;
             };
-            Actionable.prototype.toggleSelect = function () {
+            Actionable.prototype.toggleSelect = function (metaKey) {
+                metaKey = metaKey === true;
                 if (!this.isSelectable())
                     return;
                 if (this.selected)
@@ -955,6 +998,9 @@ var Common;
                 if (!this.isSelectable())
                     return;
                 this.selected = true;
+                if (this.hasGraphics()) {
+                    this.graphics.select();
+                }
             };
             /**
              * Generic deselection method
@@ -963,27 +1009,74 @@ var Common;
                 if (!this.isSelectable())
                     return;
                 this.selected = false;
+                if (this.hasGraphics()) {
+                    this.graphics.deselect();
+                }
             };
             /**
              * Generic disable method
              */
             Actionable.prototype.disable = function () {
                 this.disabled = true;
+                if (this.hasGraphics()) {
+                    this.graphics.disable();
+                }
             };
             /**
              * Generic enable method
              */
             Actionable.prototype.enable = function () {
                 this.disabled = false;
-            };
-            // TODO @theBull - implement here?
-            Actionable.prototype.oncontextmenu = function (fn, context) {
-            };
-            // TODO @theBull - implement here?
-            Actionable.prototype.contextmenu = function (e, context) {
+                if (this.hasGraphics()) {
+                    this.graphics.enable();
+                }
             };
             Actionable.prototype.getContextmenuUrl = function () {
                 return this.contextmenuTemplateUrl;
+            };
+            Actionable.prototype.drop = function () {
+                this.dragged = false;
+                this.dragging = false;
+                this.graphics.drop();
+            };
+            Actionable.prototype.onhover = function (hoverIn, hoverOut, context) {
+                this.graphics.onhover(hoverIn, hoverOut, context);
+            };
+            Actionable.prototype.hoverIn = function (e) {
+                this.graphics.hoverIn(e);
+            };
+            Actionable.prototype.hoverOut = function (e) {
+                this.graphics.hoverOut(e);
+            };
+            Actionable.prototype.onclick = function (fn, context) {
+                this.graphics.onclick(fn, context);
+            };
+            Actionable.prototype.click = function (e) {
+                this.graphics.click(e);
+            };
+            Actionable.prototype.oncontextmenu = function (fn, context) {
+                this.graphics.oncontextmenu(fn, context);
+            };
+            Actionable.prototype.contextmenu = function (e) {
+                this.graphics.contextmenu(e);
+            };
+            Actionable.prototype.onmousedown = function (fn, context) {
+                this.graphics.onmousedown(fn, context);
+            };
+            Actionable.prototype.onmouseup = function (fn, context) {
+                this.graphics.onmouseup(fn, context);
+            };
+            Actionable.prototype.mousedown = function (e) {
+                this.graphics.mousedown(e);
+            };
+            Actionable.prototype.onmousemove = function (fn, context) {
+                this.graphics.onmousemove(fn, context);
+            };
+            Actionable.prototype.mousemove = function (e) {
+                this.graphics.mousemove(e);
+            };
+            Actionable.prototype.ondrag = function (dragMove, dragStart, dragEnd, context) {
+                this.graphics.ondrag(dragMove, dragStart, dragEnd, context);
             };
             return Actionable;
         })(Common.Models.Modifiable);
@@ -1021,14 +1114,14 @@ var Common;
                     return;
                 this.deselectAll();
                 var selectedElement = this.get(element.guid);
-                if (!Common.Utilities.isNullOrUndefined(selectedElement))
+                if (Common.Utilities.isNotNullOrUndefined(selectedElement))
                     selectedElement.select();
             };
             ActionableCollection.prototype.deselect = function (element) {
                 if (Common.Utilities.isNullOrUndefined(element))
                     return;
                 var deselectedElement = this.get(element.guid);
-                if (!Common.Utilities.isNullOrUndefined(deselectedElement))
+                if (Common.Utilities.isNotNullOrUndefined(deselectedElement))
                     deselectedElement.deselect();
             };
             ActionableCollection.prototype.toggleSelect = function (element) {
@@ -1079,12 +1172,7 @@ var Common;
                 this.key = json.key;
                 this.impaktDataType = json.impaktDataType;
                 _super.prototype.fromJson.call(this, json);
-                if (Common.Utilities.isNullOrUndefined(json.associationKey)) {
-                    this.generateAssociationKey();
-                }
-                else {
-                    this.associationKey = json.associationKey;
-                }
+                this.generateAssociationKey();
             };
             return AssociableEntity;
         })(Common.Models.Actionable);
@@ -1318,7 +1406,7 @@ var Common;
                 var fromAssociation = new Common.Models.Association(fromEntity.key, fromEntity.impaktDataType, fromEntity.guid, toEntity.key, toEntity.impaktDataType, toEntity.guid, this.contextId);
                 var toAssociation = new Common.Models.Association(toEntity.key, toEntity.impaktDataType, toEntity.guid, fromEntity.key, fromEntity.impaktDataType, fromEntity.guid, this.contextId);
                 var fromAssociations = this._data[fromAssociation.internalKey];
-                if (!Common.Utilities.isNullOrUndefined(fromAssociations)) {
+                if (Common.Utilities.isNotNullOrUndefined(fromAssociations)) {
                     if (fromAssociations.length > 1) {
                         var index = fromAssociations.indexOf(toAssociation.internalKey);
                         if (index >= 0) {
@@ -1334,7 +1422,7 @@ var Common;
                     throw new Error('AssociationCollection disassociate(): No from association found');
                 }
                 var toAssociations = this._data[toAssociation.internalKey];
-                if (!Common.Utilities.isNullOrUndefined(toAssociations)) {
+                if (Common.Utilities.isNotNullOrUndefined(toAssociations)) {
                     if (toAssociations.length > 1) {
                         var index = toAssociations.indexOf(fromAssociation.internalKey);
                         if (index >= 0) {
@@ -1356,7 +1444,7 @@ var Common;
              * @return {boolean}      true if it exists, otherwise false
              */
             AssociationCollection.prototype.exists = function (internalKey) {
-                return !Common.Utilities.isNullOrUndefined(this._data[internalKey]);
+                return Common.Utilities.isNotNullOrUndefined(this._data[internalKey]);
             };
             /**
              * Returns whether there is an existing association between the given
@@ -1430,9 +1518,7 @@ var Common;
 						an association result is null or undefined');
                     }
                     var association = new Common.Models.Association(rawAssociation.fromKey, rawAssociation.fromType, rawAssociation.data.fromGuid, rawAssociation.toKey, rawAssociation.toType, rawAssociation.data.toGuid, rawAssociation.contextID);
-                    if (!this.exists(association.internalKey)) {
-                        this.addAssociation(association);
-                    }
+                    this.addAssociation(association);
                 }
             };
             AssociationCollection.prototype.getInternalKeys = function () {
@@ -1715,6 +1801,7 @@ var Common;
                 _super.prototype.setContext.call(this, this);
                 this.unitType = unitType;
                 this.routes = new Common.Models.RouteCollection();
+                this.routeArray = [];
                 this.positionIndex = -1;
                 this.setType = Common.Enums.SetTypes.Assignment;
                 var self = this;
@@ -1723,19 +1810,64 @@ var Common;
                 });
             }
             Assignment.prototype.remove = function () {
-                this.routes.forEach(function (route, index) {
-                    route.remove();
-                });
+                this.routes.removeAll();
             };
             Assignment.prototype.setContext = function (context) {
                 this.routes.forEach(function (route, index) {
                     route.setContext(context);
                 });
             };
+            Assignment.prototype.draw = function () {
+                this.routes.forEach(function (route, index) {
+                    route.draw();
+                });
+            };
+            Assignment.prototype.setRoutes = function (player, routeType) {
+                // intiialize the routeArray json for transferrence between
+                // different rendering types for editor and preview modes
+                if (!this.hasRouteArray() && this.routes.isEmpty())
+                    // no route data! skip ahead...
+                    return;
+                if (!this.hasRouteArray() && this.routes.hasElements()) {
+                    // we have routes but no generic route json; we need to
+                    // convert the routes into json so that we can convert
+                    // the routes between preview/editor/etc. modes.
+                    this.routeArray = this.routes.toJson();
+                }
+                for (var i = 0; i < this.routeArray.length; i++) {
+                    var routeJson = this.routeArray[i];
+                    if (Common.Utilities.isNotNullOrUndefined(routeJson)) {
+                        var route = null;
+                        switch (routeType) {
+                            case Common.Enums.RenderTypes.Preview:
+                                route = new Playbook.Models.PreviewRoute();
+                                break;
+                            case Common.Enums.RenderTypes.Editor:
+                                route = new Playbook.Models.EditorRoute();
+                                break;
+                        }
+                        if (Common.Utilities.isNullOrUndefined(route))
+                            throw new Error('Assignment setRoutes(): converted route is null or undefined');
+                        // NOTE: must setPlayer() before calling fromJson ( >:/ )
+                        // set the player context on the route
+                        route.setPlayer(player);
+                        // convert json into respective type
+                        route.fromJson(routeJson);
+                        this.routes.add(route);
+                    }
+                }
+            };
+            Assignment.prototype.hasRouteArray = function () {
+                return this.routeArray && this.routeArray.length > 0;
+            };
             Assignment.prototype.fromJson = function (json) {
                 if (!json)
                     return;
-                this.routes.fromJson(json.routes);
+                // NOTE:
+                // Route models rely on the presence of a field
+                // object in order to be constructed ( :-/ )
+                // for now, avoid serializing
+                this.routeArray = json.routes;
                 this.positionIndex = json.positionIndex;
                 this.unitType = json.unitType;
                 _super.prototype.fromJson.call(this, json);
@@ -1796,7 +1928,7 @@ var Common;
                     var rawAssignment = assignments[i];
                     if (Common.Utilities.isNullOrUndefined(rawAssignment))
                         continue;
-                    rawAssignment.unitType = !Common.Utilities.isNullOrUndefined(rawAssignment.unitType) &&
+                    rawAssignment.unitType = Common.Utilities.isNotNullOrUndefined(rawAssignment.unitType) &&
                         rawAssignment.unitType >= 0 ? rawAssignment.unitTpe : Team.Enums.UnitTypes.Other;
                     var assignmentModel = new Common.Models.Assignment(rawAssignment.unitType);
                     assignmentModel.fromJson(rawAssignment);
@@ -1851,7 +1983,7 @@ var Common;
                     if (Common.Utilities.isNullOrUndefined(rawAssignmentCollection))
                         continue;
                     rawAssignmentCollection.unitType =
-                        !Common.Utilities.isNullOrUndefined(rawAssignmentCollection.unitType) &&
+                        Common.Utilities.isNotNullOrUndefined(rawAssignmentCollection.unitType) &&
                             rawAssignmentCollection.unitType >= 0 ?
                             rawAssignmentCollection.unitTpe :
                             Team.Enums.UnitTypes.Other;
@@ -1975,7 +2107,7 @@ var Common;
                     var rawFormation = formations[i];
                     if (Common.Utilities.isNullOrUndefined(rawFormation))
                         continue;
-                    rawFormation.unitType = !Common.Utilities.isNullOrUndefined(rawFormation.unitType) &&
+                    rawFormation.unitType = Common.Utilities.isNotNullOrUndefined(rawFormation.unitType) &&
                         rawFormation.unitType >= 0 ? rawFormation.unitType : Team.Enums.UnitTypes.Other;
                     var formationModel = new Common.Models.Formation(rawFormation.unitType);
                     formationModel.fromJson(rawFormation);
@@ -2020,7 +2152,7 @@ var Common;
                 this.setModified(true);
             };
             Play.prototype.setFormation = function (formation) {
-                if (!Common.Utilities.isNullOrUndefined(formation)) {
+                if (Common.Utilities.isNotNullOrUndefined(formation)) {
                     if (formation.unitType != this.unitType) {
                     }
                 }
@@ -2033,7 +2165,7 @@ var Common;
                 this.setModified(true);
             };
             Play.prototype.setAssignmentGroup = function (assignmentGroup) {
-                if (!Common.Utilities.isNullOrUndefined(assignmentGroup)) {
+                if (Common.Utilities.isNotNullOrUndefined(assignmentGroup)) {
                     if (assignmentGroup.unitType != this.unitType)
                         throw new Error('Play setAssignmentGroup(): Assignments unit type does not match play unit type');
                 }
@@ -2043,7 +2175,7 @@ var Common;
                 this.setModified(true);
             };
             Play.prototype.setPersonnel = function (personnel) {
-                if (!Common.Utilities.isNullOrUndefined(personnel)) {
+                if (Common.Utilities.isNotNullOrUndefined(personnel)) {
                     if (personnel.unitType != this.unitType)
                         throw new Error('Play setPersonnel(): Cannot apply personnel with different unit type.');
                 }
@@ -2306,7 +2438,7 @@ var Common;
                     var rawPlaybook = playbooks[i];
                     if (Common.Utilities.isNullOrUndefined(rawPlaybook))
                         continue;
-                    rawPlaybook.unitType = !Common.Utilities.isNullOrUndefined(rawPlaybook.unitType) &&
+                    rawPlaybook.unitType = Common.Utilities.isNotNullOrUndefined(rawPlaybook.unitType) &&
                         rawPlaybook.unitType >= 0 ? rawPlaybook.unitType : Team.Enums.UnitTypes.Mixed;
                     // Allow mixed unit types to be added to the playbookmodel collection;
                     // a variety of unit types may exist in a playbook model collection
@@ -2600,7 +2732,7 @@ var Common;
             };
             Canvas.prototype.refresh = function () {
                 if (Common.Utilities.isNullOrUndefined(this.paper))
-                    throw new Error('Canvas refresh(): paper is null or undefined');
+                    return;
                 this.paper.draw();
             };
             Canvas.prototype.onready = function (callback) {
@@ -2872,17 +3004,19 @@ var Common;
     (function (Models) {
         var Layer = (function (_super) {
             __extends(Layer, _super);
-            function Layer(paper, layerType) {
+            function Layer(actionable, layerType) {
+                if (Common.Utilities.isNullOrUndefined(actionable)) {
+                    throw new Error('Layer constructor(): actionable is null or undefined');
+                }
                 _super.call(this);
                 _super.prototype.setContext.call(this, this);
-                this.paper = paper;
-                this.graphics = new Common.Models.Graphics(this.paper);
+                this.actionable = actionable;
                 this.type = layerType;
                 this.visible = true;
                 // sub layers
                 this.layers = new Common.Models.LayerCollection();
                 var self = this;
-                this.graphics.onModified(function () {
+                this.onModified(function () {
                     self.setModified(true);
                 });
             }
@@ -2898,12 +3032,12 @@ var Common;
             Layer.prototype.addLayer = function (layer) {
                 if (this.hasLayers())
                     this.layers.add(layer);
-                this.graphics.set.push(layer.graphics);
+                this.actionable.graphics.set.push(layer.actionable.graphics);
             };
             Layer.prototype.removeLayer = function (layer) {
                 if (this.hasGraphics())
-                    layer.graphics.remove();
-                this.graphics.set.exclude(layer.graphics);
+                    layer.actionable.graphics.remove();
+                this.actionable.graphics.set.exclude(layer.actionable.graphics);
                 return this.hasLayers() ? this.layers.remove(layer.guid) : null;
             };
             Layer.prototype.removeAllLayers = function () {
@@ -2913,8 +3047,8 @@ var Common;
             Layer.prototype.toFront = function () {
                 if (this.hasLayers()) {
                     this.layers.forEach(function (layer, index) {
-                        if (layer && layer.graphics) {
-                            layer.graphics.toFront();
+                        if (layer && layer.actionable.graphics) {
+                            layer.actionable.graphics.toFront();
                         }
                     });
                 }
@@ -2922,15 +3056,15 @@ var Common;
             Layer.prototype.toBack = function () {
                 if (this.hasLayers()) {
                     this.layers.forEach(function (layer, index) {
-                        if (layer && layer.graphics) {
-                            layer.graphics.toBack();
+                        if (layer && layer.actionable.graphics) {
+                            layer.actionable.graphics.toBack();
                         }
                     });
                 }
             };
             Layer.prototype.show = function () {
                 this.visible = true;
-                this.graphics.show();
+                this.actionable.graphics.show();
                 this.showLayers();
             };
             Layer.prototype.showLayers = function () {
@@ -2942,7 +3076,7 @@ var Common;
             };
             Layer.prototype.hide = function () {
                 this.visible = false;
-                this.graphics.hide();
+                this.actionable.graphics.hide();
                 this.hideLayers();
             };
             Layer.prototype.hideLayers = function () {
@@ -2957,10 +3091,16 @@ var Common;
             };
             Layer.prototype.removeGraphics = function () {
                 if (this.hasGraphics())
-                    this.graphics.remove();
+                    this.actionable.graphics.remove();
+            };
+            Layer.prototype.setPlacement = function (placement) {
+                this.actionable.graphics.setPlacement(placement);
+                this.layers.forEach(function (layer, index) {
+                    layer.actionable.graphics.setPlacement(placement);
+                });
             };
             Layer.prototype.moveByDelta = function (dx, dy) {
-                this.graphics.moveByDelta(dx, dy);
+                this.actionable.graphics.moveByDelta(dx, dy);
                 if (this.hasLayers()) {
                     this.layers.forEach(function (layer, index) {
                         layer.moveByDelta(dx, dy);
@@ -2968,7 +3108,7 @@ var Common;
                 }
             };
             Layer.prototype.drop = function () {
-                this.graphics.drop();
+                this.actionable.graphics.drop();
                 if (this.hasLayers()) {
                     this.layers.forEach(function (layer, index) {
                         layer.drop();
@@ -2979,17 +3119,18 @@ var Common;
                 return this.layers != null && this.layers != undefined;
             };
             Layer.prototype.hasGraphics = function () {
-                return this.graphics != null && this.graphics != undefined;
+                return Common.Utilities.isNotNullOrUndefined(this.actionable) &&
+                    Common.Utilities.isNotNullOrUndefined(this.actionable.graphics);
             };
             Layer.prototype.hasPlacement = function () {
-                return this.hasGraphics() && this.graphics.hasPlacement();
+                return this.hasGraphics() && this.actionable.graphics.hasPlacement();
             };
             /**
              * Draws the current layer and its nested layers (recursive)
              */
             Layer.prototype.draw = function () {
                 if (this.hasGraphics())
-                    this.graphics.draw();
+                    this.actionable.graphics.draw();
                 if (this.hasLayers() && this.layers.hasElements())
                     this.layers.forEach(function (layer, index) {
                         layer.draw();
@@ -3024,15 +3165,15 @@ var Common;
             LayerCollection.prototype.drop = function () {
                 this.forEach(function (layer, index) {
                     if (layer.hasGraphics())
-                        layer.graphics.drop();
+                        layer.actionable.drop();
                 });
             };
             LayerCollection.prototype.hide = function () {
                 this.forEach(function (layer, index) {
                     if (layer.hasGraphics()) {
-                        layer.graphics.hide();
-                        if (layer.graphics.hasSet()) {
-                            layer.graphics.set.hide();
+                        layer.actionable.graphics.hide();
+                        if (layer.actionable.graphics.hasSet()) {
+                            layer.actionable.graphics.set.hide();
                         }
                     }
                 });
@@ -3478,6 +3619,11 @@ var Common;
             Field.prototype.clearPlayers = function () {
                 this.players.forEach(function (player, index) {
                     player.layer.remove();
+                    if (Common.Utilities.isNotNullOrUndefined(player.assignment)) {
+                        player.assignment.routes.forEach(function (route, index) {
+                            route.layer.remove();
+                        });
+                    }
                 });
                 this.players.removeAll();
             };
@@ -3506,7 +3652,7 @@ var Common;
                 var self = this;
                 var placementCollection = new Common.Models.PlacementCollection();
                 this.players.forEach(function (player, index) {
-                    placementCollection.add(player.icon.layer.graphics.placement);
+                    placementCollection.add(player.icon.graphics.placement);
                 });
                 self.playPrimary.formation.setPlacements(placementCollection);
             };
@@ -3601,7 +3747,7 @@ var Common;
                 if (Common.Utilities.isNullOrUndefined(this.playPrimary))
                     return;
                 this.playPrimary.setUnitType(unitType);
-                if (!Common.Utilities.isNullOrUndefined(this.playOpponent))
+                if (Common.Utilities.isNotNullOrUndefined(this.playOpponent))
                     this.playOpponent.setUnitType(this.playPrimary.getOpposingUnitType());
                 this.clearPlayers();
                 this.drawPlay();
@@ -3610,7 +3756,7 @@ var Common;
                 if (this.selected.isEmpty())
                     return;
                 this.selected.forEach(function (element, index) {
-                    element.layer.graphics.deselect();
+                    element.deselect();
                 });
                 this.selected.removeAll();
             };
@@ -3643,10 +3789,10 @@ var Common;
             Field.prototype.setSelection = function (element) {
                 // clear any selected players
                 this.selected.forEach(function (selectedElement, index) {
-                    selectedElement.layer.graphics.deselect();
+                    selectedElement.deselect();
                 });
                 this.selected.removeAll();
-                element.layer.graphics.select();
+                element.select();
                 this.selected.add(element);
             };
             /**
@@ -3656,14 +3802,14 @@ var Common;
              * @param {Common.Interfaces.IFieldElement} element [description]
              */
             Field.prototype.toggleSelection = function (element) {
-                // element.layer.graphics.toggleSelect();
+                // element.graphics.toggleSelect();
                 if (this.selected.contains(element.guid)) {
                     this.selected.remove(element.guid);
-                    element.layer.graphics.deselect();
+                    element.deselect();
                 }
                 else {
                     this.selected.add(element);
-                    element.layer.graphics.select();
+                    element.select();
                 }
             };
             /**
@@ -3673,7 +3819,7 @@ var Common;
             Field.prototype.getLOSAbsolute = function () {
                 if (!this.los)
                     throw new Error('Field getLOSAbsolute(): los is null or undefined');
-                return this.los.layer.graphics.location.ay;
+                return this.los.graphics.location.ay;
             };
             return Field;
         })(Common.Models.Modifiable);
@@ -3687,52 +3833,41 @@ var Common;
     (function (Models) {
         var FieldElement = (function (_super) {
             __extends(FieldElement, _super);
-            function FieldElement(field, relativeElement) {
-                _super.call(this);
+            function FieldElement() {
+                _super.call(this, Common.Enums.ImpaktDataTypes.Unknown);
                 _super.prototype.setContext.call(this, this);
+                this.contextmenuTemplateUrl = Common.Constants.DEFAULT_CONTEXTMENU_TEMPLATE_URL;
+            }
+            FieldElement.prototype.initialize = function (field, relativeElement) {
                 this.field = field;
                 this.ball = this.field.ball;
                 this.relativeElement = relativeElement;
                 this.paper = this.field.paper;
                 this.canvas = this.paper.canvas;
                 this.grid = this.paper.grid;
-                this.contextmenuTemplateUrl = Common.Constants.DEFAULT_CONTEXTMENU_TEMPLATE_URL;
-                this.layer = new Common.Models.Layer(this.paper, Common.Enums.LayerTypes.FieldElement);
+                this.graphics = new Common.Models.Graphics(this.paper);
+                this.layer = new Common.Models.Layer(this, Common.Enums.LayerTypes.FieldElement);
                 this._originalScreenPositionX = null;
                 this._originalScreenPositionY = null;
                 var self = this;
                 this.onModified(function () {
                     self.field.setModified(true);
                 });
-            }
+            };
+            FieldElement.prototype.getContextmenuUrl = function () {
+                return this.contextmenuTemplateUrl;
+            };
             FieldElement.prototype.hasLayer = function () {
                 return this.layer != null && this.layer != undefined;
             };
             FieldElement.prototype.getLayer = function () {
                 return this.layer;
             };
-            FieldElement.prototype.hasGraphics = function () {
-                return this.layer.hasGraphics();
-            };
             FieldElement.prototype.getGraphics = function () {
-                return this.hasGraphics() ? this.layer.graphics : null;
+                return this.hasGraphics() ? this.graphics : null;
             };
             FieldElement.prototype.hasPlacement = function () {
                 return this.layer.hasPlacement();
-            };
-            FieldElement.prototype.getContextmenuUrl = function () {
-                return this.contextmenuTemplateUrl;
-            };
-            FieldElement.prototype.toggleSelect = function (metaKey) {
-                this.field.toggleSelection(this);
-                {
-                    if (metaKey) {
-                        this.field.toggleSelection(this);
-                    }
-                    else {
-                        this.field.setSelection(this);
-                    }
-                }
             };
             FieldElement.prototype.hoverIn = function (e) {
             };
@@ -3740,40 +3875,33 @@ var Common;
             };
             FieldElement.prototype.click = function (e) {
                 console.log('fieldelement click');
-                if (this.layer.graphics.disabled)
+                if (this.disabled)
                     return;
-                this.layer.graphics.toggleSelect();
-                if (e.metaKey) {
+                this.toggleSelect(e.metaKey);
+            };
+            FieldElement.prototype.toggleSelect = function (metaKey) {
+                metaKey = metaKey === true;
+                _super.prototype.toggleSelect.call(this);
+                if (metaKey) {
                     this.field.toggleSelection(this);
                 }
                 else {
                     this.field.setSelection(this);
                 }
             };
-            FieldElement.prototype.mouseup = function (e) {
-            };
             FieldElement.prototype.mousedown = function (e) {
                 if (e.keyCode == Common.Input.Which.RightClick) {
                     this.contextmenu(e);
                 }
             };
-            FieldElement.prototype.mousemove = function (e) {
-                // TODO @theBull - implement
-            };
-            FieldElement.prototype.contextmenu = function (e) {
-                // TODO @theBull - handle contextmenu
-            };
             FieldElement.prototype.dragMove = function (dx, dy, posx, posy, e) {
             };
             FieldElement.prototype.dragStart = function (x, y, e) {
                 this.setOriginalDragPosition(x, y);
-                if (this.isOverDragThreshold(this.getOriginalScreenPosition().x - x, this.getOriginalScreenPosition().y - y)) {
-                    this.layer.graphics.dragging = true;
-                }
             };
             FieldElement.prototype.dragEnd = function (e) {
                 this.setOriginalDragPosition(null, null);
-                this.layer.graphics.dragging = false;
+                this.dragging = false;
             };
             FieldElement.prototype.drop = function () {
                 this.layer.drop();
@@ -3797,7 +3925,7 @@ var Common;
                     Math.abs(y) > Playbook.Constants.DRAG_THRESHOLD_Y;
             };
             return FieldElement;
-        })(Common.Models.Modifiable);
+        })(Common.Models.Actionable);
         Models.FieldElement = FieldElement;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -3808,16 +3936,19 @@ var Common;
     (function (Models) {
         var Ball = (function (_super) {
             __extends(Ball, _super);
-            function Ball(field) {
-                _super.call(this, field, null);
-                this.layer.type = Common.Enums.LayerTypes.Ball;
-                this.layer.graphics.fill = 'brown';
-                this.layer.graphics.dimensions.setWidth(this.grid.getSize() * 0.15);
-                this.layer.graphics.dimensions.setHeight(this.grid.getSize() * 0.25);
-                this.layer.graphics.updateFromCoordinates(Playbook.Constants.BALL_DEFAULT_PLACEMENT_X, Playbook.Constants.BALL_DEFAULT_PLACEMENT_Y);
+            function Ball() {
+                _super.call(this);
             }
+            Ball.prototype.initialize = function (field) {
+                _super.prototype.initialize.call(this, field, null);
+                this.layer.type = Common.Enums.LayerTypes.Ball;
+                this.graphics.fill = 'brown';
+                this.graphics.dimensions.setWidth(this.grid.getSize() * 0.15);
+                this.graphics.dimensions.setHeight(this.grid.getSize() * 0.25);
+                this.graphics.updateFromCoordinates(Playbook.Constants.BALL_DEFAULT_PLACEMENT_X, Playbook.Constants.BALL_DEFAULT_PLACEMENT_Y);
+            };
             Ball.prototype.draw = function () {
-                this.layer.graphics.ellipse();
+                this.graphics.ellipse();
             };
             return Ball;
         })(Common.Models.FieldElement);
@@ -3831,37 +3962,33 @@ var Common;
     (function (Models) {
         var Ground = (function (_super) {
             __extends(Ground, _super);
-            function Ground(field) {
-                _super.call(this, field, null);
-                this.layer.graphics.selectable = false;
-                this.layer.graphics.updateFromCoordinates(this.paper.x, this.paper.y);
-                this.layer.graphics.dimensions.setWidth(this.grid.dimensions.width + 2);
-                this.layer.graphics.dimensions.setHeight(this.grid.dimensions.height + 2);
-                this.layer.graphics.setOriginalOpacity(1);
-                this.layer.graphics.setOriginalStrokeWidth(0);
-                this.layer.graphics.setOriginalFill(Playbook.Constants.FIELD_COLOR);
+            function Ground() {
+                _super.call(this);
             }
+            Ground.prototype.initialize = function (field, relativeElement) {
+                _super.prototype.initialize.call(this, field, null);
+                this.selectable = false;
+                this.graphics.updateFromCoordinates(this.paper.x, this.paper.y);
+                this.graphics.dimensions.setWidth(this.grid.dimensions.width + 2);
+                this.graphics.dimensions.setHeight(this.grid.dimensions.height + 2);
+                this.graphics.setOriginalOpacity(1);
+                this.graphics.setOriginalStrokeWidth(0);
+                this.graphics.setOriginalFill(Playbook.Constants.FIELD_COLOR);
+            };
             Ground.prototype.draw = function () {
-                this.layer.graphics.rect();
-                this.layer.graphics.onclick(this.click, this);
+                this.graphics.rect();
+                this.graphics.onclick(this.click, this);
             };
             Ground.prototype.click = function (e) {
                 // Do nothing
                 console.log('ground clicked');
             };
-            Ground.prototype.dragMove = function (dx, dy, posx, posy, e) {
-                // create selection box
-            };
-            Ground.prototype.dragStart = function (x, y, e) {
-                this.layer.graphics.dragging = true;
-                console.log('ground drag start');
-            };
-            Ground.prototype.dragEnd = function (e) {
-                this.layer.graphics.dragging = false;
-                console.log('ground drag end');
-            };
             Ground.prototype.getClickCoordinates = function (offsetX, offsetY) {
-                return this.grid.getCoordinatesFromAbsolute(offsetX + this.layer.graphics.dimensions.offset.x - Math.abs(this.paper.x), offsetY + Math.abs(this.paper.y) + this.layer.graphics.dimensions.offset.y);
+                var absCoords = this.getClickAbsolute(offsetX, offsetY);
+                return this.grid.getCoordinatesFromAbsolute(absCoords.x, absCoords.y);
+            };
+            Ground.prototype.getClickAbsolute = function (offsetX, offsetY) {
+                return new Common.Models.Coordinates(offsetX + this.graphics.dimensions.offset.x - Math.abs(this.paper.x), offsetY + Math.abs(this.paper.y) + this.graphics.dimensions.offset.y);
             };
             return Ground;
         })(Common.Models.FieldElement);
@@ -3875,16 +4002,19 @@ var Common;
     (function (Models) {
         var LineOfScrimmage = (function (_super) {
             __extends(LineOfScrimmage, _super);
-            function LineOfScrimmage(field) {
-                _super.call(this, field, null);
-                this.layer.type = Common.Enums.LayerTypes.LineOfScrimmage;
-                this.layer.graphics.setOriginalFill('yellow');
-                this.layer.graphics.setOriginalStrokeWidth(0);
-                this.layer.graphics.setOriginalOpacity(1);
-                this.layer.graphics.dimensions.width = this.grid.dimensions.width - (this.grid.getSize() * 2);
-                this.layer.graphics.dimensions.height = 1;
-                this.layer.graphics.updateFromCoordinates(1, this.field.ball.layer.graphics.placement.coordinates.y);
+            function LineOfScrimmage() {
+                _super.call(this);
             }
+            LineOfScrimmage.prototype.initialize = function (field) {
+                _super.prototype.initialize.call(this, field, null);
+                this.layer.type = Common.Enums.LayerTypes.LineOfScrimmage;
+                this.graphics.setOriginalFill('yellow');
+                this.graphics.setOriginalStrokeWidth(0);
+                this.graphics.setOriginalOpacity(1);
+                this.graphics.dimensions.width = this.grid.dimensions.width - (this.grid.getSize() * 2);
+                this.graphics.dimensions.height = 1;
+                this.graphics.updateFromCoordinates(1, this.field.ball.graphics.placement.coordinates.y);
+            };
             return LineOfScrimmage;
         })(Common.Models.FieldElement);
         Models.LineOfScrimmage = LineOfScrimmage;
@@ -3897,17 +4027,21 @@ var Common;
     (function (Models) {
         var Endzone = (function (_super) {
             __extends(Endzone, _super);
-            function Endzone(context, offsetY) {
-                _super.call(this, context, null);
-                this.layer.type = Common.Enums.LayerTypes.Endzone;
-                this.layer.graphics.fill = 'black';
-                this.layer.graphics.setOpacity(0.25);
-                this.layer.graphics.updateFromCoordinates(1, offsetY);
-                this.layer.graphics.dimensions.setWidth(this.paper.getWidth() - (2 * this.grid.getSize()));
-                this.layer.graphics.dimensions.setHeight(10 * this.grid.getSize());
+            function Endzone(offsetY) {
+                _super.call(this);
+                this.offsetY = offsetY;
             }
+            Endzone.prototype.initialize = function (field) {
+                _super.prototype.initialize.call(this, field, null);
+                this.layer.type = Common.Enums.LayerTypes.Endzone;
+                this.graphics.fill = 'black';
+                this.graphics.setOpacity(0.25);
+                this.graphics.updateFromCoordinates(1, this.offsetY);
+                this.graphics.dimensions.setWidth(this.paper.getWidth() - (2 * this.grid.getSize()));
+                this.graphics.dimensions.setHeight(10 * this.grid.getSize());
+            };
             Endzone.prototype.draw = function () {
-                this.layer.graphics.rect();
+                this.graphics.rect();
             };
             return Endzone;
         })(Common.Models.FieldElement);
@@ -3921,20 +4055,24 @@ var Common;
     (function (Models) {
         var Hashmark = (function (_super) {
             __extends(Hashmark, _super);
-            function Hashmark(field, x) {
-                _super.call(this, field, null);
+            function Hashmark(offsetX) {
+                _super.call(this);
+                this.offsetX = offsetX;
+            }
+            Hashmark.prototype.initialize = function (field) {
+                _super.prototype.initialize.call(this, field, null);
                 // hash marks should be -x- grid units from center
                 this.layer.type = Common.Enums.LayerTypes.Hashmark;
-                this.layer.graphics.dimensions.offset.x = -0.25 * this.grid.getSize();
-                this.layer.graphics.dimensions.offset.y = 0;
-                this.layer.graphics.placement.coordinates.x = x;
+                this.graphics.dimensions.offset.x = -0.25 * this.grid.getSize();
+                this.graphics.dimensions.offset.y = 0;
+                this.graphics.placement.coordinates.x = this.offsetX;
                 this.start = 11;
                 this.yards = 110;
-            }
+            };
             Hashmark.prototype.draw = function () {
                 var hashmarkWidth = this.grid.getSize() / 2;
                 for (var i = this.start; i < this.yards; i++) {
-                    var hashmark = this.paper.drawing.rect(this.layer.graphics.placement.coordinates.x, i, hashmarkWidth, 1, false, this.layer.graphics.dimensions.offset.x, 0).attr({
+                    var hashmark = this.paper.drawing.rect(this.graphics.placement.coordinates.x, i, hashmarkWidth, 1, false, this.graphics.dimensions.offset.x, 0).attr({
                         'fill': 'white',
                         'stroke-width': 0
                     });
@@ -3952,17 +4090,20 @@ var Common;
     (function (Models) {
         var Sideline = (function (_super) {
             __extends(Sideline, _super);
-            function Sideline(field, x) {
-                _super.call(this, field, null);
-                this.field = field;
-                this.layer.graphics.fill = 'white';
-                this.layer.graphics.strokeWidth = 0;
-                this.layer.graphics.updateFromCoordinates(x, 0);
-                this.layer.graphics.dimensions.width = this.grid.getSize();
-                this.layer.graphics.dimensions.height = this.grid.getHeight();
+            function Sideline(offsetX) {
+                _super.call(this);
+                this.offsetX = offsetX;
             }
+            Sideline.prototype.initialize = function (field) {
+                _super.prototype.initialize.call(this, field, null);
+                this.graphics.fill = 'white';
+                this.graphics.strokeWidth = 0;
+                this.graphics.updateFromCoordinates(this.offsetX, 0);
+                this.graphics.dimensions.width = this.grid.getSize();
+                this.graphics.dimensions.height = this.grid.getHeight();
+            };
             Sideline.prototype.draw = function () {
-                this.layer.graphics.rect();
+                this.graphics.rect();
             };
             return Sideline;
         })(Common.Models.FieldElement);
@@ -3974,18 +4115,52 @@ var Common;
 (function (Common) {
     var Models;
     (function (Models) {
+        var FieldSelectionBox = (function (_super) {
+            __extends(FieldSelectionBox, _super);
+            function FieldSelectionBox() {
+                _super.call(this);
+            }
+            FieldSelectionBox.prototype.initialize = function (field, relativeElement) {
+                _super.prototype.initialize.call(this, field, null);
+                this.graphics.setOriginalFill('#1752FA');
+                this.graphics.setOriginalStroke('#202BA2');
+                this.graphics.setOriginalFillOpacity(0.3);
+                this.graphics.setOriginalStrokeWidth(1);
+                this.graphics.dimensions.setHeight(0);
+                this.graphics.dimensions.setWidth(0);
+                this.graphics.location.ax = 0;
+                this.graphics.location.ay = 0;
+            };
+            FieldSelectionBox.prototype.draw = function () {
+                this.graphics.rect();
+            };
+            return FieldSelectionBox;
+        })(Common.Models.FieldElement);
+        Models.FieldSelectionBox = FieldSelectionBox;
+    })(Models = Common.Models || (Common.Models = {}));
+})(Common || (Common = {}));
+/// <reference path='./models.ts' />
+var Common;
+(function (Common) {
+    var Models;
+    (function (Models) {
         // @todo treat Player as a FieldElementSet
         var Player = (function (_super) {
             __extends(Player, _super);
-            function Player(field, placement, position, assignment) {
-                _super.call(this, field, field.ball);
-                this.layer.type = Common.Enums.LayerTypes.Player;
-                this.layer.graphics.setPlacement(placement);
+            function Player(placement, position, assignment) {
+                _super.call(this);
+                this.placement = placement;
                 this.position = position;
                 this.assignment = assignment || new Common.Models.Assignment(this.position.unitType);
-                this.assignment.positionIndex = this.position.index;
-                this.layer.graphics.dimensions.setWidth(this.grid.getSize());
-                this.layer.graphics.dimensions.setHeight(this.grid.getSize());
+                if (Common.Utilities.isNotNullOrUndefined(this.assignment))
+                    this.assignment.positionIndex = this.position.index;
+            }
+            Player.prototype.initialize = function (field) {
+                _super.prototype.initialize.call(this, field, field.ball);
+                this.layer.type = Common.Enums.LayerTypes.Player;
+                this.graphics.setPlacement(this.placement);
+                this.graphics.dimensions.setWidth(this.grid.getSize());
+                this.graphics.dimensions.setHeight(this.grid.getSize());
                 var self = this;
                 this.onModified(function () {
                     self.field.players.setModified(true);
@@ -3993,15 +4168,15 @@ var Common;
                 this.layer.onModified(function () {
                     self.setModified(true);
                 });
-            }
+            };
             Player.prototype.remove = function () {
                 this.layer.remove();
             };
             Player.prototype.getPositionRelativeToBall = function () {
-                return this.layer.graphics.placement.relative;
+                return this.graphics.placement.relative;
             };
             Player.prototype.getCoordinatesFromAbsolute = function () {
-                return this.layer.graphics.placement.coordinates;
+                return this.graphics.placement.coordinates;
             };
             /**
              *
@@ -4039,18 +4214,15 @@ var Common;
              *
              */
             Player.prototype.hasPlacement = function () {
-                return Common.Utilities.isNullOrUndefined(this.layer.graphics.placement);
+                return Common.Utilities.isNullOrUndefined(this.graphics.placement);
             };
             Player.prototype.getPlacement = function () {
-                return this.layer.graphics.placement;
+                return this.graphics.placement;
             };
             Player.prototype.setPlacement = function (placement) {
-                this.layer.graphics.updateFromCoordinates(placement.coordinates.x, placement.coordinates.y);
+                this.graphics.updateFromCoordinates(placement.coordinates.x, placement.coordinates.y);
+                this.layer.setPlacement(placement);
                 this.setModified(true);
-                var self = this;
-                this.layer.layers.forEach(function (layer, index) {
-                    layer.graphics.setPlacement(placement);
-                });
             };
             return Player;
         })(Common.Models.FieldElement);
@@ -4081,22 +4253,23 @@ var Common;
         var PlayerSelectionBox = (function (_super) {
             __extends(PlayerSelectionBox, _super);
             function PlayerSelectionBox(player) {
-                _super.call(this, player.field, player.ball);
+                _super.call(this);
                 this.player = player;
+                this.initialize(this.player.field, this.player);
                 this.layer.type = Common.Enums.LayerTypes.PlayerSelectionBox;
-                this.layer.graphics.selectable = false;
-                this.layer.graphics.setOriginalOpacity(1);
-                this.layer.graphics.setOriginalFill('');
-                this.layer.graphics.setOriginalStroke('blue');
-                this.layer.graphics.setOriginalStrokeWidth(1);
-                this.layer.graphics.dimensions.width = (this.player.layer.graphics.dimensions.getWidth());
-                this.layer.graphics.dimensions.height = (this.player.layer.graphics.dimensions.getHeight());
-                this.layer.graphics.dimensions.offset.x = -this.player.layer.graphics.dimensions.getWidth() / 2;
-                this.layer.graphics.dimensions.offset.y = -this.player.layer.graphics.dimensions.getHeight() / 2;
-                this.layer.graphics.updateLocation(this.player.layer.graphics.location.ax + this.layer.graphics.dimensions.offset.x, this.player.layer.graphics.location.ay + this.layer.graphics.dimensions.offset.y);
+                this.selectable = false;
+                this.graphics.setOriginalOpacity(1);
+                this.graphics.setOriginalFill('');
+                this.graphics.setOriginalStroke('blue');
+                this.graphics.setOriginalStrokeWidth(1);
+                this.graphics.dimensions.width = (this.player.graphics.dimensions.getWidth());
+                this.graphics.dimensions.height = (this.player.graphics.dimensions.getHeight());
+                this.graphics.dimensions.offset.x = -this.player.graphics.dimensions.getWidth() / 2;
+                this.graphics.dimensions.offset.y = -this.player.graphics.dimensions.getHeight() / 2;
+                this.graphics.updateLocation(this.player.graphics.location.ax + this.graphics.dimensions.offset.x, this.player.graphics.location.ay + this.graphics.dimensions.offset.y);
             }
             PlayerSelectionBox.prototype.draw = function () {
-                this.layer.graphics.rect();
+                this.graphics.rect();
             };
             return PlayerSelectionBox;
         })(Common.Models.FieldElement);
@@ -4111,30 +4284,31 @@ var Common;
         var PlayerIcon = (function (_super) {
             __extends(PlayerIcon, _super);
             function PlayerIcon(player) {
-                _super.call(this, player.field, player);
+                _super.call(this);
                 this.player = player;
+                this.initialize(this.player.field, this.player);
                 this.layer.type = Common.Enums.LayerTypes.PlayerIcon;
-                this.layer.graphics.dimensions.setRadius(this.grid.getSize() / 2);
-                this.layer.graphics.dimensions.setWidth(this.player.layer.graphics.dimensions.getWidth());
-                this.layer.graphics.dimensions.setHeight(this.player.layer.graphics.dimensions.getHeight());
-                this.layer.graphics.setPlacement(player.layer.graphics.placement);
-                // this.layer.graphics.dimensions.offset.x = -this.layer.graphics.dimensions.getRadius();
-                // this.layer.graphics.dimensions.offset.y = -this.layer.graphics.dimensions.getRadius();
-                this.layer.graphics.updateLocation(this.player.layer.graphics.location.ax, this.player.layer.graphics.location.ay);
+                this.graphics.dimensions.setRadius(this.grid.getSize() / 2);
+                this.graphics.dimensions.setWidth(this.player.graphics.dimensions.getWidth());
+                this.graphics.dimensions.setHeight(this.player.graphics.dimensions.getHeight());
+                this.graphics.setPlacement(this.player.graphics.placement);
+                // this.graphics.dimensions.offset.x = -this.graphics.dimensions.getRadius();
+                // this.graphics.dimensions.offset.y = -this.graphics.dimensions.getRadius();
+                this.graphics.updateLocation(this.player.graphics.location.ax, this.player.graphics.location.ay);
             }
             PlayerIcon.prototype.draw = function () {
                 switch (this.player.position.unitType) {
                     case Team.Enums.UnitTypes.Offense:
-                        this.layer.graphics.circle();
+                        this.graphics.circle();
                         break;
                     case Team.Enums.UnitTypes.Defense:
-                        this.layer.graphics.triangle();
+                        this.graphics.triangle();
                         break;
                     case Team.Enums.UnitTypes.SpecialTeams:
-                        this.layer.graphics.rect();
+                        this.graphics.rect();
                         break;
                     case Team.Enums.UnitTypes.Other:
-                        this.layer.graphics.rhombus();
+                        this.graphics.rhombus();
                         break;
                 }
             };
@@ -4151,19 +4325,20 @@ var Common;
         var PlayerRelativeCoordinatesLabel = (function (_super) {
             __extends(PlayerRelativeCoordinatesLabel, _super);
             function PlayerRelativeCoordinatesLabel(player) {
-                _super.call(this, player.field, player);
+                _super.call(this);
                 this.player = player;
+                this.initialize(this.player.field, this.player);
                 this.layer.type = Common.Enums.LayerTypes.PlayerRelativeCoordinatesLabel;
-                this.layer.graphics.selectable = false;
-                this.layer.graphics.dimensions.offset.y = 8;
-                this.layer.graphics.updateLocation(this.player.layer.graphics.location.ax, this.player.layer.graphics.location.ay + this.layer.graphics.dimensions.offset.y);
+                this.selectable = false;
+                this.graphics.dimensions.offset.y = 8;
+                this.graphics.updateLocation(this.player.graphics.location.ax, this.player.graphics.location.ay + this.graphics.dimensions.offset.y);
             }
             PlayerRelativeCoordinatesLabel.prototype.draw = function () {
-                this.layer.graphics.text([
-                    this.layer.graphics.placement.relative.rx, ', ',
-                    this.layer.graphics.placement.relative.ry
+                this.graphics.text([
+                    this.graphics.placement.relative.rx, ', ',
+                    this.graphics.placement.relative.ry
                 ].join(''));
-                this.layer.graphics.setAttribute('class', 'no-highlight');
+                this.graphics.setAttribute('class', 'no-highlight');
                 this.layer.hide();
             };
             return PlayerRelativeCoordinatesLabel;
@@ -4179,17 +4354,18 @@ var Common;
         var PlayerPersonnelLabel = (function (_super) {
             __extends(PlayerPersonnelLabel, _super);
             function PlayerPersonnelLabel(player) {
-                _super.call(this, player.field, player);
+                _super.call(this);
                 this.player = player;
+                this.initialize(this.player.field, this.player);
                 this.layer.type = Common.Enums.LayerTypes.PlayerPersonnelLabel;
-                this.layer.graphics.selectable = false;
-                this.layer.graphics.dimensions.offset.y =
-                    -(this.player.layer.graphics.dimensions.getHeight() / 2) * 0.4;
-                this.layer.graphics.updateLocation(this.player.layer.graphics.location.ax, this.player.layer.graphics.location.ay + this.layer.graphics.dimensions.offset.y);
+                this.selectable = false;
+                this.graphics.dimensions.offset.y =
+                    -(this.player.graphics.dimensions.getHeight() / 2) * 0.4;
+                this.graphics.updateLocation(this.player.graphics.location.ax, this.player.graphics.location.ay + this.graphics.dimensions.offset.y);
             }
             PlayerPersonnelLabel.prototype.draw = function () {
-                this.layer.graphics.text(this.player.position.label);
-                this.layer.graphics.setAttribute('class', 'no-highlight');
+                this.graphics.text(this.player.position.label);
+                this.graphics.setAttribute('class', 'no-highlight');
             };
             return PlayerPersonnelLabel;
         })(Common.Models.FieldElement);
@@ -4204,17 +4380,18 @@ var Common;
         var PlayerIndexLabel = (function (_super) {
             __extends(PlayerIndexLabel, _super);
             function PlayerIndexLabel(player) {
-                _super.call(this, player.field, player);
+                _super.call(this);
                 this.player = player;
+                this.initialize(this.player.field, this.player);
                 this.layer.type = Common.Enums.LayerTypes.PlayerIndexLabel;
-                this.layer.graphics.selectable = false;
-                this.layer.graphics.dimensions.offset.y =
-                    (this.player.layer.graphics.dimensions.getHeight() / 2) * 0.4;
-                this.layer.graphics.updateLocation(this.player.layer.graphics.location.ax, this.player.layer.graphics.location.ay + this.layer.graphics.dimensions.offset.y);
+                this.selectable = false;
+                this.graphics.dimensions.offset.y =
+                    (this.player.graphics.dimensions.getHeight() / 2) * 0.4;
+                this.graphics.updateLocation(this.player.graphics.location.ax, this.player.graphics.location.ay + this.graphics.dimensions.offset.y);
             }
             PlayerIndexLabel.prototype.draw = function () {
-                this.layer.graphics.text((this.player.position.index).toString());
-                this.layer.graphics.setAttribute('class', 'no-highlight');
+                this.graphics.text((this.player.position.index).toString());
+                this.graphics.setAttribute('class', 'no-highlight');
             };
             return PlayerIndexLabel;
         })(Common.Models.FieldElement);
@@ -4228,9 +4405,14 @@ var Common;
     (function (Models) {
         var Route = (function (_super) {
             __extends(Route, _super);
-            function Route(player) {
-                _super.call(this, player.field, player);
+            function Route(dragInitialized) {
+                _super.call(this);
+                this.dragInitialized = dragInitialized === true;
+                this.type = Common.Enums.RouteTypes.Generic;
+            }
+            Route.prototype.setPlayer = function (player) {
                 this.player = player;
+                this.initialize(this.player.field, this.player);
                 if (this.player) {
                     this.nodes = new Common.Models.LinkedList();
                     var self_3 = this;
@@ -4243,19 +4425,48 @@ var Common;
                  * @type {[type]}
                  */
                 this.layer.type = Common.Enums.LayerTypes.PlayerRoute;
-            }
+            };
             Route.prototype.fromJson = function (json) {
+                if (Common.Utilities.isNullOrUndefined(this.player))
+                    throw new Error('Route fromJson(): setPlayer() must be called before serializing from json');
                 this.guid = json.guid;
+                this.type = json.type;
+                // initialize route nodes
+                if (json.nodes) {
+                    for (var i = 0; i < json.nodes.length; i++) {
+                        var rawNode = json.nodes[i];
+                        var relativeCoords = new Common.Models.RelativeCoordinates(0, 0, this.player);
+                        if (Common.Utilities.isNotNullOrUndefined(rawNode.relative)) {
+                            relativeCoords.fromJson(rawNode.relative);
+                        }
+                        var routeNode = null;
+                        switch (rawNode.renderType) {
+                            case Common.Enums.RenderTypes.Preview:
+                                routeNode = new Playbook.Models.PreviewRouteNode(relativeCoords, rawNode.type);
+                                break;
+                            case Common.Enums.RenderTypes.Editor:
+                                routeNode = new Playbook.Models.EditorRouteNode(relativeCoords, rawNode.type);
+                                break;
+                        }
+                        routeNode.initialize(this.field, this);
+                        routeNode.fromJson(rawNode);
+                        this.listening = false;
+                        this.addNode(routeNode, false);
+                        this.listening = true;
+                    }
+                }
             };
             Route.prototype.toJson = function () {
                 return {
-                    nodes: this.nodes.toJson()
+                    nodes: this.nodes.toJson(),
+                    type: this.type,
+                    guid: this.guid
                 };
             };
             Route.prototype.remove = function () {
                 this.routePath.remove();
                 this.nodes.forEach(function (node, index) {
-                    node.data.clear();
+                    node.layer.remove();
                 });
             };
             Route.prototype.draw = function () {
@@ -4290,9 +4501,9 @@ var Common;
             };
             Route.prototype.bringNodesToFront = function () {
                 this.nodes.forEach(function (routeNode) {
-                    routeNode.layer.graphics.toFront();
+                    routeNode.graphics.toFront();
                 });
-                // move the player to the front above the route
+                // move the route back so it's behind the player
                 this.player.layer.toFront();
             };
             Route.prototype.addNode = function (routeNode, render) {
@@ -4397,7 +4608,7 @@ var Common;
                     var routeNode = nodeArray[i];
                     if (Common.Utilities.isNullOrUndefined(routeNode))
                         continue;
-                    coords.push(routeNode.layer.graphics.location.ax, routeNode.layer.graphics.location.ay);
+                    coords.push(routeNode.graphics.location.ax, routeNode.graphics.location.ay);
                 }
                 return coords;
             };
@@ -4413,27 +4624,30 @@ var Common;
     (function (Models) {
         var RouteAction = (function (_super) {
             __extends(RouteAction, _super);
-            function RouteAction(routeNode, action) {
-                _super.call(this, routeNode.field, routeNode);
-                this.routeNode = routeNode;
+            function RouteAction(action) {
+                _super.call(this);
                 this.action = action;
-                this.actionable = !(this.routeNode.type == Common.Enums.RouteNodeTypes.CurveControl);
-                this.layer.type = Common.Enums.LayerTypes.PlayerRouteAction;
             }
+            RouteAction.prototype.initialize = function (field, routeNode) {
+                _super.prototype.initialize.call(this, field, routeNode);
+                this.routeNode = routeNode;
+                this.disabled = this.routeNode.type == Common.Enums.RouteNodeTypes.CurveControl;
+                this.layer.type = Common.Enums.LayerTypes.PlayerRouteAction;
+                this.graphics.setOffsetXY(0.5, 0.5);
+            };
             RouteAction.prototype.draw = function () {
                 Common.Factories.RouteActionFactory.draw(this);
             };
             RouteAction.prototype.toJson = function () {
-                return {
-                    action: this.action,
-                    actionable: this.actionable
-                };
+                return $.extend({
+                    action: this.action
+                }, _super.prototype.toJson.call(this));
             };
             RouteAction.prototype.fromJson = function (json) {
                 if (!json)
                     return;
                 this.action = json.action;
-                this.actionable = json.actionable;
+                _super.prototype.fromJson.call(this, json);
             };
             return RouteAction;
         })(Common.Models.FieldElement);
@@ -4453,20 +4667,8 @@ var Common;
             RouteCollection.prototype.toJson = function () {
                 return _super.prototype.toJson.call(this);
             };
-            RouteCollection.prototype.fromJson = function (json) {
-                var routes = json.routes || [];
-                for (var i = 0; i < routes.length; i++) {
-                    var rawRoute = routes[i];
-                    var routeModel = void 0;
-                    if (rawRoute.type == Common.Enums.RouteTypes.Preview) {
-                        routeModel = new Playbook.Models.PreviewRoute(null);
-                    }
-                    else {
-                        routeModel = new Playbook.Models.EditorRoute(null);
-                    }
-                    routeModel.fromJson(rawRoute);
-                    this.add(routeModel);
-                }
+            RouteCollection.prototype.fromJson = function (routes) {
+                return;
             };
             return RouteCollection;
         })(Common.Models.Collection);
@@ -4480,14 +4682,17 @@ var Common;
     (function (Models) {
         var RouteControlPath = (function (_super) {
             __extends(RouteControlPath, _super);
-            function RouteControlPath(routeNode) {
-                _super.call(this, routeNode.field, routeNode);
+            function RouteControlPath() {
+                _super.call(this);
+            }
+            RouteControlPath.prototype.initialize = function (field, routeNode) {
+                _super.prototype.initialize.call(this, field, routeNode);
                 this.routeNode = routeNode;
                 this.layer.type = Common.Enums.LayerTypes.PlayerRouteControlPath;
-                this.layer.graphics.setStroke('grey');
-                this.layer.graphics.setStrokeWidth(1);
-                this.layer.graphics.setOpacity(0.2);
-            }
+                this.graphics.setStroke('grey');
+                this.graphics.setStrokeWidth(1);
+                this.graphics.setOpacity(0.2);
+            };
             RouteControlPath.prototype.toJson = function () {
                 return {
                     pathString: this.pathString
@@ -4529,7 +4734,7 @@ var Common;
                 // }
                 // // Generate a path string between the given startNode, controlNode, and endNode nodes
                 // this.pathString = this.routeNode.player.route.getPathStringFromNodes(true, [startNode, controlNode, endNode]);
-                // startNode.layer.graphics.path(this.pathString);
+                // startNode.graphics.path(this.pathString);
             };
             return RouteControlPath;
         })(Common.Models.FieldElement);
@@ -4543,55 +4748,54 @@ var Common;
     (function (Models) {
         var RouteNode = (function (_super) {
             __extends(RouteNode, _super);
-            function RouteNode(route, relativeCoordinates, type) {
-                _super.call(this, route.field, route.player);
-                this.route = route;
-                this.player = route.player;
-                this.layer.graphics.updateFromRelative(relativeCoordinates.rx, relativeCoordinates.ry, this.player);
-                this.layer.graphics.dimensions.radius = this.grid.getSize() / 3.5;
-                this.layer.graphics.dimensions.width = this.layer.graphics.dimensions.radius * 2;
-                this.layer.graphics.dimensions.height = this.layer.graphics.dimensions.radius * 2;
+            function RouteNode(relativeCoordinates, type) {
+                _super.call(this);
+                if (Common.Utilities.isNullOrUndefined(relativeCoordinates))
+                    throw new Error('RouteNode constructor(): RelativeCoordinates is null or undefined');
+                this.relativeCoordinates = relativeCoordinates;
                 this.type = type;
-                /**
-                 * Add layer to route layers
-                 * @type {[type]}
-                 */
-                this.layer.type = Common.Enums.LayerTypes.PlayerRouteNode;
             }
-            RouteNode.prototype.draw = function () {
-                this.layer.graphics.circle();
-            };
-            RouteNode.prototype.setContext = function (route) {
+            RouteNode.prototype.initialize = function (field, route) {
+                _super.prototype.initialize.call(this, field, this.relativeCoordinates.relativeElement);
                 this.route = route;
-                this.player = route.player;
-                this.field = route.field;
-                this.grid = this.context.grid;
-                this.paper = this.context.paper;
-                this.layer.graphics.updateLocation();
-                this.layer.graphics.dimensions.radius = this.grid.getSize() / 4;
-                this.layer.graphics.dimensions.width = this.layer.graphics.dimensions.radius * 2;
-                this.layer.graphics.dimensions.height = this.layer.graphics.dimensions.radius * 2;
-                this.draw();
+                this.graphics.updateFromRelative(this.relativeCoordinates.rx, this.relativeCoordinates.ry, this.relativeElement);
+                this.graphics.dimensions.radius = this.grid.getSize() / 3.5;
+                this.graphics.dimensions.width = this.graphics.dimensions.radius * 2;
+                this.graphics.dimensions.height = this.graphics.dimensions.radius * 2;
+                this.layer.type = Common.Enums.LayerTypes.PlayerRouteNode;
             };
+            RouteNode.prototype.draw = function () {
+                this.graphics.circle();
+            };
+            // public setContext(route: Common.Interfaces.IRoute) {
+            //     this.route = route;
+            //     this.player = route.player;
+            //     this.field = route.field;
+            //     this.grid = this.context.grid;
+            //     this.paper = this.context.paper;
+            //     this.graphics.updateLocation();
+            //     this.graphics.dimensions.radius = this.grid.getSize() / 4;
+            //     this.graphics.dimensions.width = this.graphics.dimensions.radius * 2;
+            //     this.graphics.dimensions.height = this.graphics.dimensions.radius * 2;
+            //     this.draw();
+            // }
             RouteNode.prototype.fromJson = function (json) {
                 if (!json)
                     return;
                 this.routeAction.fromJson(json.routeAction);
                 this.contextmenuTemplateUrl = json.contextmenuTemplateUrl;
-                this.guid = json.guid;
                 this.type = json.type;
-                this.layer.graphics.fromJson(json.graphics);
-                // route node has been modified
-                this.setModified();
+                this.renderType = json.renderType;
+                this.relativeCoordinates.fromJson(json.relative);
             };
             RouteNode.prototype.toJson = function () {
-                var inherited = _super.prototype.toJson.call(this);
-                var self = {
+                return {
+                    relative: this.graphics.placement.relative.toJson(),
                     type: this.type,
                     routeAction: this.routeAction.toJson(),
-                    graphics: this.layer.graphics.toJson()
+                    renderType: this.renderType,
+                    guid: this.guid
                 };
-                return $.extend(inherited, self);
             };
             RouteNode.prototype.isCurveNode = function () {
                 return this.type == Common.Enums.RouteNodeTypes.CurveControl ||
@@ -4616,14 +4820,17 @@ var Common;
     (function (Models) {
         var RoutePath = (function (_super) {
             __extends(RoutePath, _super);
-            function RoutePath(route) {
-                _super.call(this, route.player.field, route.player);
-                this.route = route;
-                this.layer.graphics.setOriginalFill(null);
-                this.layer.graphics.setOriginalStroke('black');
-                this.layer.graphics.setOriginalStrokeWidth(3);
-                this.layer.type = Common.Enums.LayerTypes.PlayerRoutePath;
+            function RoutePath() {
+                _super.call(this);
             }
+            RoutePath.prototype.initialize = function (field, route) {
+                _super.prototype.initialize.call(this, field, route);
+                this.route = route;
+                this.graphics.setOriginalFill(null);
+                this.graphics.setOriginalStroke('black');
+                this.graphics.setOriginalStrokeWidth(3);
+                this.layer.type = Common.Enums.LayerTypes.PlayerRoutePath;
+            };
             RoutePath.prototype.toJson = function () {
                 return {
                     pathString: this.pathString
@@ -4642,8 +4849,8 @@ var Common;
              * NOTE: assumes the pathString is already set to a valid SVG path string
              */
             RoutePath.prototype.draw = function () {
-                this.layer.graphics.path(this.pathString);
-                this.layer.graphics.setAttribute('class', 'painted-fill');
+                this.graphics.path(this.pathString);
+                this.graphics.setAttribute('class', 'painted-fill');
             };
             return RoutePath;
         })(Common.Models.FieldElement);
@@ -4831,18 +5038,18 @@ var Common;
             RelativeCoordinates.prototype.getDistance = function () {
                 if (Common.Utilities.isNullOrUndefined(this.relativeElement))
                     return null;
-                return this.relativeElement ? Common.Drawing.Utilities.distance(this.rx, this.ry, this.relativeElement.layer.graphics.placement.coordinates.x, this.relativeElement.layer.graphics.placement.coordinates.y) : null;
+                return this.relativeElement ? Common.Drawing.Utilities.distance(this.rx, this.ry, this.relativeElement.graphics.placement.coordinates.x, this.relativeElement.graphics.placement.coordinates.y) : null;
             };
             RelativeCoordinates.prototype.getTheta = function () {
                 if (Common.Utilities.isNullOrUndefined(this.relativeElement))
                     return null;
-                return this.relativeElement ? Common.Drawing.Utilities.theta(this.rx, this.ry, this.relativeElement.layer.graphics.placement.coordinates.x, this.relativeElement.layer.graphics.placement.coordinates.y) : null;
+                return this.relativeElement ? Common.Drawing.Utilities.theta(this.rx, this.ry, this.relativeElement.graphics.placement.coordinates.x, this.relativeElement.graphics.placement.coordinates.y) : null;
             };
             RelativeCoordinates.prototype.updateFromGridCoordinates = function (x, y) {
                 if (Common.Utilities.isNullOrUndefined(this.relativeElement))
                     return;
-                this.rx = x - this.relativeElement.layer.graphics.placement.coordinates.x;
-                this.ry = this.relativeElement.layer.graphics.placement.coordinates.y - y;
+                this.rx = x - this.relativeElement.graphics.placement.coordinates.x;
+                this.ry = this.relativeElement.graphics.placement.coordinates.y - y;
             };
             RelativeCoordinates.prototype.updateFromAbsoluteCoordinates = function (ax, ay) {
                 // snap absolute coordinates to grid coordinates first...
@@ -4860,11 +5067,11 @@ var Common;
             RelativeCoordinates.prototype.getCoordinatesFromRelative = function (rx, ry) {
                 if (Common.Utilities.isNullOrUndefined(this.relativeElement))
                     return null;
-                return new Common.Models.Coordinates(this.relativeElement.layer.graphics.placement.coordinates.x + rx, this.relativeElement.layer.graphics.placement.coordinates.y - ry);
+                return new Common.Models.Coordinates(this.relativeElement.graphics.placement.coordinates.x + rx, this.relativeElement.graphics.placement.coordinates.y - ry);
             };
             RelativeCoordinates.prototype.getCoordinates = function () {
                 var self = this;
-                return new Common.Models.Coordinates(this.relativeElement.layer.graphics.placement.coordinates.x + self.rx, this.relativeElement.layer.graphics.placement.coordinates.y - self.ry);
+                return new Common.Models.Coordinates(this.relativeElement.graphics.placement.coordinates.x + self.rx, this.relativeElement.graphics.placement.coordinates.y - self.ry);
             };
             return RelativeCoordinates;
         })(Common.Models.Storable);
@@ -4947,10 +5154,10 @@ var Common;
         var Graphics = (function (_super) {
             __extends(Graphics, _super);
             function Graphics(paper) {
-                _super.call(this, Common.Enums.ImpaktDataTypes.Unknown);
+                _super.call(this);
+                _super.prototype.setContext.call(this, this);
                 this.paper = paper;
                 this.grid = paper.grid;
-                this.set = new Common.Models.GraphicsSet(this);
                 this.location = new Common.Models.Location(0, 0);
                 this.placement = new Common.Models.Placement(0, 0);
                 this.dimensions = new Common.Models.Dimensions();
@@ -4958,18 +5165,23 @@ var Common;
                 this.originalFill = 'white';
                 this.originalStroke = 'black';
                 this.originalOpacity = 1;
+                this.originalFillOpacity = 1;
                 this.originalStrokeWidth = 1;
                 this.fill = this.originalFill;
+                this.fillOpacity = this.originalFillOpacity;
                 this.stroke = this.originalStroke;
                 this.opacity = this.originalOpacity;
                 this.strokeWidth = this.originalStrokeWidth;
                 this.selectedFill = 'white';
+                this.selectedFillOpacity = 1;
                 this.selectedStroke = 'red';
                 this.selectedOpacity = 1;
                 this.disabledFill = '#aaaaaa';
+                this.disabledFillOpacity = 1;
                 this.disabledStroke = '#777777';
                 this.disabledOpacity = 0.5;
                 this.hoverOpacity = 0.4;
+                this.hoverFillOpacity = 0.4;
                 this.font = this.paper.drawing.getFont('Arial');
                 this.drawingHandler = new Common.Models.DrawingHandler(this);
                 this.set = new Common.Models.GraphicsSet(this);
@@ -4979,26 +5191,23 @@ var Common;
                     dimensions: this.dimensions.toJson(),
                     opacity: this.opacity,
                     fill: this.fill,
+                    fillOpacity: this.fillOpacity,
                     stroke: this.stroke,
                     strokeWidth: this.strokeWidth,
                     originalOpacity: this.originalOpacity,
                     originalFill: this.originalFill,
+                    originalFillOpacity: this.originalFillOpacity,
                     originalStroke: this.originalStroke,
                     originalStrokeWidth: this.originalStrokeWidth,
                     selectedFill: this.selectedFill,
+                    selectedFillOpacity: this.selectedFillOpacity,
                     selectedStroke: this.selectedStroke,
                     selectedOpacity: this.selectedOpacity,
-                    disabledFill: this.disabledFill,
+                    disabledFillOpacity: this.disabledFillOpacity,
                     disabledStroke: this.disabledStroke,
                     disabledOpacity: this.disabledOpacity,
                     hoverOpacity: this.hoverOpacity,
-                    disabled: this.disabled,
-                    selected: this.selected,
-                    clickable: this.clickable,
-                    hoverable: this.hoverable,
-                    dragging: this.dragging,
-                    draggable: this.draggable,
-                    dragged: this.dragged,
+                    hoverFillOpacity: this.hoverFillOpacity,
                     placement: this.placement.toJson(),
                     location: this.location.toJson()
                 };
@@ -5009,28 +5218,26 @@ var Common;
                 this.dimensions.fromJson(json.dimensions);
                 this.opacity = json.opacity;
                 this.fill = json.fill;
+                this.fillOpacity = json.fillOpacity;
                 this.stroke = json.stroke;
                 this.strokeWidth = json.strokeWidth;
                 this.placement.fromJson(json.placement);
                 this.location.fromJson(json.location);
                 this.originalOpacity = json.originalOpacity;
                 this.originalFill = json.originalFill;
+                this.originalFillOpacity = json.originalFillOpacity;
                 this.originalStroke = json.originalStroke;
                 this.originalStrokeWidth = json.originalStrokeWidth;
                 this.selectedFill = json.selectedFill;
+                this.selectedFillOpacity = json.selectedFillOpacity;
                 this.selectedStroke = json.selectedStroke;
                 this.selectedOpacity = json.selectedOpacity;
                 this.disabledFill = json.disabledFill;
+                this.disabledFillOpacity = json.disabledFillOpacity;
                 this.disabledStroke = json.disabledStroke;
                 this.disabledOpacity = json.disabledOpacity;
                 this.hoverOpacity = json.hoverOpacity;
-                this.disabled = json.disabled;
-                this.selected = json.selected;
-                this.clickable = json.clickable;
-                this.hoverable = json.hoverable;
-                this.dragging = json.dragging;
-                this.draggable = json.draggable;
-                this.dragged = json.dragged;
+                this.hoverFillOpacity = json.hoverFillOpacity;
             };
             /**
              * Alias for hasRaphael()
@@ -5043,17 +5250,17 @@ var Common;
                 return this.raphael != null && this.raphael != undefined;
             };
             Graphics.prototype.hasLocation = function () {
-                return !Common.Utilities.isNullOrUndefined(this.location);
+                return Common.Utilities.isNotNullOrUndefined(this.location);
             };
             Graphics.prototype.hasPlacement = function () {
-                return !Common.Utilities.isNullOrUndefined(this.placement);
+                return Common.Utilities.isNotNullOrUndefined(this.placement);
             };
             Graphics.prototype.setPlacement = function (placement) {
                 this.placement = placement;
                 this.updateFromCoordinates(placement.coordinates.x, placement.coordinates.y);
             };
             Graphics.prototype.hasSet = function () {
-                return !Common.Utilities.isNullOrUndefined(this.set);
+                return Common.Utilities.isNotNullOrUndefined(this.set);
             };
             Graphics.prototype.getFill = function () {
                 return this.fill;
@@ -5065,6 +5272,20 @@ var Common;
             Graphics.prototype.setOriginalFill = function (fill) {
                 this.setFill(fill);
                 this.originalFill = fill;
+                return this;
+            };
+            Graphics.prototype.getFillOpacity = function () {
+                return this.fillOpacity;
+            };
+            Graphics.prototype.setFillOpacity = function (opacity) {
+                if (opacity > 1 || opacity < 0)
+                    throw new Error('Graphics setFillOpacity(): opacity must be between 0 and 1');
+                this.fillOpacity = opacity;
+                return this.attr({ 'fill-opacity': this.fillOpacity });
+            };
+            Graphics.prototype.setOriginalFillOpacity = function (opacity) {
+                this.setFillOpacity(opacity);
+                this.originalFillOpacity = opacity;
                 return this;
             };
             Graphics.prototype.getStroke = function () {
@@ -5102,6 +5323,12 @@ var Common;
                 this.hoverOpacity = opacity;
                 return this;
             };
+            Graphics.prototype.setHoverFillOpacity = function (opacity) {
+                if (opacity < 0 || opacity > 1)
+                    throw new Error('Graphics setHoverFillOpacity(): opacity must be between 0 and 1, inclusive');
+                this.hoverFillOpacity = opacity;
+                return this;
+            };
             /**
              *
              * Dimension pass-through methods
@@ -5118,10 +5345,6 @@ var Common;
             Graphics.prototype.getOpacity = function () {
                 return this.opacity;
             };
-            /**
-             * Sets the opacity to the given value
-             * @param {number} value The opacity to set
-             */
             Graphics.prototype.setOpacity = function (opacity) {
                 if (opacity > 1 || opacity < 0)
                     throw new Error('Graphics setOpacity(): opacity must be between 0 and 1');
@@ -5138,27 +5361,20 @@ var Common;
              * Toggles the opacity for show/hide effect
              */
             Graphics.prototype.toggleOpacity = function () {
-                if (!this.disabled && !this.selected && this.hoverable) {
-                    this.setOpacity(this.opacity == this.originalOpacity ?
-                        this.hoverOpacity : this.originalOpacity);
-                }
-            };
-            /**
-             * Generic selection method
-             */
-            Graphics.prototype.toggleSelect = function () {
-                if (!_super.prototype.isSelectable.call(this))
-                    return;
-                this.selected ? this.deselect() : this.select();
+                this.setOpacity(this.opacity == this.originalOpacity ?
+                    this.hoverOpacity : this.originalOpacity);
+                this.setFillOpacity(this.fillOpacity == this.originalFillOpacity ?
+                    this.hoverFillOpacity : this.originalFillOpacity);
             };
             Graphics.prototype.select = function () {
-                _super.prototype.select.call(this);
                 this.fill = this.selectedFill;
                 this.stroke = this.selectedStroke;
                 this.opacity = this.selectedOpacity;
+                this.fillOpacity = this.selectedFillOpacity;
                 var self = this;
                 this.attr({
                     'fill': self.fill,
+                    'fill-opacity': self.fillOpacity,
                     'stroke': self.stroke,
                     'opacity': self.opacity
                 });
@@ -5167,13 +5383,14 @@ var Common;
              * Generic deselection method
              */
             Graphics.prototype.deselect = function () {
-                _super.prototype.deselect.call(this);
                 this.fill = this.originalFill;
                 this.stroke = this.originalStroke;
                 this.opacity = this.originalOpacity;
+                this.fillOpacity = this.originalFillOpacity;
                 var self = this;
                 this.attr({
                     'fill': self.fill,
+                    'fill-opacity': self.fillOpacity,
                     'stroke': self.stroke,
                     'opacity': self.opacity
                 });
@@ -5182,13 +5399,14 @@ var Common;
              * Generic disable method
              */
             Graphics.prototype.disable = function () {
-                _super.prototype.disable.call(this);
                 this.fill = this.disabledFill;
                 this.stroke = this.disabledStroke;
                 this.opacity = this.disabledOpacity;
+                this.fillOpacity = this.disabledFillOpacity;
                 var self = this;
                 this.attr({
                     'fill': self.fill,
+                    'fill-opacity': self.fillOpacity,
                     'stroke': self.stroke,
                     'opacity': self.opacity
                 });
@@ -5197,13 +5415,14 @@ var Common;
              * Generic enable method
              */
             Graphics.prototype.enable = function () {
-                _super.prototype.enable.call(this);
                 this.fill = this.originalFill;
                 this.stroke = this.originalStroke;
                 this.opacity = this.originalOpacity;
+                this.fillOpacity = this.originalFillOpacity;
                 var self = this;
                 this.attr({
                     'fill': self.fill,
+                    'fill-opacity': self.fillOpacity,
                     'stroke': self.stroke,
                     'opacity': self.opacity
                 });
@@ -5355,7 +5574,7 @@ var Common;
                 }
                 if (this.getType() != 'text') {
                     attrs['fill'] = this.fill;
-                    attrs['fill-opacity'] = !Common.Utilities.isNullOrUndefined(this.fill) ? 1 : 0;
+                    attrs['fill-opacity'] = this.fillOpacity;
                     attrs['opacity'] = this.opacity;
                     attrs['stroke'] = this.stroke;
                     attrs['stroke-width'] = this.strokeWidth;
@@ -5387,7 +5606,7 @@ var Common;
             Graphics.prototype.getBBox = function (isWithoutTransforms) {
                 if (!this.hasRaphael())
                     return;
-                this.raphael.getBBox(isWithoutTransforms === true);
+                return this.raphael.getBBox(isWithoutTransforms === true);
             };
             Graphics.prototype.transform = function (ax, ay) {
                 if (!this.hasRaphael())
@@ -5458,14 +5677,14 @@ var Common;
                     hoverOut.call(context, e);
                 });
             };
-            Graphics.prototype.hoverIn = function (e, context) {
+            Graphics.prototype.hoverIn = function (e) {
                 if (!this.hasRaphael())
                     return;
                 // Generic hover in functionality
                 console.log('graphics hoverIn');
                 this.toggleOpacity();
             };
-            Graphics.prototype.hoverOut = function (e, context) {
+            Graphics.prototype.hoverOut = function (e) {
                 if (!this.hasRaphael())
                     return;
                 // Generic hover out functionality
@@ -5485,8 +5704,7 @@ var Common;
                     fn.call(context, e);
                 });
             };
-            Graphics.prototype.click = function (e, context) {
-            };
+            Graphics.prototype.click = function (e) { };
             Graphics.prototype.oncontextmenu = function (fn, context) {
                 if (!this.hasRaphael())
                     return;
@@ -5496,12 +5714,11 @@ var Common;
                     }
                 });
             };
-            Graphics.prototype.contextmenu = function (e, context) {
-            };
+            Graphics.prototype.contextmenu = function (e) { };
             /**
              * Mouse down event handler registration method
              * @param {any}                             fn      [description]
-             * @param {Common.Interfaces.IFieldElement} context [description]
+             * @param {Common.Interfaces.IActionable} context [description]
              */
             Graphics.prototype.onmousedown = function (fn, context) {
                 if (!this.hasRaphael())
@@ -5513,7 +5730,7 @@ var Common;
             /**
              * Mouse up event handler registration method
              * @param {any}                             fn      [description]
-             * @param {Common.Interfaces.IFieldElement} context [description]
+             * @param {Common.Interfaces.IActionable} context [description]
              */
             Graphics.prototype.onmouseup = function (fn, context) {
                 if (!this.hasRaphael())
@@ -5526,9 +5743,9 @@ var Common;
              * Default mousedown handler to be called if no other handlers are
              * registered with onmousedown
              * @param {any}                             e       [description]
-             * @param {Common.Interfaces.IFieldElement} context [description]
+             * @param {Common.Interfaces.IActionable} context [description]
              */
-            Graphics.prototype.mousedown = function (e, context) {
+            Graphics.prototype.mousedown = function (e) {
                 if (!this.hasRaphael())
                     return;
             };
@@ -5536,7 +5753,7 @@ var Common;
              * Mouse move event handler registration method; attaches listeners
              * to be fired when the cursor moves over an element (such as for cursor tracking)
              * @param {any}                             fn      [description]
-             * @param {Common.Interfaces.IFieldElement} context [description]
+             * @param {Common.Interfaces.IActionable} context [description]
              */
             Graphics.prototype.onmousemove = function (fn, context) {
                 if (!this.hasRaphael())
@@ -5549,9 +5766,9 @@ var Common;
              * Default mouse move handler to be called if no other handlers are
              * registered with onmousedown
              * @param {any}                             e       [description]
-             * @param {Common.Interfaces.IFieldElement} context [description]
+             * @param {Common.Interfaces.IActionable} context [description]
              */
-            Graphics.prototype.mousemove = function (e, context) {
+            Graphics.prototype.mousemove = function (e) {
                 if (!this.hasRaphael())
                     return;
             };
@@ -5561,8 +5778,6 @@ var Common;
                 this.raphael.drag(dragMove, dragStart, dragEnd, context, context, context);
             };
             Graphics.prototype.drop = function () {
-                this.dragged = false;
-                this.dragging = false;
                 if (this.location.hasChanged())
                     this.setModified(true);
                 // Apply snap on drop
@@ -5570,7 +5785,7 @@ var Common;
                 this.transform(0, 0);
             };
             return Graphics;
-        })(Common.Models.Actionable);
+        })(Common.Models.Modifiable);
         Models.Graphics = Graphics;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -5861,7 +6076,7 @@ var Common;
                 return this.circularArea;
             };
             Dimensions.prototype.hasOffset = function () {
-                return !Common.Utilities.isNullOrUndefined(this.offset);
+                return Common.Utilities.isNotNullOrUndefined(this.offset);
             };
             Dimensions.prototype.getOffset = function () {
                 return this.offset;
@@ -6061,6 +6276,7 @@ var Common;
 /// <reference path='./LinkedList.ts' />
 /// <reference path='./ModifiableCollection.ts' />
 /// <reference path='./ContextmenuData.ts' />
+/// <reference path='./ActionRegistry.ts' />
 /// <reference path='./Actionable.ts' />
 /// <reference path='./ActionableCollection.ts' />
 /// <reference path='./AssociableEntity.ts' />
@@ -6103,6 +6319,7 @@ var Common;
 /// <reference path='./Hashmark.ts' />
 /// <reference path='./Ground.ts' />
 /// <reference path='./Sideline.ts' />
+/// <reference path='./FieldSelectionBox.ts' />
 /// <reference path='./Player.ts' />
 /// <reference path='./PlayerCollection.ts' />
 /// <reference path='./PlayerSelectionBox.ts' />
@@ -6283,9 +6500,13 @@ var Common;
             RouteTypes[RouteTypes["Option"] = 9] = "Option";
             RouteTypes[RouteTypes["HandOff"] = 10] = "HandOff";
             RouteTypes[RouteTypes["Pitch"] = 11] = "Pitch";
-            RouteTypes[RouteTypes["Preview"] = 12] = "Preview";
         })(Enums.RouteTypes || (Enums.RouteTypes = {}));
         var RouteTypes = Enums.RouteTypes;
+        (function (RenderTypes) {
+            RenderTypes[RenderTypes["Preview"] = 0] = "Preview";
+            RenderTypes[RenderTypes["Editor"] = 1] = "Editor";
+        })(Enums.RenderTypes || (Enums.RenderTypes = {}));
+        var RenderTypes = Enums.RenderTypes;
         (function (RouteNodeTypes) {
             RouteNodeTypes[RouteNodeTypes["None"] = 0] = "None";
             RouteNodeTypes[RouteNodeTypes["Normal"] = 1] = "Normal";
@@ -6305,6 +6526,20 @@ var Common;
             RouteNodeActions[RouteNodeActions["ZigZag"] = 5] = "ZigZag";
         })(Enums.RouteNodeActions || (Enums.RouteNodeActions = {}));
         var RouteNodeActions = Enums.RouteNodeActions;
+        (function (Actions) {
+            Actions[Actions["None"] = 0] = "None";
+            Actions[Actions["Create"] = 1] = "Create";
+            Actions[Actions["Save"] = 2] = "Save";
+            Actions[Actions["Overwrite"] = 3] = "Overwrite";
+            Actions[Actions["Copy"] = 4] = "Copy";
+            Actions[Actions["Edit"] = 5] = "Edit";
+            Actions[Actions["Update"] = 6] = "Update";
+            Actions[Actions["Delete"] = 7] = "Delete";
+            Actions[Actions["View"] = 8] = "View";
+            Actions[Actions["Details"] = 9] = "Details";
+            Actions[Actions["Select"] = 10] = "Select";
+        })(Enums.Actions || (Enums.Actions = {}));
+        var Actions = Enums.Actions;
     })(Enums = Common.Enums || (Common.Enums = {}));
 })(Common || (Common = {}));
 /// <reference path='../common.ts' />
@@ -6339,6 +6574,12 @@ var Common;
             Common.Constants.PLAYBOOK_URL,
             Common.Constants.CONTEXTMENUS_URL,
             'play/contextmenu-play.tpl.html'
+        ].join('');
+        Constants.PLAYER_CONTEXTMENU_TEMPLATE_URL = [
+            Common.Constants.MODULES_URL,
+            Common.Constants.PLAYBOOK_URL,
+            Common.Constants.CONTEXTMENUS_URL,
+            'player/contextmenu-player.tpl.html'
         ].join('');
     })(Constants = Common.Constants || (Common.Constants = {}));
 })(Common || (Common = {}));
@@ -6801,6 +7042,9 @@ var Common;
             }
             return output;
         };
+        Utilities.isNotNullOrUndefined = function (obj) {
+            return !Common.Utilities.isNullOrUndefined(obj);
+        };
         Utilities.isNullOrUndefined = function (obj) {
             return Common.Utilities.isNull(obj) || Common.Utilities.isUndefined(obj);
         };
@@ -6874,9 +7118,12 @@ var Playbook;
     (function (Models) {
         var EditorEndzone = (function (_super) {
             __extends(EditorEndzone, _super);
-            function EditorEndzone(context, offsetY) {
-                _super.call(this, context, offsetY);
+            function EditorEndzone(offsetY) {
+                _super.call(this, offsetY);
             }
+            EditorEndzone.prototype.initialize = function (field) {
+                _super.prototype.initialize.call(this, field);
+            };
             return EditorEndzone;
         })(Common.Models.Endzone);
         Models.EditorEndzone = EditorEndzone;
@@ -6889,9 +7136,12 @@ var Playbook;
     (function (Models) {
         var PreviewEndzone = (function (_super) {
             __extends(PreviewEndzone, _super);
-            function PreviewEndzone(context, offsetY) {
-                _super.call(this, context, offsetY);
+            function PreviewEndzone(offsetY) {
+                _super.call(this, offsetY);
             }
+            PreviewEndzone.prototype.initialize = function (field) {
+                _super.prototype.initialize.call(this, field);
+            };
             return PreviewEndzone;
         })(Common.Models.Endzone);
         Models.PreviewEndzone = PreviewEndzone;
@@ -6904,14 +7154,17 @@ var Playbook;
     (function (Models) {
         var EditorBall = (function (_super) {
             __extends(EditorBall, _super);
-            function EditorBall(field) {
-                _super.call(this, field);
+            function EditorBall() {
+                _super.call(this);
             }
+            EditorBall.prototype.initialize = function (field) {
+                _super.prototype.initialize.call(this, field);
+            };
             EditorBall.prototype.draw = function () {
                 _super.prototype.draw.call(this);
                 // Attach event handlers
-                this.layer.graphics.onclick(this.click, this);
-                this.layer.graphics.ondrag(this.dragMove, this.dragStart, this.dragEnd, this);
+                this.graphics.onclick(this.click, this);
+                this.graphics.ondrag(this.dragMove, this.dragStart, this.dragEnd, this);
             };
             EditorBall.prototype.dragMove = function (dx, dy, posx, posy, e) {
                 // NOTE: moveByDelta methods are called separately in the x and y
@@ -6919,18 +7172,18 @@ var Playbook;
                 // peripherals of its containment in either x or y direction,
                 // it is still able to move in the other direction, provided
                 // that it is still within its containment area
-                this.layer.graphics.moveByDeltaX(dx);
-                this.layer.graphics.moveByDeltaY(dy);
+                this.graphics.moveByDeltaX(dx);
+                this.graphics.moveByDeltaY(dy);
                 // update line of scrimmage - do not track difference in x movement,
                 // only track y movement up and down the field
-                this.field.ball.layer.graphics.moveByDeltaY(dy);
+                this.field.ball.graphics.moveByDeltaY(dy);
             };
             EditorBall.prototype.dragStart = function (x, y, e) {
                 // drag not implemented in preview
             };
             EditorBall.prototype.dragEnd = function (e) {
-                this.layer.graphics.drop();
-                this.field.ball.layer.graphics.drop();
+                this.graphics.drop();
+                this.field.ball.graphics.drop();
             };
             return EditorBall;
         })(Common.Models.Ball);
@@ -6944,9 +7197,12 @@ var Playbook;
     (function (Models) {
         var PreviewBall = (function (_super) {
             __extends(PreviewBall, _super);
-            function PreviewBall(field) {
-                _super.call(this, field);
+            function PreviewBall() {
+                _super.call(this);
             }
+            PreviewBall.prototype.initialize = function (field) {
+                _super.prototype.initialize.call(this, field);
+            };
             PreviewBall.prototype.dragMove = function (dx, dy, posx, posy, e) {
                 // Not implemented - preview ball does not have drag functionality
             };
@@ -6985,19 +7241,30 @@ var Playbook;
                 var breakpoint = 1;
             };
             EditorField.prototype.initialize = function () {
-                this.ball = new Playbook.Models.EditorBall(this);
-                this.ground = new Playbook.Models.EditorGround(this);
-                this.los = new Playbook.Models.EditorLineOfScrimmage(this);
-                this.endzone_top = new Playbook.Models.EditorEndzone(this, 0);
-                this.endzone_bottom = new Playbook.Models.EditorEndzone(this, 110);
-                this.sideline_left = new Playbook.Models.EditorSideline(this, 0);
-                this.sideline_right = new Playbook.Models.EditorSideline(this, 51);
-                this.hashmark_left = new Playbook.Models.EditorHashmark(this, 22);
-                this.hashmark_right = new Playbook.Models.EditorHashmark(this, 28);
-                this.hashmark_sideline_left = new Playbook.Models.EditorHashmark(this, 2);
-                this.hashmark_sideline_right = new Playbook.Models.EditorHashmark(this, 50);
+                this.ball = new Playbook.Models.EditorBall();
+                this.ball.initialize(this, null);
+                this.ground = new Playbook.Models.EditorGround();
+                this.ground.initialize(this, null);
+                this.los = new Playbook.Models.EditorLineOfScrimmage();
+                this.los.initialize(this, null);
+                this.endzone_top = new Playbook.Models.EditorEndzone(0);
+                this.endzone_top.initialize(this, null);
+                this.endzone_bottom = new Playbook.Models.EditorEndzone(110);
+                this.endzone_bottom.initialize(this, null);
+                this.sideline_left = new Playbook.Models.EditorSideline(0);
+                this.sideline_left.initialize(this, null);
+                this.sideline_right = new Playbook.Models.EditorSideline(51);
+                this.sideline_right.initialize(this, null);
+                this.hashmark_left = new Playbook.Models.EditorHashmark(22);
+                this.hashmark_left.initialize(this, null);
+                this.hashmark_right = new Playbook.Models.EditorHashmark(28);
+                this.hashmark_right.initialize(this, null);
+                this.hashmark_sideline_left = new Playbook.Models.EditorHashmark(2);
+                this.hashmark_sideline_left.initialize(this, null);
+                this.hashmark_sideline_right = new Playbook.Models.EditorHashmark(50);
+                this.hashmark_sideline_right.initialize(this, null);
                 // Set containment around the ball to restrict its drag area
-                this.ball.layer.graphics.setContainment(this.hashmark_left.layer.graphics.placement.coordinates.x, this.hashmark_right.layer.graphics.placement.coordinates.x, this.endzone_top.layer.graphics.dimensions.getHeight(), this.endzone_top.layer.graphics.placement.coordinates.y);
+                this.ball.graphics.setContainment(this.hashmark_left.graphics.placement.coordinates.x, this.hashmark_right.graphics.placement.coordinates.x, this.endzone_top.graphics.dimensions.getHeight(), this.endzone_top.graphics.placement.coordinates.y);
                 this.layers.add(this.ball.layer);
                 this.layers.add(this.ground.layer);
                 this.layers.add(this.los.layer);
@@ -7037,25 +7304,42 @@ var Playbook;
                 }
                 var selectedPlayers = this.getSelectedByLayerType(Common.Enums.LayerTypes.Player);
                 var self = this;
-                if (selectedPlayers.hasElements()) {
+                var relativeCoords = null;
+                if (selectedPlayers.size() > 1) {
                     selectedPlayers.forEach(function (player, index) {
-                        if (player.assignment.routes &&
-                            player.assignment.routes.size() == 0) {
-                            var route = new Playbook.Models.EditorRoute(player);
-                            player.assignment.routes.add(route);
+                        if (index == 0) {
+                            relativeCoords = player.graphics.placement.coordinates.getRelativeTo(coords, player);
                         }
-                        // TODO: this will only get the first route, implement
-                        // route switching
-                        var playerRoute = player.assignment.routes.getOne();
-                        if (playerRoute.dragInitialized)
-                            return;
-                        var newNode = new Playbook.Models.EditorRouteNode(playerRoute, player.layer.graphics.placement.coordinates.getRelativeTo(coords, player), Common.Enums.RouteNodeTypes.Normal);
-                        // route exists, append the node
-                        playerRoute.addNode(newNode);
-                        console.log('set player route', player.relativeCoordinatesLabel, playerRoute);
-                        self.playPrimary.assignmentGroup.assignments.addAtIndex(player.assignment, player.position.index);
+                        else {
+                            relativeCoords.relativeElement = player;
+                        }
+                        self._addAssignmentToPlayer.call(self, player, relativeCoords);
                     });
                 }
+                else if (selectedPlayers.size() == 1) {
+                    var player = selectedPlayers.first();
+                    this._addAssignmentToPlayer(player, player.graphics.placement.coordinates.getRelativeTo(coords, player));
+                }
+            };
+            EditorField.prototype._addAssignmentToPlayer = function (player, relativeCoords) {
+                if (player.assignment &&
+                    player.assignment.routes &&
+                    player.assignment.routes.size() == 0) {
+                    var route = new Playbook.Models.EditorRoute();
+                    route.setPlayer(player);
+                    player.assignment.routes.add(route);
+                }
+                // TODO: this will only get the first route, implement
+                // route switching
+                var playerRoute = player.assignment.routes.getOne();
+                if (playerRoute.dragInitialized)
+                    return;
+                var newNode = new Playbook.Models.EditorRouteNode(relativeCoords, Common.Enums.RouteNodeTypes.Normal);
+                newNode.initialize(this, player);
+                // route exists, append the node
+                playerRoute.addNode(newNode);
+                console.log('set player route', player.relativeCoordinatesLabel, playerRoute);
+                this.playPrimary.assignmentGroup.assignments.addAtIndex(player.assignment, player.position.index);
             };
             EditorField.prototype.export = function () {
                 return null;
@@ -7065,7 +7349,8 @@ var Playbook;
             EditorField.prototype.remove = function () { };
             EditorField.prototype.getBBoxCoordinates = function () { };
             EditorField.prototype.addPlayer = function (placement, position, assignment) {
-                var player = new Playbook.Models.EditorPlayer(this, placement, position, assignment);
+                var player = new Playbook.Models.EditorPlayer(placement, position, assignment);
+                player.initialize(this);
                 player.draw();
                 var self = this;
                 player.onModified(function () {
@@ -7210,17 +7495,28 @@ var Playbook;
                 _super.call(this, paper, playPrimary, playOpponent);
             }
             PreviewField.prototype.initialize = function () {
-                this.ball = new Playbook.Models.PreviewBall(this);
-                this.ground = new Playbook.Models.PreviewGround(this);
-                this.los = new Playbook.Models.PreviewLineOfScrimmage(this);
-                this.endzone_top = new Playbook.Models.PreviewEndzone(this, 0);
-                this.endzone_bottom = new Playbook.Models.PreviewEndzone(this, 110);
-                this.sideline_left = new Playbook.Models.PreviewSideline(this, 0);
-                this.sideline_right = new Playbook.Models.PreviewSideline(this, 51);
-                this.hashmark_left = new Playbook.Models.PreviewHashmark(this, 22);
-                this.hashmark_right = new Playbook.Models.PreviewHashmark(this, 28);
-                this.hashmark_sideline_left = new Playbook.Models.PreviewHashmark(this, 2);
-                this.hashmark_sideline_right = new Playbook.Models.PreviewHashmark(this, 50);
+                this.ball = new Playbook.Models.PreviewBall();
+                this.ball.initialize(this, null);
+                this.ground = new Playbook.Models.PreviewGround();
+                this.ground.initialize(this, null);
+                this.los = new Playbook.Models.PreviewLineOfScrimmage();
+                this.los.initialize(this, null);
+                this.endzone_top = new Playbook.Models.PreviewEndzone(0);
+                this.endzone_top.initialize(this, null);
+                this.endzone_bottom = new Playbook.Models.PreviewEndzone(110);
+                this.endzone_bottom.initialize(this, null);
+                this.sideline_left = new Playbook.Models.PreviewSideline(0);
+                this.sideline_left.initialize(this, null);
+                this.sideline_right = new Playbook.Models.PreviewSideline(51);
+                this.sideline_right.initialize(this, null);
+                this.hashmark_left = new Playbook.Models.PreviewHashmark(22);
+                this.hashmark_left.initialize(this, null);
+                this.hashmark_right = new Playbook.Models.PreviewHashmark(28);
+                this.hashmark_right.initialize(this, null);
+                this.hashmark_sideline_left = new Playbook.Models.PreviewHashmark(2);
+                this.hashmark_sideline_left.initialize(this, null);
+                this.hashmark_sideline_right = new Playbook.Models.PreviewHashmark(50);
+                this.hashmark_sideline_right.initialize(this, null);
                 this.layers.add(this.ball.layer);
                 this.layers.add(this.ground.layer);
                 this.layers.add(this.los.layer);
@@ -7254,7 +7550,8 @@ var Playbook;
                 // TODO @theBull - look into this
                 // adjust for no sidelines...
                 //placement.x -= 1;
-                var player = new Playbook.Models.PreviewPlayer(this, placement, position, assignment);
+                var player = new Playbook.Models.PreviewPlayer(placement, position, assignment);
+                player.initialize(this);
                 // TODO @theBull - add players to new layers
                 player.draw();
                 this.players.add(player);
@@ -7340,16 +7637,19 @@ var Playbook;
     (function (Models) {
         var PreviewLineOfScrimmage = (function (_super) {
             __extends(PreviewLineOfScrimmage, _super);
-            function PreviewLineOfScrimmage(field) {
-                _super.call(this, field);
-                this.layer.graphics.setOffsetXY(0, 2);
-                this.layer.graphics.dimensions.setHeight(1);
-                this.layer.graphics.hoverable = false;
-                this.layer.graphics.selectable = false;
+            function PreviewLineOfScrimmage() {
+                _super.call(this);
             }
+            PreviewLineOfScrimmage.prototype.initialize = function (field) {
+                _super.prototype.initialize.call(this, field);
+                this.graphics.setOffsetXY(0, 2);
+                this.graphics.dimensions.setHeight(1);
+                this.hoverable = false;
+                this.selectable = false;
+            };
             PreviewLineOfScrimmage.prototype.draw = function () {
-                this.layer.graphics.rect();
-                //this.layer.graphics.disable();
+                this.graphics.rect();
+                //this.graphics.disable();
             };
             return PreviewLineOfScrimmage;
         })(Common.Models.LineOfScrimmage);
@@ -7363,53 +7663,56 @@ var Playbook;
     (function (Models) {
         var EditorLineOfScrimmage = (function (_super) {
             __extends(EditorLineOfScrimmage, _super);
-            function EditorLineOfScrimmage(field) {
-                _super.call(this, field);
-                this.layer.graphics.dimensions.offset.x = 0;
-                this.layer.graphics.dimensions.offset.y = 8;
-                this.layer.graphics.dimensions.setHeight(4);
-                this.layer.graphics.selectedFill = 'blue';
+            function EditorLineOfScrimmage() {
+                _super.call(this);
             }
+            EditorLineOfScrimmage.prototype.initialize = function (field) {
+                _super.prototype.initialize.call(this, field);
+                this.graphics.dimensions.offset.x = 0;
+                this.graphics.dimensions.offset.y = 8;
+                this.graphics.dimensions.setHeight(4);
+                this.graphics.selectedFill = 'blue';
+            };
             EditorLineOfScrimmage.prototype.draw = function () {
-                this.layer.graphics.rect();
-                this.layer.graphics.setAttribute('class', 'ns-resize');
-                // this.layer.graphics.onmousedown(
+                this.graphics.rect();
+                this.graphics.setAttribute('class', 'ns-resize');
+                // this.graphics.onmousedown(
                 //     this.mousedown,
                 //     this
                 // );
-                // this.layer.graphics.onmouseup(
+                // this.graphics.onmouseup(
                 //     this.mouseup,
                 //     this
                 // );
-                // this.layer.graphics.onclick(
+                // this.graphics.onclick(
                 //     this.click,
                 //     this
                 // );
-                this.layer.graphics.ondrag(this.dragMove, this.dragStart, this.dragEnd, this);
+                this.graphics.ondrag(this.dragMove, this.dragStart, this.dragEnd, this);
             };
             // public mousedown(e: any, context: Common.Interfaces.IFieldElement): void {
             //     if (e.keyCode == Common.Input.Which.RightClick) {
             //         context.contextmenu(e, context);
             //     }
-            //     this.layer.graphics.select();
+            //     this.graphics.select();
             // }
             // public mouseup(e: any, context: Common.Interfaces.IFieldElement): void {
-            //     this.layer.graphics.deselect();
+            //     this.graphics.deselect();
             // }
             EditorLineOfScrimmage.prototype.dragMove = function (dx, dy, posx, posy, e) {
                 var snapDx = this.grid.snapping ? this.grid.snapPixel(dx) : dx;
                 var snapDy = this.grid.snapping ? this.grid.snapPixel(dy) : dy;
-                this.layer.graphics.moveByDelta(this.layer.graphics.placement.coordinates.x, snapDy);
-                this.field.ball.layer.graphics.dragging = true;
-                this.field.ball.layer.graphics.moveByDelta(this.field.ball.layer.graphics.placement.coordinates.x, snapDy);
+                this.graphics.moveByDelta(this.graphics.placement.coordinates.x, snapDy);
+                this.field.ball.dragging = true;
+                this.field.ball.layer.moveByDelta(this.field.ball.graphics.placement.coordinates.x, snapDy);
                 this.field.players.forEach(function (player, index) {
                     player.layer.layers.forEach(function (layer) {
-                        layer.graphics.moveByDelta(player.layer.graphics.placement.coordinates.x, snapDy);
+                        layer.moveByDelta(player.graphics.placement.coordinates.x, snapDy);
                     });
                 });
             };
             EditorLineOfScrimmage.prototype.dragStart = function (e) {
-                this.layer.graphics.dragging = true;
+                this.dragging = true;
             };
             EditorLineOfScrimmage.prototype.dragEnd = function (e) {
                 this.drop();
@@ -7430,8 +7733,8 @@ var Playbook;
     (function (Models) {
         var PreviewGround = (function (_super) {
             __extends(PreviewGround, _super);
-            function PreviewGround(field) {
-                _super.call(this, field);
+            function PreviewGround() {
+                _super.call(this);
             }
             PreviewGround.prototype.draw = function () {
                 _super.prototype.draw.call(this);
@@ -7469,14 +7772,20 @@ var Playbook;
     (function (Models) {
         var EditorGround = (function (_super) {
             __extends(EditorGround, _super);
-            function EditorGround(field) {
-                _super.call(this, field);
+            function EditorGround() {
+                _super.call(this);
+                this.selectionBox = new Common.Models.FieldSelectionBox();
             }
+            EditorGround.prototype.initialize = function (field, relativeElement) {
+                _super.prototype.initialize.call(this, field, null);
+                this.selectionBox.initialize(field, null);
+                this.layer.addLayer(this.selectionBox.layer);
+            };
             EditorGround.prototype.draw = function () {
-                this.layer.graphics.rect();
-                this.layer.graphics.onclick(this.click, this);
-                this.layer.graphics.ondrag(this.dragMove, this.dragStart, this.dragEnd, this);
-                this.layer.graphics.onmousemove(this.mousemove, this);
+                this.graphics.rect();
+                this.graphics.onclick(this.click, this);
+                this.graphics.ondrag(this.dragMove, this.dragStart, this.dragEnd, this);
+                this.graphics.onmousemove(this.mousemove, this);
             };
             EditorGround.prototype.mousemove = function (e) {
                 // get current coordinates
@@ -7501,6 +7810,68 @@ var Playbook;
                         break;
                 }
             };
+            EditorGround.prototype.dragMove = function (dx, dy, posx, posy, e) {
+                if (!this.isOverDragThreshold(dx, dy))
+                    return;
+                else
+                    this.dragging = true;
+                var direction = '';
+                var offsetX = 0;
+                var offsetY = 0;
+                if (dx < 0) {
+                    offsetX = dx;
+                    dx = -1 * dx;
+                }
+                if (dy < 0) {
+                    offsetY = dy;
+                    dy = -1 * dy;
+                }
+                this.selectionBox.graphics.dimensions.setWidth(dx);
+                this.selectionBox.graphics.dimensions.setHeight(dy);
+                this.selectionBox.draw();
+                this.selectionBox.graphics.transform(offsetX, offsetY);
+            };
+            EditorGround.prototype.dragStart = function (x, y, e) {
+                _super.prototype.dragStart.call(this, x, y, e);
+                var coords = this.getClickAbsolute(e.offsetX, e.offsetY);
+                // if(this.selectionBox.graphics.hasRaphael()) {
+                //     this.selectionBox.layer.show();
+                // } else {
+                //     this.selectionBox.draw();
+                // }
+                this.selectionBox.graphics.location.ax = coords.x;
+                this.selectionBox.graphics.location.ay = coords.y;
+            };
+            EditorGround.prototype.dragEnd = function (e) {
+                if (this.dragging) {
+                    this.selectionBox.graphics.dimensions.setHeight(0);
+                    this.selectionBox.graphics.dimensions.setWidth(0);
+                    //this.selectionBox.layer.hide();
+                    var bounds = this.selectionBox.graphics.getBBox();
+                    this.selectionBox.graphics.remove();
+                    console.log(bounds);
+                    this.field.players.forEach(function (player, index) {
+                        // Here, we want to get the x,y vales of each object
+                        // regardless of what sort of shape it is.
+                        // But rect uses rx and ry, circle uses cx and cy, etc
+                        // So we'll see if the bounding boxes intercept instead
+                        var playerBounds = player.icon.graphics.getBBox();
+                        //do bounding boxes overlap?
+                        //is one of this object's x extremes between the selection's xe xtremes?
+                        if (playerBounds.x >= bounds.x && playerBounds.x <= bounds.x + bounds.width ||
+                            playerBounds.x + playerBounds.width >= bounds.x &&
+                                playerBounds.x + playerBounds.width <= bounds.x + bounds.width) {
+                            //same for y
+                            if (playerBounds.y >= bounds.y && playerBounds.y <= bounds.y + bounds.height ||
+                                playerBounds.y + playerBounds.height >= bounds.y &&
+                                    playerBounds.y + playerBounds.height <= bounds.y + bounds.height) {
+                                player.toggleSelect(true);
+                            }
+                        }
+                    });
+                }
+                _super.prototype.dragEnd.call(this, e);
+            };
             return EditorGround;
         })(Common.Models.Ground);
         Models.EditorGround = EditorGround;
@@ -7513,8 +7884,8 @@ var Playbook;
     (function (Models) {
         var PreviewHashmark = (function (_super) {
             __extends(PreviewHashmark, _super);
-            function PreviewHashmark(field, x) {
-                _super.call(this, field, x);
+            function PreviewHashmark(offsetX) {
+                _super.call(this, offsetX);
             }
             return PreviewHashmark;
         })(Common.Models.Hashmark);
@@ -7528,8 +7899,8 @@ var Playbook;
     (function (Models) {
         var EditorHashmark = (function (_super) {
             __extends(EditorHashmark, _super);
-            function EditorHashmark(field, x) {
-                _super.call(this, field, x);
+            function EditorHashmark(offsetX) {
+                _super.call(this, offsetX);
             }
             return EditorHashmark;
         })(Common.Models.Hashmark);
@@ -7543,10 +7914,13 @@ var Playbook;
     (function (Models) {
         var PreviewSideline = (function (_super) {
             __extends(PreviewSideline, _super);
-            function PreviewSideline(field, offsetX) {
-                _super.call(this, field, offsetX);
-                this.layer.graphics.opacity = 0.35;
+            function PreviewSideline(offsetX) {
+                _super.call(this, offsetX);
             }
+            PreviewSideline.prototype.initialize = function (field) {
+                _super.prototype.initialize.call(this, field);
+                this.graphics.opacity = 0.35;
+            };
             return PreviewSideline;
         })(Common.Models.Sideline);
         Models.PreviewSideline = PreviewSideline;
@@ -7559,8 +7933,8 @@ var Playbook;
     (function (Models) {
         var EditorSideline = (function (_super) {
             __extends(EditorSideline, _super);
-            function EditorSideline(field, offsetX) {
-                _super.call(this, field, offsetX);
+            function EditorSideline(offsetX) {
+                _super.call(this, offsetX);
             }
             return EditorSideline;
         })(Common.Models.Sideline);
@@ -7574,10 +7948,11 @@ var Playbook;
     (function (Models) {
         var EditorPlayer = (function (_super) {
             __extends(EditorPlayer, _super);
-            function EditorPlayer(field, placement, position, assignment) {
-                _super.call(this, field, placement, position, assignment);
-                this.contextmenuTemplateUrl
-                    = 'modules/playbook/editor/canvas/player/playbook-editor-canvas-player-contextmenu.tpl.html';
+            function EditorPlayer(placement, position, assignment) {
+                _super.call(this, placement, position, assignment);
+            }
+            EditorPlayer.prototype.initialize = function (field) {
+                _super.prototype.initialize.call(this, field);
                 // the set acts as a group for the other graphical elements
                 this.selectionBox = new Playbook.Models.EditorPlayerSelectionBox(this);
                 this.icon = new Playbook.Models.EditorPlayerIcon(this);
@@ -7594,7 +7969,12 @@ var Playbook;
                     console.log('editor player modified');
                     self.setModified(true);
                 });
-            }
+                // parse route json data
+                if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+                    this.assignment.setRoutes(this, Common.Enums.RenderTypes.Editor);
+                }
+                this.contextmenuTemplateUrl = Common.Constants.PLAYER_CONTEXTMENU_TEMPLATE_URL;
+            };
             EditorPlayer.prototype.draw = function () {
                 /**
                  * Player selection box
@@ -7604,7 +7984,7 @@ var Playbook;
                  *	Player icon
                  */
                 this.icon.draw();
-                this.icon.layer.graphics.ondrag(this.dragMove, this.dragStart, this.dragEnd, this);
+                this.icon.graphics.ondrag(this.dragMove, this.dragStart, this.dragEnd, this);
                 /**
                  * Relative Coordinates Text
                  */
@@ -7618,11 +7998,11 @@ var Playbook;
                  */
                 this.indexLabel.draw();
                 // Draw the player's assignment
-                if (this.assignment) {
-                    var route = this.assignment.routes.getOne();
-                    // TODO: implement route switching
-                    if (route) {
-                        route.draw();
+                if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+                    if (this.assignment.routes.hasElements()) {
+                        this.assignment.routes.forEach(function (route, index) {
+                            route.draw();
+                        });
                     }
                 }
             };
@@ -7646,8 +8026,7 @@ var Playbook;
                         e.returnValue = false;
                     }
                 }
-                // Toggle the selection of this player
-                this.field.toggleSelection(this);
+                this.toggleSelect(e.metaKey);
                 // determine the tool currently selected
                 var toolMode = this.canvas.toolMode;
                 switch (toolMode) {
@@ -7660,12 +8039,28 @@ var Playbook;
                 }
                 return e.returnValue;
             };
+            EditorPlayer.prototype.toggleSelect = function (metaKey) {
+                // Toggle the selection of this player
+                this.icon.toggleSelect(metaKey);
+                if (metaKey) {
+                    this.field.toggleSelection(this);
+                }
+                else {
+                    this.field.setSelection(this);
+                }
+            };
+            EditorPlayer.prototype.deselect = function () {
+                this.icon.deselect();
+            };
+            EditorPlayer.prototype.select = function () {
+                this.icon.select();
+            };
             EditorPlayer.prototype.dragMove = function (dx, dy, posx, posy, e) {
                 // Ignore drag motions under specified threshold to prevent
                 // click/mousedown from triggering drag method
                 if (!this.isOverDragThreshold(dx, dy))
                     return;
-                this.layer.graphics.dragged = true;
+                this.dragged = true;
                 // do not allow dragging while in route mode
                 if (this.canvas.toolMode == Playbook.Enums.ToolModes.Assignment) {
                     if (!this.assignment) {
@@ -7675,12 +8070,12 @@ var Playbook;
                     var route = this.assignment.routes.getOne();
                     // TODO: Implement route switching
                     if (!route) {
-                        var newRoute = new Playbook.Models.EditorRoute(this, true);
+                        var newRoute = new Playbook.Models.EditorRoute(true);
                         this.assignment.routes.add(newRoute);
                         route = this.assignment.routes.get(newRoute.guid);
                     }
                     if (route.dragInitialized) {
-                        var coords = new Common.Models.Coordinates(this.layer.graphics.location.ax + dx, this.layer.graphics.location.ay + dy);
+                        var coords = new Common.Models.Coordinates(this.graphics.location.ax + dx, this.graphics.location.ay + dy);
                         route.initializeCurve(coords, e.shiftKey);
                     }
                     // prevent remaining logic from getting executed.
@@ -7689,12 +8084,20 @@ var Playbook;
                 else if (!e.shiftKey && e.which != Common.Input.Which.RightClick) {
                     // Update the placement to track for modification
                     this.layer.moveByDelta(dx, dy);
+                    if (this.assignment) {
+                        // TODO: implement route switching
+                        this.assignment.routes.forEach(function (route, index) {
+                            if (Common.Utilities.isNotNullOrUndefined(route)) {
+                                route.layer.moveByDelta(dx, dy);
+                            }
+                        });
+                    }
                     // Update relative coordinates label, if it exists
                     if (this.relativeCoordinatesLabel) {
-                        this.relativeCoordinatesLabel.layer.graphics.text([
-                            this.layer.graphics.placement.relative.rx,
+                        this.relativeCoordinatesLabel.graphics.text([
+                            this.graphics.placement.relative.rx,
                             ', ',
-                            this.layer.graphics.placement.relative.ry
+                            this.graphics.placement.relative.ry
                         ].join(''));
                     }
                 }
@@ -7707,22 +8110,24 @@ var Playbook;
             };
             EditorPlayer.prototype.dragStart = function (x, y, e) {
                 _super.prototype.dragStart.call(this, x, y, e);
-                if (this.relativeCoordinatesLabel)
-                    this.relativeCoordinatesLabel.layer.show();
-                this.field.toggleSelection(this);
+                if (this.dragging) {
+                    if (this.relativeCoordinatesLabel)
+                        this.relativeCoordinatesLabel.layer.show();
+                }
             };
             EditorPlayer.prototype.dragEnd = function (e) {
                 _super.prototype.dragEnd.call(this, e);
                 this.drop();
                 if (this.assignment) {
                     // TODO: implement route switching
-                    var route = this.assignment.routes.getOne();
-                    if (route) {
-                        if (route.dragInitialized) {
-                            route.dragInitialized = false;
+                    this.assignment.routes.forEach(function (route, index) {
+                        if (Common.Utilities.isNotNullOrUndefined(route)) {
+                            if (route.dragInitialized) {
+                                route.dragInitialized = false;
+                            }
+                            route.draw();
                         }
-                        route.draw();
-                    }
+                    });
                 }
                 if (this.relativeCoordinatesLabel)
                     this.relativeCoordinatesLabel.layer.hide();
@@ -7734,13 +8139,13 @@ var Playbook;
             EditorPlayer.prototype.onkeypress = function () {
             };
             EditorPlayer.prototype.getPositionRelativeToBall = function () {
-                return this.layer.graphics.placement.relative;
+                return this.graphics.placement.relative;
             };
             EditorPlayer.prototype.getCoordinatesFromAbsolute = function () {
-                return this.layer.graphics.placement.coordinates;
+                return this.graphics.placement.coordinates;
             };
             EditorPlayer.prototype.hasPlacement = function () {
-                return this.layer.graphics.placement != null;
+                return this.graphics.placement != null;
             };
             EditorPlayer.prototype.hasPosition = function () {
                 return this.position != null;
@@ -7757,14 +8162,28 @@ var Playbook;
     (function (Models) {
         var PreviewPlayer = (function (_super) {
             __extends(PreviewPlayer, _super);
-            function PreviewPlayer(context, placement, position, assignment) {
-                _super.call(this, context, placement, position, assignment);
+            function PreviewPlayer(placement, position, assignment) {
+                _super.call(this, placement, position, assignment);
+            }
+            PreviewPlayer.prototype.initialize = function (field) {
+                _super.prototype.initialize.call(this, field);
                 // the set acts as a group for the other graphical elements
                 this.icon = new Playbook.Models.PreviewPlayerIcon(this);
                 this.layer.addLayer(this.icon.layer);
-            }
+                // parse route json data
+                if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+                    this.assignment.setRoutes(this, Common.Enums.RenderTypes.Preview);
+                }
+            };
             PreviewPlayer.prototype.draw = function () {
                 this.icon.draw();
+                if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+                    if (this.assignment.routes.hasElements()) {
+                        this.assignment.routes.forEach(function (route, index) {
+                            route.draw();
+                        });
+                    }
+                }
             };
             PreviewPlayer.prototype.dragMove = function (dx, dy, posx, posy, e) {
                 // Not implemented - preview player does not have drag functionality
@@ -7789,23 +8208,22 @@ var Playbook;
             __extends(EditorPlayerIcon, _super);
             function EditorPlayerIcon(player) {
                 _super.call(this, player);
-                this.layer.graphics.setHoverOpacity(0.6);
+                this.graphics.setHoverOpacity(0.6);
             }
             EditorPlayerIcon.prototype.draw = function () {
                 _super.prototype.draw.call(this);
-                this.layer.graphics.setAttribute('class', 'pointer');
+                this.graphics.setAttribute('class', 'pointer');
                 /**
                  *
                  * Attach event handlers to the player icon, but defer the functionality and
                  * scope to the actual player object itself, not to this icon.
                  *
                  */
-                this.layer.graphics.onclick(this.click, this);
-                this.layer.graphics.onhover(this.player.hoverIn, this.player.hoverOut, this.player);
-                this.layer.graphics.onmousedown(this.player.mousedown, this.player);
+                this.graphics.onclick(this.click, this);
+                this.graphics.onhover(this.player.hoverIn, this.player.hoverOut, this.player);
+                this.graphics.onmousedown(this.player.mousedown, this.player);
             };
             EditorPlayerIcon.prototype.click = function (e) {
-                _super.prototype.click.call(this, e);
                 this.player.click(e);
             };
             return EditorPlayerIcon;
@@ -7822,8 +8240,8 @@ var Playbook;
             __extends(PreviewPlayerIcon, _super);
             function PreviewPlayerIcon(player) {
                 _super.call(this, player);
-                this.layer.graphics.fill = 'black';
-                this.layer.graphics.setStrokeWidth(0);
+                this.graphics.fill = 'black';
+                this.graphics.setStrokeWidth(0);
             }
             return PreviewPlayerIcon;
         })(Common.Models.PlayerIcon);
@@ -7966,22 +8384,18 @@ var Playbook;
     (function (Models) {
         var PreviewRoute = (function (_super) {
             __extends(PreviewRoute, _super);
-            function PreviewRoute(player) {
-                _super.call(this, player);
-                this.dragInitialized = false;
-                this.type = Common.Enums.RouteTypes.Preview;
-                this.layer.graphics.disable();
-                if (this.player) {
-                    // add root node
-                    var rootNode = new Playbook.Models.PreviewRouteNode(this, new Common.Models.RelativeCoordinates(0, 0, this.player), Common.Enums.RouteNodeTypes.Root);
-                    this.addNode(rootNode, false);
-                }
-                this.routePath = new Playbook.Models.PreviewRoutePath(this);
-                this.layer.addLayer(this.routePath.layer);
-                this.player.layer.addLayer(this.layer);
+            function PreviewRoute() {
+                _super.call(this);
             }
-            PreviewRoute.prototype.draw = function () {
-                // route nodes not visible in preview
+            PreviewRoute.prototype.setPlayer = function (player) {
+                _super.prototype.setPlayer.call(this, player);
+                if (this.player) {
+                }
+                this.routePath = new Playbook.Models.PreviewRoutePath();
+                this.routePath.initialize(this.field, this.player);
+                this.layer.addLayer(this.routePath.layer);
+                this.graphics.disable();
+                this.renderType = Common.Enums.RenderTypes.Preview;
             };
             PreviewRoute.prototype.setContext = function (player) {
                 // TODO @theBull
@@ -7991,19 +8405,6 @@ var Playbook;
             };
             PreviewRoute.prototype.initializeCurve = function (coords, flip) {
                 // initialize Curve not available for preview
-            };
-            PreviewRoute.prototype.fromJson = function (json) {
-                _super.prototype.fromJson.call(this, json);
-                // initialize route nodes
-                if (json.nodes) {
-                    for (var i = 0; i < json.nodes.length; i++) {
-                        var rawNode = json.nodes[i];
-                        var relativeCoordinates = new Common.Models.RelativeCoordinates(rawNode.layer.graphics.placement.coordinates.x, rawNode.layer.graphics.placement.coordinates.y, this.player);
-                        var routeNodeModel = new Playbook.Models.PreviewRouteNode(this, relativeCoordinates, rawNode.type);
-                        routeNodeModel.fromJson(rawNode);
-                        this.addNode(routeNodeModel, false);
-                    }
-                }
             };
             return PreviewRoute;
         })(Common.Models.Route);
@@ -8017,20 +8418,25 @@ var Playbook;
     (function (Models) {
         var EditorRoute = (function (_super) {
             __extends(EditorRoute, _super);
-            function EditorRoute(player, dragInitialized) {
-                _super.call(this, player);
-                this.type = Common.Enums.RouteTypes.Generic;
-                this.dragInitialized = dragInitialized === true;
-                this.routePath = new Playbook.Models.EditorRoutePath(this);
+            function EditorRoute(dragInitialized) {
+                _super.call(this, dragInitialized);
+            }
+            EditorRoute.prototype.setPlayer = function (player) {
+                _super.prototype.setPlayer.call(this, player);
                 if (this.player) {
                     // add root node
-                    var rootNode = new Playbook.Models.EditorRouteNode(this, new Common.Models.RelativeCoordinates(0, 0, this.player), Common.Enums.RouteNodeTypes.Root);
-                    rootNode.layer.graphics.disable();
+                    var rootNode = new Playbook.Models.EditorRouteNode(new Common.Models.RelativeCoordinates(0, 0, this.player), Common.Enums.RouteNodeTypes.Root);
+                    rootNode.initialize(this.field, this.player);
+                    rootNode.layer.toBack();
+                    rootNode.layer.hide();
+                    rootNode.disable();
                     this.addNode(rootNode, false);
                 }
+                this.routePath = new Playbook.Models.EditorRoutePath();
+                this.routePath.initialize(this.field, this.player);
                 this.layer.addLayer(this.routePath.layer);
-                this.player.layer.addLayer(this.layer);
-            }
+                this.renderType = Common.Enums.RenderTypes.Editor;
+            };
             EditorRoute.prototype.setContext = function (player) {
                 if (player) {
                     this.player = player;
@@ -8045,21 +8451,6 @@ var Playbook;
                         }
                     });
                     this.draw();
-                }
-            };
-            EditorRoute.prototype.fromJson = function (json) {
-                _super.prototype.fromJson.call(this, json);
-                this.dragInitialized = json.dragInitialized;
-                this.guid = json.guid;
-                // initialize route nodes
-                if (json.nodes) {
-                    for (var i = 0; i < json.nodes.length; i++) {
-                        var rawNode = json.nodes[i];
-                        var relativeCoordinates = new Common.Models.RelativeCoordinates(rawNode.layer.graphics.placement.coordinates.x, rawNode.layer.graphics.placement.coordinates.y, this.player);
-                        var routeNodeModel = new Playbook.Models.EditorRouteNode(this, relativeCoordinates, rawNode.type);
-                        routeNodeModel.fromJson(rawNode);
-                        this.addNode(routeNodeModel, false);
-                    }
                 }
             };
             EditorRoute.prototype.initializeCurve = function (coords, flip) {
@@ -8082,8 +8473,10 @@ var Playbook;
                     lastNode.type = Common.Enums.RouteNodeTypes.CurveStart;
                     // add control node and end node. They share the
                     // same relative coordinates as the root/last node to start
-                    controlNode = new Playbook.Models.EditorRouteNode(this, new Common.Models.RelativeCoordinates(lastNode.layer.graphics.placement.relative.rx, lastNode.layer.graphics.placement.relative.ry, this.player), Common.Enums.RouteNodeTypes.CurveControl);
-                    endNode = new Playbook.Models.EditorRouteNode(this, new Common.Models.RelativeCoordinates(lastNode.layer.graphics.placement.relative.rx, lastNode.layer.graphics.placement.relative.ry, this.player), Common.Enums.RouteNodeTypes.CurveEnd);
+                    controlNode = new Playbook.Models.EditorRouteNode(new Common.Models.RelativeCoordinates(lastNode.graphics.placement.relative.rx, lastNode.graphics.placement.relative.ry, this.player), Common.Enums.RouteNodeTypes.CurveControl);
+                    controlNode.initialize(this.field, this.player);
+                    endNode = new Playbook.Models.EditorRouteNode(new Common.Models.RelativeCoordinates(lastNode.graphics.placement.relative.rx, lastNode.graphics.placement.relative.ry, this.player), Common.Enums.RouteNodeTypes.CurveEnd);
+                    endNode.initialize(this.field, this.player);
                     // false: do not render nodes
                     this.addNode(controlNode, false);
                     this.addNode(endNode, true);
@@ -8094,12 +8487,12 @@ var Playbook;
                     endNode = this.nodes.getIndex(2);
                 }
                 if (flip === true) {
-                    controlNode.layer.graphics.updateLocation(coords.x, lastNode.layer.graphics.location.ay);
+                    controlNode.graphics.updateLocation(coords.x, lastNode.graphics.location.ay);
                 }
                 else {
-                    controlNode.layer.graphics.updateLocation(lastNode.layer.graphics.location.ax, coords.y);
+                    controlNode.graphics.updateLocation(lastNode.graphics.location.ax, coords.y);
                 }
-                endNode.layer.graphics.updateLocation(coords.x, coords.y);
+                endNode.graphics.updateLocation(coords.x, coords.y);
                 this.drawCurve(controlNode);
             };
             EditorRoute.prototype.moveNodesByDelta = function (dx, dy) {
@@ -8121,17 +8514,24 @@ var Playbook;
     (function (Models) {
         var PreviewRouteNode = (function (_super) {
             __extends(PreviewRouteNode, _super);
-            function PreviewRouteNode(route, relativeCoordinates, type) {
-                _super.call(this, route, relativeCoordinates, type);
+            function PreviewRouteNode(relativeCoordinates, type) {
+                _super.call(this, relativeCoordinates, type);
+                this.routeAction = new Playbook.Models.PreviewRouteAction(Common.Enums.RouteNodeActions.None);
+                this.routeControlPath = new Playbook.Models.PreviewRouteControlPath();
+                this.renderType = Common.Enums.RenderTypes.Preview;
+            }
+            PreviewRouteNode.prototype.initialize = function (field, route) {
+                _super.prototype.initialize.call(this, field, route);
                 // preview route node does not have a contextmenu
                 this.contextmenuTemplateUrl = null;
                 // Related route node graphics
-                this.routeAction = new Playbook.Models.PreviewRouteAction(this, Common.Enums.RouteNodeActions.None);
-                this.routeControlPath = new Playbook.Models.PreviewRouteControlPath(this);
+                this.routeAction.initialize(this.field, this);
+                this.routeControlPath.initialize(this.field, this);
                 this.layer.addLayer(this.routeAction.layer);
                 this.layer.addLayer(this.routeControlPath.layer);
                 this.route.layer.addLayer(this.layer);
-            }
+                this.disable();
+            };
             return PreviewRouteNode;
         })(Common.Models.RouteNode);
         Models.PreviewRouteNode = PreviewRouteNode;
@@ -8144,37 +8544,43 @@ var Playbook;
     (function (Models) {
         var EditorRouteNode = (function (_super) {
             __extends(EditorRouteNode, _super);
-            function EditorRouteNode(route, relativeCoordinates, type) {
-                _super.call(this, route, relativeCoordinates, type);
-                this.layer.graphics.enable();
-                this.layer.graphics.setOriginalFill('#222222');
-                this.layer.graphics.setHoverOpacity(1);
-                this.layer.graphics.setOriginalOpacity(0.05);
+            function EditorRouteNode(relativeCoordinates, type) {
+                _super.call(this, relativeCoordinates, type);
+                this.routeAction = new Playbook.Models.EditorRouteAction(Common.Enums.RouteNodeActions.None);
+                this.routeControlPath = new Playbook.Models.EditorRouteControlPath();
+                this.renderType = Common.Enums.RenderTypes.Editor;
+            }
+            EditorRouteNode.prototype.initialize = function (field, route) {
+                _super.prototype.initialize.call(this, field, route);
+                this.graphics.enable();
+                this.graphics.setOriginalFill('#222222');
+                this.graphics.setHoverOpacity(1);
+                this.graphics.setOriginalOpacity(0.05);
                 this.contextmenuTemplateUrl = Common.Constants.EDITOR_ROUTENODE_CONTEXTMENU_TEMPLATE_URL;
                 // Related route node graphics
-                this.routeAction = new Playbook.Models.EditorRouteAction(this, Common.Enums.RouteNodeActions.None);
-                this.routeControlPath = new Playbook.Models.EditorRouteControlPath(this);
+                this.routeAction.initialize(this.field, this);
+                this.routeControlPath.initialize(this.field, this);
                 // Add layers
                 this.layer.addLayer(this.routeAction.layer);
                 this.layer.addLayer(this.routeControlPath.layer);
                 this.route.layer.addLayer(this.layer);
-            }
+            };
             EditorRouteNode.prototype.draw = function () {
                 _super.prototype.draw.call(this);
-                this.layer.graphics.setAttribute('class', 'grab');
-                this.layer.graphics.onclick(this.click, this);
-                this.layer.graphics.ondrag(this.dragMove, this.dragStart, this.dragEnd, this // drag end context
+                this.graphics.setAttribute('class', 'grab');
+                this.graphics.onclick(this.click, this);
+                this.graphics.ondrag(this.dragMove, this.dragStart, this.dragEnd, this // drag end context
                 );
-                this.layer.graphics.onhover(this.hoverIn, this.hoverOut, this);
-                this.layer.graphics.oncontextmenu(this.contextmenu, this);
+                this.graphics.onhover(this.hoverIn, this.hoverOut, this);
+                this.graphics.oncontextmenu(this.contextmenu, this);
                 if (this.type == Common.Enums.RouteNodeTypes.CurveControl) {
                 }
             };
             EditorRouteNode.prototype.hoverIn = function (e) {
-                this.layer.graphics.toggleOpacity();
+                this.graphics.toggleOpacity();
             };
             EditorRouteNode.prototype.hoverOut = function (e) {
-                this.layer.graphics.toggleOpacity();
+                this.graphics.toggleOpacity();
             };
             EditorRouteNode.prototype.click = function (e) {
                 // Toggle the selection of this routeNode
@@ -8184,18 +8590,18 @@ var Playbook;
                 this.paper.canvas.listener.invoke(Playbook.Enums.Actions.RouteNodeContextmenu, new Common.Models.ContextmenuData(this, e.pageX, e.pageY));
             };
             EditorRouteNode.prototype.dragMove = function (dx, dy, posx, posy, e) {
-                if (this.layer.graphics.disabled) {
+                if (this.disabled) {
                     return;
                 }
                 // Update RouteNode graphical position
-                this.layer.graphics.moveByDelta(dx, dy);
+                this.graphics.moveByDelta(dx, dy);
                 // Update RouteAction graphical position (if applicable)
                 if (this.routeAction) {
                     this.routeAction.layer.moveByDelta(dx, dy);
                     // Rotate the route action to stay perpendicular to the node/route orientation
-                    var theta = Common.Drawing.Utilities.theta(this.prev.layer.graphics.location.ax, this.prev.layer.graphics.location.ay, this.layer.graphics.location.ax, this.layer.graphics.location.ay);
+                    var theta = Common.Drawing.Utilities.theta(this.prev.graphics.location.ax, this.prev.graphics.location.ay, this.graphics.location.ax, this.graphics.location.ay);
                     var thetaDegrees = Common.Drawing.Utilities.toDegrees(theta);
-                    this.routeAction.layer.graphics.rotate(90 - thetaDegrees);
+                    this.routeAction.graphics.rotate(90 - thetaDegrees);
                 }
                 // redraw the path
                 if (this.isCurveNode()) {
@@ -8235,12 +8641,15 @@ var Playbook;
     (function (Models) {
         var PreviewRoutePath = (function (_super) {
             __extends(PreviewRoutePath, _super);
-            function PreviewRoutePath(route) {
-                _super.call(this, route);
-                this.layer.graphics.setStrokeWidth(1);
-                this.layer.graphics.refresh();
-                this.route.layer.addLayer(this.layer);
+            function PreviewRoutePath() {
+                _super.call(this);
             }
+            PreviewRoutePath.prototype.initialize = function (field, route) {
+                _super.prototype.initialize.call(this, field, route);
+                this.graphics.setOriginalStrokeWidth(2);
+                this.graphics.setOriginalStroke('#0000ff');
+                this.route.layer.addLayer(this.layer);
+            };
             return PreviewRoutePath;
         })(Common.Models.RoutePath);
         Models.PreviewRoutePath = PreviewRoutePath;
@@ -8253,11 +8662,14 @@ var Playbook;
     (function (Models) {
         var EditorRoutePath = (function (_super) {
             __extends(EditorRoutePath, _super);
-            function EditorRoutePath(route) {
-                _super.call(this, route);
-                this.layer.graphics.setOriginalStroke('#001199');
-                this.route.layer.addLayer(this.layer);
+            function EditorRoutePath() {
+                _super.call(this);
             }
+            EditorRoutePath.prototype.initialize = function (field, route) {
+                _super.prototype.initialize.call(this, field, route);
+                this.graphics.setOriginalStroke('#001199');
+                this.route.layer.addLayer(this.layer);
+            };
             return EditorRoutePath;
         })(Common.Models.RoutePath);
         Models.EditorRoutePath = EditorRoutePath;
@@ -8270,10 +8682,12 @@ var Playbook;
     (function (Models) {
         var PreviewRouteAction = (function (_super) {
             __extends(PreviewRouteAction, _super);
-            function PreviewRouteAction(routeNode, action) {
-                _super.call(this, routeNode, action);
-                this.layer.graphics.setOffsetXY(0.5, 0.5);
+            function PreviewRouteAction(action) {
+                _super.call(this, action);
             }
+            PreviewRouteAction.prototype.initialize = function (field, relativeElement) {
+                _super.prototype.initialize.call(this, field, relativeElement);
+            };
             PreviewRouteAction.prototype.draw = function () {
                 // preview route action is not visible
             };
@@ -8289,10 +8703,12 @@ var Playbook;
     (function (Models) {
         var EditorRouteAction = (function (_super) {
             __extends(EditorRouteAction, _super);
-            function EditorRouteAction(routeNode, action) {
-                _super.call(this, routeNode, action);
-                this.layer.graphics.setOffsetXY(0.5, 0.5);
+            function EditorRouteAction(action) {
+                _super.call(this, action);
             }
+            EditorRouteAction.prototype.initialize = function (field, relativeElement) {
+                _super.prototype.initialize.call(this, field, relativeElement);
+            };
             return EditorRouteAction;
         })(Common.Models.RouteAction);
         Models.EditorRouteAction = EditorRouteAction;
@@ -8305,8 +8721,8 @@ var Playbook;
     (function (Models) {
         var PreviewRouteControlPath = (function (_super) {
             __extends(PreviewRouteControlPath, _super);
-            function PreviewRouteControlPath(routeNode) {
-                _super.call(this, routeNode);
+            function PreviewRouteControlPath() {
+                _super.call(this);
             }
             PreviewRouteControlPath.prototype.draw = function () {
                 // preview route curves do not have visible control paths
@@ -8323,8 +8739,8 @@ var Playbook;
     (function (Models) {
         var EditorRouteControlPath = (function (_super) {
             __extends(EditorRouteControlPath, _super);
-            function EditorRouteControlPath(routeNode) {
-                _super.call(this, routeNode);
+            function EditorRouteControlPath() {
+                _super.call(this);
             }
             return EditorRouteControlPath;
         })(Common.Models.RouteControlPath);
@@ -9202,7 +9618,7 @@ var Team;
                     var rawPosition = positions[i];
                     if (Common.Utilities.isNullOrUndefined(rawPosition))
                         continue;
-                    rawPosition.unitType = !Common.Utilities.isNullOrUndefined(rawPosition.unitType) &&
+                    rawPosition.unitType = Common.Utilities.isNotNullOrUndefined(rawPosition.unitType) &&
                         rawPosition.unitType >= 0 ? rawPosition.unitType : Team.Enums.UnitTypes.Other;
                     var positionModel = new Team.Models.Position(rawPosition.unitType);
                     positionModel.fromJson(rawPosition);
@@ -9970,15 +10386,13 @@ impakt.common.associations.service('_associations', [
             var d = $q.defer();
             var organizationKey = __localStorage.getOrganizationKey();
             var notification = __notifications.pending('Updating data associations...');
-            var associations = impakt.context.Associations.creation.toJson();
+            var associationsJson = impakt.context.Associations.associations.toJson();
             __api.post(__api.path(ASSOCIATIONS.ENDPOINT, ASSOCIATIONS.UPDATE_ASSOCIATIONS), {
                 version: 1,
                 contextID: organizationKey + '',
-                associations: associations
+                associations: associationsJson
             }).then(function (updatedAssociations) {
-                notification.success(impakt.context.Associations.creation.size(), ' Associations successfully updated');
-                impakt.context.Associations.associations.merge(impakt.context.Associations.creation);
-                impakt.context.Associations.creation.empty();
+                notification.success(impakt.context.Associations.associations.size(), ' Associations successfully updated');
                 d.resolve();
             }, function (err) {
                 notification.error('Failed to update Associations');
@@ -10011,7 +10425,7 @@ impakt.common.associations.service('_associations', [
         */
         this.createAssociation = function (fromEntity, toEntity) {
             var d = $q.defer();
-            impakt.context.Associations.creation.add(fromEntity, toEntity);
+            impakt.context.Associations.associations.add(fromEntity, toEntity);
             this.updateAssociations()
                 .then(function () {
                 d.resolve();
@@ -10022,7 +10436,7 @@ impakt.common.associations.service('_associations', [
         };
         this.createAssociations = function (fromEntity, associatedEntities) {
             var d = $q.defer();
-            impakt.context.Associations.creation.addAll(fromEntity, associatedEntities);
+            impakt.context.Associations.associations.addAll(fromEntity, associatedEntities);
             this.updateAssociations()
                 .then(function () {
                 d.resolve();
@@ -10103,7 +10517,7 @@ impakt.common.associations.service('_associations', [
                             results.formations.add(formation);
                         break;
                     case Common.Enums.ImpaktDataTypes.PersonnelGroup:
-                        var personnel = impakt.context.Playbook.personnel.get(guid);
+                        var personnel = impakt.context.Team.personnel.get(guid);
                         if (personnel)
                             results.personnel.add(personnel);
                         break;
@@ -10291,7 +10705,7 @@ impakt.common.context.factory('__context', ['$q',
                 function (callback) {
                     _playbook.getAssignmentGroups()
                         .then(function (assignmentGroupCollection) {
-                        if (!Common.Utilities.isNullOrUndefined(assignmentGroupCollection))
+                        if (Common.Utilities.isNotNullOrUndefined(assignmentGroupCollection))
                             context.Playbook.assignmentGroups = assignmentGroupCollection;
                         __notifications.success('Assignments successfully loaded');
                         callback(null, assignmentGroupCollection);
@@ -10301,7 +10715,7 @@ impakt.common.context.factory('__context', ['$q',
                 },
                 function (callback) {
                     _team.getPersonnel().then(function (personnelCollection) {
-                        if (!Common.Utilities.isNullOrUndefined(personnelCollection))
+                        if (Common.Utilities.isNotNullOrUndefined(personnelCollection))
                             context.Team.personnel = personnelCollection;
                         __notifications.success('Personnel successfully loaded');
                         callback(null, personnelCollection);
@@ -11809,7 +12223,7 @@ impakt.common.ui.controller('formationPreview.ctrl', [
                          * Set up the play data to render the formation
                          *
                          */
-                        if (!Common.Utilities.isNullOrUndefined($scope.formation)) {
+                        if (Common.Utilities.isNotNullOrUndefined($scope.formation)) {
                             // check to see if the formation is being edited; 
                             // in which case a temporary play has already been constructed
                             // 
@@ -11820,10 +12234,10 @@ impakt.common.ui.controller('formationPreview.ctrl', [
                                 // - the play must have a formation
                                 // - the play formation guid must match the scope guid
                                 return play.editorType == Playbook.Enums.EditorTypes.Formation &&
-                                    !Common.Utilities.isNullOrUndefined(play.formation) &&
+                                    Common.Utilities.isNotNullOrUndefined(play.formation) &&
                                     play.formation.guid == $scope.formation.guid;
                             });
-                            if (!Common.Utilities.isNullOrUndefined(editorPlay)) {
+                            if (Common.Utilities.isNotNullOrUndefined(editorPlay)) {
                                 // there is a temp. play existing in the editor context,
                                 // so let's use that play to render the preview
                                 $scope.play = editorPlay;
@@ -12089,7 +12503,8 @@ impakt.common.ui.controller('playPreview.ctrl', [
         };
     }]).directive('playPreview', [
     '$timeout',
-    function ($timeout) {
+    '_associations',
+    function ($timeout, _associations) {
         /**
          * play-preview directive renders an SVG preview canvas
          * with the given play data.
@@ -12108,7 +12523,10 @@ impakt.common.ui.controller('playPreview.ctrl', [
                         // create a previewCanvas to handle preview creation. Creating
                         // a previewCanvas will insert a SVG into the <play-preview/> element
                         // after the intialization phase.
-                        if (!Common.Utilities.isNullOrUndefined($scope.play)) {
+                        if (Common.Utilities.isNotNullOrUndefined($scope.play)) {
+                            // get associated assignment group
+                            //let associations = _associations.getAssociated($scope.play);
+                            //$scope.play.assignmentGroup = associations.assignmentGroups.first();
                             $scope.previewCanvas = new Playbook.Models.PreviewCanvas($scope.play, null);
                         }
                         else {
@@ -12664,7 +13082,7 @@ impakt.details.controller('details.ctrl', ['$scope',
                 $scope.selectedElements.isEmpty())
                 return;
             $scope.selectedElement = $scope.selectedElements.first();
-            if (!Common.Utilities.isNullOrUndefined($scope.selectedElement)) {
+            if (Common.Utilities.isNotNullOrUndefined($scope.selectedElement)) {
             }
         }
         $scope.loadPlaybooks = function (query) {
@@ -12965,7 +13383,7 @@ impakt.league.service('_league', [
          */
         this.createLeague = function (newLeagueModel) {
             var d = $q.defer();
-            if (!Common.Utilities.isNullOrUndefined(newLeagueModel)) {
+            if (Common.Utilities.isNotNullOrUndefined(newLeagueModel)) {
                 var nameExists = impakt.context.League.leagues.hasElementWhich(function (leagueModel, index) {
                     return leagueModel.name == newLeagueModel.name;
                 });
@@ -13478,6 +13896,20 @@ impakt.playbook.contextmenus.play.controller('impakt.playbook.contextmenus.play.
     function ($scope) {
     }]);
 /// <reference path='../playbook-contextmenus.mdl.ts' />
+impakt.playbook.contextmenus.player =
+    angular.module('impakt.playbook.contextmenus.player', [])
+        .config(function () {
+        console.debug('impakt.playbook.contextmenus.player - config');
+    })
+        .run(function () {
+        console.debug('impakt.playbook.contextmenus.player - run');
+    });
+/// <reference path='./contextmenu-player.mdl.ts' />
+impakt.playbook.contextmenus.player.controller('impakt.playbook.contextmenus.player.ctrl', [
+    '$scope',
+    function ($scope) {
+    }]);
+/// <reference path='../playbook-contextmenus.mdl.ts' />
 impakt.playbook.contextmenus.routeNode =
     angular.module('impakt.playbook.contextmenus.routeNode', [])
         .config(function () {
@@ -13543,7 +13975,7 @@ impakt.playbook.drilldown.playbook.controller('playbook.drilldown.playbook.ctrl'
         $scope.formations;
         function init() {
             var associations = _associations.getAssociated($scope.playbook);
-            if (!Common.Utilities.isNullOrUndefined(associations)) {
+            if (Common.Utilities.isNotNullOrUndefined(associations)) {
                 $scope.plays = associations.plays;
                 $scope.formations = associations.formations;
             }
@@ -13601,7 +14033,7 @@ impakt.playbook.editor.canvas.controller('playbook.editor.canvas.ctrl', [
         $scope.editorModeClass = '';
         // check if there are any open tabs; if not, hide the canvas and
         // clear the canvas data.
-        if (!Common.Utilities.isNullOrUndefined($scope.tab)) {
+        if (Common.Utilities.isNotNullOrUndefined($scope.tab)) {
             $scope.tab.onclose(function () {
                 $scope.hasOpenTabs = _playbookEditorCanvas.hasTabs();
             });
@@ -13618,7 +14050,7 @@ impakt.playbook.editor.canvas.controller('playbook.editor.canvas.ctrl', [
                 });
             });
         }
-        if (!Common.Utilities.isNullOrUndefined($scope.tabs)) {
+        if (Common.Utilities.isNotNullOrUndefined($scope.tabs)) {
             $scope.tabs.onModified(function (tabs) {
                 $scope.hasOpenTabs = tabs.hasElements();
             });
@@ -13883,8 +14315,8 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas', [
             return true;
         }
         function getAbsolutePosition(element) {
-            var $dom = $(element.layer.graphics.raphael.node);
-            console.log('$dom offsets: ', $dom.offset().left, $dom.offset().top, element.layer.graphics.dimensions.width, element.layer.graphics.dimensions.height);
+            var $dom = $(element.graphics.raphael.node);
+            console.log('$dom offsets: ', $dom.offset().left, $dom.offset().top, element.graphics.dimensions.width, element.graphics.dimensions.height);
             //let $playbookCanvas = $dom.closest('playbook-editor-canvas');
             return {
                 left: $dom.offset().left,
@@ -13953,8 +14385,12 @@ impakt.playbook.editor.details = angular.module('impakt.playbook.editor.details'
     console.debug('impakt.playbook.editor.details - run');
 });
 /// <reference path='./playbook-editor-details.mdl.ts' />
-impakt.playbook.editor.details.controller('playbook.editor.details.ctrl', ['$scope', '_playbookModals', '_playbookEditorDetails',
-    function ($scope, _playbookModals, _playbookEditorDetails) {
+impakt.playbook.editor.details.controller('playbook.editor.details.ctrl', [
+    '$scope',
+    '$timeout',
+    '_playbookModals',
+    '_playbookEditorDetails',
+    function ($scope, $timeout, _playbookModals, _playbookEditorDetails) {
         $scope.canvas = _playbookEditorDetails.canvas;
         $scope.paper;
         $scope.field;
@@ -13975,8 +14411,9 @@ impakt.playbook.editor.details.controller('playbook.editor.details.ctrl', ['$sco
             $scope.players = $scope.field.players;
             // update scope when changes to field occur
             $scope.field.onModified(function () {
-                if (!$scope.$$phase)
+                $timeout(function () {
                     $scope.$apply();
+                }, 0);
             });
         });
         $scope.refreshPreview = function () {
@@ -14115,10 +14552,21 @@ impakt.playbook.editor.service('_playbookEditor', [
                     initialPlay = self.plays.filterFirst(function (play) {
                         return play.guid == tab.playPrimary.guid;
                     });
-                    var associations = _associations.getAssociated(initialPlay);
-                    var assignmentGroup = associations.assignmentGroups.first();
-                    var formation = associations.formations.first();
-                    var personnel = associations.personnel.first();
+                    var associations = null;
+                    switch (tab.editorType) {
+                        case Playbook.Enums.EditorTypes.Formation:
+                            associations = _associations.getAssociated(initialPlay.formation);
+                            // don't set the formation here (it's already set)
+                            break;
+                        case Playbook.Enums.EditorTypes.Play:
+                            associations = _associations.getAssociated(initialPlay);
+                            // set the formation to the associated formation
+                            initialPlay.formation = associations.formations.first();
+                            initialPlay.assignmentGroup = associations.assignmentGroups.first();
+                            break;
+                    }
+                    if (Common.Utilities.isNotNullOrUndefined(associations))
+                        initialPlay.personnel = associations.personnel.first();
                     // let opponentPlayTest = new Common.Models.PlayOpponent();
                     // // initialize the default formation & personnel
                     // opponentPlayTest.setDefault(tab.canvas.field);
@@ -14542,7 +14990,7 @@ impakt.playbook.modals.controller('playbook.modals.createFormation.ctrl', ['$sco
         };
         $scope.selectBaseFormation = function (formation) {
             if ($scope.selectedBaseFormation != '' &&
-                !Common.Utilities.isNullOrUndefined($scope.selectedBaseFormation)) {
+                Common.Utilities.isNotNullOrUndefined($scope.selectedBaseFormation)) {
                 $scope.formation.setPlacements($scope.selectedBaseFormation.placements);
             }
         };
@@ -14570,7 +15018,7 @@ impakt.playbook.modals.controller('playbook.modals.createFormation.ctrl', ['$sco
         function removeFormationFromCreationContext() {
             // Remove the formation from the creation context
             // after creating the new formation or cancelling
-            if (!Common.Utilities.isNullOrUndefined($scope.formation)) {
+            if (Common.Utilities.isNotNullOrUndefined($scope.formation)) {
                 impakt.context.Playbook.creation.formations.remove($scope.formation.guid);
             }
         }
@@ -14580,7 +15028,7 @@ impakt.playbook.modals.controller('playbook.modals.createFormation.ctrl', ['$sco
             // the createFormation request, since the formation is temporarily
             // added to the formation collection in the situation where
             // there are 0 formations in the user's collection.
-            if (!Common.Utilities.isNullOrUndefined($scope.formation)) {
+            if (Common.Utilities.isNotNullOrUndefined($scope.formation)) {
                 $scope.formations.remove($scope.formation.guid);
             }
         }
@@ -14601,7 +15049,7 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl', [
         $scope.assignmentGroups = impakt.context.Playbook.assignmentGroups;
         $scope.selectedPlaybook = $scope.playbooks.first();
         $scope.selectedFormation = $scope.formations.first();
-        $scope.selectedAssignmentGroup = $scope.assignmentGroups.first();
+        $scope.selectedAssignmentGroup = null;
         $scope.personnelCollection = impakt.context.Team.personnel;
         $scope.selectedPersonnel = $scope.personnelCollection.first();
         // Intialize new Play with data
@@ -14621,7 +15069,12 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl', [
             $scope.newPlay.setFormation($scope.formations.get(formation.guid));
         };
         $scope.selectAssignmentGroup = function (assignmentGroup) {
-            $scope.newPlay.setAssignmentGroup($scope.assignmentGroups.get(assignmentGroup.guid));
+            if (Common.Utilities.isNotNullOrUndefined(assignmentGroup)) {
+                $scope.newPlay.setAssignmentGroup($scope.assignmentGroups.get(assignmentGroup.guid));
+            }
+            else {
+                $scope.newPlay.setAssignmentGroup(null);
+            }
         };
         $scope.selectPersonnel = function (personnel) {
             $scope.newPlay.setPersonnel($scope.personnelCollection.get(personnel.guid));
@@ -14660,7 +15113,7 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl', [
         function removePlayFromCreationContext() {
             // Remove the play from the creation context
             // after creating the new play or cancelling
-            if (!Common.Utilities.isNullOrUndefined($scope.newPlay))
+            if (Common.Utilities.isNotNullOrUndefined($scope.newPlay))
                 impakt.context.Playbook.creation.plays.remove($scope.newPlay.guid);
         }
     }]);
@@ -14976,7 +15429,7 @@ impakt.playbook.modals.service('_playbookModals', [
         this.deleteAssignmentGroup = function (assignmentGroup) {
             var d = $q.defer();
             var modalInstance = __modals.open('', 'modules/playbook/modals/delete-assignmentGroup/delete-assignmentGroup.tpl.html', 'playbook.modals.deleteAssignmentGroup.ctrl', {
-                formation: function () {
+                assignmentGroup: function () {
                     return assignmentGroup;
                 }
             });
@@ -15107,17 +15560,16 @@ impakt.playbook.modals.controller('playbook.modals.savePlay.ctrl', [
             // TO-DO: create a better model for this
             var options = {
                 play: {
-                    action: play.modified ? Common.API.Actions.Overwrite : Common.API.Actions.Nothing
+                    action: Common.API.Actions.Overwrite // keeping it simple here - always overwrite
                 },
                 formation: {
-                    action: play.formation.modified ? Common.API.Actions.Overwrite : Common.API.Actions.Nothing
+                    action: Common.API.Actions.Overwrite // keeping it simple here - always overwrite
                 },
                 assignmentGroup: {
-                    action: play.assignmentGroup.key == -1 ?
-                        Common.API.Actions.Create :
-                        (play.assignmentGroup.modified ?
-                            Common.API.Actions.Overwrite :
-                            Common.API.Actions.Nothing)
+                    action: play.assignmentGroup.assignments.hasElements() ?
+                        (play.assignmentGroup.key == -1 ?
+                            Common.API.Actions.Create : Common.API.Actions.Overwrite) :
+                        Common.API.Actions.Nothing // don't do anything if there are no assignments
                 }
             };
             // If any of the following entities (play, formation, assignmentGroup)
@@ -15281,7 +15733,7 @@ impakt.playbook.service('_playbook', [
          */
         this.createPlaybook = function (newPlaybookModel) {
             var d = $q.defer();
-            if (!Common.Utilities.isNullOrUndefined(newPlaybookModel)) {
+            if (Common.Utilities.isNotNullOrUndefined(newPlaybookModel)) {
                 var nameExists = impakt.context.Playbook.playbooks.hasElementWhich(function (playbookModel, index) {
                     return playbookModel.name == newPlaybookModel.name;
                 });
@@ -15418,22 +15870,22 @@ impakt.playbook.service('_playbook', [
             __api.get(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.GET_FORMATIONS, '?$filter=ParentRK gt 0'))
                 .then(function (response) {
                 var results = Common.Utilities.parseData(response.data.results);
-                var collection = new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed);
-                var formations = [];
+                var formationCollection = new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed);
                 for (var i = 0; i < results.length; i++) {
                     var result = results[i];
                     if (result && result.data && result.data.formation) {
-                        var formation = result.data.formation;
-                        formation.key = result.key;
-                        formations.push(formation);
+                        var rawFormation = result.data.formation;
+                        rawFormation.key = result.key;
+                        var formationModel = new Common.Models.Formation(Team.Enums.UnitTypes.Other);
+                        formationModel.fromJson(rawFormation);
+                        formationCollection.add(formationModel);
                     }
                     else {
                         throw new Error('An invalid formation was retrieved');
                     }
                 }
-                collection.fromJson(formations);
-                notification.success(collection.size(), ' Formations successfully retrieved');
-                d.resolve(collection);
+                notification.success(formationCollection.size(), ' Formations successfully retrieved');
+                d.resolve(formationCollection);
             }, function (error) {
                 notification.error('Failed to retrieve Formations');
                 d.reject(error);
@@ -15602,6 +16054,28 @@ impakt.playbook.service('_playbook', [
             return d.promise;
         };
         /**
+         * Deletes the given assignment group for the current user
+         * @param {Common.Models.AssignmentGroup} assignmentGroup The assignment group to be deleted
+         */
+        this.deleteAssignmentGroup = function (assignmentGroup) {
+            var d = $q.defer();
+            var notification = __notifications.pending('Deleting assignment group "', assignmentGroup.name, '"...');
+            __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.DELETE_ASSIGNMENTGROUP), {
+                key: assignmentGroup.key
+            })
+                .then(function (response) {
+                var assignmentGroupKey = response.data.results.key;
+                // update the context
+                impakt.context.Playbook.assignmentGroups.remove(assignmentGroup.guid);
+                notification.success('Successfully deleted assignment group "', assignmentGroup.name, '"');
+                d.resolve(assignmentGroupKey);
+            }, function (error) {
+                notification.error('Failed to delete assignment group "', assignmentGroup.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
          * Creates a collection group
          * @param {[type]} assignments The assignments to create
          */
@@ -15626,8 +16100,9 @@ impakt.playbook.service('_playbook', [
                 var assignmentGroup = new Common.Models.AssignmentGroup(Team.Enums.UnitTypes.Other);
                 if (results && results.data && results.data.assignmentGroup) {
                     var rawAssignmentGroup = results.data.assignmentGroup;
-                    assignmentGroup.key = results.key;
+                    rawAssignmentGroup.key = results.key;
                     assignmentGroup.fromJson(rawAssignmentGroup);
+                    impakt.context.Playbook.assignmentGroups.add(assignmentGroup);
                     notification.success('Successfully created assignment group "', assignmentGroup.name, '"');
                     d.resolve(assignmentGroup);
                 }
@@ -15659,7 +16134,7 @@ impakt.playbook.service('_playbook', [
                     version: 1,
                     name: assignmentGroupData.name,
                     key: assignmentGroupData.key,
-                    assignmentGroup: assignmentGroup
+                    assignmentGroup: assignmentGroup.toJson()
                 }
             })
                 .then(function (response) {
@@ -15704,8 +16179,8 @@ impakt.playbook.service('_playbook', [
                 var playModel = null;
                 if (results && results.data && results.data.play) {
                     playModel = new Common.Models.Play(Team.Enums.UnitTypes.Other);
+                    results.data.play.key = results.key;
                     playModel.fromJson(results.data.play);
-                    playModel.key = results.key;
                     impakt.context.Playbook.plays.add(playModel);
                 }
                 notification.success('Successfully created play "', play.name, '"');
@@ -15748,17 +16223,12 @@ impakt.playbook.service('_playbook', [
                         });
                     }
                     else if (options.formation.action == Common.API.Actions.Overwrite) {
-                        if (play.formation.modified) {
-                            self.updateFormation(play.formation)
-                                .then(function (updatedFormation) {
-                                callback(null, play);
-                            }, function (err) {
-                                callback(err);
-                            });
-                        }
-                        else {
+                        self.updateFormation(play.formation)
+                            .then(function (updatedFormation) {
                             callback(null, play);
-                        }
+                        }, function (err) {
+                            callback(err);
+                        });
                     }
                     else {
                         callback(null, play);
@@ -15797,17 +16267,12 @@ impakt.playbook.service('_playbook', [
                         });
                     }
                     else if (options.assignmentGroup.action == Common.API.Actions.Overwrite) {
-                        if (play.assignmentGroup.modified) {
-                            self.updateAssignmentGroup(play.assignmentGroup)
-                                .then(function (updatedAssignmentGroup) {
-                                callback(null, updatedAssignmentGroup);
-                            }, function (err) {
-                                callback(err);
-                            });
-                        }
-                        else {
-                            callback(null, play);
-                        }
+                        self.updateAssignmentGroup(play.assignmentGroup)
+                            .then(function (updatedAssignmentGroup) {
+                            callback(null, updatedAssignmentGroup);
+                        }, function (err) {
+                            callback(err);
+                        });
                     }
                     else {
                         callback(null, play);
@@ -15828,17 +16293,12 @@ impakt.playbook.service('_playbook', [
                         });
                     }
                     else if (options.play.action == Common.API.Actions.Overwrite) {
-                        if (play.modified) {
-                            self.updatePlay(play)
-                                .then(function (updatedPlay) {
-                                callback(null, updatedPlay);
-                            }, function (err) {
-                                callback(err);
-                            });
-                        }
-                        else {
-                            callback(null, play);
-                        }
+                        self.updatePlay(play)
+                            .then(function (updatedPlay) {
+                            callback(null, updatedPlay);
+                        }, function (err) {
+                            callback(err);
+                        });
                     }
                     else {
                         callback(null, play);
@@ -15907,9 +16367,10 @@ impakt.playbook.service('_playbook', [
                         for (var i = 0; i < results.length; i++) {
                             var result = results[i];
                             if (result && result.data && result.data.play) {
+                                var rawPlay = result.data.play;
                                 var playModel = new Common.Models.Play(Team.Enums.UnitTypes.Other);
-                                playModel.fromJson(result.data.play);
-                                playModel.key = result.key;
+                                rawPlay.key = result.key;
+                                playModel.fromJson(rawPlay);
                                 playCollection.add(playModel);
                             }
                         }
@@ -16046,6 +16507,8 @@ impakt.playbook.service('_playbook', [
                     return _playbookModals.deletePlay(entity);
                 case Common.Enums.ImpaktDataTypes.Formation:
                     return _playbookModals.deleteFormation(entity);
+                case Common.Enums.ImpaktDataTypes.AssignmentGroup:
+                    return _playbookModals.deleteAssignmentGroup(entity);
                 default:
                     d.reject(new Error('_playbook deleteEntityByType: impaktDataType not supported'));
             }
@@ -16526,7 +16989,7 @@ impakt.team.service('_team', [
          */
         this.createTeam = function (newTeamModel) {
             var d = $q.defer();
-            if (!Common.Utilities.isNullOrUndefined(newTeamModel)) {
+            if (Common.Utilities.isNotNullOrUndefined(newTeamModel)) {
                 var nameExists = impakt.context.Team.teams.hasElementWhich(function (teamModel, index) {
                     return teamModel.name == newTeamModel.name;
                 });
@@ -16632,6 +17095,7 @@ impakt.team.service('_team', [
                     var results = personnelResults[i];
                     if (results && results.data && results.data.personnel) {
                         var rawPersonnel = results.data.personnel;
+                        rawPersonnel.key = results.key;
                         var personnelModel = new Team.Models.Personnel(Team.Enums.UnitTypes.Other);
                         personnelModel.fromJson(rawPersonnel);
                         personnelCollection.add(personnelModel);

@@ -6,8 +6,12 @@ module Playbook.Models {
     extends Common.Models.Ball
     implements Common.Interfaces.IBall {
 
-        constructor(field: Common.Interfaces.IField) {
-            super(field);
+        constructor() {
+            super();
+        }
+
+        public initialize(field: Common.Interfaces.IField) {
+            super.initialize(field);
         }
 
         public dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void {

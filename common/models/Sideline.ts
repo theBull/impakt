@@ -4,21 +4,27 @@ module Common.Models {
     export abstract class Sideline
     extends Common.Models.FieldElement {
 
-        constructor(field: Common.Interfaces.IField, x: number) {
-            super(field, null);
-            this.field = field;
-            this.layer.graphics.fill = 'white';
-            this.layer.graphics.strokeWidth = 0;
-            this.layer.graphics.updateFromCoordinates(
-                x,
+        public offsetX: number;
+
+        constructor(offsetX: number) {
+            super();
+            this.offsetX = offsetX;
+        }
+
+        public initialize(field: Common.Interfaces.IField): void {
+            super.initialize(field, null);
+            this.graphics.fill = 'white';
+            this.graphics.strokeWidth = 0;
+            this.graphics.updateFromCoordinates(
+                this.offsetX,
                 0
             );
-            this.layer.graphics.dimensions.width = this.grid.getSize();
-            this.layer.graphics.dimensions.height = this.grid.getHeight();
+            this.graphics.dimensions.width = this.grid.getSize();
+            this.graphics.dimensions.height = this.grid.getHeight();
         }
         
         public draw(): void {
-            this.layer.graphics.rect();
+            this.graphics.rect();
         }
     }
 }

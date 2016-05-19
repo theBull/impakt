@@ -3,7 +3,7 @@
 module Common.Interfaces {
 	
 	export interface IRoute
-	extends Common.Interfaces.IModifiable {
+	extends Common.Interfaces.IFieldElement {
 
 		player: Common.Interfaces.IPlayer;
 		field: Common.Interfaces.IField;
@@ -13,6 +13,8 @@ module Common.Interfaces {
         nodes: Common.Models.LinkedList<Common.Interfaces.IRouteNode>;
         routePath: Common.Interfaces.IRoutePath;
         dragInitialized: boolean;
+        type: Common.Enums.RouteTypes;
+        renderType: Common.Enums.RenderTypes;
 
 		draw(): void;
 		initializeCurve(coords: Common.Models.Coordinates, flip?: boolean); 

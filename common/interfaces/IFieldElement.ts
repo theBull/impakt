@@ -2,7 +2,7 @@
 
 module Common.Interfaces {
 	export interface IFieldElement
-	extends Common.Interfaces.IModifiable {
+	extends Common.Interfaces.IActionable {
 
 		field: Common.Interfaces.IField;
 		ball: Common.Interfaces.IBall;
@@ -10,12 +10,15 @@ module Common.Interfaces {
 		paper: Common.Interfaces.IPaper;
 		grid: Common.Interfaces.IGrid;
 		layer: Common.Models.Layer;
-		contextmenuTemplateUrl: string;
 
+		initialize(field: Common.Interfaces.IField, relativeElement: Common.Interfaces.IFieldElement): void;
 		draw(): void;
         hoverIn(e: any): void;
         hoverOut(e: any): void;
         click(e: any): void;
+        deselect(): void;
+        select(): void;
+        toggleSelect(metaKey: boolean): void;
         mousedown(e: any): void;
         mousemove(e: any): void;
 		contextmenu(e: any): void;

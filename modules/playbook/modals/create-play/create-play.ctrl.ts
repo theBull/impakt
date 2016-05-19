@@ -22,7 +22,7 @@ function(
 
 	$scope.selectedPlaybook = $scope.playbooks.first();
 	$scope.selectedFormation = $scope.formations.first();
-	$scope.selectedAssignmentGroup = $scope.assignmentGroups.first();
+	$scope.selectedAssignmentGroup = null;
 	$scope.personnelCollection = impakt.context.Team.personnel;
 	$scope.selectedPersonnel = $scope.personnelCollection.first();
 	
@@ -48,7 +48,11 @@ function(
 		$scope.newPlay.setFormation($scope.formations.get(formation.guid));
 	}
 	$scope.selectAssignmentGroup = function(assignmentGroup: Common.Models.AssignmentGroup) {
-		$scope.newPlay.setAssignmentGroup($scope.assignmentGroups.get(assignmentGroup.guid));
+		if (Common.Utilities.isNotNullOrUndefined(assignmentGroup)) {
+			$scope.newPlay.setAssignmentGroup($scope.assignmentGroups.get(assignmentGroup.guid));
+		} else {
+			$scope.newPlay.setAssignmentGroup(null);
+		}
 	}
 	$scope.selectPersonnel = function(personnel: Team.Models.Personnel) {
 		$scope.newPlay.setPersonnel($scope.personnelCollection.get(personnel.guid));
@@ -93,7 +97,7 @@ function(
 	function removePlayFromCreationContext() {
 		// Remove the play from the creation context
 		// after creating the new play or cancelling
-		if(!Common.Utilities.isNullOrUndefined($scope.newPlay))
+		if(Common.Utilities.isNotNullOrUndefined($scope.newPlay))
 			impakt.context.Playbook.creation.plays.remove($scope.newPlay.guid);
 	}
 }]);

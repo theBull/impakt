@@ -46,7 +46,7 @@ function(
 			return;
 
 		$scope.selectedElement = $scope.selectedElements.first();
-		if (!Common.Utilities.isNullOrUndefined($scope.selectedElement)) {
+		if (Common.Utilities.isNotNullOrUndefined($scope.selectedElement)) {
 			
 			// get associations
 			

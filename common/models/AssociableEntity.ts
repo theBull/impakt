@@ -47,11 +47,7 @@ module Common.Models {
 			
 			super.fromJson(json);
 
-			if (Common.Utilities.isNullOrUndefined(json.associationKey)) {
-				this.generateAssociationKey();
-			} else {
-				this.associationKey = json.associationKey
-			}
+			this.generateAssociationKey();			
 		}
 
 	}

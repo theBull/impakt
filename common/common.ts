@@ -408,6 +408,10 @@ module Common {
 		    return output;
 		}
 
+		public static isNotNullOrUndefined(obj: any): boolean {
+			return !Common.Utilities.isNullOrUndefined(obj);
+		}
+
 		public static isNullOrUndefined(obj: any): boolean {
 			return Common.Utilities.isNull(obj) || Common.Utilities.isUndefined(obj);
 		}

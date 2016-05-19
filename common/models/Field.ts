@@ -85,6 +85,11 @@ module Common.Models {
         public clearPlayers(): void {
             this.players.forEach(function(player, index) {
                 player.layer.remove();
+                if(Common.Utilities.isNotNullOrUndefined(player.assignment)) {
+                    player.assignment.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
+                        route.layer.remove();
+                    });
+                }
             });
             this.players.removeAll();
         }
@@ -117,7 +122,7 @@ module Common.Models {
             let self = this;
             let placementCollection = new Common.Models.PlacementCollection();
             this.players.forEach(function(player: Common.Interfaces.IPlayer, index: number) {
-                placementCollection.add(player.icon.layer.graphics.placement);
+                placementCollection.add(player.icon.graphics.placement);
             });
             self.playPrimary.formation.setPlacements(placementCollection);
         }
@@ -226,7 +231,7 @@ module Common.Models {
 
             this.playPrimary.setUnitType(unitType);
             
-            if(!Common.Utilities.isNullOrUndefined(this.playOpponent))
+            if(Common.Utilities.isNotNullOrUndefined(this.playOpponent))
                 this.playOpponent.setUnitType(this.playPrimary.getOpposingUnitType());
             
             this.clearPlayers();
@@ -238,7 +243,7 @@ module Common.Models {
                 return;
             
             this.selected.forEach(function(element: Common.Interfaces.IFieldElement, index: number) {
-                element.layer.graphics.deselect();
+                element.deselect();
             });
             this.selected.removeAll();
         }
@@ -278,11 +283,11 @@ module Common.Models {
             // clear any selected players
             this.selected.forEach(
                 function(selectedElement: Common.Interfaces.IFieldElement, index: number) {
-                    selectedElement.layer.graphics.deselect();
+                    selectedElement.deselect();
                 });
 
             this.selected.removeAll();
-            element.layer.graphics.select();
+            element.select();
             this.selected.add(element);
         }
         
@@ -294,15 +299,15 @@ module Common.Models {
          */
         public toggleSelection(element: Common.Interfaces.IFieldElement) {
 
-            // element.layer.graphics.toggleSelect();
+            // element.graphics.toggleSelect();
             
             if (this.selected.contains(element.guid)) {
                 this.selected.remove(element.guid);
-                element.layer.graphics.deselect();
+                element.deselect();
             }
             else {
                 this.selected.add(element);
-                element.layer.graphics.select();
+                element.select();
             }
         }
 
@@ -313,7 +318,7 @@ module Common.Models {
         public getLOSAbsolute(): number {
             if (!this.los)
                 throw new Error('Field getLOSAbsolute(): los is null or undefined');
-            return this.los.layer.graphics.location.ay;
+            return this.los.graphics.location.ay;
         }
     }
 }

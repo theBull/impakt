@@ -7,15 +7,15 @@ module Playbook.Models {
 	implements Common.Interfaces.IPlayer {
 
 		constructor(
-			field: Common.Interfaces.IField,
 			placement: Common.Models.Placement,
 			position: Team.Models.Position,
 			assignment: Common.Models.Assignment
 		) {
-			super(field, placement, position, assignment);
+			super(placement, position, assignment);
+		}
 
-			this.contextmenuTemplateUrl
-				= 'modules/playbook/editor/canvas/player/playbook-editor-canvas-player-contextmenu.tpl.html';
+		public initialize(field: Common.Interfaces.IField): void {
+			super.initialize(field);
 
 			// the set acts as a group for the other graphical elements
 			this.selectionBox = new Playbook.Models.EditorPlayerSelectionBox(this);
@@ -35,6 +35,13 @@ module Playbook.Models {
 				console.log('editor player modified');
 				self.setModified(true);
 			});
+
+			// parse route json data
+			if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+				this.assignment.setRoutes(this, Common.Enums.RenderTypes.Editor);
+			}
+
+			this.contextmenuTemplateUrl = Common.Constants.PLAYER_CONTEXTMENU_TEMPLATE_URL;
 		}
 
 		public draw() {
@@ -47,7 +54,7 @@ module Playbook.Models {
 			 *	Player icon
 			 */
 			this.icon.draw();
-			this.icon.layer.graphics.ondrag(
+			this.icon.graphics.ondrag(
 				this.dragMove, 
 				this.dragStart, 
 				this.dragEnd,
@@ -70,12 +77,13 @@ module Playbook.Models {
 			this.indexLabel.draw();
 
 			// Draw the player's assignment
-			if(this.assignment){
-				let route = this.assignment.routes.getOne();
-				// TODO: implement route switching
-				if (route) {
-					route.draw();
-				}	
+			if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+				if (this.assignment.routes.hasElements()) {
+					this.assignment.routes.forEach(
+						function(route: Common.Interfaces.IRoute, index: number) {
+							route.draw();
+						});
+				}
 			}
 		}
 
@@ -106,8 +114,7 @@ module Playbook.Models {
 				}
 			}
 			
-			// Toggle the selection of this player
-			this.field.toggleSelection(this);
+			this.toggleSelect(e.metaKey);
 
 			// determine the tool currently selected
 			let toolMode = this.canvas.toolMode;
@@ -123,13 +130,28 @@ module Playbook.Models {
 
 			return e.returnValue;
 		}
+		public toggleSelect(metaKey: boolean): void {
+			// Toggle the selection of this player
+			this.icon.toggleSelect(metaKey);
+			if (metaKey) {
+				this.field.toggleSelection(this);
+			} else {
+				this.field.setSelection(this);
+			}
+		}
+		public deselect(): void {
+			this.icon.deselect();
+		}
+		public select(): void {
+			this.icon.select();
+		}
 		public dragMove(dx: number, dy: number, posx: number, posy: number, e: any) {
 			// Ignore drag motions under specified threshold to prevent
 			// click/mousedown from triggering drag method
 			if (!this.isOverDragThreshold(dx, dy))
 				return;
 			
-			this.layer.graphics.dragged = true;
+			this.dragged = true;
 
 			// do not allow dragging while in route mode
 			if (this.canvas.toolMode == Playbook.Enums.ToolModes.Assignment) {
@@ -143,15 +165,15 @@ module Playbook.Models {
 
 				// TODO: Implement route switching
 				if (!route) {
-					let newRoute = new Playbook.Models.EditorRoute(this, true);
+					let newRoute = new Playbook.Models.EditorRoute(true);
 					this.assignment.routes.add(newRoute);
 					route = this.assignment.routes.get(newRoute.guid);
 				}
 				if (route.dragInitialized) {
 
 					let coords = new Common.Models.Coordinates(
-						this.layer.graphics.location.ax + dx,
-						this.layer.graphics.location.ay + dy
+						this.graphics.location.ax + dx,
+						this.graphics.location.ay + dy
 					);
 
 					route.initializeCurve(coords, e.shiftKey);
@@ -164,13 +186,21 @@ module Playbook.Models {
 
 				// Update the placement to track for modification
 				this.layer.moveByDelta(dx, dy);
+				if(this.assignment) {
+					// TODO: implement route switching
+					this.assignment.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
+						if (Common.Utilities.isNotNullOrUndefined(route)) {
+							route.layer.moveByDelta(dx, dy);
+						}
+					});
+				}
 
 				// Update relative coordinates label, if it exists
 				if (this.relativeCoordinatesLabel) {
-					this.relativeCoordinatesLabel.layer.graphics.text([
-						this.layer.graphics.placement.relative.rx,
+					this.relativeCoordinatesLabel.graphics.text([
+						this.graphics.placement.relative.rx,
 						', ',
-						this.layer.graphics.placement.relative.ry
+						this.graphics.placement.relative.ry
 					].join(''));
 				}
 										
@@ -189,10 +219,12 @@ module Playbook.Models {
 		public dragStart(x: number, y: number, e: any) {
 			super.dragStart(x, y, e);
 
-			if (this.relativeCoordinatesLabel)
-				this.relativeCoordinatesLabel.layer.show();
+			if(this.dragging) {
+				if (this.relativeCoordinatesLabel)
+					this.relativeCoordinatesLabel.layer.show();
 
-			this.field.toggleSelection(this);
+				//this.field.toggleSelection(this);
+			}
 		}
 		public dragEnd(e: any) {
 			super.dragEnd(e);
@@ -201,14 +233,15 @@ module Playbook.Models {
 			
 			if(this.assignment) {
 				// TODO: implement route switching
-				let route = this.assignment.routes.getOne();
-				if (route) {
-					if (route.dragInitialized) {
-						route.dragInitialized = false;
+				this.assignment.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
+					if (Common.Utilities.isNotNullOrUndefined(route)) {
+						if (route.dragInitialized) {
+							route.dragInitialized = false;
+						}
+
+						route.draw();
 					}
-					
-					route.draw();
-				}
+				});
 			}
 
 			if(this.relativeCoordinatesLabel)
@@ -225,15 +258,15 @@ module Playbook.Models {
 		}
 
 		public getPositionRelativeToBall(): Common.Models.RelativeCoordinates {
-			return this.layer.graphics.placement.relative;
+			return this.graphics.placement.relative;
 		}
 
 		public getCoordinatesFromAbsolute(): Common.Models.Coordinates {
-			return this.layer.graphics.placement.coordinates;
+			return this.graphics.placement.coordinates;
 		}
 
 		public hasPlacement(): boolean {
-			return this.layer.graphics.placement != null;
+			return this.graphics.placement != null;
 		}
 		public hasPosition(): boolean {
 			return this.position != null;

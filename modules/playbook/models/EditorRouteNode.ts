@@ -7,54 +7,60 @@ module Playbook.Models {
     implements Common.Interfaces.IRouteNode {
 
         constructor(
-            route: Common.Interfaces.IRoute, 
             relativeCoordinates: Common.Models.RelativeCoordinates, 
             type: Common.Enums.RouteNodeTypes
         ) {
-            super(route, relativeCoordinates, type); 
-            this.layer.graphics.enable();
-            this.layer.graphics.setOriginalFill('#222222');
-            this.layer.graphics.setHoverOpacity(1);
-            this.layer.graphics.setOriginalOpacity(0.05);
+            super(relativeCoordinates, type); 
+            
+            this.routeAction = new Playbook.Models.EditorRouteAction(Common.Enums.RouteNodeActions.None);
+            this.routeControlPath = new Playbook.Models.EditorRouteControlPath();
+            this.renderType = Common.Enums.RenderTypes.Editor;   
+        }
+
+        public initialize(field: Common.Interfaces.IField, route: Common.Interfaces.IFieldElement): void {
+            super.initialize(field, route);
+
+            this.graphics.enable();
+            this.graphics.setOriginalFill('#222222');
+            this.graphics.setHoverOpacity(1);
+            this.graphics.setOriginalOpacity(0.05);
 
             this.contextmenuTemplateUrl = Common.Constants.EDITOR_ROUTENODE_CONTEXTMENU_TEMPLATE_URL;
-           
+
             // Related route node graphics
-            this.routeAction = new Playbook.Models.EditorRouteAction(
-                this, Common.Enums.RouteNodeActions.None
-            );           
-            this.routeControlPath = new Playbook.Models.EditorRouteControlPath(this);
+            this.routeAction.initialize(this.field, this);
+            this.routeControlPath.initialize(this.field, this);
 
             // Add layers
             this.layer.addLayer(this.routeAction.layer);
             this.layer.addLayer(this.routeControlPath.layer);
-            this.route.layer.addLayer(this.layer);           
+            this.route.layer.addLayer(this.layer);
         }
 
         public draw() {
             super.draw();
 
-            this.layer.graphics.setAttribute('class', 'grab');
+            this.graphics.setAttribute('class', 'grab');
             
-            this.layer.graphics.onclick(
+            this.graphics.onclick(
                 this.click, 
                 this
             );
 
-            this.layer.graphics.ondrag(
+            this.graphics.ondrag(
                 this.dragMove, 
                 this.dragStart, 
                 this.dragEnd, 
                 this // drag end context
             );
             
-            this.layer.graphics.onhover(
+            this.graphics.onhover(
                 this.hoverIn, 
                 this.hoverOut,
                 this
             );
 
-            this.layer.graphics.oncontextmenu(
+            this.graphics.oncontextmenu(
                 this.contextmenu, 
                 this
             );
@@ -65,11 +71,11 @@ module Playbook.Models {
         }
 
         public hoverIn(e: any) {
-            this.layer.graphics.toggleOpacity();
+            this.graphics.toggleOpacity();
         }
 
         public hoverOut(e: any) {
-            this.layer.graphics.toggleOpacity();
+            this.graphics.toggleOpacity();
         }
 
         public click(e: any) {
@@ -85,12 +91,12 @@ module Playbook.Models {
         }
 
         public dragMove(dx, dy, posx, posy, e) {
-            if (this.layer.graphics.disabled) {
+            if (this.disabled) {
                 return;
             }
 
             // Update RouteNode graphical position
-            this.layer.graphics.moveByDelta(dx, dy);
+            this.graphics.moveByDelta(dx, dy);
             
             // Update RouteAction graphical position (if applicable)
             if (this.routeAction) {
@@ -98,13 +104,13 @@ module Playbook.Models {
 
                 // Rotate the route action to stay perpendicular to the node/route orientation
                 let theta = Common.Drawing.Utilities.theta(
-                    this.prev.layer.graphics.location.ax, 
-                    this.prev.layer.graphics.location.ay,
-                    this.layer.graphics.location.ax, 
-                    this.layer.graphics.location.ay
+                    this.prev.graphics.location.ax, 
+                    this.prev.graphics.location.ay,
+                    this.graphics.location.ax, 
+                    this.graphics.location.ay
                 );
                 let thetaDegrees = Common.Drawing.Utilities.toDegrees(theta);
-                this.routeAction.layer.graphics.rotate(90 - thetaDegrees);
+                this.routeAction.graphics.rotate(90 - thetaDegrees);
             }
 
             // redraw the path

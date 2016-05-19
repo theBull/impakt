@@ -87,7 +87,7 @@ module Common.Models {
 
         public refresh() {
             if (Common.Utilities.isNullOrUndefined(this.paper))
-                throw new Error('Canvas refresh(): paper is null or undefined');
+                return;
             
             this.paper.draw();
         }

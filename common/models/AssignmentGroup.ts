@@ -50,7 +50,7 @@ module Common.Models {
                 if (Common.Utilities.isNullOrUndefined(rawAssignment))
                     continue;
 
-                rawAssignment.unitType = !Common.Utilities.isNullOrUndefined(rawAssignment.unitType) &&
+                rawAssignment.unitType = Common.Utilities.isNotNullOrUndefined(rawAssignment.unitType) &&
                     rawAssignment.unitType >= 0 ? rawAssignment.unitTpe : Team.Enums.UnitTypes.Other;
 
                 let assignmentModel = new Common.Models.Assignment(rawAssignment.unitType);

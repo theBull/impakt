@@ -1,17 +1,16 @@
 /// <reference path='./models.ts' />
 
 module Common.Models {
-	export class Graphics
-    extends Common.Models.Actionable
-    implements Common.Interfaces.IDrawable,
-    Common.Interfaces.IHoverable {
+    export class Graphics
+    extends Common.Models.Modifiable
+    implements Common.Interfaces.IDrawable {
 
         public paper: Common.Interfaces.IPaper;
         public grid: Common.Interfaces.IGrid;
-		public raphael: any;
+        public raphael: any;
         public placement: Common.Models.Placement;
         public location: Common.Models.Location;
-		public dimensions: Common.Models.Dimensions;
+        public dimensions: Common.Models.Dimensions;
         public containment: Common.Models.Containment;
         public drawingHandler: Common.Models.DrawingHandler;
         public font: any;
@@ -22,8 +21,9 @@ module Common.Models {
          * Color information
          * 
          */
-		public opacity: number;
+        public opacity: number;
         public fill: string;
+        public fillOpacity: number;
         public stroke: string;
         public strokeWidth: number;
 
@@ -33,6 +33,7 @@ module Common.Models {
          * 
          */
         public originalOpacity: number;
+        public originalFillOpacity: number;
         public originalFill: string;
         public originalStroke: string;
         public originalStrokeWidth: number;
@@ -43,80 +44,85 @@ module Common.Models {
          *
          */
         public selectedFill: string;
+        public selectedFillOpacity: number;
         public selectedStroke: string;
         public selectedOpacity: number;
         public disabledFill: string;
+        public disabledFillOpacity: number;
         public disabledStroke: string;
         public disabledOpacity: number;
+
         public hoverOpacity: number;
-		
-		constructor(paper: Common.Interfaces.IPaper) {
-            super(Common.Enums.ImpaktDataTypes.Unknown);
+        public hoverFillOpacity: number;
+
+        constructor(paper: Common.Interfaces.IPaper) {
+            super();
+            super.setContext(this);
 
             this.paper = paper;
             this.grid = paper.grid;
-            this.set = new Common.Models.GraphicsSet(this);
             this.location = new Common.Models.Location(0, 0);
             this.placement = new Common.Models.Placement(0, 0);
-			this.dimensions = new Common.Models.Dimensions();
+            this.dimensions = new Common.Models.Dimensions();
             this.containment = new Common.Models.Containment(
                 0,
                 this.grid.getWidth(),
                 0,
                 this.grid.getHeight()
             );
-            
+
             this.originalFill = 'white';
             this.originalStroke = 'black';
             this.originalOpacity = 1;
+            this.originalFillOpacity = 1;
             this.originalStrokeWidth = 1;
 
             this.fill = this.originalFill;
-            this.stroke = this.originalStroke; 
+            this.fillOpacity = this.originalFillOpacity;
+            this.stroke = this.originalStroke;
             this.opacity = this.originalOpacity;
             this.strokeWidth = this.originalStrokeWidth;
-            
+
             this.selectedFill = 'white';
-            this.selectedStroke = 'red'; 
+            this.selectedFillOpacity = 1;
+            this.selectedStroke = 'red';
             this.selectedOpacity = 1;
-            
+
             this.disabledFill = '#aaaaaa';
-            this.disabledStroke = '#777777'; 
+            this.disabledFillOpacity = 1;
+            this.disabledStroke = '#777777';
             this.disabledOpacity = 0.5;
 
             this.hoverOpacity = 0.4;
+            this.hoverFillOpacity = 0.4;
 
             this.font = this.paper.drawing.getFont('Arial');
             this.drawingHandler = new Common.Models.DrawingHandler(this);
             this.set = new Common.Models.GraphicsSet(this);
-
-		}
+        }
 
         public toJson(): any {
             return {
                 dimensions: this.dimensions.toJson(),
                 opacity: this.opacity,
                 fill: this.fill,
+                fillOpacity: this.fillOpacity,
                 stroke: this.stroke,
                 strokeWidth: this.strokeWidth,
                 originalOpacity: this.originalOpacity,
                 originalFill: this.originalFill,
+                originalFillOpacity: this.originalFillOpacity,
                 originalStroke: this.originalStroke,
                 originalStrokeWidth: this.originalStrokeWidth,
                 selectedFill: this.selectedFill,
+                selectedFillOpacity: this.selectedFillOpacity,
                 selectedStroke: this.selectedStroke,
                 selectedOpacity: this.selectedOpacity,
-                disabledFill: this.disabledFill,
+                disabledFillOpacity: this.disabledFillOpacity,
                 disabledStroke: this.disabledStroke,
                 disabledOpacity: this.disabledOpacity,
                 hoverOpacity: this.hoverOpacity,
-                disabled: this.disabled,
-                selected: this.selected,
-                clickable: this.clickable,
-                hoverable: this.hoverable,
-                dragging: this.dragging,
-                draggable: this.draggable,
-                dragged: this.dragged,
+                hoverFillOpacity: this.hoverFillOpacity,
                 placement: this.placement.toJson(),
                 location: this.location.toJson()
             }
@@ -129,28 +135,26 @@ module Common.Models {
             this.dimensions.fromJson(json.dimensions);
             this.opacity = json.opacity;
             this.fill = json.fill;
+            this.fillOpacity = json.fillOpacity;
             this.stroke = json.stroke;
             this.strokeWidth = json.strokeWidth;
             this.placement.fromJson(json.placement);
             this.location.fromJson(json.location);
             this.originalOpacity = json.originalOpacity;
             this.originalFill = json.originalFill;
+            this.originalFillOpacity = json.originalFillOpacity;
             this.originalStroke = json.originalStroke;
             this.originalStrokeWidth = json.originalStrokeWidth;
             this.selectedFill = json.selectedFill;
+            this.selectedFillOpacity = json.selectedFillOpacity;
             this.selectedStroke = json.selectedStroke;
             this.selectedOpacity = json.selectedOpacity;
             this.disabledFill = json.disabledFill;
+            this.disabledFillOpacity = json.disabledFillOpacity;
             this.disabledStroke = json.disabledStroke;
             this.disabledOpacity = json.disabledOpacity;
             this.hoverOpacity = json.hoverOpacity;
-            this.disabled = json.disabled;
-            this.selected = json.selected;
-            this.clickable = json.clickable;
-            this.hoverable = json.hoverable;
-            this.dragging = json.dragging;
-            this.draggable = json.draggable;
-            this.dragged = json.dragged;
+            this.hoverFillOpacity = json.hoverFillOpacity;
         }
 
         /**
@@ -164,20 +168,20 @@ module Common.Models {
             return this.raphael != null && this.raphael != undefined;
         }
         public hasLocation(): boolean {
-            return !Common.Utilities.isNullOrUndefined(this.location);
+            return Common.Utilities.isNotNullOrUndefined(this.location);
         }
         public hasPlacement(): boolean {
-            return !Common.Utilities.isNullOrUndefined(this.placement);
+            return Common.Utilities.isNotNullOrUndefined(this.placement);
         }
         public setPlacement(placement: Common.Models.Placement): void {
             this.placement = placement;
             this.updateFromCoordinates(
-                placement.coordinates.x, 
+                placement.coordinates.x,
                 placement.coordinates.y
             );
         }
         public hasSet(): boolean {
-            return !Common.Utilities.isNullOrUndefined(this.set);
+            return Common.Utilities.isNotNullOrUndefined(this.set);
         }
 
         public getFill(): string {
@@ -192,18 +196,35 @@ module Common.Models {
             this.originalFill = fill;
             return this;
         }
+
+        public getFillOpacity(): number {
+            return this.fillOpacity;
+        }
+        public setFillOpacity(opacity: number): Common.Models.Graphics {
+            if (opacity > 1 || opacity < 0)
+                throw new Error('Graphics setFillOpacity(): opacity must be between 0 and 1');
+
+            this.fillOpacity = opacity;
+            return this.attr({ 'fill-opacity': this.fillOpacity });
+        }
+        public setOriginalFillOpacity(opacity: number): Common.Models.Graphics {
+            this.setFillOpacity(opacity);
+            this.originalFillOpacity = opacity;
+            return this;
+        }
+
         public getStroke(): string {
             return this.stroke;
         }
         public setStroke(stroke: string): Common.Models.Graphics {
             this.stroke = stroke;
             return this.attr({ 'stroke': this.stroke });
-        } 
+        }
         public setOriginalStroke(stroke: string): Common.Models.Graphics {
             this.setStroke(stroke);
             this.originalStroke = stroke;
             return this;
-        } 
+        }
         public setSelectedStroke(stroke: string): Common.Models.Graphics {
             this.setStroke(stroke);
             this.selectedStroke = stroke;
@@ -228,6 +249,13 @@ module Common.Models {
             this.hoverOpacity = opacity;
             return this;
         }
+        public setHoverFillOpacity(opacity: number): Common.Models.Graphics {
+            if (opacity < 0 || opacity > 1)
+                throw new Error('Graphics setHoverFillOpacity(): opacity must be between 0 and 1, inclusive');
+
+            this.hoverFillOpacity = opacity;
+            return this;
+        }
 
         /**
          *
@@ -246,18 +274,13 @@ module Common.Models {
         public getOpacity(): number {
             return this.opacity;
         }
-
-        /**
-         * Sets the opacity to the given value
-         * @param {number} value The opacity to set
-         */
         public setOpacity(opacity: number): Common.Models.Graphics {
             if (opacity > 1 || opacity < 0)
                 throw new Error('Graphics setOpacity(): opacity must be between 0 and 1');
 
             let self = this;
             this.opacity = opacity;
-            return this.attr({'opacity': opacity});
+            return this.attr({ 'opacity': opacity });
         }
         public setOriginalOpacity(opacity: number): Common.Models.Graphics {
             this.setOpacity(opacity);
@@ -269,34 +292,26 @@ module Common.Models {
          * Toggles the opacity for show/hide effect
          */
         public toggleOpacity() {
-            if (!this.disabled && !this.selected && this.hoverable) {
-                this.setOpacity(
-                    this.opacity == this.originalOpacity ? 
-                        this.hoverOpacity : this.originalOpacity
-                    );
-            }
+            this.setOpacity(
+                this.opacity == this.originalOpacity ?
+                    this.hoverOpacity : this.originalOpacity
+            );
+            this.setFillOpacity(
+                this.fillOpacity == this.originalFillOpacity ?
+                    this.hoverFillOpacity : this.originalFillOpacity
+            );
         }
 
-        /**
-         * Generic selection method
-         */
-        public toggleSelect(): void {
-            if (!super.isSelectable())
-                return;
-
-            this.selected ? this.deselect() : this.select();
-        }
-        
         public select(): void {
-            super.select();
-
             this.fill = this.selectedFill;
             this.stroke = this.selectedStroke;
             this.opacity = this.selectedOpacity;
-            
+            this.fillOpacity = this.selectedFillOpacity;
+
             let self = this;
             this.attr({
                 'fill': self.fill,
+                'fill-opacity': self.fillOpacity,
                 'stroke': self.stroke,
                 'opacity': self.opacity
             });
@@ -305,15 +320,15 @@ module Common.Models {
          * Generic deselection method
          */
         public deselect(): void {
-            super.deselect();
-
             this.fill = this.originalFill;
             this.stroke = this.originalStroke;
             this.opacity = this.originalOpacity;
-            
+            this.fillOpacity = this.originalFillOpacity;
+
             let self = this;
             this.attr({
                 'fill': self.fill,
+                'fill-opacity': self.fillOpacity,
                 'stroke': self.stroke,
                 'opacity': self.opacity
             });
@@ -322,15 +337,15 @@ module Common.Models {
          * Generic disable method
          */
         public disable(): void {
-            super.disable();
-
             this.fill = this.disabledFill;
             this.stroke = this.disabledStroke;
             this.opacity = this.disabledOpacity;
-            
+            this.fillOpacity = this.disabledFillOpacity;
+
             let self = this;
             this.attr({
                 'fill': self.fill,
+                'fill-opacity': self.fillOpacity,
                 'stroke': self.stroke,
                 'opacity': self.opacity
             });
@@ -339,15 +354,15 @@ module Common.Models {
          * Generic enable method
          */
         public enable(): void {
-            super.enable();
-
             this.fill = this.originalFill;
             this.stroke = this.originalStroke;
             this.opacity = this.originalOpacity;
-            
+            this.fillOpacity = this.originalFillOpacity;
+
             let self = this;
             this.attr({
                 'fill': self.fill,
+                'fill-opacity': self.fillOpacity,
                 'stroke': self.stroke,
                 'opacity': self.opacity
             });
@@ -403,30 +418,30 @@ module Common.Models {
 
             // Update placement when dropping
             let coords = this.grid.getCoordinatesFromAbsolute(
-                this.location.ax, 
+                this.location.ax,
                 this.location.ay
             );
-            this.placement.updateFromCoordinates(coords.x, coords.y); 
+            this.placement.updateFromCoordinates(coords.x, coords.y);
 
             // Transform (move to updateAbsolute/Coordinates methods?)
             this.transform(this.location.dx, this.location.dy);
         }
 
         public moveByDeltaX(dx: number): void {
-            if(this.canMoveByDeltaX(dx)) {
+            if (this.canMoveByDeltaX(dx)) {
                 this.moveByDelta(dx, 0);
             }
         }
 
         public moveByDeltaY(dy: number): void {
-            if(this.canMoveByDeltaY(dy)) {
+            if (this.canMoveByDeltaY(dy)) {
                 this.moveByDelta(0, dy);
             }
         }
 
         public updatePlacement(x?: number, y?: number) {
             this.updateFromCoordinates(
-                Common.Utilities.isNullOrUndefined(x) ? this.placement.coordinates.x : x, 
+                Common.Utilities.isNullOrUndefined(x) ? this.placement.coordinates.x : x,
                 Common.Utilities.isNullOrUndefined(y) ? this.placement.coordinates.y : y
             );
         }
@@ -441,7 +456,7 @@ module Common.Models {
         public updateFromAbsolute(ax: number, ay: number): void {
             // Update location
             this.location.updateFromAbsolute(
-                ax, 
+                ax,
                 ay
             );
 
@@ -456,7 +471,7 @@ module Common.Models {
             // convert grid coordinates to absolute & update location
             let absCoords = this.grid.getAbsoluteFromCoordinates(x, y);
             this.location.updateFromAbsolute(
-                absCoords.x + this.dimensions.offset.x, 
+                absCoords.x + this.dimensions.offset.x,
                 absCoords.y + this.dimensions.offset.y
             );
 
@@ -469,7 +484,7 @@ module Common.Models {
         public updateFromRelative(rx: number, ry: number, relativeElement?: Common.Interfaces.IFieldElement) {
             this.placement.updateFromRelative(rx, ry, relativeElement);
             let absCoords = this.grid.getAbsoluteFromCoordinates(
-                this.placement.coordinates.x, 
+                this.placement.coordinates.x,
                 this.placement.coordinates.y
             );
             this.location.updateFromAbsolute(
@@ -491,22 +506,22 @@ module Common.Models {
             return this;
         }
 
-        public rect(): Common.Models.Graphics {            
+        public rect(): Common.Models.Graphics {
             this.remove();
             this.raphael = this.paper.drawing.rect(
-                this.placement.coordinates.x, 
-                this.placement.coordinates.y, 
-                this.dimensions.getWidth(), 
-                this.dimensions.getHeight(), 
-                false, 
-                this.dimensions.getOffsetX(), 
+                this.placement.coordinates.x,
+                this.placement.coordinates.y,
+                this.dimensions.getWidth(),
+                this.dimensions.getHeight(),
+                false,
+                this.dimensions.getOffsetX(),
                 this.dimensions.getOffsetY()
             );
             this.refresh();
             return this;
         }
 
-        public rhombus(): Common.Models.Graphics {            
+        public rhombus(): Common.Models.Graphics {
             this.remove();
             this.rect();
             this.dimensions.rotation = -45;
@@ -515,7 +530,7 @@ module Common.Models {
             return this;
         }
 
-        public ellipse(): Common.Models.Graphics {            
+        public ellipse(): Common.Models.Graphics {
             this.remove();
             this.raphael = this.paper.drawing.ellipse(
                 this.placement.coordinates.x,
@@ -587,7 +602,7 @@ module Common.Models {
 
             if (this.getType() != 'text') {
                 attrs['fill'] = this.fill;
-                attrs['fill-opacity'] = !Common.Utilities.isNullOrUndefined(this.fill) ? 1 : 0;
+                attrs['fill-opacity'] = this.fillOpacity;
                 attrs['opacity'] = this.opacity;
                 attrs['stroke'] = this.stroke;
                 attrs['stroke-width'] = this.strokeWidth;
@@ -628,11 +643,13 @@ module Common.Models {
             this.raphael.node.setAttribute(attribute, value);
         }
 
-        public getBBox(isWithoutTransforms?: boolean) {
+        public getBBox(isWithoutTransforms?: boolean)
+        : {x: number, y: number, width: number, height: number} 
+        {
             if (!this.hasRaphael())
                 return;
 
-            this.raphael.getBBox(isWithoutTransforms === true);
+            return this.raphael.getBBox(isWithoutTransforms === true);
         }
 
         public transform(ax: number, ay: number) {
@@ -711,7 +728,7 @@ module Common.Models {
          * @param {any} hoverOut [description]
          * @param {any} context  [description]
          */
-        public onhover(hoverIn: any, hoverOut: any, context: Common.Interfaces.IFieldElement): void {
+        public onhover(hoverIn: any, hoverOut: any, context: Common.Interfaces.IActionable): void {
             if (!this.hasRaphael())
                 return;
 
@@ -723,9 +740,9 @@ module Common.Models {
                 function(e: any) {
                     hoverOut.call(context, e);
                 }
-            )
+            );
         }
-        public hoverIn(e: any, context: Common.Interfaces.IFieldElement) {
+        public hoverIn(e: any) {
             if (!this.hasRaphael())
                 return;
 
@@ -733,7 +750,7 @@ module Common.Models {
             console.log('graphics hoverIn');
             this.toggleOpacity();
         }
-        public hoverOut(e: any, context: Common.Interfaces.IFieldElement) {
+        public hoverOut(e: any) {
             if (!this.hasRaphael())
                 return;
 
@@ -747,7 +764,7 @@ module Common.Models {
          * @param {any} fn      [description]
          * @param {any} context [description]
          */
-        public onclick(fn: any, context: Common.Interfaces.IFieldElement): void {
+        public onclick(fn: any, context: Common.Interfaces.IActionable): void {
             if (!this.hasRaphael())
                 return;
             
@@ -756,10 +773,10 @@ module Common.Models {
                 fn.call(context, e);
             });
         }
-        public click(e: any, context: Common.Interfaces.IFieldElement): void {
-        }
 
-        public oncontextmenu(fn: any, context: Common.Interfaces.IFieldElement): void {
+        public click(e: any): void {}
+
+        public oncontextmenu(fn: any, context: Common.Interfaces.IActionable): void {
             if (!this.hasRaphael())
                 return;
 
@@ -769,16 +786,15 @@ module Common.Models {
                 }
             });
         }
-        public contextmenu(e: any, context: Common.Interfaces.IFieldElement): void {
-        
-        }
+
+        public contextmenu(e: any): void {}
 
         /**
          * Mouse down event handler registration method
          * @param {any}                             fn      [description]
-         * @param {Common.Interfaces.IFieldElement} context [description]
+         * @param {Common.Interfaces.IActionable} context [description]
          */
-        public onmousedown(fn: any, context: Common.Interfaces.IFieldElement): void {
+        public onmousedown(fn: any, context: Common.Interfaces.IActionable): void {
             if (!this.hasRaphael())
                 return;
 
@@ -789,9 +805,9 @@ module Common.Models {
         /**
          * Mouse up event handler registration method
          * @param {any}                             fn      [description]
-         * @param {Common.Interfaces.IFieldElement} context [description]
+         * @param {Common.Interfaces.IActionable} context [description]
          */
-        public onmouseup(fn: any, context: Common.Interfaces.IFieldElement): void {
+        public onmouseup(fn: any, context: Common.Interfaces.IActionable): void {
             if (!this.hasRaphael())
                 return;
             
@@ -803,9 +819,9 @@ module Common.Models {
          * Default mousedown handler to be called if no other handlers are 
          * registered with onmousedown
          * @param {any}                             e       [description]
-         * @param {Common.Interfaces.IFieldElement} context [description]
+         * @param {Common.Interfaces.IActionable} context [description]
          */
-        public mousedown(e: any, context: Common.Interfaces.IFieldElement): void {
+        public mousedown(e: any): void {
             if (!this.hasRaphael())
                 return;
         }
@@ -814,9 +830,9 @@ module Common.Models {
          * Mouse move event handler registration method; attaches listeners
          * to be fired when the cursor moves over an element (such as for cursor tracking)
          * @param {any}                             fn      [description]
-         * @param {Common.Interfaces.IFieldElement} context [description]
+         * @param {Common.Interfaces.IActionable} context [description]
          */
-        public onmousemove(fn: any, context: Common.Interfaces.IFieldElement): void {
+        public onmousemove(fn: any, context: Common.Interfaces.IActionable): void {
             if (!this.hasRaphael())
                 return;
             
@@ -828,9 +844,9 @@ module Common.Models {
          * Default mouse move handler to be called if no other handlers are
          * registered with onmousedown
          * @param {any}                             e       [description]
-         * @param {Common.Interfaces.IFieldElement} context [description]
+         * @param {Common.Interfaces.IActionable} context [description]
          */
-        public mousemove(e: any, context: Common.Interfaces.IFieldElement): void {
+        public mousemove(e: any): void {
             if (!this.hasRaphael())
                 return;
         }
@@ -839,7 +855,7 @@ module Common.Models {
             dragMove: Function,
             dragStart: Function,
             dragEnd: Function,
-            context: Common.Interfaces.IFieldElement
+            context: Common.Interfaces.IActionable
         ): void {
             if (!this.hasRaphael())
                 return;
@@ -848,9 +864,6 @@ module Common.Models {
         }
 
         public drop(): void {
-            this.dragged = false;
-            this.dragging = false;
-
             if (this.location.hasChanged())
                 this.setModified(true);
 

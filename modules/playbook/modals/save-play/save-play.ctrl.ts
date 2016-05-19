@@ -51,19 +51,16 @@ function(
 		// TO-DO: create a better model for this
 		let options = {
 			play: {
-				action: play.modified ? Common.API.Actions.Overwrite : Common.API.Actions.Nothing
+				action: Common.API.Actions.Overwrite // keeping it simple here - always overwrite
 			},
 			formation: {
-				action: play.formation.modified ? Common.API.Actions.Overwrite : Common.API.Actions.Nothing
+				action: Common.API.Actions.Overwrite // keeping it simple here - always overwrite
 			},
 			assignmentGroup: {
-				action: play.assignmentGroup.key == -1 ? 
-					Common.API.Actions.Create :
-					(
-						play.assignmentGroup.modified ? 
-						Common.API.Actions.Overwrite : 
-						Common.API.Actions.Nothing
-					)
+				action: play.assignmentGroup.assignments.hasElements() ? 
+					(play.assignmentGroup.key == -1 ? 
+						Common.API.Actions.Create : Common.API.Actions.Overwrite) : // always create or overwrite
+					Common.API.Actions.Nothing // don't do anything if there are no assignments
 			}
 		}
 

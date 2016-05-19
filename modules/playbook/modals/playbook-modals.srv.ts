@@ -227,7 +227,7 @@ function($q: any, __modals: any) {
 			'modules/playbook/modals/delete-assignmentGroup/delete-assignmentGroup.tpl.html',
 			'playbook.modals.deleteAssignmentGroup.ctrl',
 			{
-				formation: function() {
+				assignmentGroup: function() {
 					return assignmentGroup;
 				}
 			}

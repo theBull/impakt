@@ -31,7 +31,7 @@ module Team.Models {
                 if (Common.Utilities.isNullOrUndefined(rawPosition))
                     continue;
 
-                rawPosition.unitType = !Common.Utilities.isNullOrUndefined(rawPosition.unitType) &&
+                rawPosition.unitType = Common.Utilities.isNotNullOrUndefined(rawPosition.unitType) &&
                     rawPosition.unitType >= 0 ? rawPosition.unitType : Team.Enums.UnitTypes.Other;
 
                 var positionModel = new Team.Models.Position(rawPosition.unitType);

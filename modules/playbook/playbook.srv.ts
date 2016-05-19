@@ -104,7 +104,7 @@ function(
     this.createPlaybook = function(newPlaybookModel: Common.Models.PlaybookModel) {
         var d = $q.defer();
 
-        if(!Common.Utilities.isNullOrUndefined(newPlaybookModel)) {
+        if(Common.Utilities.isNotNullOrUndefined(newPlaybookModel)) {
             let nameExists = impakt.context.Playbook.playbooks.hasElementWhich(
                 function(playbookModel: Common.Models.PlaybookModel, index: number) {
                     return playbookModel.name == newPlaybookModel.name;
@@ -313,24 +313,24 @@ function(
             '?$filter=ParentRK gt 0'))
             .then(function(response: any) {
                 let results = Common.Utilities.parseData(response.data.results);
-                let collection = new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed);
-                let formations = [];
+                let formationCollection = new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed);
                 for (let i = 0; i < results.length; i++) {
                     let result = results[i];
                     if (result && result.data && result.data.formation) {
-                        let formation = result.data.formation;
-                        formation.key = result.key;
-                        formations.push(formation);
+                        
+                        let rawFormation = result.data.formation;
+                        rawFormation.key = result.key;
+                        let formationModel = new Common.Models.Formation(Team.Enums.UnitTypes.Other);
+                        formationModel.fromJson(rawFormation);
+                        formationCollection.add(formationModel);
                     } else {
                         throw new Error('An invalid formation was retrieved');
                     }
                 }
 
-                collection.fromJson(formations);
+                notification.success(formationCollection.size(), ' Formations successfully retrieved');
 
-                notification.success(collection.size(), ' Formations successfully retrieved');
-
-                d.resolve(collection);
+                d.resolve(formationCollection);
 
             }, function(error: any) {
                 notification.error('Failed to retrieve Formations');
@@ -558,6 +558,45 @@ function(
     }
 
     /**
+     * Deletes the given assignment group for the current user
+     * @param {Common.Models.AssignmentGroup} assignmentGroup The assignment group to be deleted
+     */
+    this.deleteAssignmentGroup = function(assignmentGroup: Common.Models.AssignmentGroup) {
+        var d = $q.defer();
+
+        let notification = __notifications.pending(
+            'Deleting assignment group "', assignmentGroup.name, '"...'
+        );
+
+        __api.post(
+            __api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.DELETE_ASSIGNMENTGROUP),
+            {
+                key: assignmentGroup.key
+            }
+        )
+            .then(function(response: any) {
+                let assignmentGroupKey = response.data.results.key;
+
+                // update the context
+                impakt.context.Playbook.assignmentGroups.remove(assignmentGroup.guid);
+
+                notification.success(
+                    'Successfully deleted assignment group "', assignmentGroup.name, '"'
+                );
+
+                d.resolve(assignmentGroupKey);
+            }, function(error: any) {
+                notification.error(
+                    'Failed to delete assignment group "', assignmentGroup.name, '"'
+                );
+
+                d.reject(error);
+            });
+
+        return d.promise;
+    }
+
+    /**
      * Creates a collection group
      * @param {[type]} assignments The assignments to create
      */
@@ -594,8 +633,10 @@ function(
                 if(results && results.data && results.data.assignmentGroup) {
                     let rawAssignmentGroup = results.data.assignmentGroup;
 
-                    assignmentGroup.key = results.key;
+                    rawAssignmentGroup.key = results.key;
                     assignmentGroup.fromJson(rawAssignmentGroup);
+
+                    impakt.context.Playbook.assignmentGroups.add(assignmentGroup);
 
                     notification.success(
                         'Successfully created assignment group "', assignmentGroup.name, '"'
@@ -641,7 +682,7 @@ function(
                     version: 1,
                     name: assignmentGroupData.name,
                     key: assignmentGroupData.key,
-                    assignmentGroup: assignmentGroup
+                    assignmentGroup: assignmentGroup.toJson()
                 }
             }
         )
@@ -711,8 +752,8 @@ function(
             let playModel = null;
             if(results && results.data && results.data.play) {
                 playModel = new Common.Models.Play(Team.Enums.UnitTypes.Other);
+                results.data.play.key = results.key;
                 playModel.fromJson(results.data.play);
-                playModel.key = results.key;
                 impakt.context.Playbook.plays.add(playModel);
             }
 
@@ -765,18 +806,12 @@ function(
                         });
 
                 } else if(options.formation.action == Common.API.Actions.Overwrite) {
-                    if(play.formation.modified) {
-
-                        self.updateFormation(play.formation)
-                        .then(function(updatedFormation: Common.Models.Formation) {
-                            callback(null, play);
-                        }, function(err) {
-                            callback(err);
-                        });    
-
-                    } else {
+                    self.updateFormation(play.formation)
+                    .then(function(updatedFormation: Common.Models.Formation) {
                         callback(null, play);
-                    }
+                    }, function(err) {
+                        callback(err);
+                    });
                 } else {
                     callback(null, play);
                 }
@@ -812,23 +847,20 @@ function(
                                     callback(err);
                                 });
                             }
+
                         }, function(err) {
                             callback(err);
                         });
 
                 } else if (options.assignmentGroup.action == Common.API.Actions.Overwrite) {
-                    if (play.assignmentGroup.modified) {
+                    
+                    self.updateAssignmentGroup(play.assignmentGroup)
+                        .then(function(updatedAssignmentGroup: Common.Models.AssignmentGroup) {
+                            callback(null, updatedAssignmentGroup);
+                        }, function(err) {
+                            callback(err);
+                        });
 
-                        self.updateAssignmentGroup(play.assignmentGroup)
-                            .then(function(updatedAssignmentGroup: Common.Models.AssignmentGroup) {
-                                callback(null, updatedAssignmentGroup);
-                            }, function(err) {
-                                callback(err);
-                            });
-
-                    } else {
-                        callback(null, play);
-                    }
                 } else {
                     callback(null, play);
                 }
@@ -849,18 +881,14 @@ function(
                         });
 
                 } else if(options.play.action == Common.API.Actions.Overwrite) {
-                    if(play.modified) {
 
-                        self.updatePlay(play)
-                        .then(function(updatedPlay: Common.Models.Play) {
-                            callback(null, updatedPlay);
-                        }, function(err) {
-                            callback(err);
-                        });
-
-                    } else {
-                        callback(null, play);
-                    }
+                    self.updatePlay(play)
+                    .then(function(updatedPlay: Common.Models.Play) {
+                        callback(null, updatedPlay);
+                    }, function(err) {
+                        callback(err);
+                    });
+                    
                 } else {
                     callback(null, play);
                 }
@@ -956,9 +984,10 @@ function(
                     for (let i = 0; i < results.length; i++) {
                         let result = results[i];
                         if (result && result.data && result.data.play) {
+                            let rawPlay = result.data.play;
                             let playModel = new Common.Models.Play(Team.Enums.UnitTypes.Other);
-                            playModel.fromJson(result.data.play);
-                            playModel.key = result.key;
+                            rawPlay.key = result.key;
+                            playModel.fromJson(rawPlay);
                             playCollection.add(playModel);
                         }
                     }    
@@ -1139,6 +1168,8 @@ function(
                 return _playbookModals.deletePlay(entity);
             case Common.Enums.ImpaktDataTypes.Formation:
                 return _playbookModals.deleteFormation(entity);
+            case Common.Enums.ImpaktDataTypes.AssignmentGroup:
+                return _playbookModals.deleteAssignmentGroup(entity);
             default:
                d.reject(new Error('_playbook deleteEntityByType: impaktDataType not supported'))
         }

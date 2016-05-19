@@ -96,7 +96,7 @@ function(
     this.createTeam = function(newTeamModel: League.Models.LeagueModel) {
         var d = $q.defer();
 
-        if (!Common.Utilities.isNullOrUndefined(newTeamModel)) {
+        if (Common.Utilities.isNotNullOrUndefined(newTeamModel)) {
             let nameExists = impakt.context.Team.teams.hasElementWhich(
                 function(teamModel: Team.Models.TeamModel, index: number) {
                     return teamModel.name == newTeamModel.name;
@@ -251,6 +251,7 @@ function(
                     let results = personnelResults[i];
                     if (results && results.data && results.data.personnel) {
                         let rawPersonnel = results.data.personnel;
+                        rawPersonnel.key = results.key;
                         let personnelModel = new Team.Models.Personnel(Team.Enums.UnitTypes.Other);
                         personnelModel.fromJson(rawPersonnel);
                         personnelCollection.add(personnelModel);

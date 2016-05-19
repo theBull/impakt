@@ -8,6 +8,6 @@ module Common.Interfaces {
 		type: Common.Enums.RouteNodeTypes;
         routeAction: Common.Interfaces.IRouteAction;
         routeControlPath: Common.Interfaces.IRouteControlPath;
-        player: Common.Interfaces.IPlayer;
+        route: Common.Interfaces.IRoute;
 	}
 }

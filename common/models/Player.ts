@@ -13,6 +13,7 @@ module Common.Models {
 		 */
 		public position: Team.Models.Position;
 		public assignment: Common.Models.Assignment;
+		public placement: Common.Models.Placement;
 
 		/**
 		 * 
@@ -27,21 +28,26 @@ module Common.Models {
 		public indexLabel: any;
 
 		constructor(
-			field: Common.Interfaces.IField,
 			placement: Common.Models.Placement,
 			position: Team.Models.Position,
 			assignment: Common.Models.Assignment
 		) {
-			super(field, field.ball);
-
-			this.layer.type = Common.Enums.LayerTypes.Player;
-			this.layer.graphics.setPlacement(placement);
+			super();
+			this.placement = placement;
 			this.position = position;
 			this.assignment = assignment || new Common.Models.Assignment(this.position.unitType);
-			this.assignment.positionIndex = this.position.index;
+			
+			if(Common.Utilities.isNotNullOrUndefined(this.assignment))
+				this.assignment.positionIndex = this.position.index;
+		}
 
-			this.layer.graphics.dimensions.setWidth(this.grid.getSize());
-			this.layer.graphics.dimensions.setHeight(this.grid.getSize());
+		public initialize(field: Common.Interfaces.IField): void {
+			super.initialize(field, field.ball);
+
+			this.layer.type = Common.Enums.LayerTypes.Player;
+			this.graphics.setPlacement(this.placement);
+			this.graphics.dimensions.setWidth(this.grid.getSize());
+			this.graphics.dimensions.setHeight(this.grid.getSize());
 
 			let self = this;
 			this.onModified(function() {
@@ -59,10 +65,10 @@ module Common.Models {
 		public abstract draw(): void;
 
 		public getPositionRelativeToBall(): Common.Models.RelativeCoordinates {
-			return this.layer.graphics.placement.relative;
+			return this.graphics.placement.relative;
 		}
 		public getCoordinatesFromAbsolute(): Common.Models.Coordinates {
-			return this.layer.graphics.placement.coordinates;
+			return this.graphics.placement.coordinates;
 		}
 
 		/**
@@ -103,19 +109,15 @@ module Common.Models {
 		 * 
 		 */
 		public hasPlacement(): boolean {
-			return Common.Utilities.isNullOrUndefined(this.layer.graphics.placement);
+			return Common.Utilities.isNullOrUndefined(this.graphics.placement);
 		}
 		public getPlacement(): Common.Models.Placement {
-			return this.layer.graphics.placement;
+			return this.graphics.placement;
 		}
 		public setPlacement(placement: Common.Models.Placement): void {
-			this.layer.graphics.updateFromCoordinates(placement.coordinates.x, placement.coordinates.y);
+			this.graphics.updateFromCoordinates(placement.coordinates.x, placement.coordinates.y);
+			this.layer.setPlacement(placement);
 			this.setModified(true);
-
-			let self = this;
-			this.layer.layers.forEach(function(layer: Common.Models.Layer, index: number) {
-				layer.graphics.setPlacement(placement);
-			});
 		}
 	}
 }

@@ -159,8 +159,7 @@ module Common.Models {
 				checksum: this.checksum
 			}, super.toJson());
 		}
-		public fromJson(json: any) {
-			this.modified = json.modified;
+		public fromJson(json: any, ...args: any[]) {
 			this.lastModified = json.lastModified;
 			this.original = json.checksum;
 			this.checksum = Common.Utilities.generateChecksum(this.toJson());

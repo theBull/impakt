@@ -7,9 +7,8 @@ module Playbook.Models {
 
 		constructor(player: Common.Interfaces.IPlayer) {
 			super(player);
-
-			this.layer.graphics.fill = 'black';
-			this.layer.graphics.setStrokeWidth(0);
+			this.graphics.fill = 'black';
+			this.graphics.setStrokeWidth(0);
 		}
 	}
 

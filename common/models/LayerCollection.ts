@@ -26,16 +26,16 @@ module Common.Models {
 		public drop(): void {
 			this.forEach(function(layer: Common.Models.Layer, index: number) {
 				if(layer.hasGraphics())
-					layer.graphics.drop();
+					layer.actionable.drop();
 			});
 		}
 
 		public hide(): void {
 			this.forEach(function(layer: Common.Models.Layer, index: number) {
 				if(layer.hasGraphics()) {
-					layer.graphics.hide();
-					if(layer.graphics.hasSet()) {
-						layer.graphics.set.hide();
+					layer.actionable.graphics.hide();
+					if(layer.actionable.graphics.hasSet()) {
+						layer.actionable.graphics.set.hide();
 					}
 				}
 			});

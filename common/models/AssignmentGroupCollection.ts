@@ -38,7 +38,7 @@ module Common.Models {
                     continue;
 
                 rawAssignmentCollection.unitType = 
-                    !Common.Utilities.isNullOrUndefined(rawAssignmentCollection.unitType) &&
+                    Common.Utilities.isNotNullOrUndefined(rawAssignmentCollection.unitType) &&
                     rawAssignmentCollection.unitType >= 0 ? 
                     rawAssignmentCollection.unitTpe : 
                     Team.Enums.UnitTypes.Other;

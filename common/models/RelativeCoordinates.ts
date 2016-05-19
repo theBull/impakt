@@ -66,8 +66,8 @@ module Common.Models {
 
 			return this.relativeElement ? Common.Drawing.Utilities.distance(
 				this.rx, this.ry,
-				this.relativeElement.layer.graphics.placement.coordinates.x,
-				this.relativeElement.layer.graphics.placement.coordinates.y
+				this.relativeElement.graphics.placement.coordinates.x,
+				this.relativeElement.graphics.placement.coordinates.y
 			): null;	
 		}
 		
@@ -77,8 +77,8 @@ module Common.Models {
 
 			return this.relativeElement ? Common.Drawing.Utilities.theta(
 				this.rx, this.ry,
-				this.relativeElement.layer.graphics.placement.coordinates.x,
-				this.relativeElement.layer.graphics.placement.coordinates.y
+				this.relativeElement.graphics.placement.coordinates.x,
+				this.relativeElement.graphics.placement.coordinates.y
 			) : null;
 		}
 				
@@ -86,8 +86,8 @@ module Common.Models {
 			if (Common.Utilities.isNullOrUndefined(this.relativeElement))
 				return;
 
-			this.rx = x - this.relativeElement.layer.graphics.placement.coordinates.x;
-			this.ry = this.relativeElement.layer.graphics.placement.coordinates.y - y;			
+			this.rx = x - this.relativeElement.graphics.placement.coordinates.x;
+			this.ry = this.relativeElement.graphics.placement.coordinates.y - y;			
 		}
 		public updateFromAbsoluteCoordinates(ax: number, ay: number) {
 			// snap absolute coordinates to grid coordinates first...
@@ -108,16 +108,16 @@ module Common.Models {
 				return null;
 
 			return new Common.Models.Coordinates(
-				this.relativeElement.layer.graphics.placement.coordinates.x + rx,
-				this.relativeElement.layer.graphics.placement.coordinates.y - ry
+				this.relativeElement.graphics.placement.coordinates.x + rx,
+				this.relativeElement.graphics.placement.coordinates.y - ry
 			);
 		}
 
 		public getCoordinates(): Common.Models.Coordinates {
 			let self = this;
 			return new Common.Models.Coordinates(
-				this.relativeElement.layer.graphics.placement.coordinates.x + self.rx,
-				this.relativeElement.layer.graphics.placement.coordinates.y - self.ry
+				this.relativeElement.graphics.placement.coordinates.x + self.rx,
+				this.relativeElement.graphics.placement.coordinates.y - self.ry
 			);
 		}
 	}

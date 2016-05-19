@@ -31,8 +31,10 @@ impakt.common.ui.controller('playPreview.ctrl', [
 	
 }]).directive('playPreview', [
 '$timeout',
+'_associations',
 function(
-	$timeout: any
+	$timeout: any,
+	_associations: any
 ) {
 	/**
 	 * play-preview directive renders an SVG preview canvas
@@ -53,7 +55,11 @@ function(
 					// create a previewCanvas to handle preview creation. Creating
 					// a previewCanvas will insert a SVG into the <play-preview/> element
 					// after the intialization phase.
-					if (!Common.Utilities.isNullOrUndefined($scope.play)) {
+					if (Common.Utilities.isNotNullOrUndefined($scope.play)) {
+						// get associated assignment group
+						//let associations = _associations.getAssociated($scope.play);
+						//$scope.play.assignmentGroup = associations.assignmentGroups.first();
+
 						$scope.previewCanvas = new Playbook.Models.PreviewCanvas($scope.play, null);
 					} else {
 						// if there's no play at this point, there's a problem

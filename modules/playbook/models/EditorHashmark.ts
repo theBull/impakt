@@ -5,8 +5,8 @@ module Playbook.Models {
     extends Common.Models.Hashmark
     implements Common.Interfaces.IHashmark {
 
-        constructor(field: Common.Interfaces.IField, x: number) {
-            super(field, x);
+        constructor(offsetX: number) {
+            super(offsetX);
         }
     }
 }

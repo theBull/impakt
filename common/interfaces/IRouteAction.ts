@@ -5,6 +5,5 @@ module Common.Interfaces {
 	extends Common.Interfaces.IFieldElement {
 		routeNode: Common.Interfaces.IRouteNode;
 		action: Common.Enums.RouteNodeActions;
-		actionable: boolean;
 	}
 }

@@ -3,6 +3,6 @@
 module Common.Interfaces {
 	export interface IBall
 	extends Common.Interfaces.IFieldElement {
-		
+
 	}
 }

@@ -6,19 +6,23 @@ module Playbook.Models {
     extends Common.Models.Ball
     implements Common.Interfaces.IBall {
 
-        constructor(field: Common.Interfaces.IField) {
-            super(field);
+        constructor() {
+            super();
+        }
+
+        public initialize(field: Common.Interfaces.IField) {
+            super.initialize(field);
         }
 
         public draw(): void {
             super.draw();
 
             // Attach event handlers
-            this.layer.graphics.onclick(
+            this.graphics.onclick(
                 this.click, 
                 this
             );
-            this.layer.graphics.ondrag(
+            this.graphics.ondrag(
                 this.dragMove, 
                 this.dragStart, 
                 this.dragEnd,
@@ -32,12 +36,12 @@ module Playbook.Models {
             // peripherals of its containment in either x or y direction,
             // it is still able to move in the other direction, provided
             // that it is still within its containment area
-            this.layer.graphics.moveByDeltaX(dx);
-            this.layer.graphics.moveByDeltaY(dy);
+            this.graphics.moveByDeltaX(dx);
+            this.graphics.moveByDeltaY(dy);
 
             // update line of scrimmage - do not track difference in x movement,
             // only track y movement up and down the field
-            this.field.ball.layer.graphics.moveByDeltaY(dy);
+            this.field.ball.graphics.moveByDeltaY(dy);
            
         }
 
@@ -46,8 +50,8 @@ module Playbook.Models {
         }
 
         public dragEnd(e: any): void {
-            this.layer.graphics.drop();
-            this.field.ball.layer.graphics.drop();
+            this.graphics.drop();
+            this.field.ball.graphics.drop();
         }
     }
 }

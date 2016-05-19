@@ -3,10 +3,9 @@
 module Common.Models {
 	
 	export abstract class FieldElement 
-	extends Common.Models.Modifiable
+	extends Common.Models.Actionable
 	implements Common.Interfaces.IFieldElement,
-	Common.Interfaces.ILayerable,
-    Common.Interfaces.IContextual {
+	Common.Interfaces.ILayerable {
 		
 		public field: Common.Interfaces.IField;
 		public ball: Common.Interfaces.IBall;
@@ -16,162 +15,136 @@ module Common.Models {
 		public layer: Common.Models.Layer;
 		public relativeElement: Common.Interfaces.IFieldElement;
 		public name: string;
-        private _originalScreenPositionX: number;
-        private _originalScreenPositionY: number;
+		private _originalScreenPositionX: number;
+		private _originalScreenPositionY: number;
 
-		/**
-         *
-         * contextual attributes
-         * 
-         */
-        public contextmenuTemplateUrl: string;
-
-		constructor(
-			field: Common.Interfaces.IField,
-			relativeElement: Common.Interfaces.IFieldElement
-		) { 
-			super();
+		constructor() { 
+			super(Common.Enums.ImpaktDataTypes.Unknown);
 			super.setContext(this);
+			this.contextmenuTemplateUrl = Common.Constants.DEFAULT_CONTEXTMENU_TEMPLATE_URL;
+		}
 
+		public initialize(
+			field: Common.Interfaces.IField, 
+			relativeElement: Common.Interfaces.IFieldElement
+		) {
 			this.field = field;
 			this.ball = this.field.ball;
 			this.relativeElement = relativeElement;
 			this.paper = this.field.paper;
 			this.canvas = this.paper.canvas;
 			this.grid = this.paper.grid;
-		    this.contextmenuTemplateUrl = Common.Constants.DEFAULT_CONTEXTMENU_TEMPLATE_URL;
-            this.layer = new Common.Models.Layer(this.paper, Common.Enums.LayerTypes.FieldElement);
+			this.graphics = new Common.Models.Graphics(this.paper);
+			this.layer = new Common.Models.Layer(this, Common.Enums.LayerTypes.FieldElement);
 
-            this._originalScreenPositionX = null;
-            this._originalScreenPositionY = null;
+			this._originalScreenPositionX = null;
+			this._originalScreenPositionY = null;
 
-            let self = this;
-            this.onModified(function() {
-                self.field.setModified(true);
-            });
+			let self = this;
+			this.onModified(function() {
+				self.field.setModified(true);
+			});
 		}
 
-        public hasLayer(): boolean {
-            return this.layer != null && this.layer != undefined;
-        }
-        public getLayer(): Common.Models.Layer {
-            return this.layer;
-        }
-        public hasGraphics(): boolean {
-            return this.layer.hasGraphics();
-        }
-        public getGraphics(): Common.Models.Graphics {
-            return this.hasGraphics() ? this.layer.graphics : null;
-        }
-        public hasPlacement(): boolean {
-            return this.layer.hasPlacement();
-        }
         public getContextmenuUrl(): string {
-          return this.contextmenuTemplateUrl;
+            return this.contextmenuTemplateUrl;
         }
 
-        public toggleSelect(metaKey: boolean): void {
-          this.field.toggleSelection(this);
-          {
-            if (metaKey) {
-              this.field.toggleSelection(this);
-            } else {
-              this.field.setSelection(this);
-            }
-          }
-        }
+		public hasLayer(): boolean {
+			return this.layer != null && this.layer != undefined;
+		}
+		public getLayer(): Common.Models.Layer {
+			return this.layer;
+		}
+		public getGraphics(): Common.Models.Graphics {
+			return this.hasGraphics() ? this.graphics : null;
+		}
+		public hasPlacement(): boolean {
+			return this.layer.hasPlacement();
+		}
 
-        /**
-         *
-         *
-         * DEFAULT METHOD
-         * Each field element will inherit the following default methods.
-         *
-         * Because of the wide variety of field elements, it is difficult to 
-         * provide default event handlers that fit for every one of them. 
-         * Abstract or Implementing Classes that do not execute the same 
-         * event logic must define an override method to override the default method.
-         * 
-         * 
-         */
-        /**
-         * Draw is abstract, as it will be different for every field element;
-         * each field element must implement a draw method.
-         */
-        public abstract draw(): void;
+		/**
+		 *
+		 *
+		 * DEFAULT METHOD
+		 * Each field element will inherit the following default methods.
+		 *
+		 * Because of the wide variety of field elements, it is difficult to 
+		 * provide default event handlers that fit for every one of them. 
+		 * Abstract or Implementing Classes that do not execute the same 
+		 * event logic must define an override method to override the default method.
+		 * 
+		 * 
+		 */
+		/**
+		 * Draw is abstract, as it will be different for every field element;
+		 * each field element must implement a draw method.
+		 */
+		public abstract draw(): void;
 
-        public hoverIn(e: any): void {
+		public hoverIn(e: any): void {
 
-        }
-        public hoverOut(e: any): void {
+		}
+		public hoverOut(e: any): void {
 
-        }
-        public click(e: any): void {
-            console.log('fieldelement click');
-            if (this.layer.graphics.disabled)
-                return;
+		}
+		public click(e: any): void {
+			console.log('fieldelement click');
+			if (this.disabled)
+				return;
 
-            this.layer.graphics.toggleSelect();
-            if(e.metaKey) {
-                this.field.toggleSelection(this);    
-            } else {
-                this.field.setSelection(this);
-            }
-        }
-        public mouseup(e: any): void {
+			this.toggleSelect(e.metaKey);
+		}
 
-        }
-        public mousedown(e: any): void {
-            if(e.keyCode == Common.Input.Which.RightClick) {
-                this.contextmenu(e);
-            }
-        }
-        public mousemove(e: any): void {
-            // TODO @theBull - implement
-        }
-		public contextmenu(e: any): void {
-            // TODO @theBull - handle contextmenu
-        }
+		public toggleSelect(metaKey?: boolean): void {
+			metaKey = metaKey === true;
+
+			super.toggleSelect();
+
+			if (metaKey) {
+				this.field.toggleSelection(this);
+			} else {
+				this.field.setSelection(this);
+			}
+		}
+		public mousedown(e: any): void {
+			if(e.keyCode == Common.Input.Which.RightClick) {
+				this.contextmenu(e);
+			}
+		}
 		public dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void {
-        }
+		}
 		public dragStart(x: number, y: number, e: any): void {
-            this.setOriginalDragPosition(x, y);
-
-            if (this.isOverDragThreshold(
-                this.getOriginalScreenPosition().x - x,
-                this.getOriginalScreenPosition().y - y)) {
-
-                this.layer.graphics.dragging = true;
-            }
-        }
+			this.setOriginalDragPosition(x, y);
+		}
 		public dragEnd(e: any): void {
-            this.setOriginalDragPosition(null, null);
-            this.layer.graphics.dragging = false;
-        }
+			this.setOriginalDragPosition(null, null);
+			this.dragging = false;
+		}
 		public drop(): void {
-            this.layer.drop();
-        }
+			this.layer.drop();
+		}
 
-        public getOriginalScreenPosition(): {x: number, y: number} {
-            return {
-                x: this._originalScreenPositionX,
-                y: this._originalScreenPositionY
-            };
-        }
+		public getOriginalScreenPosition(): {x: number, y: number} {
+			return {
+				x: this._originalScreenPositionX,
+				y: this._originalScreenPositionY
+			};
+		}
 
-        public setOriginalDragPosition(x: number, y: number) {
-            this._originalScreenPositionX = x;
-            this._originalScreenPositionY = y;
-        }
+		public setOriginalDragPosition(x: number, y: number) {
+			this._originalScreenPositionX = x;
+			this._originalScreenPositionY = y;
+		}
 
-        public isOriginalDragPositionSet(): boolean {
-            return !Common.Utilities.isNull(this._originalScreenPositionX) &&
-                !Common.Utilities.isNull(this._originalScreenPositionY);
-        }
+		public isOriginalDragPositionSet(): boolean {
+			return !Common.Utilities.isNull(this._originalScreenPositionX) &&
+				!Common.Utilities.isNull(this._originalScreenPositionY);
+		}
 
-        public isOverDragThreshold(x, y): boolean {
-            return Math.abs(x) > Playbook.Constants.DRAG_THRESHOLD_X ||
-                Math.abs(y) > Playbook.Constants.DRAG_THRESHOLD_Y;
-        }
+		public isOverDragThreshold(x, y): boolean {
+			return Math.abs(x) > Playbook.Constants.DRAG_THRESHOLD_X ||
+				Math.abs(y) > Playbook.Constants.DRAG_THRESHOLD_Y;
+		}
 	}
 }

@@ -10,7 +10,7 @@ module Common.Models {
 		private _keys: Array<string | number>;
 
 		constructor(size?: number) {
-			if (!Common.Utilities.isNullOrUndefined(size) && size < 0)
+			if (Common.Utilities.isNotNullOrUndefined(size) && size < 0)
 				throw new Error('Collection constructor(): Cannot create a collection with size < 0');
 			
 			super();
@@ -120,7 +120,18 @@ module Common.Models {
 				this.set(key, data);
 			} else {
 				this[key] = data;
-				this._keys.push(key);
+				
+				// NOTE:
+				// Here, we must consider that since the collection can
+				// be initialized with a given size, we don't want to just
+				// arbitrarily 'push()' the added data on to the end of the
+				// array; instead, we must use the internal _count variable
+				// which keeps track of the actual number of elements in the
+				// array, regardless of its initialized size, and always
+				// add the new element at the index after the last-inserted
+				// element.
+				this._keys[this._count] = key;
+
 				this._count++;	
 				let self = this;
 				data.onModified(function() {

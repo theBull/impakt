@@ -33,4 +33,11 @@ module Common.Constants {
 		Common.Constants.CONTEXTMENUS_URL,
 		'play/contextmenu-play.tpl.html'
 	].join('');
+
+	export const PLAYER_CONTEXTMENU_TEMPLATE_URL = [
+		Common.Constants.MODULES_URL,
+		Common.Constants.PLAYBOOK_URL,
+		Common.Constants.CONTEXTMENUS_URL,
+		'player/contextmenu-player.tpl.html'
+	].join('');
 }

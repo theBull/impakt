@@ -34,24 +34,45 @@ module Playbook.Models {
         }
 
         public initialize(): void {
-            this.ball = new Playbook.Models.EditorBall(this);
-            this.ground = new Playbook.Models.EditorGround(this);
-            this.los = new Playbook.Models.EditorLineOfScrimmage(this);
-            this.endzone_top = new Playbook.Models.EditorEndzone(this, 0);
-            this.endzone_bottom = new Playbook.Models.EditorEndzone(this, 110);
-            this.sideline_left = new Playbook.Models.EditorSideline(this, 0);
-            this.sideline_right = new Playbook.Models.EditorSideline(this, 51);
-            this.hashmark_left = new Playbook.Models.EditorHashmark(this, 22);
-            this.hashmark_right = new Playbook.Models.EditorHashmark(this, 28);
-            this.hashmark_sideline_left = new Playbook.Models.EditorHashmark(this, 2);
-            this.hashmark_sideline_right = new Playbook.Models.EditorHashmark(this, 50);
+            this.ball = new Playbook.Models.EditorBall();
+            this.ball.initialize(this, null);
+
+            this.ground = new Playbook.Models.EditorGround();
+            this.ground.initialize(this, null);
+
+            this.los = new Playbook.Models.EditorLineOfScrimmage();
+            this.los.initialize(this, null);
+            
+            this.endzone_top = new Playbook.Models.EditorEndzone(0);
+            this.endzone_top.initialize(this, null);
+            
+            this.endzone_bottom = new Playbook.Models.EditorEndzone(110);
+            this.endzone_bottom.initialize(this, null);            
+
+            this.sideline_left = new Playbook.Models.EditorSideline(0);
+            this.sideline_left.initialize(this, null);
+
+            this.sideline_right = new Playbook.Models.EditorSideline(51);
+            this.sideline_right.initialize(this, null);
+
+            this.hashmark_left = new Playbook.Models.EditorHashmark(22);
+            this.hashmark_left.initialize(this, null);
+
+            this.hashmark_right = new Playbook.Models.EditorHashmark(28);
+            this.hashmark_right.initialize(this, null);
+
+            this.hashmark_sideline_left = new Playbook.Models.EditorHashmark(2);
+            this.hashmark_sideline_left.initialize(this, null);
+
+            this.hashmark_sideline_right = new Playbook.Models.EditorHashmark(50);
+            this.hashmark_sideline_right.initialize(this, null);
 
             // Set containment around the ball to restrict its drag area
-            this.ball.layer.graphics.setContainment(
-                this.hashmark_left.layer.graphics.placement.coordinates.x,
-                this.hashmark_right.layer.graphics.placement.coordinates.x,
-                this.endzone_top.layer.graphics.dimensions.getHeight(),
-                this.endzone_top.layer.graphics.placement.coordinates.y
+            this.ball.graphics.setContainment(
+                this.hashmark_left.graphics.placement.coordinates.x,
+                this.hashmark_right.graphics.placement.coordinates.x,
+                this.endzone_top.graphics.dimensions.getHeight(),
+                this.endzone_top.graphics.placement.coordinates.y
             );
 
             this.layers.add(this.ball.layer);
@@ -97,35 +118,53 @@ module Playbook.Models {
             }
             let selectedPlayers = this.getSelectedByLayerType(Common.Enums.LayerTypes.Player);
             let self = this;
-            if(selectedPlayers.hasElements()) {
+            let relativeCoords = null;
+            
+            if(selectedPlayers.size() > 1) {
                 selectedPlayers.forEach(function(player: Common.Interfaces.IPlayer, index: number) {
-                    if (player.assignment.routes &&
-                        player.assignment.routes.size() == 0) {
-                    let route = new Playbook.Models.EditorRoute(player);
-                        player.assignment.routes.add(route);
+                    if(index == 0) {
+                        relativeCoords = player.graphics.placement.coordinates.getRelativeTo(coords, player);
+                    } else {
+                        relativeCoords.relativeElement = player;
                     }
-                    // TODO: this will only get the first route, implement
-                    // route switching
-                    let playerRoute = player.assignment.routes.getOne();
-                    if (playerRoute.dragInitialized)
-                        return;
-
-                    let newNode = new Playbook.Models.EditorRouteNode(
-                        playerRoute,
-                        player.layer.graphics.placement.coordinates.getRelativeTo(coords, player),
-                        Common.Enums.RouteNodeTypes.Normal
-                    );
-                    // route exists, append the node
-                    playerRoute.addNode(newNode);
-                    console.log('set player route', player.relativeCoordinatesLabel, playerRoute);
-                    
-                    self.playPrimary.assignmentGroup.assignments.addAtIndex(
-                        player.assignment, 
-                        player.position.index
-                    );
+                    self._addAssignmentToPlayer.call(self, player, relativeCoords);
                 });
+            } else if(selectedPlayers.size() == 1) {
+                let player = <Common.Interfaces.IPlayer>selectedPlayers.first();
+                this._addAssignmentToPlayer(player, player.graphics.placement.coordinates.getRelativeTo(coords, player));
             }
         }
+
+        private _addAssignmentToPlayer(player: Common.Interfaces.IPlayer, relativeCoords: Common.Models.RelativeCoordinates) {
+            if (player.assignment &&
+                player.assignment.routes &&
+                player.assignment.routes.size() == 0) {
+                let route = new Playbook.Models.EditorRoute();
+                route.setPlayer(player);
+                player.assignment.routes.add(route);
+            }
+            // TODO: this will only get the first route, implement
+            // route switching
+            let playerRoute = player.assignment.routes.getOne();
+            if (playerRoute.dragInitialized)
+                return;
+
+            let newNode = new Playbook.Models.EditorRouteNode(
+                relativeCoords,
+                Common.Enums.RouteNodeTypes.Normal
+            );
+            newNode.initialize(this, player);
+
+            // route exists, append the node
+            playerRoute.addNode(newNode);
+            console.log('set player route', player.relativeCoordinatesLabel, playerRoute);
+
+            this.playPrimary.assignmentGroup.assignments.addAtIndex(
+                player.assignment,
+                player.position.index
+            );
+        }
+
         public export () {
             return null;
         }
@@ -141,13 +180,15 @@ module Playbook.Models {
         ): Common.Interfaces.IPlayer {
             
             let player = new Playbook.Models.EditorPlayer(
-                this, 
                 placement, 
                 position, 
                 assignment
             );
+
+            player.initialize(this);
             
             player.draw();
+            
             let self = this;
             player.onModified(function() {
                 self.setModified(true);

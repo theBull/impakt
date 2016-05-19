@@ -18,7 +18,7 @@ function(
 
 	function init() {
 		let associations = _associations.getAssociated($scope.playbook);
-		if(!Common.Utilities.isNullOrUndefined(associations)) {
+		if(Common.Utilities.isNotNullOrUndefined(associations)) {
 			$scope.plays = associations.plays;
 			$scope.formations = associations.formations;
 		}

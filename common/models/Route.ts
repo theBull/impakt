@@ -13,13 +13,18 @@ module Common.Models {
         public layer: Common.Models.Layer;
         public dragInitialized: boolean;
         public type: Common.Enums.RouteTypes;
+        public renderType: Common.Enums.RenderTypes;
 
-        constructor(
-            player: Common.Interfaces.IPlayer
-        ) {
-            super(player.field, player);
+        constructor(dragInitialized?: boolean) {
+            super();
+            this.dragInitialized = dragInitialized === true;
+            this.type = Common.Enums.RouteTypes.Generic;
+        }
 
+        public setPlayer(player: Common.Interfaces.IPlayer): void {
             this.player = player;
+            this.initialize(this.player.field, this.player);
+
             if (this.player) {
                 this.nodes = new Common.Models.LinkedList<Common.Interfaces.IRouteNode>();
 
@@ -40,20 +45,55 @@ module Common.Models {
         public abstract setContext(player: Common.Interfaces.IPlayer); 
         public abstract initializeCurve(coords: Common.Models.Coordinates, flip?: boolean);
 
-        public fromJson(json: any): any { 
+        public fromJson(json: any): any {
+            if (Common.Utilities.isNullOrUndefined(this.player))
+                throw new Error('Route fromJson(): setPlayer() must be called before serializing from json');
+            
             this.guid = json.guid;
+            this.type = json.type;
+            // initialize route nodes
+            if (json.nodes) {
+                for (let i = 0; i < json.nodes.length; i++) {
+                    let rawNode = json.nodes[i];
+
+                    let relativeCoords = new Common.Models.RelativeCoordinates(0, 0, this.player);
+                    if(Common.Utilities.isNotNullOrUndefined(rawNode.relative)) {
+                        relativeCoords.fromJson(rawNode.relative);
+                    }
+                    
+                    let routeNode = null;
+                    switch(rawNode.renderType) {
+                        case Common.Enums.RenderTypes.Preview:
+                            routeNode = new Playbook.Models.PreviewRouteNode(relativeCoords, rawNode.type);
+                            break;
+                        case Common.Enums.RenderTypes.Editor:
+                            routeNode = new Playbook.Models.EditorRouteNode(relativeCoords, rawNode.type);
+                            break;
+                    }
+
+
+                    routeNode.initialize(this.field, this);
+                    routeNode.fromJson(rawNode);
+
+                    this.listening = false;
+                    this.addNode(routeNode, false);
+                    this.listening = true;
+                }
+            }
         }
 
         public toJson(): any {
             return {
-                nodes: this.nodes.toJson()
+                nodes: this.nodes.toJson(),
+                type: this.type,
+                guid: this.guid
             };
         }
 
         public remove(): void {
             this.routePath.remove();
-            this.nodes.forEach(function(node, index) {
-                node.data.clear();
+            this.nodes.forEach(function(node: Common.Interfaces.IRouteNode, index: number) {
+                node.layer.remove();
             });
         }
 
@@ -95,10 +135,10 @@ module Common.Models {
 
         public bringNodesToFront(): void {
             this.nodes.forEach(function(routeNode: Common.Interfaces.IRouteNode) {
-                routeNode.layer.graphics.toFront();
+                routeNode.graphics.toFront();
             });
 
-            // move the player to the front above the route
+            // move the route back so it's behind the player
             this.player.layer.toFront();
         }
         
@@ -236,8 +276,8 @@ module Common.Models {
                     continue;
 
                 coords.push(
-                    routeNode.layer.graphics.location.ax,
-                    routeNode.layer.graphics.location.ay
+                    routeNode.graphics.location.ax,
+                    routeNode.graphics.location.ay
                 );
             }
             return coords;

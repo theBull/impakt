@@ -9,21 +9,38 @@ module Playbook.Models {
 	Common.Interfaces.ILayerable {
 
 		constructor(
-			context: Common.Interfaces.IField,
 			placement: Common.Models.Placement,
 			position: Team.Models.Position,
 			assignment: Common.Models.Assignment
 		) {
-			super(context, placement, position, assignment);
+			super(placement, position, assignment);
+		}
 
+		public initialize(field: Common.Interfaces.IField): void {
+			super.initialize(field);
+			
 			// the set acts as a group for the other graphical elements
 			this.icon = new Playbook.Models.PreviewPlayerIcon(this);
 
 			this.layer.addLayer(this.icon.layer);
+
+			// parse route json data
+			if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+				this.assignment.setRoutes(this, Common.Enums.RenderTypes.Preview);
+			}
 		}
 
 		public draw() {
 			this.icon.draw();
+
+			if(Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+				if(this.assignment.routes.hasElements()) {
+					this.assignment.routes.forEach(
+						function(route: Common.Interfaces.IRoute, index: number) {
+							route.draw();
+						});
+				}
+			}
 		}
 
 		public dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void {

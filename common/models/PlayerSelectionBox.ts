@@ -8,27 +8,27 @@ module Common.Models {
 		public player: Common.Interfaces.IPlayer;
 
 		constructor(player: Common.Interfaces.IPlayer) {
-			super(player.field, player.ball);
-
+			super();
 			this.player = player;
+			this.initialize(this.player.field, this.player);
 			this.layer.type = Common.Enums.LayerTypes.PlayerSelectionBox;
-			this.layer.graphics.selectable = false;
-			this.layer.graphics.setOriginalOpacity(1);
-			this.layer.graphics.setOriginalFill('');
-			this.layer.graphics.setOriginalStroke('blue');
-			this.layer.graphics.setOriginalStrokeWidth(1);
-			this.layer.graphics.dimensions.width = (this.player.layer.graphics.dimensions.getWidth());
-			this.layer.graphics.dimensions.height = (this.player.layer.graphics.dimensions.getHeight());
-			this.layer.graphics.dimensions.offset.x = -this.player.layer.graphics.dimensions.getWidth() / 2;
-			this.layer.graphics.dimensions.offset.y = -this.player.layer.graphics.dimensions.getHeight() / 2;
-			this.layer.graphics.updateLocation(
-				this.player.layer.graphics.location.ax + this.layer.graphics.dimensions.offset.x,
-				this.player.layer.graphics.location.ay + this.layer.graphics.dimensions.offset.y
+			this.selectable = false;
+			this.graphics.setOriginalOpacity(1);
+			this.graphics.setOriginalFill('');
+			this.graphics.setOriginalStroke('blue');
+			this.graphics.setOriginalStrokeWidth(1);
+			this.graphics.dimensions.width = (this.player.graphics.dimensions.getWidth());
+			this.graphics.dimensions.height = (this.player.graphics.dimensions.getHeight());
+			this.graphics.dimensions.offset.x = -this.player.graphics.dimensions.getWidth() / 2;
+			this.graphics.dimensions.offset.y = -this.player.graphics.dimensions.getHeight() / 2;
+			this.graphics.updateLocation(
+				this.player.graphics.location.ax + this.graphics.dimensions.offset.x,
+				this.player.graphics.location.ay + this.graphics.dimensions.offset.y
 			);
 		}
 
 		public draw(): void {
-			this.layer.graphics.rect();
+			this.graphics.rect();
 		}
 	}
 }

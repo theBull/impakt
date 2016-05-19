@@ -7,21 +7,24 @@ module Common.Models {
 
         public offset: number;
 
-        constructor(field: Common.Interfaces.IField) {
-            super(field, null);
+        constructor() {
+            super();
+        }
 
+        public initialize(field: Common.Interfaces.IField) {
+            super.initialize(field, null);
             this.layer.type = Common.Enums.LayerTypes.Ball;
-            this.layer.graphics.fill = 'brown';
-            this.layer.graphics.dimensions.setWidth(this.grid.getSize() * 0.15);
-            this.layer.graphics.dimensions.setHeight(this.grid.getSize() * 0.25);
-            this.layer.graphics.updateFromCoordinates(
+            this.graphics.fill = 'brown';
+            this.graphics.dimensions.setWidth(this.grid.getSize() * 0.15);
+            this.graphics.dimensions.setHeight(this.grid.getSize() * 0.25);
+            this.graphics.updateFromCoordinates(
                 Playbook.Constants.BALL_DEFAULT_PLACEMENT_X,
                 Playbook.Constants.BALL_DEFAULT_PLACEMENT_Y
             );
         }
 
         public draw(): void {
-            this.layer.graphics.ellipse();
+            this.graphics.ellipse();
         }
     }
 }

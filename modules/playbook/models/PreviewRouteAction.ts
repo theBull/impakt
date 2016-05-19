@@ -6,10 +6,12 @@ module Playbook.Models {
 	extends Common.Models.RouteAction
     implements Common.Interfaces.IRouteAction {
 
-		constructor(routeNode: Common.Models.RouteNode, action: Common.Enums.RouteNodeActions) {
-			super(routeNode, action);
+		constructor(action: Common.Enums.RouteNodeActions) {
+			super(action);
+		}
 
-            this.layer.graphics.setOffsetXY(0.5, 0.5);
+		public initialize(field: Common.Interfaces.IField, relativeElement: Common.Interfaces.IFieldElement): void {
+			super.initialize(field, relativeElement);
 		}
 
         public draw(): void {
