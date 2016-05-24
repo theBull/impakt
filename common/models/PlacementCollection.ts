@@ -2,10 +2,13 @@
 
 module Common.Models {
 	export class PlacementCollection 
-		extends Common.Models.Collection<Common.Models.Placement> {
+	extends Common.Models.Collection<Common.Models.Placement> {
+
+		public flipped: boolean;
 
 		constructor() {
 			super();
+			this.flipped = false;
 		}
 
 		public fromJson(placements: any) {
@@ -35,6 +38,15 @@ module Common.Models {
 
 		public toJson(): any {
 			return super.toJson();
+		}
+
+		public flip(): void {
+			if(this.hasElements()) {
+				this.forEach(function(placement: Common.Models.Placement, index: number) {
+					placement.flip();
+				});
+				this.flipped = !this.flipped;
+			}
 		}
 	}
 }

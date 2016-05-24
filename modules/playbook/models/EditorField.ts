@@ -6,31 +6,21 @@ module Playbook.Models {
     implements Common.Interfaces.IField {
 
         public type: Team.Enums.UnitTypes;
-        public editorType: Playbook.Enums.EditorTypes;
         public zoom: number;
 
         constructor(
             paper: Common.Interfaces.IPaper, 
-            playPrimary: Common.Models.PlayPrimary, 
-            playOpponent: Common.Models.PlayOpponent
+            scenario: Common.Models.Scenario
         ) {
-            super(paper, playPrimary, playOpponent);
+            super(paper, scenario);
 
-            this.type = this.playPrimary.unitType;
-            this.editorType = this.playPrimary.editorType;
             this.zoom = 1;
+            this.editorType = this.scenario.editorType;
 
             let self = this;
-            window.setInterval(function() {
-                self.debug(self);
-            }, 1000);
             this.onModified(function() {
                 //console.log('field modified');
             });
-        }
-
-        public debug(context: Playbook.Models.EditorField) {
-            let breakpoint = 1;
         }
 
         public initialize(): void {
@@ -87,9 +77,9 @@ module Playbook.Models {
             this.layers.add(this.hashmark_sideline_left.layer);
             this.layers.add(this.hashmark_sideline_right.layer);
 
-            if (!this.playPrimary.formation) {
-                this.playPrimary.formation = new Common.Models.Formation(this.playPrimary.unitType);
-                this.playPrimary.formation.setDefault(this.ball);
+            if (!this.scenario.playPrimary.formation) {
+                this.scenario.playPrimary.formation = new Common.Models.Formation(this.scenario.playPrimary.unitType);
+                this.scenario.playPrimary.formation.setDefault(this.ball);
             }
 
             this.draw();
@@ -108,7 +98,7 @@ module Playbook.Models {
             this.hashmark_sideline_right.draw();
             this.los.draw();
             this.ball.draw();
-            this.drawPlay();
+            this.drawScenario();
         }
 
         public useAssignmentTool (coords: Common.Models.Coordinates) {
@@ -159,10 +149,10 @@ module Playbook.Models {
             playerRoute.addNode(newNode);
             console.log('set player route', player.relativeCoordinatesLabel, playerRoute);
 
-            this.playPrimary.assignmentGroup.assignments.addAtIndex(
+            this.scenario.playPrimary.assignmentGroup.assignments.addAtIndex(
                 player.assignment,
                 player.position.index
-            );
+            );    
         }
 
         public export () {
@@ -173,7 +163,7 @@ module Playbook.Models {
         public remove () { }
         public getBBoxCoordinates () { }
         
-        public addPlayer (
+        public addPrimaryPlayer (
             placement: Common.Models.Placement, 
             position: Team.Models.Position, 
             assignment: Common.Models.Assignment
@@ -193,15 +183,47 @@ module Playbook.Models {
             player.onModified(function() {
                 self.setModified(true);
                 
-                if(self.playPrimary) {
-                    self.playPrimary.setModified(true);
+                if(self.scenario.playPrimary) {
+                    self.scenario.playPrimary.setModified(true);
                 }
 
-                if(self.playOpponent) {
-                    self.playOpponent.setModified(true);
+                if(self.scenario.playOpponent) {
+                    self.scenario.playOpponent.setModified(true);
                 }
             });
-            this.players.add(player);
+            this.primaryPlayers.add(player);
+            return player;
+        }
+        
+        public addOpponentPlayer (
+            placement: Common.Models.Placement, 
+            position: Team.Models.Position, 
+            assignment: Common.Models.Assignment
+        ): Common.Interfaces.IPlayer {
+            
+            let player = new Playbook.Models.EditorPlayer(
+                placement, 
+                position, 
+                assignment
+            );
+
+            player.initialize(this);
+            
+            player.draw();
+            
+            let self = this;
+            player.onModified(function() {
+                self.setModified(true);
+                
+                if(self.scenario.playPrimary) {
+                    self.scenario.playPrimary.setModified(true);
+                }
+
+                if(self.scenario.playOpponent) {
+                    self.scenario.playOpponent.setModified(true);
+                }
+            });
+            this.opponentPlayers.add(player);
             return player;
         }
     }

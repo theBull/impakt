@@ -20,6 +20,7 @@ module Common.Models {
             this.graphics.setStroke('grey');
             this.graphics.setStrokeWidth(1);
             this.graphics.setOpacity(0.2);
+            this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.routeNode));
         }
 
         public toJson(): any {

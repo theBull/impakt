@@ -67,7 +67,7 @@ module Playbook.Models {
                 snapDy
             );
 
-            this.field.players.forEach(
+            this.field.primaryPlayers.forEach(
                 function(player: Common.Interfaces.IPlayer, index: number) {
                     player.layer.layers.forEach(function(layer: Common.Models.Layer) {
                         layer.moveByDelta(
@@ -83,7 +83,7 @@ module Playbook.Models {
         public dragEnd(e: any): void {
             this.drop();
             this.field.ball.drop();
-            this.field.players.forEach(
+            this.field.primaryPlayers.forEach(
                 function(player: Common.Interfaces.IPlayer, index: number) {
                     player.drop();
                 });

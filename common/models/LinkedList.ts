@@ -74,7 +74,7 @@ module Common.Models {
 			return this;
 		}
 
-		public add(node: T) {
+		public add(node: T, listen?: boolean) {
 			if (!this.root) {
 				this.root = node;
 				this.root.prev = null;
@@ -95,7 +95,8 @@ module Common.Models {
 				self.setModified(true);
 			});
 
-			this.setModified(true);
+			if(listen !== false)
+				this.setModified(true);
 		}
 
 		public getIndex(index: number): T {
@@ -115,6 +116,10 @@ module Common.Models {
 					return null;
 				}
 			}
+		}
+
+		public first(): T {
+			return this.root;
 		}
 
 		public forEach(iterator: Function): void {

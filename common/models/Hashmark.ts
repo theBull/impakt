@@ -19,7 +19,13 @@ module Common.Models {
             this.layer.type = Common.Enums.LayerTypes.Hashmark;
             this.graphics.dimensions.offset.x = -0.25 * this.grid.getSize();
             this.graphics.dimensions.offset.y = 0;
-            this.graphics.placement.coordinates.x = this.offsetX;
+            this.graphics.initializePlacement(
+                new Common.Models.Placement(
+                    this.offsetX,
+                    0,
+                    null
+                )
+            );
             this.start = 11;
             this.yards = 110;
         }

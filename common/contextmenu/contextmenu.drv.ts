@@ -1,4 +1,4 @@
-/// <reference path='./common-contextmenu.mdl.ts' />
+/// <reference path='./contextmenu.mdl.ts' />
 
 impakt.common.contextmenu.controller('common.contextmenu.ctrl',[
 '$scope', 
@@ -50,7 +50,7 @@ console.debug('directive: contextmenu - register');
 	return {
 		controller: 'common.contextmenu.ctrl',
 		restrict: 'E',
-		templateUrl: 'common/contextmenu/common-contextmenu.tpl.html',
+		templateUrl: 'common/contextmenu/contextmenu.tpl.html',
 		transclude: true,
 		replace: true,
         link: function($scope: any, $element: any, attrs: any) {

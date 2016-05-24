@@ -16,7 +16,7 @@ module Common.Interfaces {
 		replace(replaceKey: string | number, data: T): void;
 		setAtIndex(index: number, data: T): void;
 		add(data: T): void;
-		addAll(...args: T[]): void;
+		addAll(elements: T[]): void;
 		addAtIndex(data: T, index: number): void;
 		only(data: T): void;
 		append(collection: Common.Interfaces.ICollection<T>): void;

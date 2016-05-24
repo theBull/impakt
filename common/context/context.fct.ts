@@ -96,6 +96,7 @@ function(
 		context.Playbook.formations = new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed);
 		context.Playbook.assignmentGroups = new Common.Models.AssignmentGroupCollection(Team.Enums.UnitTypes.Mixed);
 		context.Playbook.plays = new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed);
+		context.Playbook.scenarios = new Common.Models.ScenarioCollection(Team.Enums.UnitTypes.Other);
 
 		/**
 		 * Team context
@@ -116,7 +117,8 @@ function(
 		 */
 		context.Playbook.editor = {
 			plays: new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed),
-			tabs: new Common.Models.TabCollection()
+			tabs: new Common.Models.TabCollection(),
+			scenarios: new Common.Models.ScenarioCollection(Team.Enums.UnitTypes.Other)
 		}
 
 		/**
@@ -124,7 +126,8 @@ function(
 		 */
 		context.Playbook.creation = {
 			plays: new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed),
-			formations: new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed)
+			formations: new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed),
+			scenarios: new Common.Models.ScenarioCollection(Team.Enums.UnitTypes.Other)
 		}
 
 		async.parallel([
@@ -191,7 +194,7 @@ function(
 				});
 			},
 
-			// Retrieve personnel sets
+			// Retrieve assignment groups
 			function(callback) {
 				_playbook.getAssignmentGroups()
 				.then(function(assignmentGroupCollection: Common.Models.AssignmentGroupCollection) {
@@ -206,6 +209,7 @@ function(
 				});
 			},
 
+			// Retrieve personnel groups
 			function(callback) {
 				_team.getPersonnel().then(function(personnelCollection: Team.Models.PersonnelCollection) {
 					if (Common.Utilities.isNotNullOrUndefined(personnelCollection))
@@ -223,12 +227,25 @@ function(
 				_playbook.getPlays().then(function(plays) {
 
 					context.Playbook.plays = plays;
-					
+
 					__notifications.success('Plays successfully loaded');
 					callback(null, plays);
 				}, function(err) {
 					callback(err);
-				})
+				});
+			},
+
+			// Retrieve scenarios
+			function(callback) {
+				_playbook.getScenarios().then(function(scenarios) {
+
+					context.Playbook.scenarios = scenarios;
+
+					__notifications.success('Scenarios successfully loaded');
+					callback(null, scenarios);
+				}, function(err) {
+					callback(err);
+				});
 			}],
 
 			// Final callback

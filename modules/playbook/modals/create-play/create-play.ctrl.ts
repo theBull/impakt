@@ -15,7 +15,7 @@ function(
 	$scope.unitTypeCollection = impakt.context.Team.unitTypes;
 	$scope.selectedUnitType =
 		$scope.unitTypeCollection.getByUnitType(Team.Enums.UnitTypes.Offense).toJson();
-	$scope.newPlay = new Common.Models.Play($scope.selectedUnitType.unitType);
+	$scope.newPlay = new Common.Models.PlayPrimary($scope.selectedUnitType.unitType);
 	$scope.playbooks = impakt.context.Playbook.playbooks;
 	$scope.formations = impakt.context.Playbook.formations;
 	$scope.assignmentGroups = impakt.context.Playbook.assignmentGroups;

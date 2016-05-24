@@ -19,11 +19,13 @@ module Common.Models {
             super();
             this.dragInitialized = dragInitialized === true;
             this.type = Common.Enums.RouteTypes.Generic;
+            this.flippable = true;
         }
 
         public setPlayer(player: Common.Interfaces.IPlayer): void {
             this.player = player;
             this.initialize(this.player.field, this.player);
+            this.graphics.initializePlacement(this.player.graphics.placement);
 
             if (this.player) {
                 this.nodes = new Common.Models.LinkedList<Common.Interfaces.IRouteNode>();
@@ -53,6 +55,11 @@ module Common.Models {
             this.type = json.type;
             // initialize route nodes
             if (json.nodes) {
+                
+                // Don't listen to changes while initializing the nodes list
+                // (performance issue)
+                this.nodes.listen(false);
+
                 for (let i = 0; i < json.nodes.length; i++) {
                     let rawNode = json.nodes[i];
 
@@ -75,10 +82,19 @@ module Common.Models {
                     routeNode.initialize(this.field, this);
                     routeNode.fromJson(rawNode);
 
-                    this.listening = false;
+                    // shitty temp fix
+                    if(i==0) {
+                        routeNode.layer.toBack();
+                        routeNode.disable();
+                    }
+
                     this.addNode(routeNode, false);
-                    this.listening = true;
+                    
                 }
+
+                // start listening for changes in the nodes list again
+                // (performance issue)
+                this.nodes.listen(true);
             }
         }
 
@@ -135,11 +151,14 @@ module Common.Models {
 
         public bringNodesToFront(): void {
             this.nodes.forEach(function(routeNode: Common.Interfaces.IRouteNode) {
-                routeNode.graphics.toFront();
+                routeNode.layer.toFront();
             });
 
             // move the route back so it's behind the player
             this.player.layer.toFront();
+
+            // Fack! just do what I SAY!!!
+            this.routePath.layer.toBack();
         }
         
         public addNode(
@@ -155,15 +174,31 @@ module Common.Models {
             this.nodes.add(routeNode);
             routeNode.draw();
 
-            if (render !== false) {
-            	this.draw();
-            }
+            if (routeNode.type == Common.Enums.RouteNodeTypes.Root)
+                this.disableRootNode(routeNode);
+
+            this.draw();
+            
             return routeNode;
+        }
+
+        public disableRootNode(routeNode: Common.Interfaces.IRouteNode): void {
+            // ...then update its graphical info
+            routeNode.layer.toBack();
+            routeNode.layer.hide();
+            routeNode.disable();
         }
 
         public getLastNode() {
             //return this.nodes.getLast<Common.Models.FieldElement>();
             return null;
+        }
+
+        public flip(): void {
+            this.nodes.forEach(function(routeNode: Common.Interfaces.IRouteNode) {
+                routeNode.flip();
+            });
+            this.flipped = !this.flipped;
         }
 
         public getMixedStringFromNodes(

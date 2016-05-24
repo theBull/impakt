@@ -24,6 +24,6 @@ module Common.Interfaces {
 		resize(): void;
 		setViewBox(): void;
 		scroll(scrollToX: number, scrollToY: number, center?: boolean): void;
-		updatePlay(playPrimary: Common.Models.PlayPrimary, playOpponent: Common.Models.PlayOpponent);
+		updateScenario(scenario: Common.Models.Scenario);
 	}
 }

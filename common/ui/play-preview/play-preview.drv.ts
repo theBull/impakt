@@ -16,6 +16,10 @@ impakt.common.ui.controller('playPreview.ctrl', [
 			throw new Error('play-preview refresh(): PreviewCanvas is null or undefined');
 		if (!$scope.$element)
 			throw new Error('play-preview refresh(): $element is null or undefined');
+		if ($scope.$element.height() <= 0) {
+			console.warn('play-preview refresh(): $element height is <= 0, skipping the refresh.');
+			return;
+		}
 		
 		$scope.$element.find('svg').show();
 		$scope.previewCanvas.refresh();
@@ -60,7 +64,10 @@ function(
 						//let associations = _associations.getAssociated($scope.play);
 						//$scope.play.assignmentGroup = associations.assignmentGroups.first();
 
-						$scope.previewCanvas = new Playbook.Models.PreviewCanvas($scope.play, null);
+						let scenario = new Common.Models.Scenario();
+						scenario.setPlayPrimary($scope.play);
+						scenario.setPlayOpponent(null);
+						$scope.previewCanvas = new Playbook.Models.PreviewCanvas(scenario);
 					} else {
 						// if there's no play at this point, there's a problem
 						throw new Error('play-preview link(): Unable to find play');

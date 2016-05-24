@@ -5,13 +5,14 @@ impakt.common.ui.controller('formationPreview.ctrl', [
 
 	$scope.previewCanvas;
 	$scope.play;
-	$scope.formation;
 	$scope.$element;
 	$scope.isModified = true;
 	$scope.modificationTimer;
 
 	$scope.refresh = function() {
-		if (!$scope.formation)
+		if (!$scope.play)
+			throw new Error('formation-preview refresh(): Play is null or undefined');
+		if (!$scope.play.formation)
 			throw new Error('formation-preview refresh(): Formation is null or undefined');
 		if (!$scope.previewCanvas)
 			throw new Error('formation-preview refresh(): PreviewCanvas is null or undefined');
@@ -20,7 +21,7 @@ impakt.common.ui.controller('formationPreview.ctrl', [
 		
 		$scope.$element.find('svg').show();
 		$scope.previewCanvas.refresh();
-		$scope.formation.png = $scope.previewCanvas.exportToPng();
+		$scope.play.formation.png = $scope.previewCanvas.exportToPng();
 		$scope.isModified = false;
 
 		let scrollTop = $scope.previewCanvas.paper.field.getLOSAbsolute() 
@@ -44,7 +45,7 @@ function(
 		restrict: 'E',
 		controller: 'formationPreview.ctrl',
 		scope: {
-			formation: '='
+			play: '='
 		},
 		compile: function compile(tElement, tAttrs, transclude) {
 			return {
@@ -52,54 +53,24 @@ function(
 				post: function postLink($scope, $element, attrs, controller) {
 					$scope.$element = $element;
 
-					/**
-					 * 
-					 * Set up the play data to render the formation
-					 * 
-					 */
-					if(Common.Utilities.isNotNullOrUndefined($scope.formation)) {
-						// check to see if the formation is being edited; 
-						// in which case a temporary play has already been constructed
-						// 
-						// NOTE: if the play does not exist in the formations context,
-						// it SHOULD NOT exist in the editor context.
-						let editorPlay = impakt.context.Playbook.editor.plays.filterFirst(
-							function(play: Common.Models.Play, index: number) {
-								// - the play must have editorType: formation
-								// - the play must have a formation
-								// - the play formation guid must match the scope guid
-								return play.editorType == Playbook.Enums.EditorTypes.Formation &&
-									Common.Utilities.isNotNullOrUndefined(play.formation) &&
-									play.formation.guid == $scope.formation.guid;
-							});
+					// create a previewCanvas to handle preview creation. Creating
+					// a previewCanvas will insert a SVG into the <play-preview/> element
+					// after the intialization phase.
+					if (Common.Utilities.isNotNullOrUndefined($scope.play)) {
+						// get associated assignment group
+						//let associations = _associations.getAssociated($scope.play);
+						//$scope.play.assignmentGroup = associations.assignmentGroups.first();
 
-						if (Common.Utilities.isNotNullOrUndefined(editorPlay)) {
-							// there is a temp. play existing in the editor context,
-							// so let's use that play to render the preview
-							$scope.play = editorPlay;
-						} else {
-							// no play has been found to contain the formation,
-							// draw a new play to render the preview
-							$scope.play = new Common.Models.Play($scope.formation.unitType);
-							$scope.play.setFormation($scope.formation);
-						}
-
-						if (Common.Utilities.isNullOrUndefined($scope.play))
-							throw new Error('formation-preview post(): Play is null or undefined');
-
-						$scope.play.editorType = Playbook.Enums.EditorTypes.Formation;
-
-						// create a previewCanvas to handle preview creation. Creating
-						// a previewCanvas will insert a SVG into the <formation-preview/> element
-						// after the intialization phase.
-						$scope.previewCanvas = new Playbook.Models.PreviewCanvas($scope.play, null);
-
+						let scenario = new Common.Models.Scenario();
+						scenario.setPlayPrimary($scope.play);
+						scenario.setPlayOpponent(null);
+						$scope.previewCanvas = new Playbook.Models.PreviewCanvas(scenario);
 					} else {
-						// if there's no formation at this point, there's a problem
-						throw new Error('formation-preview post(): Unable to find formation');
+						// if there's no play at this point, there's a problem
+						throw new Error('play-preview link(): Unable to find play');
 					}
 
-					$scope.formation.onModified(function() {
+					$scope.play.onModified(function() {
 						$scope.isModified = true;
 
 						if ($scope.modificationTimer)
@@ -108,7 +79,7 @@ function(
 						$scope.modificationTimer = $timeout(function() {
 							console.log('auto refresh based on user changes');
 							$scope.refresh();
-						}, 500);
+						}, 200);
 					});
 
 					/**
@@ -118,7 +89,7 @@ function(
 					 * 
 					 */
 					$timeout(function() {
-						if($scope.previewCanvas) {
+						if ($scope.previewCanvas) {
 							$scope.previewCanvas.onready(function() {
 								let scrollTop = $scope.previewCanvas.paper.field.getLOSAbsolute()
 									- ($scope.$element.height() / 2);
@@ -126,12 +97,8 @@ function(
 							});
 
 							$scope.previewCanvas.initialize($element);
-
-							/**
-							 * Set the base64 encoded PNG string on the formation
-							 */
-							$scope.formation.png = $scope.previewCanvas.exportToPng();
-						}						
+							$scope.play.formation.png = $scope.previewCanvas.exportToPng();
+						}
 					}, 0);
 				}
 			}

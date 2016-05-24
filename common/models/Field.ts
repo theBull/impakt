@@ -6,12 +6,13 @@ module Common.Models {
 
         public paper: Common.Interfaces.IPaper;
         public grid: Common.Interfaces.IGrid;
-        public playPrimary: Common.Models.PlayPrimary;
-        public playOpponent: Common.Models.PlayOpponent;
-        public players: Common.Models.PlayerCollection;
+        public scenario: Common.Models.Scenario;
+        public primaryPlayers: Common.Models.PlayerCollection;
+        public opponentPlayers: Common.Models.PlayerCollection;
         public selected: Common.Models.Collection<Common.Interfaces.IFieldElement>;
         public layers: Common.Models.LayerCollection;
         public cursorCoordinates: Common.Models.Coordinates;
+        public editorType: Playbook.Enums.EditorTypes;
 
         public ball: Common.Interfaces.IBall;
         public ground: Common.Interfaces.IGround;
@@ -27,28 +28,31 @@ module Common.Models {
 
         constructor(
             paper: Common.Interfaces.IPaper, 
-            playPrimary: Common.Models.PlayPrimary, 
-            playOpponent: Common.Models.PlayOpponent
+            scenario: Common.Models.Scenario
         ) {
             super();
             super.setContext(this);
             
             this.paper = paper;
             this.grid = this.paper.grid;
-            this.playPrimary = playPrimary;
-            this.playOpponent = playOpponent;
-            this.players = new Common.Models.PlayerCollection();
+            this.scenario = scenario;
+            this.primaryPlayers = new Common.Models.PlayerCollection();
+            this.opponentPlayers = new Common.Models.PlayerCollection();
             this.selected = new Common.Models.Collection<Common.Interfaces.IFieldElement>();
             this.layers = new Common.Models.LayerCollection();
             this.cursorCoordinates = new Common.Models.Coordinates(0, 0);
+            this.editorType = Playbook.Enums.EditorTypes.Any;
 
             let self = this;
             this.selected.onModified(function() {
                 self.setModified(true);
             });
 
-            this.players.onModified(function() {
-                //self.updatePlacements();
+            this.primaryPlayers.onModified(function() {
+                self.setModified(true);
+            });
+
+            this.opponentPlayers.onModified(function() {
                 self.setModified(true);
             });
 
@@ -64,11 +68,18 @@ module Common.Models {
          * 
          */
 
-        public abstract addPlayer(
+        public abstract addPrimaryPlayer(
             placement: Common.Models.Placement,
             position: Team.Models.Position,
             assignment: Common.Models.Assignment
         ): Common.Interfaces.IPlayer;
+
+        public abstract addOpponentPlayer(
+            placement: Common.Models.Placement,
+            position: Team.Models.Position,
+            assignment: Common.Models.Assignment
+        ): Common.Interfaces.IPlayer;
+
         public abstract useAssignmentTool(coords: Common.Models.Coordinates);
 
         public registerLayer(layer: Common.Models.Layer) {
@@ -80,51 +91,72 @@ module Common.Models {
             this.grid.draw();
             this.los.draw();
             this.ball.draw();
-            this.drawPlay();
+            this.drawScenario();
         }
         public clearPlayers(): void {
-            this.players.forEach(function(player, index) {
-                player.layer.remove();
-                if(Common.Utilities.isNotNullOrUndefined(player.assignment)) {
+            this.clearPrimaryPlayers();
+            this.clearOpponentPlayers();
+        }
+        public clearPrimaryPlayers(): void {
+            this.primaryPlayers.forEach(function(player, index) {
+                if (Common.Utilities.isNotNullOrUndefined(player.assignment)) {
                     player.assignment.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
                         route.layer.remove();
                     });
                 }
+                player.layer.remove();
             });
-            this.players.removeAll();
+            this.primaryPlayers.removeAll();
         }
-        public clearPlay(): void {
-            this.clearPlayers();
-            this.playPrimary = null;
-            this.playOpponent = null;
+        public clearOpponentPlayers(): void {
+            this.opponentPlayers.forEach(function(player, index) {
+                if (Common.Utilities.isNotNullOrUndefined(player.assignment)) {
+                    player.assignment.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
+                        route.layer.remove();
+                    });
+                }
+                player.layer.remove();
+            });
+            this.opponentPlayers.removeAll();
         }
-        public drawPlay(): void {
+        public clearScenario(): void {
+            this.clearPrimaryPlay();
+            this.clearOpponentPlay();
+        }
+        public clearPrimaryPlay(): void {
+            this.clearPrimaryPlayers();
+        }
+        public clearOpponentPlay(): void {
+            this.clearOpponentPlayers();
+        }
+        public drawScenario(): void {
             // draw the play data onto the field
-            if (this.playPrimary)
-                this.playPrimary.draw(this);
-            // draw the opponent play data onto the field
-            if (this.playOpponent)
-                this.playOpponent.draw(this);
-
-            //this.updatePlacements();
+            this.scenario.draw(this);
         }
-        public updatePlay(
-            playPrimary: Common.Models.PlayPrimary, 
-            playOpponent: Common.Models.PlayOpponent
-        ): void {
-            this.clearPlay();
-            this.playPrimary = playPrimary;
-            this.playOpponent = playOpponent;
-            this.drawPlay();
-            this.updatePlacements();
+        public updateScenario(scenario: Common.Models.Scenario): void {
+            this.clearScenario();
+            this.scenario = scenario;
+            this.drawScenario();
         }
         public updatePlacements(): void {
             let self = this;
-            let placementCollection = new Common.Models.PlacementCollection();
-            this.players.forEach(function(player: Common.Interfaces.IPlayer, index: number) {
-                placementCollection.add(player.icon.graphics.placement);
-            });
-            self.playPrimary.formation.setPlacements(placementCollection);
+            if(Common.Utilities.isNotNullOrUndefined(this.scenario)) {
+                if (Common.Utilities.isNotNullOrUndefined(this.scenario.playPrimary)) {
+                    let primaryPlacementCollection = new Common.Models.PlacementCollection();
+                    this.primaryPlayers.forEach(function(player: Common.Interfaces.IPlayer, index: number) {
+                        primaryPlacementCollection.add(player.graphics.placement);
+                    });
+                    self.scenario.playPrimary.formation.setPlacements(primaryPlacementCollection);
+                }
+
+                if (Common.Utilities.isNotNullOrUndefined(this.scenario.playOpponent)) {
+                    let opponentPlacementCollection = new Common.Models.PlacementCollection();
+                    this.opponentPlayers.forEach(function(player: Common.Interfaces.IPlayer, index: number) {
+                        opponentPlacementCollection.add(player.graphics.placement);
+                    });
+                    self.scenario.playOpponent.formation.setPlacements(opponentPlacementCollection);
+                }
+            }
         }
 
         public setCursorCoordinates(offsetX: number, offsetY: number): void {
@@ -132,8 +164,15 @@ module Common.Models {
             this.setModified(true);
         }
         
-        public getPlayerWithPositionIndex(index: number): Common.Interfaces.IPlayer {
-            let matchingPlayer = this.players.filterFirst(function(player) {
+        public getPrimaryPlayerWithPositionIndex(index: number): Common.Interfaces.IPlayer {
+            let matchingPlayer = this.primaryPlayers.filterFirst(function(player) {
+                return player.hasPosition() && (player.position.index == index);
+            });
+            return matchingPlayer;
+        }
+        
+        public getOpponentPlayerWithPositionIndex(index: number): Common.Interfaces.IPlayer {
+            let matchingPlayer = this.opponentPlayers.filterFirst(function(player) {
                 return player.hasPosition() && (player.position.index == index);
             });
             return matchingPlayer;
@@ -144,14 +183,16 @@ module Common.Models {
         }
 
         public applyPrimaryFormation(formation: Common.Models.Formation): void {
-            if (Common.Utilities.isNullOrUndefined(formation))
+            if (Common.Utilities.isNullOrUndefined(formation) ||
+                Common.Utilities.isNullOrUndefined(this.scenario) ||
+                Common.Utilities.isNullOrUndefined(this.scenario.playPrimary))
                 return;
 
             //console.log(formation);
             // the order of placements within the formation get applied straight across
             // to the order of personnel and positions.
             let self = this;
-            this.players.forEach(function(player, index) {
+            this.primaryPlayers.forEach(function(player, index) {
                 // NOTE: we're not using the index from the forEach callback,
                 // because we can't assume the players collection stores the players
                 // in the order according to the player's actual index property
@@ -166,13 +207,14 @@ module Common.Models {
                 player.setPlacement(newPlacement);
                 player.draw();
             });
-            // update the field play formation
-            this.playPrimary.setFormation(formation);
-            // TODO @theBull - implement set formation for opponent formation
+            
+            this.scenario.playPrimary.setFormation(formation);
         }
 
         public applyPrimaryAssignmentGroup(assignmentGroup: Common.Models.AssignmentGroup): void {
-            if (Common.Utilities.isNullOrUndefined(assignmentGroup))
+            if (Common.Utilities.isNullOrUndefined(assignmentGroup) ||
+                Common.Utilities.isNullOrUndefined(this.scenario) ||
+                Common.Utilities.isNullOrUndefined(this.scenario.playPrimary))
                 return;
 
             let self = this;
@@ -181,7 +223,7 @@ module Common.Models {
                     if (Common.Utilities.isNullOrUndefined(assignment))
                         return;
                     
-                    let player = self.getPlayerWithPositionIndex(assignment.positionIndex);
+                    let player = self.getPrimaryPlayerWithPositionIndex(assignment.positionIndex);
                     if (player) {
                         assignment.setContext(player);
                         player.assignment.remove();
@@ -189,28 +231,29 @@ module Common.Models {
                         player.draw();
                     }
                 });
-                // TODO @theBull - implement apply opponent assignments
-                this.playPrimary.setAssignmentGroup(assignmentGroup);
+
+                this.scenario.playPrimary.setAssignmentGroup(assignmentGroup);
             }
         }
         public applyPrimaryPersonnel(personnel: Team.Models.Personnel): void {
-            if (Common.Utilities.isNullOrUndefined(personnel))
+            if (Common.Utilities.isNullOrUndefined(personnel) ||
+                Common.Utilities.isNullOrUndefined(this.scenario) ||
+                Common.Utilities.isNullOrUndefined(this.scenario.playPrimary))
                 return;
 
-            
             let self = this;
             if (personnel && personnel.hasPositions()) {
-                this.players.forEach(function(player, index) {
+                this.primaryPlayers.forEach(function(player, index) {
                     let newPosition = personnel.positions.getIndex(index);
-                    if (self.playPrimary.personnel &&
-                        self.playPrimary.personnel.hasPositions()) {
-                        self.playPrimary.personnel.positions.getIndex(index).fromJson(newPosition.toJson());
+                    if (self.scenario.playPrimary.personnel &&
+                        self.scenario.playPrimary.personnel.hasPositions()) {
+                        self.scenario.playPrimary.personnel.positions.getIndex(index).fromJson(newPosition.toJson());
                     }
                     player.position.fromJson(newPosition.toJson());
                     player.draw();
                 });
-                // TODO @theBull - implement apply opponent assignments
-                this.playPrimary.setPersonnel(personnel);
+                
+                this.scenario.playPrimary.setPersonnel(personnel);
             }
             else {
                 let details = personnel ? '# positions: ' + personnel.positions.size() : 'Personnel is undefined.';
@@ -223,19 +266,19 @@ module Common.Models {
         }
 
         public applyPrimaryUnitType(unitType: Team.Enums.UnitTypes): void {
-            if (Common.Utilities.isNullOrUndefined(unitType))
+            if (Common.Utilities.isNullOrUndefined(unitType) ||
+                Common.Utilities.isNullOrUndefined(this.scenario) ||
+                Common.Utilities.isNullOrUndefined(this.scenario.playPrimary))
                 return;
-
-            if (Common.Utilities.isNullOrUndefined(this.playPrimary))
-                return;
-
-            this.playPrimary.setUnitType(unitType);
             
-            if(Common.Utilities.isNotNullOrUndefined(this.playOpponent))
-                this.playOpponent.setUnitType(this.playPrimary.getOpposingUnitType());
+
+            this.scenario.playPrimary.setUnitType(unitType);
+            
+            if(Common.Utilities.isNotNullOrUndefined(this.scenario.playOpponent))
+                this.scenario.playOpponent.setUnitType(this.scenario.playPrimary.getOpposingUnitType());
             
             this.clearPlayers();
-            this.drawPlay();
+            this.drawScenario();
         }
         
         public deselectAll(): void {

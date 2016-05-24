@@ -18,8 +18,9 @@ module Common.Models {
 			this.graphics.setOriginalStrokeWidth(1);
 			this.graphics.dimensions.setHeight(0);
 			this.graphics.dimensions.setWidth(0);
-			this.graphics.location.ax = 0;
-			this.graphics.location.ay = 0;
+			this.graphics.initializePlacement(
+				new Common.Models.Placement(0, 0, null)
+			);
 		}
 
 		public draw(): void {

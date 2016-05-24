@@ -31,6 +31,13 @@ impakt.playbook.constant('PLAYBOOK', {
     UPDATE_PLAY: '/updatePlay',
     GET_PLAY: '/getPlay',
     GET_PLAYS: '/getPlays',
-    DELETE_PLAY: '/deletePlay'
+    DELETE_PLAY: '/deletePlay',
+
+    // Scenarios
+    CREATE_SCENARIO: '/createScenario',
+    UPDATE_SCENARIO: '/updateScenario',
+    GET_SCENARIO: '/getScenario',
+    GET_SCENARIOS: '/getScenarios',
+    DELETE_SCENARIO: '/deleteScenario'
 
 });

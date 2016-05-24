@@ -13,12 +13,13 @@ module Common.Models {
 			this.initialize(this.player.field, this.player);
 			this.layer.type = Common.Enums.LayerTypes.PlayerPersonnelLabel;
 			this.selectable = false;
-			this.graphics.dimensions.offset.y =
-				-(this.player.graphics.dimensions.getHeight() / 2) * 0.4;
-			this.graphics.updateLocation(
-				this.player.graphics.location.ax,
-				this.player.graphics.location.ay + this.graphics.dimensions.offset.y
+			this.graphics.snapping = false;
+			this.graphics.setOffsetXY(
+				0,
+				-(this.player.graphics.dimensions.getHeight() / 2) * 0.4
 			);
+			this.graphics.initializePlacement(this.player.graphics.placement);
+			this.graphics.placement.setRelativeElement(this.player);
 		}
 
 		public draw(): void {

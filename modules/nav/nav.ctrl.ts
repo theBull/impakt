@@ -16,6 +16,7 @@ impakt.nav.controller('nav.ctrl', [
 		// Default menu visiblity
 		$scope.isMenuCollapsed = true;
 		$scope.notifications = __notifications.notifications;
+		$scope.currentYear = (new Date()).getFullYear();
 
 		$scope.menuItems = __nav.menuItems;
 		$scope.notificationsMenuItem = __nav.notificationsMenuItem;

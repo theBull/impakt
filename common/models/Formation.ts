@@ -64,13 +64,14 @@ module Common.Models {
                 console.log('formation modified?', self.modified);
             });
         }
+        
         public setDefault(ball: Common.Interfaces.IBall) {
             if (!ball)
                 throw new Error('Formation setDefault(): \
 					Field reference is null or undefined');
             
             this.placements.removeAll();
-            this.placements.addAll(
+            this.placements.addAll([
                 new Common.Models.Placement(0, -1, ball, 0), 
                 new Common.Models.Placement(1.5, -1, ball, 1), 
                 new Common.Models.Placement(-1.5, -1, ball, 2), 
@@ -82,15 +83,28 @@ module Common.Models {
                 new Common.Models.Placement(14, -1, ball, 8), 
                 new Common.Models.Placement(0, -4, ball, 9), 
                 new Common.Models.Placement(0, -6, ball, 10)
-            );
+            ]);
         }
         public isValid() {
             // TODO add validation for 7 players on LOS
             return this.placements.size() == 11;
         }
+
         public setPlacements(placements: Common.Models.PlacementCollection) {
             this.placements = placements;
             this.setModified(true);
+        }
+
+        public setUnitType(unitType: Team.Enums.UnitTypes): void {
+            this.unitType = unitType;
+            this.setModified(true);
+        }
+
+        public flip(): void {
+            if(Common.Utilities.isNotNullOrUndefined(this.placements)) {
+                this.placements.flip();
+                this.flipped = this.placements.flipped;
+            }
         }
     }
 }

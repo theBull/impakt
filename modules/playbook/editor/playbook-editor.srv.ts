@@ -1,8 +1,4 @@
 /// <reference path='./playbook-editor.mdl.ts' />
-/// <reference path='../playbook.ts' />
-/// <reference path='../../../common/common.ts' />
-
-declare var impakt: any;			
 
 impakt.playbook.editor.service('_playbookEditor',
 [
@@ -32,15 +28,8 @@ function(
 		]
 	);
 
-	// tabs and plays are references to the targeted application-level data collections;
-	// when the data changes at the application-level; tabs and plays added through this
-	// service are handled by reference, so that no copies of them are created, unless
-	// a *new* play is being created, or a play is being created as a *new copy* of another.
-	// This keeps the data footprint minimal, as well as prevents the redundancy of 
-	// data models existing application-wide. 
 	this.tabs = impakt.context.Playbook.editor.tabs;
-	this.plays = impakt.context.Playbook.editor.plays;
-	this.formations = impakt.context.Playbook.editor.formations;
+	this.scenarios = impakt.context.Playbook.editor.scenarios;
 
 	// sets a default tab - this should be overwritten as soon as it becomes available
 	this.activeTab = null;
@@ -49,8 +38,7 @@ function(
 
 	$rootScope.$on('playbook-editor.refresh', 
 	function(e: any, formationKey: any) {
-		self.plays = impakt.context.Playbook.editor.plays;
-		self.formations = impakt.context.Playbook.editor.formations;
+		self.scenarios = impakt.context.Playbook.editor.scenarios;
 		self.loadTabs();
 	});
 
@@ -64,67 +52,47 @@ function(
 	}
 
 	this.init = function() {
-
-		console.info('initializing playbook editor service');
-		console.debug('service: impakt.playbook.editor - load complete');
 		
 		initialized = true;
 
-		let initialPlay = null;
+		var activeScenario = null;
 
-		if(self.tabs.isEmpty() || self.tabs.size() != self.plays.size()) {
+		if(self.tabs.isEmpty() || self.tabs.size() != self.scenarios.size()) {
 			self.loadTabs();
 		}
 
 		// check for active tab and initialize the canvas with that tab's play
-		self.tabs.forEach(function(tab, index) {
+		self.tabs.forEach(function(tab: Common.Models.Tab, index: number) {
 			if(tab.active) {
-				initialPlay = self.plays.filterFirst(function(play) {
-					return play.guid == tab.playPrimary.guid;
+
+				activeScenario = self.scenarios.filterFirst(function(scenario: Common.Models.Scenario, j: number) {
+					return scenario.guid == tab.scenario.guid;
 				});
 
-
-				let associations = null;
-				switch(tab.editorType) {
-					case Playbook.Enums.EditorTypes.Formation:
-						associations = _associations.getAssociated(initialPlay.formation);
-						// don't set the formation here (it's already set)
-						break;
-					case Playbook.Enums.EditorTypes.Play:
-						associations = _associations.getAssociated(initialPlay);
-						// set the formation to the associated formation
-						initialPlay.formation = associations.formations.first();
-						initialPlay.assignmentGroup = associations.assignmentGroups.first();
-						break;
-				}
-
-				if(Common.Utilities.isNotNullOrUndefined(associations))
-					initialPlay.personnel = associations.personnel.first();
-
-
-				// let opponentPlayTest = new Common.Models.PlayOpponent();
-				// // initialize the default formation & personnel
-				// opponentPlayTest.setDefault(tab.canvas.field);
-
-
-				if(initialPlay) {
-					if(!self.canvas) {
-						self.canvas = new Playbook.Models.EditorCanvas(
-							initialPlay,
-							null
-						);
-					}
-				}
+				// if(Common.Utilities.isNotNullOrUndefined(tab.scenario) &&
+				// 	Common.Utilities.isNotNullOrUndefined(activeScenario)) {
+				// 	if (Common.Utilities.isNotNullOrUndefined(tab.scenario.playPrimary)) {
+				// 		_initializePlay(tab.scenario.playPrimary, tab);
+				// 	}
+				// 	if(Common.Utilities.isNotNullOrUndefined(tab.scenario.playOpponent)) {
+				// 		_initializePlay(tab.scenario.playOpponent, tab);
+				// 	}
+				// }	
 			}
-		});		
+		});
 
-		if(!initialPlay) {
+		if (activeScenario) {
+			if (!self.canvas) {
+				self.canvas = new Playbook.Models.EditorCanvas(activeScenario);
+				self.editorType = activeScenario.editorType;
+			}
+		}
+
+		if (!activeScenario) {
 			// Throw an error at this point; we should always have some physical play to use
 			// whether it's a new play or an existing play; we shouldn't arbitrarily initialize
 			// the canvas with a blank play here
-			throw new Error('_playbookEditor init(): \
-				Trying to create a new canvas but there are \
-				no active tabs / play data to start with.');
+			throw new Error('_playbookEditor init(): Trying to create a new canvas but there are no active tabs / scenario data to start with.');
 		}
 		
 		self.canvas.clearListeners();
@@ -140,26 +108,29 @@ function(
 		this.readyCallback = callback;
 	}
 
+	this.getEditorType = function() {
+		return this.editorType;
+	}
+
 	/**
-	 * Checks for open plays in the editor context, as well as the 
+	 * Checks for open scenarios in the editor context, as well as the 
 	 * corresponding tab; if the tab is active, grab the corresponding 
-	 * play and pass it in to initialize the canvas.
+	 * scenario and pass it in to initialize the canvas.
 	 */
 	this.loadTabs = function() {
-		this.plays.forEach(function(play, index) {
-			// loop over all plays currently 'open' in the editor context...
-			// determine whether each play has a corresponding tab 
-			let playExists = false;
-			self.tabs.forEach(function(tab, j) {
-				if (tab.playPrimary.guid == play.guid) {
-					playExists = true;	
+		this.scenarios.forEach(function(scenario: Common.Models.Scenario, index: number) {
+			// loop over all scenarios currently 'open' in the editor context...
+			// determine whether each scenario has a corresponding tab 
+			let scenarioExists = false;
+			self.tabs.forEach(function(tab: Common.Models.Tab, j: number) {
+				if (tab.scenario.guid == scenario.guid) {
+					scenarioExists = true;	
 				} 
 			});
-			if(!playExists) {
-				let tab = new Common.Models.Tab(play, null);
+			if(!scenarioExists) {
+				let tab = new Common.Models.Tab(scenario);
 				// Hmm...
 				tab.active = index == 0;
-				tab.unitType = play.unitType;
 				self.addTab(tab);
 			}				
 		});
@@ -187,14 +158,14 @@ function(
 
 		if(this.canvas) {
 			// pass new data to canvas
-			this.canvas.updatePlay(this.activeTab.playPrimary, null, true);			
+			this.canvas.updateScenario(this.activeTab.scenario, true);
 		}		
 	}
 	this.closeTab = function(tab: Common.Models.Tab) {
 		this.tabs.close(tab);
 
 		// remove play from editor context
-		this.plays.remove(tab.playPrimary.guid);
+		this.scenarios.remove(tab.scenario.guid);
 		
 		// get last tab
 		if (this.tabs.hasElements()) {
@@ -236,21 +207,24 @@ function(
 	this.addPlayer = function() {
 		$rootScope.$broadcast('playbook-editor-canvas.addPlayer');
 	}
-
+ 
 	this.save = function() {
 		// save the data for the active item
 		let activeTab = this.activeTab;
 		console.log(activeTab);
 		if (activeTab) {
 			
-			let play = activeTab.playPrimary;
+			let scenario = activeTab.scenario;
 			
-			switch(play.editorType) {
+			switch(scenario.editorType) {
 				case Playbook.Enums.EditorTypes.Formation:
-					_playbookModals.saveFormation(play);
+					_playbookModals.saveFormation(scenario.playPrimary);
 					break;
 				case Playbook.Enums.EditorTypes.Play:
-					_playbookModals.savePlay(play);
+					_playbookModals.savePlay(scenario.playPrimary);
+					break;
+				case Playbook.Enums.EditorTypes.Scenario:
+					_playbookModals.saveScenario(scenario);
 					break;
 			}
 		}

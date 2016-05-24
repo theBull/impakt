@@ -15,8 +15,10 @@ module Common.Interfaces {
         dragInitialized: boolean;
         type: Common.Enums.RouteTypes;
         renderType: Common.Enums.RenderTypes;
+        flipped: boolean;
 
 		draw(): void;
+		flip(): void;
 		initializeCurve(coords: Common.Models.Coordinates, flip?: boolean); 
 		addNode(routeNode: Common.Interfaces.IRouteNode, render?: boolean)
 			: Common.Interfaces.IRouteNode;

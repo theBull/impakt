@@ -7,12 +7,10 @@ module Playbook.Models {
     implements Common.Interfaces.ICanvas {
 
         constructor(
-            playPrimary: Common.Models.PlayPrimary,
-            playOpponent: Common.Models.PlayOpponent
+            scenario: Common.Models.Scenario
         ) {
-            super();
-            this.playPrimary = playPrimary;
-            this.playOpponent = playOpponent;
+            super(scenario);
+
             this.dimensions.setMinWidth(250);
             this.dimensions.setMinHeight(200);
         }

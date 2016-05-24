@@ -17,9 +17,12 @@ module Common.Models {
             this.graphics.fill = 'brown';
             this.graphics.dimensions.setWidth(this.grid.getSize() * 0.15);
             this.graphics.dimensions.setHeight(this.grid.getSize() * 0.25);
-            this.graphics.updateFromCoordinates(
-                Playbook.Constants.BALL_DEFAULT_PLACEMENT_X,
-                Playbook.Constants.BALL_DEFAULT_PLACEMENT_Y
+            this.graphics.initializePlacement(
+                new Common.Models.Placement(
+                    Playbook.Constants.BALL_DEFAULT_PLACEMENT_X,
+                    Playbook.Constants.BALL_DEFAULT_PLACEMENT_Y,
+                    null
+                )
             );
         }
 

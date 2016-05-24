@@ -136,7 +136,10 @@ module Common.Drawing {
                 ]
             );
 
-            return this.Raphael.path(pathString);
+            let raphael = this.Raphael.path(pathString);
+            raphael.data('element-type', 'triangle');
+
+            return raphael;
         }
 
         public text(x: number, y: number, text: string, absolute: boolean, offsetX?: number, offsetY?: number) {

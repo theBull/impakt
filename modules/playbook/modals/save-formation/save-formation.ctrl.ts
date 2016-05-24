@@ -9,10 +9,11 @@ function(
 	$scope: any, 
 	$uibModalInstance: any, 
 	_playbook: any,
-	play: Common.Models.Play
+	play: Common.Interfaces.IPlay
 ) {
 
-	$scope.play = play;
+	$scope.play = play.copy();
+	
 	$scope.playbooks = impakt.context.Playbook.playbooks;
 	$scope.formation = play.formation;
 	$scope.copyFormation = false;

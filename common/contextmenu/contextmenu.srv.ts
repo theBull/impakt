@@ -1,4 +1,4 @@
-/// <reference path='./common-contextmenu.mdl.ts' />
+/// <reference path='./contextmenu.mdl.ts' />
 
 impakt.common.contextmenu.service('_contextmenu', [
 function() {
@@ -26,6 +26,10 @@ function() {
 	
 	this.calculatePosition = function() {
 		// todo
+	}
+
+	this.getData = function() {
+		return Common.Utilities.isNotNullOrUndefined(this.contextmenuData) ? this.contextmenuData.data : null;
 	}
 
 }]);

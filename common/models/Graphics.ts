@@ -15,6 +15,7 @@ module Common.Models {
         public drawingHandler: Common.Models.DrawingHandler;
         public font: any;
         public set: Common.Models.GraphicsSet;
+        public snapping: boolean;
 
         /**
          * 
@@ -61,8 +62,8 @@ module Common.Models {
 
             this.paper = paper;
             this.grid = paper.grid;
+            this.placement = null; // new Common.Models.Placement(0, 0);
             this.location = new Common.Models.Location(0, 0);
-            this.placement = new Common.Models.Placement(0, 0);
             this.dimensions = new Common.Models.Dimensions();
             this.containment = new Common.Models.Containment(
                 0,
@@ -99,6 +100,7 @@ module Common.Models {
             this.font = this.paper.drawing.getFont('Arial');
             this.drawingHandler = new Common.Models.DrawingHandler(this);
             this.set = new Common.Models.GraphicsSet(this);
+            this.snapping = true;
         }
 
         public toJson(): any {
@@ -123,8 +125,8 @@ module Common.Models {
                 disabledOpacity: this.disabledOpacity,
                 hoverOpacity: this.hoverOpacity,
                 hoverFillOpacity: this.hoverFillOpacity,
-                placement: this.placement.toJson(),
-                location: this.location.toJson()
+                placement: this.placement ? this.placement.toJson() : null,
+                location: this.location ? this.location.toJson() : null
             }
         }
 
@@ -167,19 +169,6 @@ module Common.Models {
         public hasRaphael(): boolean {
             return this.raphael != null && this.raphael != undefined;
         }
-        public hasLocation(): boolean {
-            return Common.Utilities.isNotNullOrUndefined(this.location);
-        }
-        public hasPlacement(): boolean {
-            return Common.Utilities.isNotNullOrUndefined(this.placement);
-        }
-        public setPlacement(placement: Common.Models.Placement): void {
-            this.placement = placement;
-            this.updateFromCoordinates(
-                placement.coordinates.x,
-                placement.coordinates.y
-            );
-        }
         public hasSet(): boolean {
             return Common.Utilities.isNotNullOrUndefined(this.set);
         }
@@ -210,6 +199,21 @@ module Common.Models {
         public setOriginalFillOpacity(opacity: number): Common.Models.Graphics {
             this.setFillOpacity(opacity);
             this.originalFillOpacity = opacity;
+            return this;
+        }
+
+        public getSelectedFill(): string {
+            return this.selectedFill;
+        }
+        public setSelectedFill(fill: string): Common.Models.Graphics {
+            this.selectedFill = fill;
+            return this;
+        }
+        public getSelectedFillOpacity(): number {
+            return this.selectedFillOpacity;
+        }
+        public setSelectedFillOpacity(opacity: number): Common.Models.Graphics {
+            this.selectedFillOpacity = opacity;
             return this;
         }
 
@@ -255,16 +259,6 @@ module Common.Models {
 
             this.hoverFillOpacity = opacity;
             return this;
-        }
-
-        /**
-         *
-         * Dimension pass-through methods
-         * 
-         */
-        public setOffsetXY(x: number, y: number): void {
-            this.dimensions.setOffsetXY(x, y);
-            this.updateLocation();
         }
 
         /**
@@ -407,24 +401,24 @@ module Common.Models {
          * @param {number} dy [description]
          */
         public moveByDelta(dx: number, dy: number) {
-            if (!this.hasRaphael())
-                return;
-
-            if (!this.location)
-                throw new Error('Graphics moveByDelta(): location is null or undefined');
 
             // Update graphical location
-            this.location.moveByDelta(dx, dy);
+            if (Common.Utilities.isNotNullOrUndefined(this.location)) {
+                this.location.moveByDelta(dx, dy);
 
-            // Update placement when dropping
-            let coords = this.grid.getCoordinatesFromAbsolute(
-                this.location.ax,
-                this.location.ay
-            );
-            this.placement.updateFromCoordinates(coords.x, coords.y);
+                // Update placement when dropping
+                let coords = this.grid.getCoordinatesFromAbsolute(
+                    this.location.ax,
+                    this.location.ay
+                );
 
-            // Transform (move to updateAbsolute/Coordinates methods?)
-            this.transform(this.location.dx, this.location.dy);
+                if (Common.Utilities.isNotNullOrUndefined(this.placement)) {
+                    this.placement.updateFromCoordinates(coords.x, coords.y);
+                }
+
+                // Transform (move to updateAbsolute/Coordinates methods?)
+                this.transform(this.location.dx, this.location.dy);
+            }
         }
 
         public moveByDeltaX(dx: number): void {
@@ -439,58 +433,51 @@ module Common.Models {
             }
         }
 
-        public updatePlacement(x?: number, y?: number) {
-            this.updateFromCoordinates(
-                Common.Utilities.isNullOrUndefined(x) ? this.placement.coordinates.x : x,
-                Common.Utilities.isNullOrUndefined(y) ? this.placement.coordinates.y : y
-            );
+        public hasLocation(): boolean {
+            return Common.Utilities.isNotNullOrUndefined(this.location);
+        }
+        public hasPlacement(): boolean {
+            return Common.Utilities.isNotNullOrUndefined(this.placement);
         }
 
-        public updateLocation(ax?: number, ay?: number): void {
-            let setAx = Common.Utilities.isNullOrUndefined(ax) ? this.location.ax : ax;
-            let setAy = Common.Utilities.isNullOrUndefined(ay) ? this.location.ay : ay;
-
-            this.updateFromAbsolute(setAx, setAy);
+        public setOffsetXY(x: number, y: number): void {
+            this.dimensions.setOffsetXY(x, y);
         }
 
-        public updateFromAbsolute(ax: number, ay: number): void {
-            // Update location
+        public initializePlacement(placement: Common.Models.Placement): void {
+            if (Common.Utilities.isNullOrUndefined(placement))
+                throw new Error('Graphics initializePlacement(): placement is null or undefined');
+
+            if (Common.Utilities.isNullOrUndefined(this.placement)) {
+                this.placement = placement;
+            } else {
+                this.placement.update(placement);
+            }
+            let absCoords = this.grid.getAbsoluteFromCoordinates(this.placement.coordinates.x, this.placement.coordinates.y);
             this.location.updateFromAbsolute(
-                ax,
-                ay
+                absCoords.x + this.dimensions.offset.x, 
+                absCoords.y + this.dimensions.offset.y
             );
-
-            // convert absolute coordinates into grid coordinates & update placement
-            let coords = this.grid.getCoordinatesFromAbsolute(ax, ay);
-            this.placement.updateFromCoordinates(coords.x, coords.y);
-
             this.refresh();
         }
 
-        public updateFromCoordinates(x: number, y: number) {
-            // convert grid coordinates to absolute & update location
-            let absCoords = this.grid.getAbsoluteFromCoordinates(x, y);
-            this.location.updateFromAbsolute(
-                absCoords.x + this.dimensions.offset.x,
-                absCoords.y + this.dimensions.offset.y
-            );
-
-            // Update graphical location
-            this.placement.updateFromCoordinates(x, y);
-
+        public updateFromAbsolute(ax: number, ay: number): void {
+            this.placement.updateFromAbsolute(ax, ay);
+            this.location.updateFromAbsolute(ax, ay);
             this.refresh();
         }
 
         public updateFromRelative(rx: number, ry: number, relativeElement?: Common.Interfaces.IFieldElement) {
             this.placement.updateFromRelative(rx, ry, relativeElement);
-            let absCoords = this.grid.getAbsoluteFromCoordinates(
-                this.placement.coordinates.x,
-                this.placement.coordinates.y
-            );
-            this.location.updateFromAbsolute(
-                absCoords.x + this.dimensions.offset.x,
-                absCoords.y + this.dimensions.offset.y
-            );
+            let absCoords = this.grid.getAbsoluteFromCoordinates(this.placement.coordinates.x, this.placement.coordinates.y);
+            this.location.updateFromAbsolute(absCoords.x, absCoords.y);
+            this.refresh();
+        }
+
+        public updateFromCoordinates(x: number, y: number) {
+            this.placement.updateFromCoordinates(x, y);
+            let absCoords = this.grid.getAbsoluteFromCoordinates(this.placement.coordinates.x, this.placement.coordinates.y);
+            this.location.updateFromAbsolute(absCoords.x, absCoords.y);
             this.refresh();
         }
 
@@ -523,10 +510,8 @@ module Common.Models {
 
         public rhombus(): Common.Models.Graphics {
             this.remove();
-            this.rect();
             this.dimensions.rotation = -45;
-            this.refresh();
-            this.transform(0, 0);
+            this.rect();
             return this;
         }
 
@@ -636,6 +621,13 @@ module Common.Models {
             return this.raphael.attr(attrs);
         }
 
+        public attrKeyValue(key: string, value: string): Common.Models.Graphics {
+            if (!this.hasRaphael())
+                return;
+
+            return this.raphael.attr(key, value);
+        }
+
         public setAttribute(attribute: string, value: string): void {
             if (!this.hasRaphael())
                 return;
@@ -656,7 +648,14 @@ module Common.Models {
             if (!this.hasRaphael())
                 return;
 
-            this.raphael.transform(['t', ax, ', ', ay, 'r', this.dimensions.rotation].join(''));
+            this.raphael.transform(['t', ax, ', ', ay].join(''));
+        }
+
+        public resetTransform(): void {
+            if (!this.hasRaphael())
+                return;
+
+            this.raphael.transform('');
         }
 
         public rotate(degrees: number): void {
@@ -863,16 +862,48 @@ module Common.Models {
             this.raphael.drag(dragMove, dragStart, dragEnd, context, context, context);
         }
 
+        public flip(): void {
+            if (this.hasRaphael()) {
+                // rotate element
+                this.rotate(180);
+            }           
+
+            // update placemement
+            this.placement.flip();
+
+            this.updateFromRelative(this.placement.relative.rx, this.placement.relative.ry, this.placement.relativeElement);
+        }
+
         public drop(): void {
             if (this.location.hasChanged())
                 this.setModified(true);
 
+            let snapX = this.grid.snapPixel(this.location.ax);
+            let snapY = this.grid.snapPixel(this.location.ay);
+
             // Apply snap on drop
-            this.updateLocation(
-                this.grid.snapPixel(this.location.ax),
-                this.grid.snapPixel(this.location.ay)
+            this.updateFromAbsolute(
+                this.snapping ? snapX : this.location.ax + (snapX - this.location.ax),
+                this.snapping ? snapY : this.location.ay + (snapY - this.location.ay)
             );
-            this.transform(0, 0);
+
+            if (!this.hasRaphael())
+                return;
+
+            this.resetTransform();
+            if (this.raphael.data('element-type') == 'triangle') {
+                let tempTriangle = this.paper.drawing.triangle(
+                    this.placement.coordinates.x, 
+                    this.placement.coordinates.y, 
+                    this.dimensions.getHeight(), 
+                    false, 
+                    this.dimensions.getOffsetX(), 
+                    this.dimensions.getOffsetY()
+                );
+                let pathStr = tempTriangle.attr('path').toString();
+                this.raphael.attr({ 'path': pathStr });
+                tempTriangle.remove();
+            }
         }
 	}
 }

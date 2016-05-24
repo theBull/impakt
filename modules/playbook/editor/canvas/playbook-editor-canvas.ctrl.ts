@@ -30,12 +30,12 @@ function(
 			$scope.hasOpenTabs = _playbookEditorCanvas.hasTabs();
 		});
 		$scope.canvas.onready(function() {
-			$scope.editorModeClass = $scope.getEditorTypeClass($scope.canvas.playPrimary.editorType);
+			$scope.editorModeClass = $scope.getEditorTypeClass($scope.canvas.scenario.editorType);
 			$scope.canvas.onModified(function() {
-				if (Common.Utilities.isNullOrUndefined($scope.canvas.playPrimary))
+				if (Common.Utilities.isNullOrUndefined($scope.canvas.scenario))
 					return;
 
-				$scope.editorModeClass = $scope.getEditorTypeClass($scope.canvas.playPrimary.editorType);
+				$scope.editorModeClass = $scope.getEditorTypeClass($scope.canvas.scenario.editorType);
 				$timeout(function() {
 					console.log('timeout running');
 					$scope.$apply();
@@ -61,8 +61,8 @@ function(
 	 * Toggle Editor mode
 	 */
 	$scope.switchToPlayMode = function() {
-		console.log('switch from formation mode to play mode', $scope.tab.playPrimary);
-		$scope.tab.playPrimary.editorType = Playbook.Enums.EditorTypes.Play;
+		console.log('switch from formation mode to play mode', $scope.tab.scenario);
+		$scope.tab.scenario.editorType = Playbook.Enums.EditorTypes.Play;
 	}
 
 	$scope.getEditorTypeClass = function(editorType: any) {
@@ -89,7 +89,7 @@ function(
 		_playbookEditorCanvas.applyPrimaryAssignmentGroup(assignmentGroup);
 	}
 	$scope.applyUnitType = function(unitType: Team.Models.UnitType) {
-		if (unitType.unitType == $scope.canvas.playPrimary.unitType)
+		if (unitType.unitType == $scope.canvas.scenario.playPrimary.unitType)
 			return;
 		
 		_playbookEditorCanvas.applyPrimaryUnitType(unitType.unitType);

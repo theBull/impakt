@@ -21,17 +21,21 @@ module Playbook.Models {
 			
 			// the set acts as a group for the other graphical elements
 			this.icon = new Playbook.Models.PreviewPlayerIcon(this);
-
+			this.personnelLabel = new Playbook.Models.PreviewPlayerPersonnelLabel(this);
+			this.renderType = Common.Enums.RenderTypes.Preview;
 			this.layer.addLayer(this.icon.layer);
 
 			// parse route json data
 			if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+				this.assignment.listen(false);
 				this.assignment.setRoutes(this, Common.Enums.RenderTypes.Preview);
+				this.assignment.listen(true);
 			}
 		}
 
 		public draw() {
 			this.icon.draw();
+			//this.personnelLabel.draw();
 
 			if(Common.Utilities.isNotNullOrUndefined(this.assignment)) {
 				if(this.assignment.routes.hasElements()) {

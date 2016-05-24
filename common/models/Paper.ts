@@ -47,6 +47,10 @@ module Common.Models {
                 this.drawOutline();
         }
 
+        public updateScenario(scenario: Common.Models.Scenario) {
+            this.field.updateScenario(scenario);
+        }
+
         public resize() {
             this.grid.resize(this.sizingMode);
             this.setViewBox();
@@ -54,7 +58,7 @@ module Common.Models {
         }
 
         public clear(): void {
-            this.field.clearPlay();   
+            this.field.clearScenario();
         }
 
         public setViewBox(center?: boolean) {

@@ -17,6 +17,8 @@
 /// <reference path='./interfaces.ts' />
 /// <reference path='./interfaces.ts' />
 /// <reference path='./interfaces.ts' />
+/// <reference path='./interfaces.ts' />
+/// <reference path='./interfaces.ts' />
 /// <reference path='../models/models.ts' />
 /// <reference path='./interfaces.ts' />
 /// <reference path='./interfaces.ts' />
@@ -55,6 +57,8 @@
 /// <reference path='./IContextual.ts' />
 /// <reference path='./IHoverable.ts' />
 /// <reference path='./IAssociable.ts' />
+/// <reference path='./IPlay.ts' />
+/// <reference path='./IScenario.ts' />
 /// <reference path='./IPaper.ts' />
 /// <reference path='./IGrid.ts' />
 /// <reference path='./ICanvas.ts' />
@@ -258,6 +262,10 @@ var Common;
                 this._count = 0;
                 this._keys = new Array(size || 0);
             }
+            Collection.prototype.copy = function (newCollection) {
+                var copyCollection = newCollection || new Common.Models.Collection();
+                return _super.prototype.copy.call(this, copyCollection, this);
+            };
             Collection.prototype._getKey = function (data) {
                 if (data && data.guid) {
                     return data.guid;
@@ -319,7 +327,7 @@ var Common;
                 var key = this._keys[this._keys.length - 1];
                 return this.get(key);
             };
-            Collection.prototype.set = function (key, data) {
+            Collection.prototype.set = function (key, data, listen) {
                 if (!this.hasOwnProperty(key.toString()))
                     throw Error('Object does not have key ' + key + '. Use the add(key) method.');
                 this[key] = data;
@@ -327,7 +335,8 @@ var Common;
                 data.onModified(function () {
                     self.setModified(true);
                 });
-                this.setModified(true);
+                if (listen !== false)
+                    this.setModified(true);
             };
             Collection.prototype.replace = function (replaceKey, data) {
                 var key = this._getKey(data);
@@ -348,10 +357,10 @@ var Common;
                     return null;
                 this.set(key, data);
             };
-            Collection.prototype.add = function (data) {
+            Collection.prototype.add = function (data, listen) {
                 var key = this._getKey(data);
                 if (this[key] && this._keys.indexOf(key) > -1) {
-                    this.set(key, data);
+                    this.set(key, data, listen);
                 }
                 else {
                     this[key] = data;
@@ -367,25 +376,26 @@ var Common;
                     this._keys[this._count] = key;
                     this._count++;
                     var self_1 = this;
-                    data.onModified(function () {
+                    data.onModified(function (item) {
                         self_1.setModified(true);
                     });
-                    this.setModified(true);
+                    if (listen !== false)
+                        this.setModified(true);
                 }
             };
-            Collection.prototype.addAll = function () {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i - 0] = arguments[_i];
-                }
-                if (!args)
+            Collection.prototype.addAll = function (elements) {
+                if (!elements || elements.length < 1)
                     return;
-                for (var i = 0; i < args.length; i++) {
-                    var item = args[i];
+                for (var i = 0; i < elements.length; i++) {
+                    var item = elements[i];
                     if (item) {
-                        this.add(item);
+                        // this.add(item, false) <- NOTE: false
+                        // defer the set modification until 
+                        // after all items have been added
+                        this.add(item, false);
                     }
                 }
+                this.setModified(true);
             };
             Collection.prototype.addAtIndex = function (data, index) {
                 var key = this._getKey(data);
@@ -579,7 +589,7 @@ var Common;
                 this.listening = startListening;
                 return this;
             };
-            LinkedList.prototype.add = function (node) {
+            LinkedList.prototype.add = function (node, listen) {
                 if (!this.root) {
                     this.root = node;
                     this.root.prev = null;
@@ -598,7 +608,8 @@ var Common;
                 node.onModified(function () {
                     self.setModified(true);
                 });
-                this.setModified(true);
+                if (listen !== false)
+                    this.setModified(true);
             };
             LinkedList.prototype.getIndex = function (index) {
                 var count = 0;
@@ -616,6 +627,9 @@ var Common;
                         return null;
                     }
                 }
+            };
+            LinkedList.prototype.first = function () {
+                return this.root;
             };
             LinkedList.prototype.forEach = function (iterator) {
                 var index = 0;
@@ -669,6 +683,24 @@ var Common;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
 /// <reference path='./models.ts' />
+/**
+ *
+ *
+ *
+ *
+ *
+ *
+ *   DEPRECATED!!
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ */
 var Common;
 (function (Common) {
     var Models;
@@ -782,24 +814,19 @@ var Common;
                 this.setModified(true);
                 return this;
             };
-            ModifiableCollection.prototype.addAll = function () {
-                var args = [];
-                for (var _i = 0; _i < arguments.length; _i++) {
-                    args[_i - 0] = arguments[_i];
-                }
-                if (!args || args.length == 0)
+            ModifiableCollection.prototype.addAll = function (elements) {
+                if (!elements || elements.length == 0)
                     return this;
-                (_a = this._collection).addAll.apply(_a, args);
+                this._collection.addAll(elements);
                 var self = this;
-                for (var i = 0; i < args.length; i++) {
-                    var modifiable = args[i];
+                for (var i = 0; i < elements.length; i++) {
+                    var modifiable = elements[i];
                     modifiable.onModified(function () {
                         self.setModified(true);
                     });
                 }
                 this.setModified(true);
                 return this;
-                var _a;
             };
             ModifiableCollection.prototype.addAtIndex = function (data, index) {
                 this._collection.addAtIndex(data, index);
@@ -948,8 +975,9 @@ var Common;
                 this.hoverable = true;
                 this.dragging = false;
                 this.draggable = true;
-                this.dragged = false;
                 this.selectable = true;
+                this.flipped = false;
+                this.flippable = false;
             }
             Actionable.prototype.toJson = function () {
                 return $.extend({
@@ -1035,7 +1063,6 @@ var Common;
                 return this.contextmenuTemplateUrl;
             };
             Actionable.prototype.drop = function () {
-                this.dragged = false;
                 this.dragging = false;
                 this.graphics.drop();
             };
@@ -1652,6 +1679,19 @@ var Common;
 (function (Common) {
     var Models;
     (function (Models) {
+        var AssociationResults = (function () {
+            function AssociationResults() {
+            }
+            return AssociationResults;
+        })();
+        Models.AssociationResults = AssociationResults;
+    })(Models = Common.Models || (Common.Models = {}));
+})(Common || (Common = {}));
+/// <reference path='./models.ts' />
+var Common;
+(function (Common) {
+    var Models;
+    (function (Models) {
         var Notification = (function (_super) {
             __extends(Notification, _super);
             function Notification(message, type) {
@@ -1822,23 +1862,24 @@ var Common;
                     route.draw();
                 });
             };
-            Assignment.prototype.setRoutes = function (player, routeType) {
+            Assignment.prototype.setRoutes = function (player, renderType) {
                 // intiialize the routeArray json for transferrence between
                 // different rendering types for editor and preview modes
                 if (!this.hasRouteArray() && this.routes.isEmpty())
                     // no route data! skip ahead...
                     return;
-                if (!this.hasRouteArray() && this.routes.hasElements()) {
+                if (this.routes.hasElements()) {
                     // we have routes but no generic route json; we need to
                     // convert the routes into json so that we can convert
                     // the routes between preview/editor/etc. modes.
                     this.routeArray = this.routes.toJson();
                 }
+                var routesToAdd = [];
                 for (var i = 0; i < this.routeArray.length; i++) {
                     var routeJson = this.routeArray[i];
                     if (Common.Utilities.isNotNullOrUndefined(routeJson)) {
                         var route = null;
-                        switch (routeType) {
+                        switch (renderType) {
                             case Common.Enums.RenderTypes.Preview:
                                 route = new Playbook.Models.PreviewRoute();
                                 break;
@@ -1853,8 +1894,13 @@ var Common;
                         route.setPlayer(player);
                         // convert json into respective type
                         route.fromJson(routeJson);
-                        this.routes.add(route);
+                        routesToAdd.push(route);
                     }
+                }
+                if (routesToAdd.length > 0) {
+                    this.routes.listen(false);
+                    this.routes.addAll(routesToAdd);
+                    this.routes.listen(true);
                 }
             };
             Assignment.prototype.hasRouteArray = function () {
@@ -1878,6 +1924,15 @@ var Common;
                     positionIndex: this.positionIndex,
                     unitType: this.unitType
                 }, _super.prototype.toJson.call(this));
+            };
+            Assignment.prototype.flip = function () {
+                if (Common.Utilities.isNotNullOrUndefined(this.routes)) {
+                    this.routes.forEach(function (route, index) {
+                        if (Common.Utilities.isNotNullOrUndefined(route))
+                            route.flip();
+                    });
+                    this.flipped = !this.flipped;
+                }
             };
             return Assignment;
         })(Common.Models.AssociableEntity);
@@ -1907,10 +1962,16 @@ var Common;
                 }
                 this.name = 'Untitled';
                 this.key = -1;
+                this.flipped = false;
                 this.onModified(function () {
                     // TODO
                 });
             }
+            AssignmentGroup.prototype.copy = function (newAssignmentGroup) {
+                var copyAssignmentGroup = newAssignmentGroup || new Common.Models.AssignmentGroup(this.unitType);
+                copyAssignmentGroup.assignments = this.assignments.copy();
+                return _super.prototype.copy.call(this, copyAssignmentGroup, this);
+            };
             AssignmentGroup.prototype.toJson = function () {
                 return $.extend({
                     unitType: this.unitType,
@@ -1932,7 +1993,7 @@ var Common;
                         rawAssignment.unitType >= 0 ? rawAssignment.unitTpe : Team.Enums.UnitTypes.Other;
                     var assignmentModel = new Common.Models.Assignment(rawAssignment.unitType);
                     assignmentModel.fromJson(rawAssignment);
-                    this.assignments.add(assignmentModel);
+                    this.assignments.addAtIndex(assignmentModel, i);
                 }
                 _super.prototype.fromJson.call(this, json);
             };
@@ -1944,6 +2005,15 @@ var Common;
                     });
                 }
                 return result;
+            };
+            AssignmentGroup.prototype.flip = function () {
+                if (Common.Utilities.isNotNullOrUndefined(this.assignments)) {
+                    this.assignments.forEach(function (assignment, index) {
+                        if (Common.Utilities.isNotNullOrUndefined(assignment))
+                            assignment.flip();
+                    });
+                    this.flipped = !this.flipped;
+                }
             };
             return AssignmentGroup;
         })(Common.Models.AssociableEntity);
@@ -2057,7 +2127,19 @@ var Common;
                     throw new Error('Formation setDefault(): \
 					Field reference is null or undefined');
                 this.placements.removeAll();
-                this.placements.addAll(new Common.Models.Placement(0, -1, ball, 0), new Common.Models.Placement(1.5, -1, ball, 1), new Common.Models.Placement(-1.5, -1, ball, 2), new Common.Models.Placement(-3, -1, ball, 3), new Common.Models.Placement(3, -1, ball, 4), new Common.Models.Placement(0, -2, ball, 5), new Common.Models.Placement(-4, -2, ball, 6), new Common.Models.Placement(-16, -1, ball, 7), new Common.Models.Placement(14, -1, ball, 8), new Common.Models.Placement(0, -4, ball, 9), new Common.Models.Placement(0, -6, ball, 10));
+                this.placements.addAll([
+                    new Common.Models.Placement(0, -1, ball, 0),
+                    new Common.Models.Placement(1.5, -1, ball, 1),
+                    new Common.Models.Placement(-1.5, -1, ball, 2),
+                    new Common.Models.Placement(-3, -1, ball, 3),
+                    new Common.Models.Placement(3, -1, ball, 4),
+                    new Common.Models.Placement(0, -2, ball, 5),
+                    new Common.Models.Placement(-4, -2, ball, 6),
+                    new Common.Models.Placement(-16, -1, ball, 7),
+                    new Common.Models.Placement(14, -1, ball, 8),
+                    new Common.Models.Placement(0, -4, ball, 9),
+                    new Common.Models.Placement(0, -6, ball, 10)
+                ]);
             };
             Formation.prototype.isValid = function () {
                 // TODO add validation for 7 players on LOS
@@ -2066,6 +2148,16 @@ var Common;
             Formation.prototype.setPlacements = function (placements) {
                 this.placements = placements;
                 this.setModified(true);
+            };
+            Formation.prototype.setUnitType = function (unitType) {
+                this.unitType = unitType;
+                this.setModified(true);
+            };
+            Formation.prototype.flip = function () {
+                if (Common.Utilities.isNotNullOrUndefined(this.placements)) {
+                    this.placements.flip();
+                    this.flipped = this.placements.flipped;
+                }
             };
             return Formation;
         })(Common.Models.AssociableEntity);
@@ -2140,10 +2232,33 @@ var Common;
                 this.assignmentGroup = null;
                 this.formation = null;
                 this.personnel = null;
-                this.editorType = Playbook.Enums.EditorTypes.Play;
                 this.png = null;
                 this.contextmenuTemplateUrl = Common.Constants.PLAY_CONTEXTMENU_TEMPLATE_URL;
+                this.playType = Playbook.Enums.PlayTypes.Unknown;
+                this.flipped = false;
             }
+            Play.prototype.copy = function (newPlay) {
+                newPlay.formation = this.formation && this.formation.copy();
+                newPlay.personnel = this.personnel && this.personnel.copy();
+                newPlay.assignmentGroup = this.assignmentGroup && this.assignmentGroup.copy();
+                return _super.prototype.copy.call(this, newPlay, this);
+            };
+            Play.prototype.toJson = function () {
+                return $.extend({
+                    name: this.name,
+                    unitType: this.unitType,
+                    png: this.png,
+                    playType: this.playType
+                }, _super.prototype.toJson.call(this));
+            };
+            Play.prototype.fromJson = function (json) {
+                // TODO
+                this.name = json.name;
+                this.unitType = json.unitType;
+                this.png = json.png;
+                this.playType = json.playType || this.playType;
+                _super.prototype.fromJson.call(this, json);
+            };
             Play.prototype.setPlaybook = function (playbook) {
                 // TODO @theBull - handle associations
                 // TODO @theBull
@@ -2187,75 +2302,23 @@ var Common;
             Play.prototype.setUnitType = function (unitType) {
                 this.isFieldSet(this.field);
                 this.isBallSet(this.field.ball);
-                // 1. if formation doesn't match unit type, select default formation
-                // of unit type
-                if (this.formation && this.formation.unitType != unitType) {
-                    var confirmed = confirm('Formation unit type mismatch.\nContinue with a default formation of the correct unit type?');
-                    if (confirmed) {
-                        this.formation.unitType = unitType;
+                if (unitType != this.unitType) {
+                    this.unitType = unitType;
+                    // 1. reset formation unit type
+                    if (this.formation) {
+                        this.formation.setUnitType(unitType);
                     }
-                    else {
-                        return;
+                    // 2. reset default personnel
+                    if (this.personnel && this.personnel.unitType != unitType) {
+                        this.personnel.unitType = unitType;
+                        this.personnel.setDefault();
                     }
+                    // 3. clear assignments
+                    if (this.assignmentGroup && this.assignmentGroup.unitType != this.unitType) {
+                        this.assignmentGroup = null;
+                    }
+                    this.setModified(true);
                 }
-                // Handle the formation / confirm dialog first; that way if user clicks cancel
-                // in the confirm, we don't end up setting the play's unit type anyway.
-                this.unitType = unitType;
-                // 2. if personnel doesn't match unit type, select default personnel
-                // of unit type
-                if (this.personnel && this.personnel.unitType != unitType) {
-                    this.personnel.unitType = unitType;
-                    this.personnel.setDefault();
-                }
-                // 3. if assignments do not match unit type, clear them.
-                if (this.assignmentGroup.unitType != this.unitType) {
-                    this.assignmentGroup = new Common.Models.AssignmentGroup(this.unitType);
-                }
-            };
-            Play.prototype.draw = function (field) {
-                this.isFieldSet(field);
-                this.isBallSet(field.ball);
-                this.field = field;
-                // Clear the players
-                this.field.clearPlayers();
-                var self = this;
-                // set defaults, in case no assignments / personnel were assigned
-                if (!this.personnel) {
-                    this.personnel = new Team.Models.Personnel(this.unitType);
-                }
-                if (!this.personnel.positions) {
-                    this.personnel.setDefault();
-                }
-                if (!this.assignmentGroup) {
-                    this.assignmentGroup = new Common.Models.AssignmentGroup(this.unitType);
-                }
-                if (!this.formation) {
-                    this.formation = new Common.Models.Formation(this.unitType);
-                }
-                if (!this.formation.placements || this.formation.placements.isEmpty()) {
-                    this.formation.setDefault(this.field.ball);
-                }
-                this.formation.placements.forEach(function (placement, index) {
-                    var position = self.personnel.positions.getIndex(index);
-                    var assignment = self.assignmentGroup.assignments.getIndex(index);
-                    self.field.addPlayer(placement, position, assignment);
-                });
-            };
-            Play.prototype.fromJson = function (json) {
-                // TODO
-                this.name = json.name;
-                this.unitType = json.unitType;
-                this.editorType = json.editorType;
-                this.png = json.png;
-                _super.prototype.fromJson.call(this, json);
-            };
-            Play.prototype.toJson = function () {
-                return $.extend({
-                    name: this.name,
-                    unitType: this.unitType,
-                    editorType: this.editorType,
-                    png: this.png
-                }, _super.prototype.toJson.call(this));
             };
             Play.prototype.hasAssignments = function () {
                 return this.assignmentGroup && this.assignmentGroup.assignments.size() > 0;
@@ -2295,6 +2358,41 @@ var Common;
                     throw new Error('Play draw(): Ball is null or undefined');
                 return true;
             };
+            Play.prototype.setField = function (field) {
+                this.isFieldSet(field);
+                this.isBallSet(field.ball);
+                this.field = field;
+            };
+            Play.toPrimary = function (play) {
+                if (play.playType == Playbook.Enums.PlayTypes.Primary)
+                    return play;
+                var newPlay = new Common.Models.PlayPrimary(play.unitType);
+                newPlay.fromJson(play.toJson());
+                newPlay.playType = Playbook.Enums.PlayTypes.Primary;
+                newPlay.assignmentGroup = play.assignmentGroup;
+                newPlay.formation = play.formation;
+                newPlay.personnel = play.personnel;
+                return newPlay;
+            };
+            Play.toOpponent = function (play) {
+                if (play.playType == Playbook.Enums.PlayTypes.Opponent)
+                    return play;
+                var newPlay = new Common.Models.PlayOpponent(play.unitType);
+                newPlay.fromJson(play.toJson());
+                newPlay.playType = Playbook.Enums.PlayTypes.Opponent;
+                newPlay.assignmentGroup = play.assignmentGroup;
+                newPlay.formation = play.formation;
+                newPlay.personnel = play.personnel;
+                return newPlay;
+            };
+            Play.prototype.flip = function () {
+                if (Common.Utilities.isNotNullOrUndefined(this.formation)) {
+                    this.formation.flip();
+                }
+                if (Common.Utilities.isNotNullOrUndefined(this.assignmentGroup)) {
+                }
+                this.flipped = !this.flipped;
+            };
             return Play;
         })(Common.Models.AssociableEntity);
         Models.Play = Play;
@@ -2311,6 +2409,36 @@ var Common;
                 _super.call(this, unitType);
                 this.playType = Playbook.Enums.PlayTypes.Primary;
             }
+            PlayPrimary.prototype.copy = function (newPlay) {
+                var copyPlay = newPlay || new Common.Models.PlayPrimary(this.unitType);
+                return _super.prototype.copy.call(this, copyPlay);
+            };
+            PlayPrimary.prototype.draw = function (field) {
+                _super.prototype.setField.call(this, field);
+                this.field.clearPrimaryPlayers();
+                var self = this;
+                // set defaults, in case no assignments / personnel were assigned
+                if (!this.personnel) {
+                    this.personnel = new Team.Models.Personnel(this.unitType);
+                }
+                if (!this.personnel.positions) {
+                    this.personnel.setDefault();
+                }
+                if (!this.assignmentGroup) {
+                    this.assignmentGroup = new Common.Models.AssignmentGroup(this.unitType);
+                }
+                if (!this.formation) {
+                    this.formation = new Common.Models.Formation(this.unitType);
+                }
+                if (!this.formation.placements || this.formation.placements.isEmpty()) {
+                    this.formation.setDefault(this.field.ball);
+                }
+                this.formation.placements.forEach(function (placement, index) {
+                    var position = self.personnel.positions.getIndex(index);
+                    var assignment = self.assignmentGroup.assignments.getIndex(index);
+                    self.field.addPrimaryPlayer(placement, position, assignment);
+                });
+            };
             return PlayPrimary;
         })(Common.Models.Play);
         Models.PlayPrimary = PlayPrimary;
@@ -2327,9 +2455,45 @@ var Common;
                 _super.call(this, unitType);
                 this.playType = Playbook.Enums.PlayTypes.Opponent;
             }
+            PlayOpponent.prototype.copy = function (newPlay) {
+                var copyPlay = newPlay || new Common.Models.PlayOpponent(this.unitType);
+                return _super.prototype.copy.call(this, copyPlay);
+            };
             PlayOpponent.prototype.draw = function (field) {
-                // TODO @theBull - flip the play over
-                _super.prototype.draw.call(this, field);
+                _super.prototype.setField.call(this, field);
+                this.field.clearOpponentPlayers();
+                var self = this;
+                // set defaults, in case no assignments / personnel were assigned
+                if (!this.personnel) {
+                    this.personnel = new Team.Models.Personnel(this.unitType);
+                }
+                if (!this.personnel.positions) {
+                    this.personnel.setDefault();
+                }
+                if (!this.assignmentGroup) {
+                    this.assignmentGroup = new Common.Models.AssignmentGroup(this.unitType);
+                }
+                if (!this.formation) {
+                    this.formation = new Common.Models.Formation(this.unitType);
+                }
+                if (!this.formation.placements || this.formation.placements.isEmpty()) {
+                    this.formation.setDefault(this.field.ball);
+                }
+                this.formation.placements.forEach(function (placement, index) {
+                    // placement.relative.rx *= -1;
+                    // placement.relative.ry *= -1;
+                    var position = self.personnel.positions.getIndex(index);
+                    var assignment = self.assignmentGroup.assignments.getIndex(index);
+                    self.field.addOpponentPlayer(placement, position, assignment);
+                });
+                // flip the formation and assignments
+                if (Common.Utilities.isNotNullOrUndefined(this.field.opponentPlayers)) {
+                    this.field.opponentPlayers.forEach(function (player, index) {
+                        if (Common.Utilities.isNotNullOrUndefined(player)) {
+                            player.flip();
+                        }
+                    });
+                }
             };
             return PlayOpponent;
         })(Common.Models.Play);
@@ -2369,7 +2533,7 @@ var Common;
                         rawPlay.unitType >= 0 ? rawPlay.unitType : Team.Enums.UnitTypes.Other;
                     rawPlay.key = obj.key;
                     // TODO
-                    var playModel = new Common.Models.Play(rawPlay.unitType);
+                    var playModel = new Common.Models.PlayPrimary(rawPlay.unitType);
                     playModel.fromJson(rawPlay);
                     this.add(playModel);
                 }
@@ -2460,18 +2624,147 @@ var Common;
 (function (Common) {
     var Models;
     (function (Models) {
+        var Scenario = (function (_super) {
+            __extends(Scenario, _super);
+            function Scenario() {
+                _super.call(this, Common.Enums.ImpaktDataTypes.Scenario);
+                this.playPrimary = new Common.Models.PlayPrimary(Team.Enums.UnitTypes.Other);
+                this.playOpponent = new Common.Models.PlayOpponent(Team.Enums.UnitTypes.Other);
+                this.unitType = this.playPrimary.unitType;
+                this.editorType = Playbook.Enums.EditorTypes.Play;
+            }
+            Scenario.prototype.copy = function (newScenario) {
+                var copyScenario = newScenario || new Common.Models.Scenario();
+                if (Common.Utilities.isNotNullOrUndefined(this.playPrimary))
+                    copyScenario.playPrimary = this.playPrimary.copy();
+                if (Common.Utilities.isNotNullOrUndefined(this.playOpponent))
+                    copyScenario.playOpponent = this.playOpponent.copy();
+                return _super.prototype.copy.call(this, copyScenario, this);
+            };
+            Scenario.prototype.toJson = function () {
+                return $.extend({
+                    name: this.name,
+                    png: this.png,
+                    unitType: this.unitType,
+                    editorType: this.editorType
+                }, _super.prototype.toJson.call(this));
+            };
+            Scenario.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.name = json.name;
+                this.unitType = json.unitType;
+                this.png = json.png;
+                this.editorType = json.editorType;
+                _super.prototype.fromJson.call(this, json);
+            };
+            Scenario.prototype.setPlayPrimary = function (play) {
+                if (Common.Utilities.isNullOrUndefined(play)) {
+                    this.playPrimary = null;
+                    return;
+                }
+                // ensure the play passed in is of type primary
+                this.playPrimary = Common.Models.Play.toPrimary(play);
+                this.unitType = this.playPrimary.unitType;
+                this.setModified(true);
+            };
+            Scenario.prototype.setPlayOpponent = function (play) {
+                if (Common.Utilities.isNullOrUndefined(play)) {
+                    this.playOpponent = null;
+                    return;
+                }
+                // ensure the play passed in is of type Opponent
+                this.playOpponent = Common.Models.Play.toOpponent(play);
+                this.setModified(true);
+            };
+            Scenario.prototype.clear = function () {
+                this.playPrimary = null;
+                this.playOpponent = null;
+            };
+            Scenario.prototype.draw = function (field) {
+                if (Common.Utilities.isNotNullOrUndefined(this.playPrimary))
+                    this.playPrimary.draw(field);
+                if (Common.Utilities.isNotNullOrUndefined(this.playOpponent))
+                    this.playOpponent.draw(field);
+            };
+            return Scenario;
+        })(Common.Models.AssociableEntity);
+        Models.Scenario = Scenario;
+    })(Models = Common.Models || (Common.Models = {}));
+})(Common || (Common = {}));
+/// <reference path='./models.ts' />
+var Common;
+(function (Common) {
+    var Models;
+    (function (Models) {
+        var ScenarioCollection = (function (_super) {
+            __extends(ScenarioCollection, _super);
+            function ScenarioCollection(unitType) {
+                _super.call(this);
+                this.unitType = unitType;
+            }
+            ScenarioCollection.prototype.toJson = function () {
+                var self = this;
+                return $.extend(_super.prototype.toJson.call(this), {
+                    unitType: self.unitType
+                });
+            };
+            ScenarioCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.unitType = json.unitType;
+                if (!json.scenarios)
+                    json.scenarios = [];
+                for (var i = 0; i < json.scenarios.length; i++) {
+                    var obj = json.scenarios[i];
+                    var rawScenario = obj.data.scenario;
+                    if (Common.Utilities.isNullOrUndefined(rawScenario))
+                        continue;
+                    rawScenario.unitType = Common.Utilities.isNullOrUndefined(rawScenario.unitType) &&
+                        rawScenario.unitType >= 0 ? rawScenario.unitType : Team.Enums.UnitTypes.Other;
+                    rawScenario.key = obj.key;
+                    // TODO
+                    var scenarioModel = new Common.Models.Scenario();
+                    scenarioModel.fromJson(rawScenario);
+                    this.add(scenarioModel);
+                }
+            };
+            return ScenarioCollection;
+        })(Common.Models.ActionableCollection);
+        Models.ScenarioCollection = ScenarioCollection;
+    })(Models = Common.Models || (Common.Models = {}));
+})(Common || (Common = {}));
+/// <reference path='./models.ts' />
+var Common;
+(function (Common) {
+    var Models;
+    (function (Models) {
         var Tab = (function (_super) {
             __extends(Tab, _super);
-            function Tab(playPrimary, playOpponent) {
+            function Tab(scenario) {
                 _super.call(this);
                 this.title = 'Untitled';
                 this.active = true;
                 _super.prototype.setContext.call(this, this);
-                this.playPrimary = playPrimary;
-                this.editorType = this.playPrimary.editorType;
-                this.key = this.playPrimary.key;
-                this.unitType = this.playPrimary.unitType;
-                this.title = this.playPrimary.name;
+                if (Common.Utilities.isNullOrUndefined(scenario))
+                    throw new Error('Tab constructor(): scenario is null or undefined');
+                this.scenario = scenario;
+                switch (this.scenario.editorType) {
+                    case Playbook.Enums.EditorTypes.Formation:
+                        if (Common.Utilities.isNullOrUndefined(this.scenario.playPrimary) ||
+                            Common.Utilities.isNullOrUndefined(this.scenario.playPrimary.formation))
+                            throw new Error('Tab constructor(): scenario formation is null or undefined');
+                        this.title = this.scenario.playPrimary.formation.name;
+                        break;
+                    case Playbook.Enums.EditorTypes.Play:
+                        if (Common.Utilities.isNullOrUndefined(this.scenario.playPrimary))
+                            throw new Error('Tab constructor(): scenario primary play is null or undefined');
+                        this.title = this.scenario.playPrimary.name;
+                        break;
+                    case Playbook.Enums.EditorTypes.Scenario:
+                        this.title = this.scenario.name;
+                        break;
+                }
                 this._closeCallbacks = [function () {
                         console.log('tab closed', this.guid);
                     }];
@@ -2676,9 +2969,12 @@ var Common;
     (function (Models) {
         var Canvas = (function (_super) {
             __extends(Canvas, _super);
-            function Canvas(width, height) {
+            function Canvas(scenario, width, height) {
                 _super.call(this);
                 _super.prototype.setContext.call(this, this);
+                if (Common.Utilities.isNullOrUndefined(scenario))
+                    throw new Error('EditorCanvas constructor(): scenario is null or undefined');
+                this.scenario = scenario;
                 /**
                  * Note that paper is created during the initialize() method;
                  * canvas is dependent on angular directive / dynamic HTML include
@@ -2698,9 +2994,8 @@ var Common;
                 this.listener = new Common.Models.CanvasListener(this);
             }
             Canvas.prototype.clear = function () {
-                this.playOpponent = null;
-                this.playPrimary = null;
                 this.paper.clear();
+                this.scenario.clear();
                 this.clearListeners();
                 this.setModified(true);
             };
@@ -2729,6 +3024,13 @@ var Common;
                 var serializer = new XMLSerializer();
                 var svg_blob = serializer.serializeToString($svg[0]);
                 return svg_blob;
+            };
+            Canvas.prototype.updateScenario = function (scenario, redraw) {
+                if (Common.Utilities.isNullOrUndefined(scenario))
+                    return;
+                this.paper.updateScenario(scenario);
+                this.scenario = scenario;
+                this.setModified(true);
             };
             Canvas.prototype.refresh = function () {
                 if (Common.Utilities.isNullOrUndefined(this.paper))
@@ -2849,7 +3151,9 @@ var Common;
                     (pixels.x + offsetX), ((pixels.y + offsetY) - centerHeight),
                     ((pixels.x + offsetX) + (sideLength / 2)), ((pixels.y + offsetY) + centerHeight)
                 ]);
-                return this.Raphael.path(pathString);
+                var raphael = this.Raphael.path(pathString);
+                raphael.data('element-type', 'triangle');
+                return raphael;
             };
             Utilities.prototype.text = function (x, y, text, absolute, offsetX, offsetY) {
                 var pixels = this.alignToGrid(x, y, absolute);
@@ -3045,6 +3349,9 @@ var Common;
                     this.layers.removeAll();
             };
             Layer.prototype.toFront = function () {
+                if (this.hasGraphics()) {
+                    this.actionable.graphics.toFront();
+                }
                 if (this.hasLayers()) {
                     this.layers.forEach(function (layer, index) {
                         if (layer && layer.actionable.graphics) {
@@ -3093,12 +3400,6 @@ var Common;
                 if (this.hasGraphics())
                     this.actionable.graphics.remove();
             };
-            Layer.prototype.setPlacement = function (placement) {
-                this.actionable.graphics.setPlacement(placement);
-                this.layers.forEach(function (layer, index) {
-                    layer.actionable.graphics.setPlacement(placement);
-                });
-            };
             Layer.prototype.moveByDelta = function (dx, dy) {
                 this.actionable.graphics.moveByDelta(dx, dy);
                 if (this.hasLayers()) {
@@ -3135,6 +3436,16 @@ var Common;
                     this.layers.forEach(function (layer, index) {
                         layer.draw();
                     });
+            };
+            Layer.prototype.flip = function () {
+                if (this.actionable.flippable) {
+                    this.actionable.graphics.flip();
+                    if (this.hasLayers()) {
+                        this.layers.forEach(function (layer, index) {
+                            layer.flip();
+                        });
+                    }
+                }
             };
             return Layer;
         })(Common.Models.Modifiable);
@@ -3241,13 +3552,16 @@ var Common;
                 if (this.showBorder)
                     this.drawOutline();
             };
+            Paper.prototype.updateScenario = function (scenario) {
+                this.field.updateScenario(scenario);
+            };
             Paper.prototype.resize = function () {
                 this.grid.resize(this.sizingMode);
                 this.setViewBox();
                 this.draw();
             };
             Paper.prototype.clear = function () {
-                this.field.clearPlay();
+                this.field.clearScenario();
             };
             Paper.prototype.setViewBox = function (center) {
                 center = center === true;
@@ -3584,23 +3898,26 @@ var Common;
     (function (Models) {
         var Field = (function (_super) {
             __extends(Field, _super);
-            function Field(paper, playPrimary, playOpponent) {
+            function Field(paper, scenario) {
                 _super.call(this);
                 _super.prototype.setContext.call(this, this);
                 this.paper = paper;
                 this.grid = this.paper.grid;
-                this.playPrimary = playPrimary;
-                this.playOpponent = playOpponent;
-                this.players = new Common.Models.PlayerCollection();
+                this.scenario = scenario;
+                this.primaryPlayers = new Common.Models.PlayerCollection();
+                this.opponentPlayers = new Common.Models.PlayerCollection();
                 this.selected = new Common.Models.Collection();
                 this.layers = new Common.Models.LayerCollection();
                 this.cursorCoordinates = new Common.Models.Coordinates(0, 0);
+                this.editorType = Playbook.Enums.EditorTypes.Any;
                 var self = this;
                 this.selected.onModified(function () {
                     self.setModified(true);
                 });
-                this.players.onModified(function () {
-                    //self.updatePlacements();
+                this.primaryPlayers.onModified(function () {
+                    self.setModified(true);
+                });
+                this.opponentPlayers.onModified(function () {
                     self.setModified(true);
                 });
                 this.onModified(function () {
@@ -3614,54 +3931,84 @@ var Common;
                 this.grid.draw();
                 this.los.draw();
                 this.ball.draw();
-                this.drawPlay();
+                this.drawScenario();
             };
             Field.prototype.clearPlayers = function () {
-                this.players.forEach(function (player, index) {
-                    player.layer.remove();
+                this.clearPrimaryPlayers();
+                this.clearOpponentPlayers();
+            };
+            Field.prototype.clearPrimaryPlayers = function () {
+                this.primaryPlayers.forEach(function (player, index) {
                     if (Common.Utilities.isNotNullOrUndefined(player.assignment)) {
                         player.assignment.routes.forEach(function (route, index) {
                             route.layer.remove();
                         });
                     }
+                    player.layer.remove();
                 });
-                this.players.removeAll();
+                this.primaryPlayers.removeAll();
             };
-            Field.prototype.clearPlay = function () {
-                this.clearPlayers();
-                this.playPrimary = null;
-                this.playOpponent = null;
+            Field.prototype.clearOpponentPlayers = function () {
+                this.opponentPlayers.forEach(function (player, index) {
+                    if (Common.Utilities.isNotNullOrUndefined(player.assignment)) {
+                        player.assignment.routes.forEach(function (route, index) {
+                            route.layer.remove();
+                        });
+                    }
+                    player.layer.remove();
+                });
+                this.opponentPlayers.removeAll();
             };
-            Field.prototype.drawPlay = function () {
+            Field.prototype.clearScenario = function () {
+                this.clearPrimaryPlay();
+                this.clearOpponentPlay();
+            };
+            Field.prototype.clearPrimaryPlay = function () {
+                this.clearPrimaryPlayers();
+            };
+            Field.prototype.clearOpponentPlay = function () {
+                this.clearOpponentPlayers();
+            };
+            Field.prototype.drawScenario = function () {
                 // draw the play data onto the field
-                if (this.playPrimary)
-                    this.playPrimary.draw(this);
-                // draw the opponent play data onto the field
-                if (this.playOpponent)
-                    this.playOpponent.draw(this);
-                //this.updatePlacements();
+                this.scenario.draw(this);
             };
-            Field.prototype.updatePlay = function (playPrimary, playOpponent) {
-                this.clearPlay();
-                this.playPrimary = playPrimary;
-                this.playOpponent = playOpponent;
-                this.drawPlay();
-                this.updatePlacements();
+            Field.prototype.updateScenario = function (scenario) {
+                this.clearScenario();
+                this.scenario = scenario;
+                this.drawScenario();
             };
             Field.prototype.updatePlacements = function () {
                 var self = this;
-                var placementCollection = new Common.Models.PlacementCollection();
-                this.players.forEach(function (player, index) {
-                    placementCollection.add(player.icon.graphics.placement);
-                });
-                self.playPrimary.formation.setPlacements(placementCollection);
+                if (Common.Utilities.isNotNullOrUndefined(this.scenario)) {
+                    if (Common.Utilities.isNotNullOrUndefined(this.scenario.playPrimary)) {
+                        var primaryPlacementCollection = new Common.Models.PlacementCollection();
+                        this.primaryPlayers.forEach(function (player, index) {
+                            primaryPlacementCollection.add(player.graphics.placement);
+                        });
+                        self.scenario.playPrimary.formation.setPlacements(primaryPlacementCollection);
+                    }
+                    if (Common.Utilities.isNotNullOrUndefined(this.scenario.playOpponent)) {
+                        var opponentPlacementCollection = new Common.Models.PlacementCollection();
+                        this.opponentPlayers.forEach(function (player, index) {
+                            opponentPlacementCollection.add(player.graphics.placement);
+                        });
+                        self.scenario.playOpponent.formation.setPlacements(opponentPlacementCollection);
+                    }
+                }
             };
             Field.prototype.setCursorCoordinates = function (offsetX, offsetY) {
                 this.cursorCoordinates = this.grid.getCursorPositionCoordinates(offsetX, offsetY);
                 this.setModified(true);
             };
-            Field.prototype.getPlayerWithPositionIndex = function (index) {
-                var matchingPlayer = this.players.filterFirst(function (player) {
+            Field.prototype.getPrimaryPlayerWithPositionIndex = function (index) {
+                var matchingPlayer = this.primaryPlayers.filterFirst(function (player) {
+                    return player.hasPosition() && (player.position.index == index);
+                });
+                return matchingPlayer;
+            };
+            Field.prototype.getOpponentPlayerWithPositionIndex = function (index) {
+                var matchingPlayer = this.opponentPlayers.filterFirst(function (player) {
                     return player.hasPosition() && (player.position.index == index);
                 });
                 return matchingPlayer;
@@ -3670,13 +4017,15 @@ var Common;
                 throw new Error('field applyPrimaryPlay() not implemented');
             };
             Field.prototype.applyPrimaryFormation = function (formation) {
-                if (Common.Utilities.isNullOrUndefined(formation))
+                if (Common.Utilities.isNullOrUndefined(formation) ||
+                    Common.Utilities.isNullOrUndefined(this.scenario) ||
+                    Common.Utilities.isNullOrUndefined(this.scenario.playPrimary))
                     return;
                 //console.log(formation);
                 // the order of placements within the formation get applied straight across
                 // to the order of personnel and positions.
                 var self = this;
-                this.players.forEach(function (player, index) {
+                this.primaryPlayers.forEach(function (player, index) {
                     // NOTE: we're not using the index from the forEach callback,
                     // because we can't assume the players collection stores the players
                     // in the order according to the player's actual index property
@@ -3691,19 +4040,19 @@ var Common;
                     player.setPlacement(newPlacement);
                     player.draw();
                 });
-                // update the field play formation
-                this.playPrimary.setFormation(formation);
-                // TODO @theBull - implement set formation for opponent formation
+                this.scenario.playPrimary.setFormation(formation);
             };
             Field.prototype.applyPrimaryAssignmentGroup = function (assignmentGroup) {
-                if (Common.Utilities.isNullOrUndefined(assignmentGroup))
+                if (Common.Utilities.isNullOrUndefined(assignmentGroup) ||
+                    Common.Utilities.isNullOrUndefined(this.scenario) ||
+                    Common.Utilities.isNullOrUndefined(this.scenario.playPrimary))
                     return;
                 var self = this;
                 if (assignmentGroup.assignments.hasElements()) {
                     assignmentGroup.assignments.forEach(function (assignment, index) {
                         if (Common.Utilities.isNullOrUndefined(assignment))
                             return;
-                        var player = self.getPlayerWithPositionIndex(assignment.positionIndex);
+                        var player = self.getPrimaryPlayerWithPositionIndex(assignment.positionIndex);
                         if (player) {
                             assignment.setContext(player);
                             player.assignment.remove();
@@ -3711,26 +4060,26 @@ var Common;
                             player.draw();
                         }
                     });
-                    // TODO @theBull - implement apply opponent assignments
-                    this.playPrimary.setAssignmentGroup(assignmentGroup);
+                    this.scenario.playPrimary.setAssignmentGroup(assignmentGroup);
                 }
             };
             Field.prototype.applyPrimaryPersonnel = function (personnel) {
-                if (Common.Utilities.isNullOrUndefined(personnel))
+                if (Common.Utilities.isNullOrUndefined(personnel) ||
+                    Common.Utilities.isNullOrUndefined(this.scenario) ||
+                    Common.Utilities.isNullOrUndefined(this.scenario.playPrimary))
                     return;
                 var self = this;
                 if (personnel && personnel.hasPositions()) {
-                    this.players.forEach(function (player, index) {
+                    this.primaryPlayers.forEach(function (player, index) {
                         var newPosition = personnel.positions.getIndex(index);
-                        if (self.playPrimary.personnel &&
-                            self.playPrimary.personnel.hasPositions()) {
-                            self.playPrimary.personnel.positions.getIndex(index).fromJson(newPosition.toJson());
+                        if (self.scenario.playPrimary.personnel &&
+                            self.scenario.playPrimary.personnel.hasPositions()) {
+                            self.scenario.playPrimary.personnel.positions.getIndex(index).fromJson(newPosition.toJson());
                         }
                         player.position.fromJson(newPosition.toJson());
                         player.draw();
                     });
-                    // TODO @theBull - implement apply opponent assignments
-                    this.playPrimary.setPersonnel(personnel);
+                    this.scenario.playPrimary.setPersonnel(personnel);
                 }
                 else {
                     var details = personnel ? '# positions: ' + personnel.positions.size() : 'Personnel is undefined.';
@@ -3742,15 +4091,15 @@ var Common;
                 }
             };
             Field.prototype.applyPrimaryUnitType = function (unitType) {
-                if (Common.Utilities.isNullOrUndefined(unitType))
+                if (Common.Utilities.isNullOrUndefined(unitType) ||
+                    Common.Utilities.isNullOrUndefined(this.scenario) ||
+                    Common.Utilities.isNullOrUndefined(this.scenario.playPrimary))
                     return;
-                if (Common.Utilities.isNullOrUndefined(this.playPrimary))
-                    return;
-                this.playPrimary.setUnitType(unitType);
-                if (Common.Utilities.isNotNullOrUndefined(this.playOpponent))
-                    this.playOpponent.setUnitType(this.playPrimary.getOpposingUnitType());
+                this.scenario.playPrimary.setUnitType(unitType);
+                if (Common.Utilities.isNotNullOrUndefined(this.scenario.playOpponent))
+                    this.scenario.playOpponent.setUnitType(this.scenario.playPrimary.getOpposingUnitType());
                 this.clearPlayers();
-                this.drawPlay();
+                this.drawScenario();
             };
             Field.prototype.deselectAll = function () {
                 if (this.selected.isEmpty())
@@ -3945,7 +4294,7 @@ var Common;
                 this.graphics.fill = 'brown';
                 this.graphics.dimensions.setWidth(this.grid.getSize() * 0.15);
                 this.graphics.dimensions.setHeight(this.grid.getSize() * 0.25);
-                this.graphics.updateFromCoordinates(Playbook.Constants.BALL_DEFAULT_PLACEMENT_X, Playbook.Constants.BALL_DEFAULT_PLACEMENT_Y);
+                this.graphics.initializePlacement(new Common.Models.Placement(Playbook.Constants.BALL_DEFAULT_PLACEMENT_X, Playbook.Constants.BALL_DEFAULT_PLACEMENT_Y, null));
             };
             Ball.prototype.draw = function () {
                 this.graphics.ellipse();
@@ -3968,7 +4317,7 @@ var Common;
             Ground.prototype.initialize = function (field, relativeElement) {
                 _super.prototype.initialize.call(this, field, null);
                 this.selectable = false;
-                this.graphics.updateFromCoordinates(this.paper.x, this.paper.y);
+                this.graphics.initializePlacement(new Common.Models.Placement(this.paper.x, this.paper.y, null));
                 this.graphics.dimensions.setWidth(this.grid.dimensions.width + 2);
                 this.graphics.dimensions.setHeight(this.grid.dimensions.height + 2);
                 this.graphics.setOriginalOpacity(1);
@@ -4013,7 +4362,7 @@ var Common;
                 this.graphics.setOriginalOpacity(1);
                 this.graphics.dimensions.width = this.grid.dimensions.width - (this.grid.getSize() * 2);
                 this.graphics.dimensions.height = 1;
-                this.graphics.updateFromCoordinates(1, this.field.ball.graphics.placement.coordinates.y);
+                this.graphics.initializePlacement(new Common.Models.Placement(1, this.field.ball.graphics.placement.coordinates.y, null));
             };
             return LineOfScrimmage;
         })(Common.Models.FieldElement);
@@ -4036,7 +4385,7 @@ var Common;
                 this.layer.type = Common.Enums.LayerTypes.Endzone;
                 this.graphics.fill = 'black';
                 this.graphics.setOpacity(0.25);
-                this.graphics.updateFromCoordinates(1, this.offsetY);
+                this.graphics.initializePlacement(new Common.Models.Placement(1, this.offsetY, null));
                 this.graphics.dimensions.setWidth(this.paper.getWidth() - (2 * this.grid.getSize()));
                 this.graphics.dimensions.setHeight(10 * this.grid.getSize());
             };
@@ -4065,7 +4414,7 @@ var Common;
                 this.layer.type = Common.Enums.LayerTypes.Hashmark;
                 this.graphics.dimensions.offset.x = -0.25 * this.grid.getSize();
                 this.graphics.dimensions.offset.y = 0;
-                this.graphics.placement.coordinates.x = this.offsetX;
+                this.graphics.initializePlacement(new Common.Models.Placement(this.offsetX, 0, null));
                 this.start = 11;
                 this.yards = 110;
             };
@@ -4098,7 +4447,7 @@ var Common;
                 _super.prototype.initialize.call(this, field, null);
                 this.graphics.fill = 'white';
                 this.graphics.strokeWidth = 0;
-                this.graphics.updateFromCoordinates(this.offsetX, 0);
+                this.graphics.initializePlacement(new Common.Models.Placement(this.offsetX, 0, null));
                 this.graphics.dimensions.width = this.grid.getSize();
                 this.graphics.dimensions.height = this.grid.getHeight();
             };
@@ -4128,8 +4477,7 @@ var Common;
                 this.graphics.setOriginalStrokeWidth(1);
                 this.graphics.dimensions.setHeight(0);
                 this.graphics.dimensions.setWidth(0);
-                this.graphics.location.ax = 0;
-                this.graphics.location.ay = 0;
+                this.graphics.initializePlacement(new Common.Models.Placement(0, 0, null));
             };
             FieldSelectionBox.prototype.draw = function () {
                 this.graphics.rect();
@@ -4151,23 +4499,30 @@ var Common;
                 _super.call(this);
                 this.placement = placement;
                 this.position = position;
-                this.assignment = assignment || new Common.Models.Assignment(this.position.unitType);
-                if (Common.Utilities.isNotNullOrUndefined(this.assignment))
+                this.unitType = this.position ? this.position.unitType : Team.Enums.UnitTypes.Other;
+                this.assignment = assignment || new Common.Models.Assignment(this.unitType);
+                this.flippable = true;
+                if (Common.Utilities.isNotNullOrUndefined(this.assignment) &&
+                    Common.Utilities.isNotNullOrUndefined(this.position)) {
                     this.assignment.positionIndex = this.position.index;
+                }
             }
             Player.prototype.initialize = function (field) {
                 _super.prototype.initialize.call(this, field, field.ball);
                 this.layer.type = Common.Enums.LayerTypes.Player;
-                this.graphics.setPlacement(this.placement);
+                this.graphics.initializePlacement(new Common.Models.Placement(this.placement.relative.rx, this.placement.relative.ry, this.field.ball));
                 this.graphics.dimensions.setWidth(this.grid.getSize());
                 this.graphics.dimensions.setHeight(this.grid.getSize());
                 var self = this;
                 this.onModified(function () {
-                    self.field.players.setModified(true);
+                    self.field.primaryPlayers.setModified(true);
                 });
                 this.layer.onModified(function () {
                     self.setModified(true);
                 });
+            };
+            Player.prototype.flip = function () {
+                this.layer.flip();
             };
             Player.prototype.remove = function () {
                 this.layer.remove();
@@ -4220,8 +4575,7 @@ var Common;
                 return this.graphics.placement;
             };
             Player.prototype.setPlacement = function (placement) {
-                this.graphics.updateFromCoordinates(placement.coordinates.x, placement.coordinates.y);
-                this.layer.setPlacement(placement);
+                this.graphics.placement.update(placement);
                 this.setModified(true);
             };
             return Player;
@@ -4264,9 +4618,9 @@ var Common;
                 this.graphics.setOriginalStrokeWidth(1);
                 this.graphics.dimensions.width = (this.player.graphics.dimensions.getWidth());
                 this.graphics.dimensions.height = (this.player.graphics.dimensions.getHeight());
-                this.graphics.dimensions.offset.x = -this.player.graphics.dimensions.getWidth() / 2;
-                this.graphics.dimensions.offset.y = -this.player.graphics.dimensions.getHeight() / 2;
-                this.graphics.updateLocation(this.player.graphics.location.ax + this.graphics.dimensions.offset.x, this.player.graphics.location.ay + this.graphics.dimensions.offset.y);
+                this.graphics.setOffsetXY(-this.player.graphics.dimensions.getWidth() / 2, -this.player.graphics.dimensions.getHeight() / 2);
+                this.graphics.initializePlacement(this.player.graphics.placement);
+                this.graphics.placement.setRelativeElement(this.player);
             }
             PlayerSelectionBox.prototype.draw = function () {
                 this.graphics.rect();
@@ -4291,23 +4645,27 @@ var Common;
                 this.graphics.dimensions.setRadius(this.grid.getSize() / 2);
                 this.graphics.dimensions.setWidth(this.player.graphics.dimensions.getWidth());
                 this.graphics.dimensions.setHeight(this.player.graphics.dimensions.getHeight());
-                this.graphics.setPlacement(this.player.graphics.placement);
-                // this.graphics.dimensions.offset.x = -this.graphics.dimensions.getRadius();
-                // this.graphics.dimensions.offset.y = -this.graphics.dimensions.getRadius();
-                this.graphics.updateLocation(this.player.graphics.location.ax, this.player.graphics.location.ay);
+                this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.player));
+                this.flippable = true;
             }
             PlayerIcon.prototype.draw = function () {
-                switch (this.player.position.unitType) {
+                switch (this.player.unitType) {
                     case Team.Enums.UnitTypes.Offense:
+                        this.graphics.setOffsetXY(0, 0);
                         this.graphics.circle();
                         break;
                     case Team.Enums.UnitTypes.Defense:
+                        this.graphics.setOffsetXY(0, 0);
                         this.graphics.triangle();
                         break;
                     case Team.Enums.UnitTypes.SpecialTeams:
+                        this.graphics.setOffsetXY(-(this.graphics.dimensions.getWidth() / 2), -(this.graphics.dimensions.getHeight() / 2));
+                        this.graphics.initializePlacement(this.player.graphics.placement);
                         this.graphics.rect();
                         break;
                     case Team.Enums.UnitTypes.Other:
+                        this.graphics.setOffsetXY(-(this.graphics.dimensions.getWidth() / 2), -(this.graphics.dimensions.getHeight() / 2));
+                        this.graphics.initializePlacement(this.player.graphics.placement);
                         this.graphics.rhombus();
                         break;
                 }
@@ -4330,13 +4688,15 @@ var Common;
                 this.initialize(this.player.field, this.player);
                 this.layer.type = Common.Enums.LayerTypes.PlayerRelativeCoordinatesLabel;
                 this.selectable = false;
-                this.graphics.dimensions.offset.y = 8;
-                this.graphics.updateLocation(this.player.graphics.location.ax, this.player.graphics.location.ay + this.graphics.dimensions.offset.y);
+                this.graphics.snapping = false;
+                this.graphics.setOffsetXY(0, this.grid.getSize());
+                this.graphics.initializePlacement(this.player.graphics.placement);
+                this.graphics.placement.setRelativeElement(this.player);
             }
             PlayerRelativeCoordinatesLabel.prototype.draw = function () {
                 this.graphics.text([
-                    this.graphics.placement.relative.rx, ', ',
-                    this.graphics.placement.relative.ry
+                    this.player.graphics.placement.relative.rx, ', ',
+                    this.player.graphics.placement.relative.ry
                 ].join(''));
                 this.graphics.setAttribute('class', 'no-highlight');
                 this.layer.hide();
@@ -4359,9 +4719,10 @@ var Common;
                 this.initialize(this.player.field, this.player);
                 this.layer.type = Common.Enums.LayerTypes.PlayerPersonnelLabel;
                 this.selectable = false;
-                this.graphics.dimensions.offset.y =
-                    -(this.player.graphics.dimensions.getHeight() / 2) * 0.4;
-                this.graphics.updateLocation(this.player.graphics.location.ax, this.player.graphics.location.ay + this.graphics.dimensions.offset.y);
+                this.graphics.snapping = false;
+                this.graphics.setOffsetXY(0, -(this.player.graphics.dimensions.getHeight() / 2) * 0.4);
+                this.graphics.initializePlacement(this.player.graphics.placement);
+                this.graphics.placement.setRelativeElement(this.player);
             }
             PlayerPersonnelLabel.prototype.draw = function () {
                 this.graphics.text(this.player.position.label);
@@ -4385,9 +4746,10 @@ var Common;
                 this.initialize(this.player.field, this.player);
                 this.layer.type = Common.Enums.LayerTypes.PlayerIndexLabel;
                 this.selectable = false;
-                this.graphics.dimensions.offset.y =
-                    (this.player.graphics.dimensions.getHeight() / 2) * 0.4;
-                this.graphics.updateLocation(this.player.graphics.location.ax, this.player.graphics.location.ay + this.graphics.dimensions.offset.y);
+                this.graphics.snapping = false;
+                this.graphics.setOffsetXY(0, (this.player.graphics.dimensions.getHeight() / 2) * 0.4);
+                this.graphics.initializePlacement(this.player.graphics.placement);
+                this.graphics.placement.setRelativeElement(this.player);
             }
             PlayerIndexLabel.prototype.draw = function () {
                 this.graphics.text((this.player.position.index).toString());
@@ -4409,10 +4771,12 @@ var Common;
                 _super.call(this);
                 this.dragInitialized = dragInitialized === true;
                 this.type = Common.Enums.RouteTypes.Generic;
+                this.flippable = true;
             }
             Route.prototype.setPlayer = function (player) {
                 this.player = player;
                 this.initialize(this.player.field, this.player);
+                this.graphics.initializePlacement(this.player.graphics.placement);
                 if (this.player) {
                     this.nodes = new Common.Models.LinkedList();
                     var self_3 = this;
@@ -4433,6 +4797,9 @@ var Common;
                 this.type = json.type;
                 // initialize route nodes
                 if (json.nodes) {
+                    // Don't listen to changes while initializing the nodes list
+                    // (performance issue)
+                    this.nodes.listen(false);
                     for (var i = 0; i < json.nodes.length; i++) {
                         var rawNode = json.nodes[i];
                         var relativeCoords = new Common.Models.RelativeCoordinates(0, 0, this.player);
@@ -4450,10 +4817,16 @@ var Common;
                         }
                         routeNode.initialize(this.field, this);
                         routeNode.fromJson(rawNode);
-                        this.listening = false;
+                        // shitty temp fix
+                        if (i == 0) {
+                            routeNode.layer.toBack();
+                            routeNode.disable();
+                        }
                         this.addNode(routeNode, false);
-                        this.listening = true;
                     }
+                    // start listening for changes in the nodes list again
+                    // (performance issue)
+                    this.nodes.listen(true);
                 }
             };
             Route.prototype.toJson = function () {
@@ -4501,10 +4874,12 @@ var Common;
             };
             Route.prototype.bringNodesToFront = function () {
                 this.nodes.forEach(function (routeNode) {
-                    routeNode.graphics.toFront();
+                    routeNode.layer.toFront();
                 });
                 // move the route back so it's behind the player
                 this.player.layer.toFront();
+                // Fack! just do what I SAY!!!
+                this.routePath.layer.toBack();
             };
             Route.prototype.addNode = function (routeNode, render) {
                 if (this.nodes.isEmpty() && (routeNode.type != Common.Enums.RouteNodeTypes.Root &&
@@ -4513,14 +4888,26 @@ var Common;
                 }
                 this.nodes.add(routeNode);
                 routeNode.draw();
-                if (render !== false) {
-                    this.draw();
-                }
+                if (routeNode.type == Common.Enums.RouteNodeTypes.Root)
+                    this.disableRootNode(routeNode);
+                this.draw();
                 return routeNode;
+            };
+            Route.prototype.disableRootNode = function (routeNode) {
+                // ...then update its graphical info
+                routeNode.layer.toBack();
+                routeNode.layer.hide();
+                routeNode.disable();
             };
             Route.prototype.getLastNode = function () {
                 //return this.nodes.getLast<Common.Models.FieldElement>();
                 return null;
+            };
+            Route.prototype.flip = function () {
+                this.nodes.forEach(function (routeNode) {
+                    routeNode.flip();
+                });
+                this.flipped = !this.flipped;
             };
             Route.prototype.getMixedStringFromNodes = function (nodeArray) {
                 if (!nodeArray || nodeArray.length <= 1) {
@@ -4634,6 +5021,7 @@ var Common;
                 this.disabled = this.routeNode.type == Common.Enums.RouteNodeTypes.CurveControl;
                 this.layer.type = Common.Enums.LayerTypes.PlayerRouteAction;
                 this.graphics.setOffsetXY(0.5, 0.5);
+                this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.routeNode));
             };
             RouteAction.prototype.draw = function () {
                 Common.Factories.RouteActionFactory.draw(this);
@@ -4692,6 +5080,7 @@ var Common;
                 this.graphics.setStroke('grey');
                 this.graphics.setStrokeWidth(1);
                 this.graphics.setOpacity(0.2);
+                this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.routeNode));
             };
             RouteControlPath.prototype.toJson = function () {
                 return {
@@ -4754,11 +5143,12 @@ var Common;
                     throw new Error('RouteNode constructor(): RelativeCoordinates is null or undefined');
                 this.relativeCoordinates = relativeCoordinates;
                 this.type = type;
+                this.flippable = true;
             }
             RouteNode.prototype.initialize = function (field, route) {
                 _super.prototype.initialize.call(this, field, this.relativeCoordinates.relativeElement);
                 this.route = route;
-                this.graphics.updateFromRelative(this.relativeCoordinates.rx, this.relativeCoordinates.ry, this.relativeElement);
+                this.graphics.initializePlacement(new Common.Models.Placement(this.relativeCoordinates.rx, this.relativeCoordinates.ry, this.relativeElement));
                 this.graphics.dimensions.radius = this.grid.getSize() / 3.5;
                 this.graphics.dimensions.width = this.graphics.dimensions.radius * 2;
                 this.graphics.dimensions.height = this.graphics.dimensions.radius * 2;
@@ -4767,23 +5157,10 @@ var Common;
             RouteNode.prototype.draw = function () {
                 this.graphics.circle();
             };
-            // public setContext(route: Common.Interfaces.IRoute) {
-            //     this.route = route;
-            //     this.player = route.player;
-            //     this.field = route.field;
-            //     this.grid = this.context.grid;
-            //     this.paper = this.context.paper;
-            //     this.graphics.updateLocation();
-            //     this.graphics.dimensions.radius = this.grid.getSize() / 4;
-            //     this.graphics.dimensions.width = this.graphics.dimensions.radius * 2;
-            //     this.graphics.dimensions.height = this.graphics.dimensions.radius * 2;
-            //     this.draw();
-            // }
             RouteNode.prototype.fromJson = function (json) {
                 if (!json)
                     return;
                 this.routeAction.fromJson(json.routeAction);
-                this.contextmenuTemplateUrl = json.contextmenuTemplateUrl;
                 this.type = json.type;
                 this.renderType = json.renderType;
                 this.relativeCoordinates.fromJson(json.relative);
@@ -4808,6 +5185,10 @@ var Common;
                 // route node has been modified
                 this.setModified();
             };
+            RouteNode.prototype.flip = function () {
+                this.graphics.placement.flip();
+                this.flipped = this.graphics.placement.flipped;
+            };
             return RouteNode;
         })(Common.Models.FieldElement);
         Models.RouteNode = RouteNode;
@@ -4829,6 +5210,7 @@ var Common;
                 this.graphics.setOriginalFill(null);
                 this.graphics.setOriginalStroke('black');
                 this.graphics.setOriginalStrokeWidth(3);
+                this.graphics.initializePlacement(this.route.graphics.placement);
                 this.layer.type = Common.Enums.LayerTypes.PlayerRoutePath;
             };
             RoutePath.prototype.toJson = function () {
@@ -4868,9 +5250,14 @@ var Common;
                 _super.call(this);
                 _super.prototype.setContext.call(this, this);
                 this.updateFromRelative(rx, ry, relativeElement);
+                this.flipped = false;
                 this.index = index >= 0 ? index : -1;
                 //this.onModified(function() {});
             }
+            Placement.prototype.copy = function (newPlacement) {
+                var copyPlacement = newPlacement || new Common.Models.Placement(this.relative.rx, this.relative.ry, this.relativeElement);
+                return _super.prototype.copy.call(this, copyPlacement, this);
+            };
             Placement.prototype.toJson = function () {
                 return {
                     relative: this.relative.toJson(),
@@ -4884,12 +5271,28 @@ var Common;
                 this.coordinates.fromJson(json.coordinates);
                 this.index = json.index;
                 this.guid = json.guid;
-                //this.setModified(true);
+            };
+            Placement.prototype.setRelativeElement = function (relativeElement) {
+                if (Common.Utilities.isNotNullOrUndefined(relativeElement)) {
+                    this.relative.relativeElement = relativeElement;
+                    this.relativeElement = relativeElement;
+                    this.grid = this.relativeElement.grid;
+                }
+            };
+            Placement.prototype.update = function (placement) {
+                if (Common.Utilities.isNullOrUndefined(placement))
+                    return;
+                this.setRelativeElement(placement.relativeElement);
+                this.fromJson(placement.toJson());
+            };
+            Placement.prototype.updateFromAbsolute = function (ax, ay) {
+                var coords = this.grid.getCoordinatesFromAbsolute(ax, ay);
+                this.relative.updateFromGridCoordinates(coords.x, coords.y);
+                this.coordinates.update(coords.x, coords.y);
             };
             Placement.prototype.updateFromCoordinates = function (x, y) {
                 this.coordinates.update(x, y);
                 this.relative.updateFromGridCoordinates(this.coordinates.x, this.coordinates.y);
-                //this.setModified(true);
             };
             Placement.prototype.updateFromRelative = function (rx, ry, relativeElement) {
                 if (!relativeElement) {
@@ -4905,6 +5308,10 @@ var Common;
                     this.coordinates = this.relative.getCoordinates();
                 }
             };
+            Placement.prototype.flip = function () {
+                this.updateFromRelative(this.relative.rx * -1, this.relative.ry * -1, this.relativeElement);
+                this.flipped = !this.flipped;
+            };
             return Placement;
         })(Common.Models.Modifiable);
         Models.Placement = Placement;
@@ -4919,6 +5326,7 @@ var Common;
             __extends(PlacementCollection, _super);
             function PlacementCollection() {
                 _super.call(this);
+                this.flipped = false;
             }
             PlacementCollection.prototype.fromJson = function (placements) {
                 if (!placements)
@@ -4941,6 +5349,14 @@ var Common;
             };
             PlacementCollection.prototype.toJson = function () {
                 return _super.prototype.toJson.call(this);
+            };
+            PlacementCollection.prototype.flip = function () {
+                if (this.hasElements()) {
+                    this.forEach(function (placement, index) {
+                        placement.flip();
+                    });
+                    this.flipped = !this.flipped;
+                }
             };
             return PlacementCollection;
         })(Common.Models.Collection);
@@ -5158,8 +5574,8 @@ var Common;
                 _super.prototype.setContext.call(this, this);
                 this.paper = paper;
                 this.grid = paper.grid;
+                this.placement = null; // new Common.Models.Placement(0, 0);
                 this.location = new Common.Models.Location(0, 0);
-                this.placement = new Common.Models.Placement(0, 0);
                 this.dimensions = new Common.Models.Dimensions();
                 this.containment = new Common.Models.Containment(0, this.grid.getWidth(), 0, this.grid.getHeight());
                 this.originalFill = 'white';
@@ -5185,6 +5601,7 @@ var Common;
                 this.font = this.paper.drawing.getFont('Arial');
                 this.drawingHandler = new Common.Models.DrawingHandler(this);
                 this.set = new Common.Models.GraphicsSet(this);
+                this.snapping = true;
             }
             Graphics.prototype.toJson = function () {
                 return {
@@ -5208,8 +5625,8 @@ var Common;
                     disabledOpacity: this.disabledOpacity,
                     hoverOpacity: this.hoverOpacity,
                     hoverFillOpacity: this.hoverFillOpacity,
-                    placement: this.placement.toJson(),
-                    location: this.location.toJson()
+                    placement: this.placement ? this.placement.toJson() : null,
+                    location: this.location ? this.location.toJson() : null
                 };
             };
             Graphics.prototype.fromJson = function (json) {
@@ -5249,16 +5666,6 @@ var Common;
             Graphics.prototype.hasRaphael = function () {
                 return this.raphael != null && this.raphael != undefined;
             };
-            Graphics.prototype.hasLocation = function () {
-                return Common.Utilities.isNotNullOrUndefined(this.location);
-            };
-            Graphics.prototype.hasPlacement = function () {
-                return Common.Utilities.isNotNullOrUndefined(this.placement);
-            };
-            Graphics.prototype.setPlacement = function (placement) {
-                this.placement = placement;
-                this.updateFromCoordinates(placement.coordinates.x, placement.coordinates.y);
-            };
             Graphics.prototype.hasSet = function () {
                 return Common.Utilities.isNotNullOrUndefined(this.set);
             };
@@ -5286,6 +5693,20 @@ var Common;
             Graphics.prototype.setOriginalFillOpacity = function (opacity) {
                 this.setFillOpacity(opacity);
                 this.originalFillOpacity = opacity;
+                return this;
+            };
+            Graphics.prototype.getSelectedFill = function () {
+                return this.selectedFill;
+            };
+            Graphics.prototype.setSelectedFill = function (fill) {
+                this.selectedFill = fill;
+                return this;
+            };
+            Graphics.prototype.getSelectedFillOpacity = function () {
+                return this.selectedFillOpacity;
+            };
+            Graphics.prototype.setSelectedFillOpacity = function (opacity) {
+                this.selectedFillOpacity = opacity;
                 return this;
             };
             Graphics.prototype.getStroke = function () {
@@ -5328,15 +5749,6 @@ var Common;
                     throw new Error('Graphics setHoverFillOpacity(): opacity must be between 0 and 1, inclusive');
                 this.hoverFillOpacity = opacity;
                 return this;
-            };
-            /**
-             *
-             * Dimension pass-through methods
-             *
-             */
-            Graphics.prototype.setOffsetXY = function (x, y) {
-                this.dimensions.setOffsetXY(x, y);
-                this.updateLocation();
             };
             /**
              * Gets the current opacity
@@ -5461,17 +5873,17 @@ var Common;
              * @param {number} dy [description]
              */
             Graphics.prototype.moveByDelta = function (dx, dy) {
-                if (!this.hasRaphael())
-                    return;
-                if (!this.location)
-                    throw new Error('Graphics moveByDelta(): location is null or undefined');
                 // Update graphical location
-                this.location.moveByDelta(dx, dy);
-                // Update placement when dropping
-                var coords = this.grid.getCoordinatesFromAbsolute(this.location.ax, this.location.ay);
-                this.placement.updateFromCoordinates(coords.x, coords.y);
-                // Transform (move to updateAbsolute/Coordinates methods?)
-                this.transform(this.location.dx, this.location.dy);
+                if (Common.Utilities.isNotNullOrUndefined(this.location)) {
+                    this.location.moveByDelta(dx, dy);
+                    // Update placement when dropping
+                    var coords = this.grid.getCoordinatesFromAbsolute(this.location.ax, this.location.ay);
+                    if (Common.Utilities.isNotNullOrUndefined(this.placement)) {
+                        this.placement.updateFromCoordinates(coords.x, coords.y);
+                    }
+                    // Transform (move to updateAbsolute/Coordinates methods?)
+                    this.transform(this.location.dx, this.location.dy);
+                }
             };
             Graphics.prototype.moveByDeltaX = function (dx) {
                 if (this.canMoveByDeltaX(dx)) {
@@ -5483,34 +5895,43 @@ var Common;
                     this.moveByDelta(0, dy);
                 }
             };
-            Graphics.prototype.updatePlacement = function (x, y) {
-                this.updateFromCoordinates(Common.Utilities.isNullOrUndefined(x) ? this.placement.coordinates.x : x, Common.Utilities.isNullOrUndefined(y) ? this.placement.coordinates.y : y);
+            Graphics.prototype.hasLocation = function () {
+                return Common.Utilities.isNotNullOrUndefined(this.location);
             };
-            Graphics.prototype.updateLocation = function (ax, ay) {
-                var setAx = Common.Utilities.isNullOrUndefined(ax) ? this.location.ax : ax;
-                var setAy = Common.Utilities.isNullOrUndefined(ay) ? this.location.ay : ay;
-                this.updateFromAbsolute(setAx, setAy);
+            Graphics.prototype.hasPlacement = function () {
+                return Common.Utilities.isNotNullOrUndefined(this.placement);
             };
-            Graphics.prototype.updateFromAbsolute = function (ax, ay) {
-                // Update location
-                this.location.updateFromAbsolute(ax, ay);
-                // convert absolute coordinates into grid coordinates & update placement
-                var coords = this.grid.getCoordinatesFromAbsolute(ax, ay);
-                this.placement.updateFromCoordinates(coords.x, coords.y);
+            Graphics.prototype.setOffsetXY = function (x, y) {
+                this.dimensions.setOffsetXY(x, y);
+            };
+            Graphics.prototype.initializePlacement = function (placement) {
+                if (Common.Utilities.isNullOrUndefined(placement))
+                    throw new Error('Graphics initializePlacement(): placement is null or undefined');
+                if (Common.Utilities.isNullOrUndefined(this.placement)) {
+                    this.placement = placement;
+                }
+                else {
+                    this.placement.update(placement);
+                }
+                var absCoords = this.grid.getAbsoluteFromCoordinates(this.placement.coordinates.x, this.placement.coordinates.y);
+                this.location.updateFromAbsolute(absCoords.x + this.dimensions.offset.x, absCoords.y + this.dimensions.offset.y);
                 this.refresh();
             };
-            Graphics.prototype.updateFromCoordinates = function (x, y) {
-                // convert grid coordinates to absolute & update location
-                var absCoords = this.grid.getAbsoluteFromCoordinates(x, y);
-                this.location.updateFromAbsolute(absCoords.x + this.dimensions.offset.x, absCoords.y + this.dimensions.offset.y);
-                // Update graphical location
-                this.placement.updateFromCoordinates(x, y);
+            Graphics.prototype.updateFromAbsolute = function (ax, ay) {
+                this.placement.updateFromAbsolute(ax, ay);
+                this.location.updateFromAbsolute(ax, ay);
                 this.refresh();
             };
             Graphics.prototype.updateFromRelative = function (rx, ry, relativeElement) {
                 this.placement.updateFromRelative(rx, ry, relativeElement);
                 var absCoords = this.grid.getAbsoluteFromCoordinates(this.placement.coordinates.x, this.placement.coordinates.y);
-                this.location.updateFromAbsolute(absCoords.x + this.dimensions.offset.x, absCoords.y + this.dimensions.offset.y);
+                this.location.updateFromAbsolute(absCoords.x, absCoords.y);
+                this.refresh();
+            };
+            Graphics.prototype.updateFromCoordinates = function (x, y) {
+                this.placement.updateFromCoordinates(x, y);
+                var absCoords = this.grid.getAbsoluteFromCoordinates(this.placement.coordinates.x, this.placement.coordinates.y);
+                this.location.updateFromAbsolute(absCoords.x, absCoords.y);
                 this.refresh();
             };
             /**
@@ -5532,10 +5953,8 @@ var Common;
             };
             Graphics.prototype.rhombus = function () {
                 this.remove();
-                this.rect();
                 this.dimensions.rotation = -45;
-                this.refresh();
-                this.transform(0, 0);
+                this.rect();
                 return this;
             };
             Graphics.prototype.ellipse = function () {
@@ -5598,6 +6017,11 @@ var Common;
                     return;
                 return this.raphael.attr(attrs);
             };
+            Graphics.prototype.attrKeyValue = function (key, value) {
+                if (!this.hasRaphael())
+                    return;
+                return this.raphael.attr(key, value);
+            };
             Graphics.prototype.setAttribute = function (attribute, value) {
                 if (!this.hasRaphael())
                     return;
@@ -5611,7 +6035,12 @@ var Common;
             Graphics.prototype.transform = function (ax, ay) {
                 if (!this.hasRaphael())
                     return;
-                this.raphael.transform(['t', ax, ', ', ay, 'r', this.dimensions.rotation].join(''));
+                this.raphael.transform(['t', ax, ', ', ay].join(''));
+            };
+            Graphics.prototype.resetTransform = function () {
+                if (!this.hasRaphael())
+                    return;
+                this.raphael.transform('');
             };
             Graphics.prototype.rotate = function (degrees) {
                 if (!this.hasRaphael())
@@ -5777,12 +6206,31 @@ var Common;
                     return;
                 this.raphael.drag(dragMove, dragStart, dragEnd, context, context, context);
             };
+            Graphics.prototype.flip = function () {
+                if (this.hasRaphael()) {
+                    // rotate element
+                    this.rotate(180);
+                }
+                // update placemement
+                this.placement.flip();
+                this.updateFromRelative(this.placement.relative.rx, this.placement.relative.ry, this.placement.relativeElement);
+            };
             Graphics.prototype.drop = function () {
                 if (this.location.hasChanged())
                     this.setModified(true);
+                var snapX = this.grid.snapPixel(this.location.ax);
+                var snapY = this.grid.snapPixel(this.location.ay);
                 // Apply snap on drop
-                this.updateLocation(this.grid.snapPixel(this.location.ax), this.grid.snapPixel(this.location.ay));
-                this.transform(0, 0);
+                this.updateFromAbsolute(this.snapping ? snapX : this.location.ax + (snapX - this.location.ax), this.snapping ? snapY : this.location.ay + (snapY - this.location.ay));
+                if (!this.hasRaphael())
+                    return;
+                this.resetTransform();
+                if (this.raphael.data('element-type') == 'triangle') {
+                    var tempTriangle = this.paper.drawing.triangle(this.placement.coordinates.x, this.placement.coordinates.y, this.dimensions.getHeight(), false, this.dimensions.getOffsetX(), this.dimensions.getOffsetY());
+                    var pathStr = tempTriangle.attr('path').toString();
+                    this.raphael.attr({ 'path': pathStr });
+                    tempTriangle.remove();
+                }
             };
             return Graphics;
         })(Common.Models.Modifiable);
@@ -6283,6 +6731,7 @@ var Common;
 /// <reference path='./AssociableEntityCollection.ts' />
 /// <reference path='./AssociationCollection.ts' />
 /// <reference path='./Association.ts' />
+/// <reference path='./AssociationResults.ts' />
 /// <reference path='./Notification.ts' />
 /// <reference path='./NotificationCollection.ts' />
 /// <reference path='./Icon.ts' />
@@ -6297,6 +6746,8 @@ var Common;
 /// <reference path='./PlayCollection.ts' />
 /// <reference path='./PlaybookModel.ts' />
 /// <reference path='./PlaybookModelCollection.ts' />
+/// <reference path='./Scenario.ts' />
+/// <reference path='./ScenarioCollection.ts' />
 /// <reference path='./Tab.ts' />
 /// <reference path='./TabCollection.ts' />
 /// <reference path='./Template.ts' />
@@ -6505,6 +6956,7 @@ var Common;
         (function (RenderTypes) {
             RenderTypes[RenderTypes["Preview"] = 0] = "Preview";
             RenderTypes[RenderTypes["Editor"] = 1] = "Editor";
+            RenderTypes[RenderTypes["Unknown"] = 2] = "Unknown";
         })(Enums.RenderTypes || (Enums.RenderTypes = {}));
         var RenderTypes = Enums.RenderTypes;
         (function (RouteNodeTypes) {
@@ -7224,22 +7676,15 @@ var Playbook;
     (function (Models) {
         var EditorField = (function (_super) {
             __extends(EditorField, _super);
-            function EditorField(paper, playPrimary, playOpponent) {
-                _super.call(this, paper, playPrimary, playOpponent);
-                this.type = this.playPrimary.unitType;
-                this.editorType = this.playPrimary.editorType;
+            function EditorField(paper, scenario) {
+                _super.call(this, paper, scenario);
                 this.zoom = 1;
+                this.editorType = this.scenario.editorType;
                 var self = this;
-                window.setInterval(function () {
-                    self.debug(self);
-                }, 1000);
                 this.onModified(function () {
                     //console.log('field modified');
                 });
             }
-            EditorField.prototype.debug = function (context) {
-                var breakpoint = 1;
-            };
             EditorField.prototype.initialize = function () {
                 this.ball = new Playbook.Models.EditorBall();
                 this.ball.initialize(this, null);
@@ -7276,9 +7721,9 @@ var Playbook;
                 this.layers.add(this.hashmark_right.layer);
                 this.layers.add(this.hashmark_sideline_left.layer);
                 this.layers.add(this.hashmark_sideline_right.layer);
-                if (!this.playPrimary.formation) {
-                    this.playPrimary.formation = new Common.Models.Formation(this.playPrimary.unitType);
-                    this.playPrimary.formation.setDefault(this.ball);
+                if (!this.scenario.playPrimary.formation) {
+                    this.scenario.playPrimary.formation = new Common.Models.Formation(this.scenario.playPrimary.unitType);
+                    this.scenario.playPrimary.formation.setDefault(this.ball);
                 }
                 this.draw();
             };
@@ -7295,7 +7740,7 @@ var Playbook;
                 this.hashmark_sideline_right.draw();
                 this.los.draw();
                 this.ball.draw();
-                this.drawPlay();
+                this.drawScenario();
             };
             EditorField.prototype.useAssignmentTool = function (coords) {
                 if (!this.selected.hasElements()) {
@@ -7339,7 +7784,7 @@ var Playbook;
                 // route exists, append the node
                 playerRoute.addNode(newNode);
                 console.log('set player route', player.relativeCoordinatesLabel, playerRoute);
-                this.playPrimary.assignmentGroup.assignments.addAtIndex(player.assignment, player.position.index);
+                this.scenario.playPrimary.assignmentGroup.assignments.addAtIndex(player.assignment, player.position.index);
             };
             EditorField.prototype.export = function () {
                 return null;
@@ -7348,21 +7793,38 @@ var Playbook;
             };
             EditorField.prototype.remove = function () { };
             EditorField.prototype.getBBoxCoordinates = function () { };
-            EditorField.prototype.addPlayer = function (placement, position, assignment) {
+            EditorField.prototype.addPrimaryPlayer = function (placement, position, assignment) {
                 var player = new Playbook.Models.EditorPlayer(placement, position, assignment);
                 player.initialize(this);
                 player.draw();
                 var self = this;
                 player.onModified(function () {
                     self.setModified(true);
-                    if (self.playPrimary) {
-                        self.playPrimary.setModified(true);
+                    if (self.scenario.playPrimary) {
+                        self.scenario.playPrimary.setModified(true);
                     }
-                    if (self.playOpponent) {
-                        self.playOpponent.setModified(true);
+                    if (self.scenario.playOpponent) {
+                        self.scenario.playOpponent.setModified(true);
                     }
                 });
-                this.players.add(player);
+                this.primaryPlayers.add(player);
+                return player;
+            };
+            EditorField.prototype.addOpponentPlayer = function (placement, position, assignment) {
+                var player = new Playbook.Models.EditorPlayer(placement, position, assignment);
+                player.initialize(this);
+                player.draw();
+                var self = this;
+                player.onModified(function () {
+                    self.setModified(true);
+                    if (self.scenario.playPrimary) {
+                        self.scenario.playPrimary.setModified(true);
+                    }
+                    if (self.scenario.playOpponent) {
+                        self.scenario.playOpponent.setModified(true);
+                    }
+                });
+                this.opponentPlayers.add(player);
                 return player;
             };
             return EditorField;
@@ -7377,14 +7839,8 @@ var Playbook;
     (function (Models) {
         var EditorCanvas = (function (_super) {
             __extends(EditorCanvas, _super);
-            function EditorCanvas(playPrimary, playOpponent, width, height) {
-                _super.call(this);
-                /**
-                 * TODO @theBull - find a better way to pass data into the canvas...
-                 * it shouldn't be dependent on play data at this level..........? maybe?
-                 */
-                this.playPrimary = playPrimary;
-                this.playOpponent = playOpponent;
+            function EditorCanvas(scenario, width, height) {
+                _super.call(this, scenario);
                 /**
                  * Note that paper is created during the initialize() method;
                  * canvas is dependent on angular directive / dynamic HTML include
@@ -7426,14 +7882,6 @@ var Playbook;
                 this.dimensions.width = this.$container.width();
                 this.dimensions.height = this.$container.height();
             };
-            EditorCanvas.prototype.updatePlay = function (playPrimary, playOpponent, redraw) {
-                this.playPrimary = playPrimary || this.playPrimary;
-                this.playOpponent = playOpponent || this.playOpponent;
-                this.unitType = this.playPrimary.unitType;
-                this.editorType = this.playPrimary.editorType;
-                this.paper.updatePlay(this.playPrimary, this.playOpponent);
-                this.setModified(true);
-            };
             EditorCanvas.prototype.resetHeight = function () {
                 //this.height = this.$container.height(this.$container.height());
             };
@@ -7473,11 +7921,7 @@ var Playbook;
                 this.drawing = new Common.Drawing.Utilities(this.canvas, this.grid);
                 // Paper methods within field are dependent on 
                 // this.Raphael
-                this.field = this.field ||
-                    new Playbook.Models.EditorField(this, this.canvas.playPrimary, this.canvas.playOpponent);
-            };
-            EditorPaper.prototype.updatePlay = function (playPrimary, playOpponent) {
-                this.field.updatePlay(playPrimary, playOpponent);
+                this.field = this.field || new Playbook.Models.EditorField(this, this.canvas.scenario);
             };
             return EditorPaper;
         })(Common.Models.Paper);
@@ -7491,8 +7935,8 @@ var Playbook;
     (function (Models) {
         var PreviewField = (function (_super) {
             __extends(PreviewField, _super);
-            function PreviewField(paper, playPrimary, playOpponent) {
-                _super.call(this, paper, playPrimary, playOpponent);
+            function PreviewField(paper, scenario) {
+                _super.call(this, paper, scenario);
             }
             PreviewField.prototype.initialize = function () {
                 this.ball = new Playbook.Models.PreviewBall();
@@ -7528,9 +7972,15 @@ var Playbook;
                 this.layers.add(this.hashmark_right.layer);
                 this.layers.add(this.hashmark_sideline_left.layer);
                 this.layers.add(this.hashmark_sideline_right.layer);
-                if (!this.playPrimary.formation) {
-                    this.playPrimary.formation = new Common.Models.Formation(this.playPrimary.unitType);
-                    this.playPrimary.formation.setDefault(this.ball);
+                if (Common.Utilities.isNotNullOrUndefined(this.scenario)) {
+                    if (Common.Utilities.isNotNullOrUndefined(this.scenario.playPrimary) && Common.Utilities.isNullOrUndefined(this.scenario.playPrimary.formation)) {
+                        this.scenario.playPrimary.formation = new Common.Models.Formation(this.scenario.playPrimary.unitType);
+                        this.scenario.playPrimary.formation.setDefault(this.ball);
+                    }
+                    if (Common.Utilities.isNotNullOrUndefined(this.scenario.playOpponent) && Common.Utilities.isNullOrUndefined(this.scenario.playOpponent.formation)) {
+                        this.scenario.playOpponent.formation = new Common.Models.Formation(this.scenario.playOpponent.unitType);
+                        this.scenario.playOpponent.formation.setDefault(this.ball);
+                    }
                 }
                 this.draw();
             };
@@ -7544,9 +7994,9 @@ var Playbook;
                 this.endzone_bottom.draw();
                 this.los.draw();
                 this.ball.draw();
-                this.drawPlay();
+                this.drawScenario();
             };
-            PreviewField.prototype.addPlayer = function (placement, position, assignment) {
+            PreviewField.prototype.addPrimaryPlayer = function (placement, position, assignment) {
                 // TODO @theBull - look into this
                 // adjust for no sidelines...
                 //placement.x -= 1;
@@ -7554,7 +8004,18 @@ var Playbook;
                 player.initialize(this);
                 // TODO @theBull - add players to new layers
                 player.draw();
-                this.players.add(player);
+                this.primaryPlayers.add(player);
+                return player;
+            };
+            PreviewField.prototype.addOpponentPlayer = function (placement, position, assignment) {
+                // TODO @theBull - look into this
+                // adjust for no sidelines...
+                //placement.x -= 1;
+                var player = new Playbook.Models.PreviewPlayer(placement, position, assignment);
+                player.initialize(this);
+                // TODO @theBull - add players to new layers
+                player.draw();
+                this.opponentPlayers.add(player);
                 return player;
             };
             PreviewField.prototype.useAssignmentTool = function (coords) {
@@ -7572,10 +8033,8 @@ var Playbook;
     (function (Models) {
         var PreviewCanvas = (function (_super) {
             __extends(PreviewCanvas, _super);
-            function PreviewCanvas(playPrimary, playOpponent) {
-                _super.call(this);
-                this.playPrimary = playPrimary;
-                this.playOpponent = playOpponent;
+            function PreviewCanvas(scenario) {
+                _super.call(this, scenario);
                 this.dimensions.setMinWidth(250);
                 this.dimensions.setMinHeight(200);
             }
@@ -7618,12 +8077,7 @@ var Playbook;
                 // NOTE: Grid size uses PREVIEW constants
                 this.grid = new Common.Models.Grid(this, Playbook.Constants.FIELD_COLS_FULL, Playbook.Constants.FIELD_ROWS_FULL);
                 this.drawing = new Common.Drawing.Utilities(this.canvas, this.grid);
-                // Paper methods within field are dependent on 
-                // this.Raphael
-                this.field = new Playbook.Models.PreviewField(this, this.canvas.playPrimary, this.canvas.playOpponent);
-            };
-            PreviewPaper.prototype.updatePlay = function (playPrimary, playOpponent) {
-                throw new Error('PreviewPaper updatePlay(): not implemented');
+                this.field = new Playbook.Models.PreviewField(this, this.canvas.scenario);
             };
             return PreviewPaper;
         })(Common.Models.Paper);
@@ -7705,7 +8159,7 @@ var Playbook;
                 this.graphics.moveByDelta(this.graphics.placement.coordinates.x, snapDy);
                 this.field.ball.dragging = true;
                 this.field.ball.layer.moveByDelta(this.field.ball.graphics.placement.coordinates.x, snapDy);
-                this.field.players.forEach(function (player, index) {
+                this.field.primaryPlayers.forEach(function (player, index) {
                     player.layer.layers.forEach(function (layer) {
                         layer.moveByDelta(player.graphics.placement.coordinates.x, snapDy);
                     });
@@ -7717,7 +8171,7 @@ var Playbook;
             EditorLineOfScrimmage.prototype.dragEnd = function (e) {
                 this.drop();
                 this.field.ball.drop();
-                this.field.players.forEach(function (player, index) {
+                this.field.primaryPlayers.forEach(function (player, index) {
                     player.drop();
                 });
             };
@@ -7850,7 +8304,7 @@ var Playbook;
                     var bounds = this.selectionBox.graphics.getBBox();
                     this.selectionBox.graphics.remove();
                     console.log(bounds);
-                    this.field.players.forEach(function (player, index) {
+                    this.field.primaryPlayers.forEach(function (player, index) {
                         // Here, we want to get the x,y vales of each object
                         // regardless of what sort of shape it is.
                         // But rect uses rx and ry, circle uses cx and cy, etc
@@ -7959,6 +8413,7 @@ var Playbook;
                 this.relativeCoordinatesLabel = new Playbook.Models.EditorPlayerRelativeCoordinatesLabel(this);
                 this.personnelLabel = new Playbook.Models.EditorPlayerPersonnelLabel(this);
                 this.indexLabel = new Playbook.Models.EditorPlayerIndexLabel(this);
+                this.renderType = Common.Enums.RenderTypes.Editor;
                 this.layer.addLayer(this.selectionBox.layer);
                 this.layer.addLayer(this.icon.layer);
                 this.layer.addLayer(this.relativeCoordinatesLabel.layer);
@@ -7969,9 +8424,13 @@ var Playbook;
                     console.log('editor player modified');
                     self.setModified(true);
                 });
-                // parse route json data
-                if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+                // parse route json data 
+                // don't render the assignments if the editor type is of type Formation
+                if (Common.Utilities.isNotNullOrUndefined(this.assignment) &&
+                    this.field.editorType != Playbook.Enums.EditorTypes.Formation) {
+                    this.assignment.listen(false);
                     this.assignment.setRoutes(this, Common.Enums.RenderTypes.Editor);
+                    this.assignment.listen(true);
                 }
                 this.contextmenuTemplateUrl = Common.Constants.PLAYER_CONTEXTMENU_TEMPLATE_URL;
             };
@@ -8058,9 +8517,14 @@ var Playbook;
             EditorPlayer.prototype.dragMove = function (dx, dy, posx, posy, e) {
                 // Ignore drag motions under specified threshold to prevent
                 // click/mousedown from triggering drag method
-                if (!this.isOverDragThreshold(dx, dy))
+                if (!this.dragging && !this.isOverDragThreshold(dx, dy)) {
                     return;
-                this.dragged = true;
+                }
+                else {
+                    this.dragging = true;
+                    if (this.relativeCoordinatesLabel)
+                        this.relativeCoordinatesLabel.layer.show();
+                }
                 // do not allow dragging while in route mode
                 if (this.canvas.toolMode == Playbook.Enums.ToolModes.Assignment) {
                     if (!this.assignment) {
@@ -8094,11 +8558,11 @@ var Playbook;
                     }
                     // Update relative coordinates label, if it exists
                     if (this.relativeCoordinatesLabel) {
-                        this.relativeCoordinatesLabel.graphics.text([
-                            this.graphics.placement.relative.rx,
-                            ', ',
+                        var updatedRelativeCoordinates = [
+                            this.graphics.placement.relative.rx, ', ',
                             this.graphics.placement.relative.ry
-                        ].join(''));
+                        ].join('');
+                        this.relativeCoordinatesLabel.graphics.attrKeyValue('text', updatedRelativeCoordinates);
                     }
                 }
                 else if (this.canvas.toolMode == Playbook.Enums.ToolModes.Select) {
@@ -8110,27 +8574,26 @@ var Playbook;
             };
             EditorPlayer.prototype.dragStart = function (x, y, e) {
                 _super.prototype.dragStart.call(this, x, y, e);
-                if (this.dragging) {
-                    if (this.relativeCoordinatesLabel)
-                        this.relativeCoordinatesLabel.layer.show();
-                }
             };
             EditorPlayer.prototype.dragEnd = function (e) {
-                _super.prototype.dragEnd.call(this, e);
-                this.drop();
-                if (this.assignment) {
-                    // TODO: implement route switching
-                    this.assignment.routes.forEach(function (route, index) {
-                        if (Common.Utilities.isNotNullOrUndefined(route)) {
-                            if (route.dragInitialized) {
-                                route.dragInitialized = false;
+                if (this.dragging) {
+                    this.drop();
+                    if (this.assignment) {
+                        // TODO: implement route switching
+                        this.assignment.routes.forEach(function (route, index) {
+                            if (Common.Utilities.isNotNullOrUndefined(route)) {
+                                if (route.dragInitialized) {
+                                    route.dragInitialized = false;
+                                }
+                                route.drop();
+                                route.draw();
                             }
-                            route.draw();
-                        }
-                    });
+                        });
+                    }
+                    if (this.relativeCoordinatesLabel)
+                        this.relativeCoordinatesLabel.layer.hide();
                 }
-                if (this.relativeCoordinatesLabel)
-                    this.relativeCoordinatesLabel.layer.hide();
+                _super.prototype.dragEnd.call(this, e);
             };
             EditorPlayer.prototype.clearRoute = function () {
             };
@@ -8169,14 +8632,19 @@ var Playbook;
                 _super.prototype.initialize.call(this, field);
                 // the set acts as a group for the other graphical elements
                 this.icon = new Playbook.Models.PreviewPlayerIcon(this);
+                this.personnelLabel = new Playbook.Models.PreviewPlayerPersonnelLabel(this);
+                this.renderType = Common.Enums.RenderTypes.Preview;
                 this.layer.addLayer(this.icon.layer);
                 // parse route json data
                 if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+                    this.assignment.listen(false);
                     this.assignment.setRoutes(this, Common.Enums.RenderTypes.Preview);
+                    this.assignment.listen(true);
                 }
             };
             PreviewPlayer.prototype.draw = function () {
                 this.icon.draw();
+                //this.personnelLabel.draw();
                 if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
                     if (this.assignment.routes.hasElements()) {
                         this.assignment.routes.forEach(function (route, index) {
@@ -8303,9 +8771,6 @@ var Playbook;
             function PreviewPlayerPersonnelLabel(player) {
                 _super.call(this, player);
             }
-            PreviewPlayerPersonnelLabel.prototype.draw = function () {
-                // player label not visible for preview player
-            };
             return PreviewPlayerPersonnelLabel;
         })(Common.Models.PlayerPersonnelLabel);
         Models.PreviewPlayerPersonnelLabel = PreviewPlayerPersonnelLabel;
@@ -8392,10 +8857,21 @@ var Playbook;
                 if (this.player) {
                 }
                 this.routePath = new Playbook.Models.PreviewRoutePath();
-                this.routePath.initialize(this.field, this.player);
-                this.layer.addLayer(this.routePath.layer);
+                this.routePath.initialize(this.field, this);
                 this.graphics.disable();
                 this.renderType = Common.Enums.RenderTypes.Preview;
+            };
+            PreviewRoute.prototype.addNode = function (routeNode, render) {
+                // Ensure there is a root node before attempting to add the given node
+                if (this.nodes.isEmpty() && routeNode.type != Common.Enums.RouteNodeTypes.Root) {
+                    // add root node
+                    var rootNode = new Playbook.Models.PreviewRouteNode(new Common.Models.RelativeCoordinates(0, 0, this.player), Common.Enums.RouteNodeTypes.Root);
+                    rootNode.initialize(this.field, this.player);
+                    // add first, since this step includes drawing the node
+                    _super.prototype.addNode.call(this, rootNode, false);
+                    this.disableRootNode(rootNode);
+                }
+                return _super.prototype.addNode.call(this, routeNode, false);
             };
             PreviewRoute.prototype.setContext = function (player) {
                 // TODO @theBull
@@ -8423,18 +8899,8 @@ var Playbook;
             }
             EditorRoute.prototype.setPlayer = function (player) {
                 _super.prototype.setPlayer.call(this, player);
-                if (this.player) {
-                    // add root node
-                    var rootNode = new Playbook.Models.EditorRouteNode(new Common.Models.RelativeCoordinates(0, 0, this.player), Common.Enums.RouteNodeTypes.Root);
-                    rootNode.initialize(this.field, this.player);
-                    rootNode.layer.toBack();
-                    rootNode.layer.hide();
-                    rootNode.disable();
-                    this.addNode(rootNode, false);
-                }
                 this.routePath = new Playbook.Models.EditorRoutePath();
-                this.routePath.initialize(this.field, this.player);
-                this.layer.addLayer(this.routePath.layer);
+                this.routePath.initialize(this.field, this);
                 this.renderType = Common.Enums.RenderTypes.Editor;
             };
             EditorRoute.prototype.setContext = function (player) {
@@ -8452,6 +8918,18 @@ var Playbook;
                     });
                     this.draw();
                 }
+            };
+            EditorRoute.prototype.addNode = function (routeNode, render) {
+                // Ensure there is a root node before attempting to add the given node
+                if (this.nodes.isEmpty() && routeNode.type != Common.Enums.RouteNodeTypes.Root) {
+                    // add root node
+                    var rootNode = new Playbook.Models.EditorRouteNode(new Common.Models.RelativeCoordinates(0, 0, this.player), Common.Enums.RouteNodeTypes.Root);
+                    rootNode.initialize(this.field, this.player);
+                    // add first, since this step includes drawing the node
+                    _super.prototype.addNode.call(this, rootNode, false);
+                    this.disableRootNode(rootNode);
+                }
+                return _super.prototype.addNode.call(this, routeNode, false);
             };
             EditorRoute.prototype.initializeCurve = function (coords, flip) {
                 /**
@@ -8487,12 +8965,12 @@ var Playbook;
                     endNode = this.nodes.getIndex(2);
                 }
                 if (flip === true) {
-                    controlNode.graphics.updateLocation(coords.x, lastNode.graphics.location.ay);
+                    controlNode.graphics.updateFromAbsolute(coords.x, lastNode.graphics.location.ay);
                 }
                 else {
-                    controlNode.graphics.updateLocation(lastNode.graphics.location.ax, coords.y);
+                    controlNode.graphics.updateFromAbsolute(lastNode.graphics.location.ax, coords.y);
                 }
-                endNode.graphics.updateLocation(coords.x, coords.y);
+                endNode.graphics.updateFromAbsolute(coords.x, coords.y);
                 this.drawCurve(controlNode);
             };
             EditorRoute.prototype.moveNodesByDelta = function (dx, dy) {
@@ -8549,6 +9027,7 @@ var Playbook;
                 this.routeAction = new Playbook.Models.EditorRouteAction(Common.Enums.RouteNodeActions.None);
                 this.routeControlPath = new Playbook.Models.EditorRouteControlPath();
                 this.renderType = Common.Enums.RenderTypes.Editor;
+                this.contextmenuTemplateUrl = Common.Constants.EDITOR_ROUTENODE_CONTEXTMENU_TEMPLATE_URL;
             }
             EditorRouteNode.prototype.initialize = function (field, route) {
                 _super.prototype.initialize.call(this, field, route);
@@ -8556,7 +9035,8 @@ var Playbook;
                 this.graphics.setOriginalFill('#222222');
                 this.graphics.setHoverOpacity(1);
                 this.graphics.setOriginalOpacity(0.05);
-                this.contextmenuTemplateUrl = Common.Constants.EDITOR_ROUTENODE_CONTEXTMENU_TEMPLATE_URL;
+                this.graphics.setSelectedFillOpacity(1);
+                this.graphics.setSelectedFill('#222222');
                 // Related route node graphics
                 this.routeAction.initialize(this.field, this);
                 this.routeControlPath.initialize(this.field, this);
@@ -8608,19 +9088,21 @@ var Playbook;
                     console.log('dragging control:', this.type);
                 }
                 this.route.draw();
-                this.setModified(true);
             };
             EditorRouteNode.prototype.dragStart = function (x, y, e) {
                 _super.prototype.dragStart.call(this, x, y, e);
+                this.listen(false);
             };
             EditorRouteNode.prototype.dragEnd = function (e) {
                 _super.prototype.dragEnd.call(this, e);
+                this.listen(true);
                 this.drop();
                 // re-draw the route again after dropping,
                 // since .drop() will force the absolute
                 // coordinates to snap to a grid point, which
                 // doesn't happen during the onDrag method
                 this.route.draw();
+                this.setModified(true);
             };
             EditorRouteNode.prototype.drop = function () {
                 _super.prototype.drop.call(this);
@@ -8821,15 +9303,18 @@ var Playbook;
         })(Enums.ToolActions || (Enums.ToolActions = {}));
         var ToolActions = Enums.ToolActions;
         (function (EditorTypes) {
-            EditorTypes[EditorTypes["Formation"] = 0] = "Formation";
-            EditorTypes[EditorTypes["Assignment"] = 1] = "Assignment";
-            EditorTypes[EditorTypes["Play"] = 2] = "Play";
+            EditorTypes[EditorTypes["Any"] = 0] = "Any";
+            EditorTypes[EditorTypes["Formation"] = 1] = "Formation";
+            EditorTypes[EditorTypes["Assignment"] = 2] = "Assignment";
+            EditorTypes[EditorTypes["Play"] = 3] = "Play";
+            EditorTypes[EditorTypes["Scenario"] = 4] = "Scenario";
         })(Enums.EditorTypes || (Enums.EditorTypes = {}));
         var EditorTypes = Enums.EditorTypes;
         (function (PlayTypes) {
             PlayTypes[PlayTypes["Any"] = 0] = "Any";
             PlayTypes[PlayTypes["Primary"] = 1] = "Primary";
             PlayTypes[PlayTypes["Opponent"] = 2] = "Opponent";
+            PlayTypes[PlayTypes["Unknown"] = 3] = "Unknown";
         })(Enums.PlayTypes || (Enums.PlayTypes = {}));
         var PlayTypes = Enums.PlayTypes;
         (function (PlayerIconTypes) {
@@ -9071,6 +9556,10 @@ var Team;
                 this.setType = Common.Enums.SetTypes.Personnel;
                 this.onModified(function (data) { });
             }
+            Personnel.prototype.copy = function (newPersonnel) {
+                var copyPersonnel = newPersonnel || new Team.Models.Personnel(this.unitType);
+                return _super.prototype.copy.call(this, copyPersonnel, this);
+            };
             Personnel.prototype.hasPositions = function () {
                 return this.positions && this.positions.size() > 0;
             };
@@ -9079,9 +9568,6 @@ var Team;
                 this.key = personnel.key;
                 this.name = personnel.name;
                 this.guid = personnel.guid;
-            };
-            Personnel.prototype.copy = function (newPersonnel) {
-                return _super.prototype.copy.call(this, newPersonnel, this);
             };
             Personnel.prototype.fromJson = function (json) {
                 if (!json)
@@ -10464,13 +10950,14 @@ impakt.common.associations.service('_associations', [
             var associations = impakt.context.Associations.associations.getByInternalKey(entity.associationKey);
             // Instantiate the set of association collections for the given
             // entity.
-            var results = {
-                playbooks: new Common.Models.PlaybookModelCollection(Team.Enums.UnitTypes.Mixed),
-                plays: new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed),
-                formations: new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed),
-                personnel: new Team.Models.PersonnelCollection(Team.Enums.UnitTypes.Mixed),
-                assignmentGroups: new Common.Models.AssignmentGroupCollection(Team.Enums.UnitTypes.Mixed)
-            };
+            // NOTE: the return type of this function must mimic the typed contents
+            // of this results object
+            var results = new Common.Models.AssociationResults();
+            results.playbooks = new Common.Models.PlaybookModelCollection(Team.Enums.UnitTypes.Mixed);
+            results.plays = new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed);
+            results.formations = new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed);
+            results.personnel = new Team.Models.PersonnelCollection(Team.Enums.UnitTypes.Mixed);
+            results.assignmentGroups = new Common.Models.AssignmentGroupCollection(Team.Enums.UnitTypes.Mixed);
             //
             // Clients of this service should expect to receive back
             // a resulting set of associations, even if the collections
@@ -10617,6 +11104,7 @@ impakt.common.context.factory('__context', ['$q',
             context.Playbook.formations = new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed);
             context.Playbook.assignmentGroups = new Common.Models.AssignmentGroupCollection(Team.Enums.UnitTypes.Mixed);
             context.Playbook.plays = new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed);
+            context.Playbook.scenarios = new Common.Models.ScenarioCollection(Team.Enums.UnitTypes.Other);
             /**
              * Team context
              */
@@ -10634,14 +11122,16 @@ impakt.common.context.factory('__context', ['$q',
              */
             context.Playbook.editor = {
                 plays: new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed),
-                tabs: new Common.Models.TabCollection()
+                tabs: new Common.Models.TabCollection(),
+                scenarios: new Common.Models.ScenarioCollection(Team.Enums.UnitTypes.Other)
             };
             /**
              * A creation context for new plays and formations.
              */
             context.Playbook.creation = {
                 plays: new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed),
-                formations: new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed)
+                formations: new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed),
+                scenarios: new Common.Models.ScenarioCollection(Team.Enums.UnitTypes.Other)
             };
             async.parallel([
                 // Retrieve associations
@@ -10700,8 +11190,8 @@ impakt.common.context.factory('__context', ['$q',
                         callback(err);
                     });
                 },
-                // Retrieve personnel sets
-                // Retrieve personnel sets
+                // Retrieve assignment groups
+                // Retrieve assignment groups
                 function (callback) {
                     _playbook.getAssignmentGroups()
                         .then(function (assignmentGroupCollection) {
@@ -10713,6 +11203,8 @@ impakt.common.context.factory('__context', ['$q',
                         callback(err);
                     });
                 },
+                // Retrieve personnel groups
+                // Retrieve personnel groups
                 function (callback) {
                     _team.getPersonnel().then(function (personnelCollection) {
                         if (Common.Utilities.isNotNullOrUndefined(personnelCollection))
@@ -10730,6 +11222,17 @@ impakt.common.context.factory('__context', ['$q',
                         context.Playbook.plays = plays;
                         __notifications.success('Plays successfully loaded');
                         callback(null, plays);
+                    }, function (err) {
+                        callback(err);
+                    });
+                },
+                // Retrieve scenarios
+                // Retrieve scenarios
+                function (callback) {
+                    _playbook.getScenarios().then(function (scenarios) {
+                        context.Playbook.scenarios = scenarios;
+                        __notifications.success('Scenarios successfully loaded');
+                        callback(null, scenarios);
                     }, function (err) {
                         callback(err);
                     });
@@ -10751,7 +11254,7 @@ impakt.common.context.factory('__context', ['$q',
     }]);
 /// <reference path='../common.mdl.ts' />
 impakt.common.contextmenu = angular.module('impakt.common.contextmenu', []);
-/// <reference path='./common-contextmenu.mdl.ts' />
+/// <reference path='./contextmenu.mdl.ts' />
 impakt.common.contextmenu.controller('common.contextmenu.ctrl', [
     '$scope',
     '_contextmenu',
@@ -10792,7 +11295,7 @@ impakt.common.contextmenu.controller('common.contextmenu.ctrl', [
         return {
             controller: 'common.contextmenu.ctrl',
             restrict: 'E',
-            templateUrl: 'common/contextmenu/common-contextmenu.tpl.html',
+            templateUrl: 'common/contextmenu/contextmenu.tpl.html',
             transclude: true,
             replace: true,
             link: function ($scope, $element, attrs) {
@@ -10822,7 +11325,7 @@ impakt.common.contextmenu.controller('common.contextmenu.ctrl', [
             }
         };
     }]);
-/// <reference path='./common-contextmenu.mdl.ts' />
+/// <reference path='./contextmenu.mdl.ts' />
 impakt.common.contextmenu.service('_contextmenu', [
     function () {
         var closeCallback = function () { };
@@ -10844,6 +11347,9 @@ impakt.common.contextmenu.service('_contextmenu', [
         };
         this.calculatePosition = function () {
             // todo
+        };
+        this.getData = function () {
+            return Common.Utilities.isNotNullOrUndefined(this.contextmenuData) ? this.contextmenuData.data : null;
         };
     }]);
 /// <reference path='../common.mdl.ts' />
@@ -12179,12 +12685,13 @@ impakt.common.ui.controller('formationPreview.ctrl', [
     '$scope', '$timeout', function ($scope, $timeout) {
         $scope.previewCanvas;
         $scope.play;
-        $scope.formation;
         $scope.$element;
         $scope.isModified = true;
         $scope.modificationTimer;
         $scope.refresh = function () {
-            if (!$scope.formation)
+            if (!$scope.play)
+                throw new Error('formation-preview refresh(): Play is null or undefined');
+            if (!$scope.play.formation)
                 throw new Error('formation-preview refresh(): Formation is null or undefined');
             if (!$scope.previewCanvas)
                 throw new Error('formation-preview refresh(): PreviewCanvas is null or undefined');
@@ -12192,7 +12699,7 @@ impakt.common.ui.controller('formationPreview.ctrl', [
                 throw new Error('formation-preview refresh(): $element is null or undefined');
             $scope.$element.find('svg').show();
             $scope.previewCanvas.refresh();
-            $scope.formation.png = $scope.previewCanvas.exportToPng();
+            $scope.play.formation.png = $scope.previewCanvas.exportToPng();
             $scope.isModified = false;
             var scrollTop = $scope.previewCanvas.paper.field.getLOSAbsolute()
                 - ($scope.$element.height() / 2);
@@ -12211,63 +12718,37 @@ impakt.common.ui.controller('formationPreview.ctrl', [
             restrict: 'E',
             controller: 'formationPreview.ctrl',
             scope: {
-                formation: '='
+                play: '='
             },
             compile: function compile(tElement, tAttrs, transclude) {
                 return {
                     pre: function preLink($scope, $element, attrs, controller) { },
                     post: function postLink($scope, $element, attrs, controller) {
                         $scope.$element = $element;
-                        /**
-                         *
-                         * Set up the play data to render the formation
-                         *
-                         */
-                        if (Common.Utilities.isNotNullOrUndefined($scope.formation)) {
-                            // check to see if the formation is being edited; 
-                            // in which case a temporary play has already been constructed
-                            // 
-                            // NOTE: if the play does not exist in the formations context,
-                            // it SHOULD NOT exist in the editor context.
-                            var editorPlay = impakt.context.Playbook.editor.plays.filterFirst(function (play, index) {
-                                // - the play must have editorType: formation
-                                // - the play must have a formation
-                                // - the play formation guid must match the scope guid
-                                return play.editorType == Playbook.Enums.EditorTypes.Formation &&
-                                    Common.Utilities.isNotNullOrUndefined(play.formation) &&
-                                    play.formation.guid == $scope.formation.guid;
-                            });
-                            if (Common.Utilities.isNotNullOrUndefined(editorPlay)) {
-                                // there is a temp. play existing in the editor context,
-                                // so let's use that play to render the preview
-                                $scope.play = editorPlay;
-                            }
-                            else {
-                                // no play has been found to contain the formation,
-                                // draw a new play to render the preview
-                                $scope.play = new Common.Models.Play($scope.formation.unitType);
-                                $scope.play.setFormation($scope.formation);
-                            }
-                            if (Common.Utilities.isNullOrUndefined($scope.play))
-                                throw new Error('formation-preview post(): Play is null or undefined');
-                            $scope.play.editorType = Playbook.Enums.EditorTypes.Formation;
-                            // create a previewCanvas to handle preview creation. Creating
-                            // a previewCanvas will insert a SVG into the <formation-preview/> element
-                            // after the intialization phase.
-                            $scope.previewCanvas = new Playbook.Models.PreviewCanvas($scope.play, null);
+                        // create a previewCanvas to handle preview creation. Creating
+                        // a previewCanvas will insert a SVG into the <play-preview/> element
+                        // after the intialization phase.
+                        if (Common.Utilities.isNotNullOrUndefined($scope.play)) {
+                            // get associated assignment group
+                            //let associations = _associations.getAssociated($scope.play);
+                            //$scope.play.assignmentGroup = associations.assignmentGroups.first();
+                            var scenario = new Common.Models.Scenario();
+                            scenario.setPlayPrimary($scope.play);
+                            scenario.setPlayOpponent(null);
+                            $scope.previewCanvas = new Playbook.Models.PreviewCanvas(scenario);
                         }
                         else {
-                            // if there's no formation at this point, there's a problem
-                            throw new Error('formation-preview post(): Unable to find formation');
+                            // if there's no play at this point, there's a problem
+                            throw new Error('play-preview link(): Unable to find play');
                         }
-                        $scope.formation.onModified(function () {
+                        $scope.play.onModified(function () {
                             $scope.isModified = true;
                             if ($scope.modificationTimer)
                                 $timeout.cancel($scope.modificationTimer);
                             $scope.modificationTimer = $timeout(function () {
                                 console.log('auto refresh based on user changes');
                                 $scope.refresh();
-                            }, 500);
+                            }, 200);
                         });
                         /**
                          *
@@ -12283,10 +12764,7 @@ impakt.common.ui.controller('formationPreview.ctrl', [
                                     $scope.$element.scrollTop(scrollTop);
                                 });
                                 $scope.previewCanvas.initialize($element);
-                                /**
-                                 * Set the base64 encoded PNG string on the formation
-                                 */
-                                $scope.formation.png = $scope.previewCanvas.exportToPng();
+                                $scope.play.formation.png = $scope.previewCanvas.exportToPng();
                             }
                         }, 0);
                     }
@@ -12492,6 +12970,10 @@ impakt.common.ui.controller('playPreview.ctrl', [
                 throw new Error('play-preview refresh(): PreviewCanvas is null or undefined');
             if (!$scope.$element)
                 throw new Error('play-preview refresh(): $element is null or undefined');
+            if ($scope.$element.height() <= 0) {
+                console.warn('play-preview refresh(): $element height is <= 0, skipping the refresh.');
+                return;
+            }
             $scope.$element.find('svg').show();
             $scope.previewCanvas.refresh();
             $scope.play.png = $scope.previewCanvas.exportToPng();
@@ -12527,7 +13009,10 @@ impakt.common.ui.controller('playPreview.ctrl', [
                             // get associated assignment group
                             //let associations = _associations.getAssociated($scope.play);
                             //$scope.play.assignmentGroup = associations.assignmentGroups.first();
-                            $scope.previewCanvas = new Playbook.Models.PreviewCanvas($scope.play, null);
+                            var scenario = new Common.Models.Scenario();
+                            scenario.setPlayPrimary($scope.play);
+                            scenario.setPlayOpponent(null);
+                            $scope.previewCanvas = new Playbook.Models.PreviewCanvas(scenario);
                         }
                         else {
                             // if there's no play at this point, there's a problem
@@ -12816,15 +13301,9 @@ impakt.common.ui.quotes.service('_quotes', [
         var quotes = [
             new Common.Models.Quote("It's not whether you get knocked down; \
 			it's whether you get back up.", "Vince Lombardi"),
-            new Common.Models.Quote("Attitude is a little thing that makes a big \
-			difference between football success and \
-			football failure.", "Felicity Luckey"),
             new Common.Models.Quote("Winning isn't everything...it's the only thing.", "Vince Lombardi"),
             new Common.Models.Quote("The essence of football was blocking, tackling, \
 			and execution based on timing, rhythm and deception.", "Knute Rockne"),
-            new Common.Models.Quote("There's two times of year for me: Football season \
-			and waiting for football season.", "Darius Rucker"),
-            new Common.Models.Quote("In football, the good thing is things can change in a second.", "Didier Drogba"),
             new Common.Models.Quote("It's not the will to win, but the will to prepare \
 			to win that makes the difference.", "Bear Bryant"),
             new Common.Models.Quote("We love football.", "Impakt Athletics"),
@@ -12833,6 +13312,7 @@ impakt.common.ui.quotes.service('_quotes', [
             new Common.Models.Quote("Football is like life. It requires perseverance, self denial \
 			hard work, sacrifice, dedication, and respect for authority.", "Vince Lombardi"),
             new Common.Models.Quote("If tomorrow wasn't promised, what would you give for today?", "Ray Lewis"),
+            new Common.Models.Quote("I'm just here so I don't get fined.", "Marshawn Lynch")
         ];
         this.getRandomQuote = function () {
             var index = Common.Utilities.randomInt(0, quotes.length - 1);
@@ -12893,6 +13373,223 @@ impakt.common.ui.factory('__router', [function () {
             }
         };
         return self;
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('scenarioItem.ctrl', [
+    '$scope',
+    '_details',
+    '_playbook',
+    function ($scope, _details, _playbook) {
+        $scope.scenario;
+        $scope.element;
+        /**
+         *
+         *	Item selection
+         *
+         */
+        $scope.toggleSelection = function (scenario) {
+            impakt.context.Playbook.scenarios.toggleSelect(scenario);
+            if (scenario.selected) {
+                _details.selectedElements.only(scenario);
+            }
+            else {
+                _details.selectedElements.remove(scenario.guid);
+            }
+        };
+        $scope.openInEditor = function (scenario) {
+            _playbook.editScenario(scenario);
+        };
+    }]).directive('scenarioItem', [
+    function () {
+        /**
+         * scenario-item directive
+         */
+        return {
+            restrict: 'E',
+            controller: 'scenarioItem.ctrl',
+            scope: {
+                scenario: '='
+            },
+            templateUrl: 'common/ui/scenario-item/scenario-item.tpl.html',
+            transclude: true,
+            replace: true,
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                    }
+                };
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('scenarioPreview.ctrl', [
+    '$scope', '$timeout', function ($scope, $timeout) {
+        $scope.previewCanvas;
+        $scope.scenario;
+        $scope.$element;
+        $scope.isModified = true;
+        $scope.modificationTimer;
+        $scope.refresh = function () {
+            if (!$scope.scenario)
+                throw new Error('scenario-preview refresh(): Play is null or undefined');
+            if (!$scope.previewCanvas)
+                throw new Error('scenario-preview refresh(): PreviewCanvas is null or undefined');
+            if (!$scope.$element)
+                throw new Error('scenario-preview refresh(): $element is null or undefined');
+            $scope.$element.find('svg').show();
+            $scope.previewCanvas.updateScenario($scope.scenario);
+            $scope.scenario.png = $scope.previewCanvas.exportToPng();
+            $scope.isModified = false;
+            var scrollTop = $scope.previewCanvas.paper.field.getLOSAbsolute() - ($scope.$element.height() / 2);
+            $scope.$element.scrollTop(scrollTop);
+            if ($scope.modificationTimer)
+                $timeout.cancel($scope.modificationTimer);
+        };
+    }]).directive('scenarioPreview', [
+    '$timeout',
+    '_associations',
+    function ($timeout, _associations) {
+        /**
+         * scenario-preview directive renders an SVG preview canvas
+         * with the given scenario data.
+         */
+        return {
+            restrict: 'E',
+            controller: 'scenarioPreview.ctrl',
+            scope: {
+                scenario: '='
+            },
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                        // create a previewCanvas to handle preview creation. Creating
+                        // a previewCanvas will insert a SVG into the <scenario-preview/> element
+                        // after the intialization phase.
+                        if (Common.Utilities.isNotNullOrUndefined($scope.scenario)) {
+                            $scope.previewCanvas = new Playbook.Models.PreviewCanvas($scope.scenario);
+                        }
+                        else {
+                            // if there's no scenario at this point, there's a problem
+                            throw new Error('scenario-preview link(): Unable to find scenario');
+                        }
+                        $scope.scenario.onModified(function () {
+                            $scope.isModified = true;
+                            if ($scope.modificationTimer)
+                                $timeout.cancel($scope.modificationTimer);
+                            $scope.modificationTimer = $timeout(function () {
+                                console.log('auto refresh based on user changes');
+                                $scope.refresh();
+                            }, 200);
+                        });
+                        /**
+                         *
+                         * NOTE: Due to the way angular renders directives,
+                         * we have to wrap DOM-dependent code in a $timeout.
+                         *
+                         */
+                        $timeout(function () {
+                            if ($scope.previewCanvas) {
+                                $scope.previewCanvas.onready(function () {
+                                    var scrollTop = $scope.previewCanvas.paper.field.getLOSAbsolute()
+                                        - ($scope.$element.height() / 2);
+                                    $scope.$element.scrollTop(scrollTop);
+                                });
+                                $scope.previewCanvas.initialize($element);
+                                $scope.scenario.png = $scope.previewCanvas.exportToPng();
+                            }
+                        }, 0);
+                    }
+                };
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.service('_scenarioPreview', [function () {
+        var self = this;
+        this.viewBox = '';
+        this.setViewBox = function (x, y, width, height) {
+            this.viewBox = [
+                x, ' ',
+                y, ' ',
+                width, ' ',
+                height
+            ].join('');
+        };
+        /**
+         * Compresses a SVG element into a string for storage.
+         * The SVG element is encoded into a base64 string before
+         * compression.
+         * @param {HTMLElement} svg The element to compress
+         */
+        this.compress = function (svg) {
+            return Common.Utilities.compressSVG(svg);
+        };
+        /**
+         * Decompresses a compressed SVG element string; assumes
+         * the decompressed string is base64 encoded, so it decodes
+         * the decompressed string before returning the stringified SVG element.
+         * @param  {string} compressed The string to decmopress
+         * @return {string}            a stringified SVG element
+         */
+        this.decompress = function (compressed) {
+            return Common.Utilities.decompressSVG(compressed);
+        };
+        function serialize(svg) {
+            // take SVG HTML and convert into string
+            return Common.Utilities.serializeXMLToString(svg);
+        }
+        function toBase64(svgString) {
+            return Common.Utilities.toBase64(svgString);
+        }
+        function fromBase64(base64Svg) {
+            return Common.Utilities.fromBase64(base64Svg);
+        }
+        function compress(svg) {
+            return Common.Utilities.compress(svg);
+        }
+        function decompress(compressed) {
+            return Common.Utilities.decompress(compressed);
+        }
+        /**
+         * TO-DO: store in local db
+         */
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('scenarioThumbnail.ctrl', [
+    '$scope', function ($scope) {
+        $scope.scenario;
+    }]).directive('scenarioThumbnail', [
+    function () {
+        return {
+            restrict: 'E',
+            controller: 'scenarioThumbnail.ctrl',
+            scope: {
+                scenario: '='
+            },
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                        // get height of $element
+                        var elementHeight = $element.height();
+                        var img = document.createElement('img');
+                        img.src = $scope.scenario.png;
+                        var $img = $(img);
+                        $scope.$element.append($img);
+                        img.addEventListener('load', function () {
+                            var imgHeight = $img.height();
+                            var imgOffsetTop = (-(imgHeight * 0.5) + (elementHeight / 2)) + 'px';
+                            $img.css({ 'top': imgOffsetTop });
+                        }, false);
+                    }
+                };
+            }
+        };
     }]);
 /// <reference path='../ui.mdl.ts' />
 impakt.common.ui.directive('search', [
@@ -13653,6 +14350,7 @@ impakt.nav.controller('nav.ctrl', [
         // Default menu visiblity
         $scope.isMenuCollapsed = true;
         $scope.notifications = __notifications.notifications;
+        $scope.currentYear = (new Date()).getFullYear();
         $scope.menuItems = __nav.menuItems;
         $scope.notificationsMenuItem = __nav.notificationsMenuItem;
         $scope.searchMenuItem = __nav.searchMenuItem;
@@ -13693,7 +14391,7 @@ impakt.nav.factory('__nav', [
         }));
         // League
         menuItems.add(new Navigation.Models.NavigationItem('league', 'League', 'globe', '/league', false, function (self) {
-            $state.transitionTo('league');
+            $state.transitionTo('league.browser');
         }));
         // Season
         menuItems.add(new Navigation.Models.NavigationItem('season', 'Season', 'calendar', '/season', false, function (self) {
@@ -13701,7 +14399,7 @@ impakt.nav.factory('__nav', [
         }));
         // Playbook
         menuItems.add(new Navigation.Models.NavigationItem('playbook', 'Playbook', 'book', '/playbook/browser', false, function (self) {
-            $state.transitionTo('playbook');
+            $state.transitionTo('playbook.browser');
         }));
         // Planning
         menuItems.add(new Navigation.Models.NavigationItem('planning', 'Planning', 'blackboard', '/planning', false, function (self) {
@@ -13712,7 +14410,7 @@ impakt.nav.factory('__nav', [
             $state.transitionTo('analysis');
         }));
         // Team
-        menuItems.add(new Navigation.Models.NavigationItem('team', 'Team Management', 'list-alt', '/team', false, function (self) {
+        menuItems.add(new Navigation.Models.NavigationItem('team', 'Team', 'list-alt', '/team', false, function (self) {
             $state.transitionTo('team');
         }));
         // Profile
@@ -13807,6 +14505,7 @@ impakt.playbook.browser.controller('playbook.browser.ctrl', [
         $scope.formations;
         $scope.plays;
         $scope.assignmentGroups;
+        $scope.scenarios;
         _details.selectedPlay = null;
         __context.onReady(function () {
             $scope.editor = impakt.context.Playbook.editor;
@@ -13814,6 +14513,7 @@ impakt.playbook.browser.controller('playbook.browser.ctrl', [
             $scope.formations = impakt.context.Playbook.formations;
             $scope.plays = impakt.context.Playbook.plays;
             $scope.assignmentGroups = impakt.context.Playbook.assignmentGroups;
+            $scope.scenarios = impakt.context.Playbook.scenarios;
         });
         $scope.getEditorTypeClass = function (editorType) {
             return _playbook.getEditorTypeClass(editorType);
@@ -13830,6 +14530,9 @@ impakt.playbook.browser.controller('playbook.browser.ctrl', [
                 $scope.goToAll();
             }, function (err) {
             });
+        };
+        $scope.createScenario = function () {
+            _playbookModals.createScenario();
         };
         $scope.createPlay = function () {
             _playbookModals.createPlay();
@@ -13921,7 +14624,9 @@ impakt.playbook.contextmenus.routeNode =
 /// <reference path='./contextmenu-routeNode.mdl.ts' />
 impakt.playbook.contextmenus.routeNode.controller('impakt.playbook.contextmenus.routeNode.ctrl', [
     '$scope',
-    function ($scope) {
+    '_contextmenu',
+    function ($scope, _contextmenu) {
+        $scope.routeNode = _contextmenu.getData();
     }]);
 /// <reference path='../playbook.mdl.ts' />
 impakt.playbook.drilldown = angular.module('impakt.playbook.drilldown', [
@@ -14038,11 +14743,11 @@ impakt.playbook.editor.canvas.controller('playbook.editor.canvas.ctrl', [
                 $scope.hasOpenTabs = _playbookEditorCanvas.hasTabs();
             });
             $scope.canvas.onready(function () {
-                $scope.editorModeClass = $scope.getEditorTypeClass($scope.canvas.playPrimary.editorType);
+                $scope.editorModeClass = $scope.getEditorTypeClass($scope.canvas.scenario.editorType);
                 $scope.canvas.onModified(function () {
-                    if (Common.Utilities.isNullOrUndefined($scope.canvas.playPrimary))
+                    if (Common.Utilities.isNullOrUndefined($scope.canvas.scenario))
                         return;
-                    $scope.editorModeClass = $scope.getEditorTypeClass($scope.canvas.playPrimary.editorType);
+                    $scope.editorModeClass = $scope.getEditorTypeClass($scope.canvas.scenario.editorType);
                     $timeout(function () {
                         console.log('timeout running');
                         $scope.$apply();
@@ -14065,8 +14770,8 @@ impakt.playbook.editor.canvas.controller('playbook.editor.canvas.ctrl', [
          * Toggle Editor mode
          */
         $scope.switchToPlayMode = function () {
-            console.log('switch from formation mode to play mode', $scope.tab.playPrimary);
-            $scope.tab.playPrimary.editorType = Playbook.Enums.EditorTypes.Play;
+            console.log('switch from formation mode to play mode', $scope.tab.scenario);
+            $scope.tab.scenario.editorType = Playbook.Enums.EditorTypes.Play;
         };
         $scope.getEditorTypeClass = function (editorType) {
             return _playbookEditorCanvas.getEditorTypeClass(parseInt(editorType));
@@ -14090,7 +14795,7 @@ impakt.playbook.editor.canvas.controller('playbook.editor.canvas.ctrl', [
             _playbookEditorCanvas.applyPrimaryAssignmentGroup(assignmentGroup);
         };
         $scope.applyUnitType = function (unitType) {
-            if (unitType.unitType == $scope.canvas.playPrimary.unitType)
+            if (unitType.unitType == $scope.canvas.scenario.playPrimary.unitType)
                 return;
             _playbookEditorCanvas.applyPrimaryUnitType(unitType.unitType);
             $scope.unitTypeDropdownVisible = false;
@@ -14221,9 +14926,9 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas', [
         this.create = function (tab) {
             if (Common.Utilities.isNullOrUndefined(tab))
                 throw new Error('playbook-editor-canvas.srv create(): tab is null or undefined');
-            if (Common.Utilities.isNullOrUndefined(tab.playPrimary))
-                throw new Error('playbook-editor-canvas.srv create(): tab.playPrimary is null or undefined');
-            var canvas = new Playbook.Models.EditorCanvas(tab.playPrimary, new Common.Models.PlayOpponent(tab.playPrimary.getOpposingUnitType()));
+            if (Common.Utilities.isNullOrUndefined(tab.scenario))
+                throw new Error('playbook-editor-canvas.srv create(): tab.scenario is null or undefined');
+            var canvas = new Playbook.Models.EditorCanvas(tab.scenario);
             canvas.tab = tab;
         };
         this.getActiveTab = function () {
@@ -14395,8 +15100,7 @@ impakt.playbook.editor.details.controller('playbook.editor.details.ctrl', [
         $scope.paper;
         $scope.field;
         $scope.grid;
-        $scope.playPrimary;
-        $scope.playOpponent;
+        $scope.scenario;
         $scope.layers;
         $scope.selected;
         $scope.players;
@@ -14404,11 +15108,10 @@ impakt.playbook.editor.details.controller('playbook.editor.details.ctrl', [
             $scope.paper = $scope.canvas.paper;
             $scope.field = $scope.paper.field;
             $scope.grid = $scope.paper.grid;
-            $scope.playPrimary = $scope.canvas.playPrimary;
-            $scope.playOpponent = $scope.canvas.playOpponent;
+            $scope.scenario = $scope.canvas.scenario;
             $scope.layers = $scope.field.layers;
             $scope.selected = $scope.field.selected;
-            $scope.players = $scope.field.players;
+            $scope.players = $scope.field.primaryPlayers;
             // update scope when changes to field occur
             $scope.field.onModified(function () {
                 $timeout(function () {
@@ -14417,20 +15120,6 @@ impakt.playbook.editor.details.controller('playbook.editor.details.ctrl', [
             });
         });
         $scope.refreshPreview = function () {
-        };
-        $scope.deletePrimary = function (play) {
-            if (play.editorType == Playbook.Enums.EditorTypes.Play) {
-                _playbookModals.deletePlay(play).then(function () {
-                    _playbookEditorDetails.closeActiveTab();
-                }, function (err) {
-                });
-            }
-            else if (play.editorType == Playbook.Enums.EditorTypes.Formation) {
-                _playbookModals.deleteFormation(play.formation).then(function () {
-                    _playbookEditorDetails.closeActiveTab();
-                }, function (err) {
-                });
-            }
         };
     }]);
 /// <reference path='./playbook-editor-details.mdl.ts' />
@@ -14496,8 +15185,6 @@ impakt.playbook.editor.controller('playbook.editor.ctrl', [
         };
     }]);
 /// <reference path='./playbook-editor.mdl.ts' />
-/// <reference path='../playbook.ts' />
-/// <reference path='../../../common/common.ts' />
 impakt.playbook.editor.service('_playbookEditor', [
     '$rootScope',
     '$q',
@@ -14513,22 +15200,14 @@ impakt.playbook.editor.service('_playbookEditor', [
             '_playbookEditorTabs',
             '_playbookEditorCanvas'
         ]);
-        // tabs and plays are references to the targeted application-level data collections;
-        // when the data changes at the application-level; tabs and plays added through this
-        // service are handled by reference, so that no copies of them are created, unless
-        // a *new* play is being created, or a play is being created as a *new copy* of another.
-        // This keeps the data footprint minimal, as well as prevents the redundancy of 
-        // data models existing application-wide. 
         this.tabs = impakt.context.Playbook.editor.tabs;
-        this.plays = impakt.context.Playbook.editor.plays;
-        this.formations = impakt.context.Playbook.editor.formations;
+        this.scenarios = impakt.context.Playbook.editor.scenarios;
         // sets a default tab - this should be overwritten as soon as it becomes available
         this.activeTab = null;
         this.canvas = null;
         this.toolMode = Playbook.Enums.ToolModes[Playbook.Enums.ToolModes.None];
         $rootScope.$on('playbook-editor.refresh', function (e, formationKey) {
-            self.plays = impakt.context.Playbook.editor.plays;
-            self.formations = impakt.context.Playbook.editor.formations;
+            self.scenarios = impakt.context.Playbook.editor.scenarios;
             self.loadTabs();
         });
         this.readyCallback = function () {
@@ -14539,51 +15218,30 @@ impakt.playbook.editor.service('_playbookEditor', [
             this.readyCallback();
         };
         this.init = function () {
-            console.info('initializing playbook editor service');
-            console.debug('service: impakt.playbook.editor - load complete');
             initialized = true;
-            var initialPlay = null;
-            if (self.tabs.isEmpty() || self.tabs.size() != self.plays.size()) {
+            var activeScenario = null;
+            if (self.tabs.isEmpty() || self.tabs.size() != self.scenarios.size()) {
                 self.loadTabs();
             }
             // check for active tab and initialize the canvas with that tab's play
             self.tabs.forEach(function (tab, index) {
                 if (tab.active) {
-                    initialPlay = self.plays.filterFirst(function (play) {
-                        return play.guid == tab.playPrimary.guid;
+                    activeScenario = self.scenarios.filterFirst(function (scenario, j) {
+                        return scenario.guid == tab.scenario.guid;
                     });
-                    var associations = null;
-                    switch (tab.editorType) {
-                        case Playbook.Enums.EditorTypes.Formation:
-                            associations = _associations.getAssociated(initialPlay.formation);
-                            // don't set the formation here (it's already set)
-                            break;
-                        case Playbook.Enums.EditorTypes.Play:
-                            associations = _associations.getAssociated(initialPlay);
-                            // set the formation to the associated formation
-                            initialPlay.formation = associations.formations.first();
-                            initialPlay.assignmentGroup = associations.assignmentGroups.first();
-                            break;
-                    }
-                    if (Common.Utilities.isNotNullOrUndefined(associations))
-                        initialPlay.personnel = associations.personnel.first();
-                    // let opponentPlayTest = new Common.Models.PlayOpponent();
-                    // // initialize the default formation & personnel
-                    // opponentPlayTest.setDefault(tab.canvas.field);
-                    if (initialPlay) {
-                        if (!self.canvas) {
-                            self.canvas = new Playbook.Models.EditorCanvas(initialPlay, null);
-                        }
-                    }
                 }
             });
-            if (!initialPlay) {
+            if (activeScenario) {
+                if (!self.canvas) {
+                    self.canvas = new Playbook.Models.EditorCanvas(activeScenario);
+                    self.editorType = activeScenario.editorType;
+                }
+            }
+            if (!activeScenario) {
                 // Throw an error at this point; we should always have some physical play to use
                 // whether it's a new play or an existing play; we shouldn't arbitrarily initialize
                 // the canvas with a blank play here
-                throw new Error('_playbookEditor init(): \
-				Trying to create a new canvas but there are \
-				no active tabs / play data to start with.');
+                throw new Error('_playbookEditor init(): Trying to create a new canvas but there are no active tabs / scenario data to start with.');
             }
             self.canvas.clearListeners();
             self.canvas.onready(function () {
@@ -14595,26 +15253,28 @@ impakt.playbook.editor.service('_playbookEditor', [
         this.onready = function (callback) {
             this.readyCallback = callback;
         };
+        this.getEditorType = function () {
+            return this.editorType;
+        };
         /**
-         * Checks for open plays in the editor context, as well as the
+         * Checks for open scenarios in the editor context, as well as the
          * corresponding tab; if the tab is active, grab the corresponding
-         * play and pass it in to initialize the canvas.
+         * scenario and pass it in to initialize the canvas.
          */
         this.loadTabs = function () {
-            this.plays.forEach(function (play, index) {
-                // loop over all plays currently 'open' in the editor context...
-                // determine whether each play has a corresponding tab 
-                var playExists = false;
+            this.scenarios.forEach(function (scenario, index) {
+                // loop over all scenarios currently 'open' in the editor context...
+                // determine whether each scenario has a corresponding tab 
+                var scenarioExists = false;
                 self.tabs.forEach(function (tab, j) {
-                    if (tab.playPrimary.guid == play.guid) {
-                        playExists = true;
+                    if (tab.scenario.guid == scenario.guid) {
+                        scenarioExists = true;
                     }
                 });
-                if (!playExists) {
-                    var tab = new Common.Models.Tab(play, null);
+                if (!scenarioExists) {
+                    var tab = new Common.Models.Tab(scenario);
                     // Hmm...
                     tab.active = index == 0;
-                    tab.unitType = play.unitType;
                     self.addTab(tab);
                 }
             });
@@ -14639,13 +15299,13 @@ impakt.playbook.editor.service('_playbookEditor', [
             this.activeTab = tab;
             if (this.canvas) {
                 // pass new data to canvas
-                this.canvas.updatePlay(this.activeTab.playPrimary, null, true);
+                this.canvas.updateScenario(this.activeTab.scenario, true);
             }
         };
         this.closeTab = function (tab) {
             this.tabs.close(tab);
             // remove play from editor context
-            this.plays.remove(tab.playPrimary.guid);
+            this.scenarios.remove(tab.scenario.guid);
             // get last tab
             if (this.tabs.hasElements()) {
                 // activate the last tab
@@ -14687,13 +15347,16 @@ impakt.playbook.editor.service('_playbookEditor', [
             var activeTab = this.activeTab;
             console.log(activeTab);
             if (activeTab) {
-                var play = activeTab.playPrimary;
-                switch (play.editorType) {
+                var scenario = activeTab.scenario;
+                switch (scenario.editorType) {
                     case Playbook.Enums.EditorTypes.Formation:
-                        _playbookModals.saveFormation(play);
+                        _playbookModals.saveFormation(scenario.playPrimary);
                         break;
                     case Playbook.Enums.EditorTypes.Play:
-                        _playbookModals.savePlay(play);
+                        _playbookModals.savePlay(scenario.playPrimary);
+                        break;
+                    case Playbook.Enums.EditorTypes.Scenario:
+                        _playbookModals.saveScenario(scenario);
                         break;
                 }
             }
@@ -14955,24 +15618,24 @@ impakt.playbook.modals.controller('playbook.modals.createFormation.ctrl', ['$sco
     '_associations',
     '_playbook',
     function ($scope, $uibModalInstance, _associations, _playbook) {
-        $scope.selectedUnitType = Team.Enums.UnitTypes.Offense;
+        $scope.unitTypeCollection = impakt.context.Team.unitTypes;
+        $scope.selectedUnitType = $scope.unitTypeCollection.getByUnitType(Team.Enums.UnitTypes.Offense).toJson();
         $scope.playbooks = impakt.context.Playbook.playbooks;
-        $scope.formation = new Common.Models.Formation($scope.selectedUnitType);
+        $scope.play = new Common.Models.PlayPrimary($scope.selectedUnitType.unitType);
+        $scope.play.formation = new Common.Models.Formation($scope.selectedUnitType.unitType);
         $scope.formations = impakt.context.Playbook.formations;
-        $scope.formation.unitType = $scope.selectedUnitType;
-        $scope.unitTypes = impakt.context.Team.unitTypes;
         $scope.selectedPlaybook = $scope.playbooks.first();
         /**
          * Check to ensure there are formations to select as a base formation;
          * Add a new empty formation if there are no others to select from
          */
-        $scope.formations.add($scope.formation);
+        $scope.formations.add($scope.play.formation);
         /**
          * If there are no other formations, the selected base formation
          * will be the current, new formation
          */
-        $scope.selectedBaseFormation = $scope.formation;
-        impakt.context.Playbook.creation.formations.add($scope.formation);
+        $scope.selectedBaseFormation = $scope.play.formation;
+        impakt.context.Playbook.creation.plays.add($scope.play);
         /**
          * If there is a selected playbook available, add an association to
          * the new formation to that playbook.
@@ -14991,15 +15654,15 @@ impakt.playbook.modals.controller('playbook.modals.createFormation.ctrl', ['$sco
         $scope.selectBaseFormation = function (formation) {
             if ($scope.selectedBaseFormation != '' &&
                 Common.Utilities.isNotNullOrUndefined($scope.selectedBaseFormation)) {
-                $scope.formation.setPlacements($scope.selectedBaseFormation.placements);
+                $scope.play.formation.setPlacements($scope.selectedBaseFormation.placements);
             }
         };
-        $scope.unitTypeSelected = function () {
-            $scope.formation.unitType = $scope.selectedUnitType;
+        $scope.selectUnitType = function () {
+            $scope.play.setUnitType($scope.selectedUnitType.unitType);
         };
         $scope.ok = function () {
-            $scope.formation.parentRK = 1; // TODO @theBull - deprecate parentRK
-            _playbook.createFormation($scope.formation)
+            $scope.play.formation.parentRK = 1; // TODO @theBull - deprecate parentRK
+            _playbook.createFormation($scope.play.formation)
                 .then(function (createdFormation) {
                 _associations.createAssociation(createdFormation, $scope.selectedPlaybook);
                 removeFormationFromCreationContext();
@@ -15018,8 +15681,8 @@ impakt.playbook.modals.controller('playbook.modals.createFormation.ctrl', ['$sco
         function removeFormationFromCreationContext() {
             // Remove the formation from the creation context
             // after creating the new formation or cancelling
-            if (Common.Utilities.isNotNullOrUndefined($scope.formation)) {
-                impakt.context.Playbook.creation.formations.remove($scope.formation.guid);
+            if (Common.Utilities.isNotNullOrUndefined($scope.play.formation)) {
+                impakt.context.Playbook.creation.formations.remove($scope.play.formation.guid);
             }
         }
         function removeFormationFromCollectionContext() {
@@ -15028,8 +15691,8 @@ impakt.playbook.modals.controller('playbook.modals.createFormation.ctrl', ['$sco
             // the createFormation request, since the formation is temporarily
             // added to the formation collection in the situation where
             // there are 0 formations in the user's collection.
-            if (Common.Utilities.isNotNullOrUndefined($scope.formation)) {
-                $scope.formations.remove($scope.formation.guid);
+            if (Common.Utilities.isNotNullOrUndefined($scope.play.formation)) {
+                $scope.formations.remove($scope.play.formation.guid);
             }
         }
     }]);
@@ -15043,7 +15706,7 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl', [
         $scope.unitTypeCollection = impakt.context.Team.unitTypes;
         $scope.selectedUnitType =
             $scope.unitTypeCollection.getByUnitType(Team.Enums.UnitTypes.Offense).toJson();
-        $scope.newPlay = new Common.Models.Play($scope.selectedUnitType.unitType);
+        $scope.newPlay = new Common.Models.PlayPrimary($scope.selectedUnitType.unitType);
         $scope.playbooks = impakt.context.Playbook.playbooks;
         $scope.formations = impakt.context.Playbook.formations;
         $scope.assignmentGroups = impakt.context.Playbook.assignmentGroups;
@@ -15154,6 +15817,70 @@ impakt.playbook.modals.controller('playbook.modals.createPlaybook.ctrl', [
         };
     }]);
 /// <reference path='../playbook-modals.mdl.ts' />
+impakt.playbook.modals.controller('playbook.modals.createScenario.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_associations',
+    '_playbook',
+    function ($scope, $uibModalInstance, _associations, _playbook) {
+        $scope.newScenario = new Common.Models.Scenario();
+        $scope.playbooks = impakt.context.Playbook.playbooks;
+        $scope.plays = impakt.context.Playbook.plays;
+        $scope.selectedPlaybook = $scope.playbooks.first();
+        $scope.selectedPrimaryPlay = null;
+        $scope.selectedOpponentPlay = null;
+        // Intialize new Scenario with data
+        // TODO @theBull
+        // Add the new scenario onto the creation context, to access from
+        // other parts of the application
+        impakt.context.Playbook.creation.scenarios.add($scope.newScenario);
+        $scope.selectPlaybook = function (playbook) {
+            $scope.newPlay.setPlaybook($scope.playbooks.get(playbook.guid));
+        };
+        $scope.selectPrimaryPlay = function (play) {
+            var associations = _associations.getAssociated($scope.selectedPrimaryPlay);
+            // set the formation to the associated formation
+            $scope.selectedPrimaryPlay.formation = associations.formations.first();
+            $scope.selectedPrimaryPlay.assignmentGroup = associations.assignmentGroups.first();
+            $scope.selectedPrimaryPlay.personnel = associations.personnel.first();
+            $scope.newScenario.setPlayPrimary($scope.selectedPrimaryPlay);
+        };
+        $scope.selectOpponentPlay = function (play) {
+            var associations = _associations.getAssociated($scope.selectedOpponentPlay);
+            // set the formation to the associated formation
+            $scope.selectedOpponentPlay.formation = associations.formations.first();
+            $scope.selectedOpponentPlay.assignmentGroup = associations.assignmentGroups.first();
+            $scope.selectedOpponentPlay.personnel = associations.personnel.first();
+            $scope.newScenario.setPlayOpponent($scope.selectedOpponentPlay);
+        };
+        $scope.ok = function () {
+            _playbook.createScenario($scope.newScenario)
+                .then(function (createdScenario) {
+                _associations.createAssociations(createdScenario, [
+                    $scope.selectedPlaybook,
+                    $scope.selectedPrimaryPlay,
+                    $scope.selectedOpponentPlay
+                ]);
+                removeScenarioFromCreationContext();
+                $uibModalInstance.close(createdScenario);
+            }, function (err) {
+                removeScenarioFromCreationContext();
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            removeScenarioFromCreationContext();
+            $uibModalInstance.dismiss();
+        };
+        function removeScenarioFromCreationContext() {
+            // Remove the scenario from the creation context
+            // after creating the new scenario or cancelling
+            if (Common.Utilities.isNotNullOrUndefined($scope.newScenario))
+                impakt.context.Playbook.creation.scenarios.remove($scope.newScenario.guid);
+        }
+    }]);
+/// <reference path='../playbook-modals.mdl.ts' />
 impakt.playbook.modals.controller('playbook.modals.deleteAssignmentGroup.ctrl', [
     '$scope',
     '$uibModalInstance',
@@ -15227,6 +15954,27 @@ impakt.playbook.modals.controller('playbook.modals.deletePlaybook.ctrl', [
         $scope.playbook = playbook;
         $scope.ok = function () {
             _playbook.deletePlaybook($scope.playbook)
+                .then(function (results) {
+                $uibModalInstance.close(results);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../playbook-modals.mdl.ts' />
+impakt.playbook.modals.controller('playbook.modals.deleteScenario.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_playbook',
+    'scenario',
+    function ($scope, $uibModalInstance, _playbook, scenario) {
+        $scope.scenario = scenario;
+        $scope.ok = function () {
+            _playbook.deleteScenario($scope.scenario)
                 .then(function (results) {
                 $uibModalInstance.close(results);
             }, function (err) {
@@ -15331,6 +16079,56 @@ impakt.playbook.modals.service('_playbookModals', [
         };
         /**
          *
+         * SCENARIO
+         *
+         */
+        this.createScenario = function () {
+            var d = $q.defer();
+            console.log('create scenario');
+            var modalInstance = __modals.open('lg', 'modules/playbook/modals/create-scenario/create-scenario.tpl.html', 'playbook.modals.createScenario.ctrl', {});
+            modalInstance.result.then(function (createdScenario) {
+                console.log(createdScenario);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.saveScenario = function (scenario) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('lg', 'modules/playbook/modals/save-scenario/save-scenario.tpl.html', 'playbook.modals.saveScenario.ctrl', {
+                scenario: function () {
+                    return scenario;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.deleteScenario = function (scenario) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/playbook/modals/delete-scenario/delete-scenario.tpl.html', 'playbook.modals.deleteScenario.ctrl', {
+                scenario: function () {
+                    return scenario;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        /**
+         *
          * PLAY
          *
          */
@@ -15338,8 +16136,8 @@ impakt.playbook.modals.service('_playbookModals', [
             var d = $q.defer();
             console.log('create play');
             var modalInstance = __modals.open('lg', 'modules/playbook/modals/create-play/create-play.tpl.html', 'playbook.modals.createPlay.ctrl', {});
-            modalInstance.result.then(function (createdPlaybook) {
-                console.log(createdPlaybook);
+            modalInstance.result.then(function (createdPlay) {
+                console.log(createdPlay);
                 d.resolve();
             }, function (results) {
                 console.log('dismissed');
@@ -15465,7 +16263,7 @@ impakt.playbook.modals.controller('playbook.modals.saveFormation.ctrl', ['$scope
     '_playbook',
     'play',
     function ($scope, $uibModalInstance, _playbook, play) {
-        $scope.play = play;
+        $scope.play = play.copy();
         $scope.playbooks = impakt.context.Playbook.playbooks;
         $scope.formation = play.formation;
         $scope.copyFormation = false;
@@ -15528,7 +16326,7 @@ impakt.playbook.modals.controller('playbook.modals.savePlay.ctrl', [
     '_playbook',
     'play',
     function ($scope, $uibModalInstance, _playbook, play) {
-        $scope.play = play;
+        $scope.play = play.copy();
         $scope.copyPlay = false;
         $scope.copyFormation = false;
         $scope.copyPersonnel = false;
@@ -15609,6 +16407,28 @@ impakt.playbook.modals.controller('playbook.modals.savePlay.ctrl', [
             $uibModalInstance.dismiss();
         };
     }]);
+/// <reference path='../playbook-modals.mdl.ts' />
+impakt.playbook.modals.controller('playbook.modals.saveScenario.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_playbook',
+    'scenario',
+    function ($scope, $uibModalInstance, _playbook, scenario) {
+        $scope.scenario = scenario.copy();
+        $scope.ok = function () {
+            // _playbook.saveScenario(scenario)
+            // .then(function(savedScenario) {
+            // 	$uibModalInstance.close(savedScenario);
+            // }, function(err) {
+            // 	console.error(err);
+            // 	$uibModalInstance.close(err);
+            // });
+            $uibModalInstance.close(null);
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
 /// <reference path='../playbook.mdl.ts' />
 impakt.playbook.nav = angular.module('impakt.playbook.nav', [])
     .config(function () {
@@ -15654,7 +16474,13 @@ impakt.playbook.constant('PLAYBOOK', {
     UPDATE_PLAY: '/updatePlay',
     GET_PLAY: '/getPlay',
     GET_PLAYS: '/getPlays',
-    DELETE_PLAY: '/deletePlay'
+    DELETE_PLAY: '/deletePlay',
+    // Scenarios
+    CREATE_SCENARIO: '/createScenario',
+    UPDATE_SCENARIO: '/updateScenario',
+    GET_SCENARIO: '/getScenario',
+    GET_SCENARIOS: '/getScenarios',
+    DELETE_SCENARIO: '/deleteScenario'
 });
 /// <reference path='./playbook.mdl.ts' />
 impakt.playbook.controller('playbook.ctrl', ['$scope', '$state', '$stateParams', '_playbook',
@@ -15919,27 +16745,33 @@ impakt.playbook.service('_playbook', [
         this.editFormation = function (formation, forceOpen) {
             var notification = __notifications.info('Opened formation "', formation.name, '" for editing.');
             // determine whether the formation is already open            
-            var formationOpen = forceOpen ? forceOpen : impakt.context.Playbook.editor.plays.hasElementWhich(function (play) {
-                return play.editorType == Playbook.Enums.EditorTypes.Formation &&
-                    play.formation.guid == formation.guid;
+            var formationOpen = forceOpen ? forceOpen : impakt.context.Playbook.editor.scenarios.hasElementWhich(function (scenario) {
+                if (Common.Utilities.isNullOrUndefined(scenario.playPrimary) ||
+                    Common.Utilities.isNullOrUndefined(scenario.playPrimary.formation))
+                    return false;
+                return scenario.editorType == Playbook.Enums.EditorTypes.Formation &&
+                    scenario.playPrimary.formation.guid == formation.guid;
             });
-            // do not add a new editor play to the context if the formation
-            // is already open
             if (!formationOpen) {
                 // formation isn't opened yet,
-                // 1. create new play for the formation to sit in
+                // 1. create new scenario / primary play for the formation to sit in
                 // 2. create a working copy of the formation
                 // 3. update the working copy's properties accordingly
                 // 4. add the working play to the editor context
                 // Set Play to formation-only editing mode
-                var play = new Common.Models.PlayPrimary(formation.unitType);
+                var primaryPlay = new Common.Models.PlayPrimary(formation.unitType);
                 // need to make a copy of the formation here
                 var formationCopy = formation.copy();
-                play.setFormation(formationCopy);
-                play.editorType = Playbook.Enums.EditorTypes.Formation;
-                play.name = formation.name;
+                primaryPlay.setFormation(formationCopy);
+                // Set association data
+                _setFormationAssociations(primaryPlay);
+                var scenario = new Common.Models.Scenario();
+                scenario.setPlayPrimary(primaryPlay);
+                scenario.setPlayOpponent(null);
+                scenario.editorType = Playbook.Enums.EditorTypes.Formation;
+                scenario.name = formation.name;
                 // add the play onto the editor context
-                impakt.context.Playbook.editor.plays.add(play);
+                impakt.context.Playbook.editor.scenarios.add(scenario);
             }
             // navigate to playbook editor
             //if(!$state.is('playbook.editor'))
@@ -16178,7 +17010,7 @@ impakt.playbook.service('_playbook', [
                 var results = Common.Utilities.parseData(response.data.results);
                 var playModel = null;
                 if (results && results.data && results.data.play) {
-                    playModel = new Common.Models.Play(Team.Enums.UnitTypes.Other);
+                    playModel = new Common.Models.PlayPrimary(Team.Enums.UnitTypes.Other);
                     results.data.play.key = results.key;
                     playModel.fromJson(results.data.play);
                     impakt.context.Playbook.plays.add(playModel);
@@ -16337,7 +17169,7 @@ impakt.playbook.service('_playbook', [
             })
                 .then(function (response) {
                 var results = Common.Utilities.parseData(response.data.results);
-                var playModel = new Common.Models.Play(Team.Enums.UnitTypes.Other);
+                var playModel = new Common.Models.PlayPrimary(Team.Enums.UnitTypes.Other);
                 if (results && results.data && results.data.play) {
                     playModel.fromJson(results.data.play);
                     // update the context
@@ -16368,7 +17200,7 @@ impakt.playbook.service('_playbook', [
                             var result = results[i];
                             if (result && result.data && result.data.play) {
                                 var rawPlay = result.data.play;
-                                var playModel = new Common.Models.Play(Team.Enums.UnitTypes.Other);
+                                var playModel = new Common.Models.PlayPrimary(Team.Enums.UnitTypes.Other);
                                 rawPlay.key = result.key;
                                 playModel.fromJson(rawPlay);
                                 playCollection.add(playModel);
@@ -16391,13 +17223,19 @@ impakt.playbook.service('_playbook', [
         this.editPlay = function (play) {
             var notification = __notifications.info('Opened play "', play.name, '" for editing.');
             // Set Play to play editing mode
-            play.editorType = Playbook.Enums.EditorTypes.Play;
-            if (!play.formation) {
+            var scenario = new Common.Models.Scenario();
+            var playCopy = play.copy();
+            if (play.playType != Playbook.Enums.PlayTypes.Primary) {
+                playCopy = Common.Models.Play.toPrimary(playCopy);
             }
-            if (!play.personnel) {
-            }
+            scenario.setPlayPrimary(playCopy);
+            scenario.setPlayOpponent(null);
+            ;
+            scenario.editorType = Playbook.Enums.EditorTypes.Play;
+            // Set association data
+            _setPlayAssociations(scenario.playPrimary);
             // add the play onto the editor context
-            impakt.context.Playbook.editor.plays.add(play);
+            impakt.context.Playbook.editor.scenarios.add(scenario);
             // navigate to playbook editor
             //if (!$state.is('playbook.editor'))
             $state.transitionTo('playbook.editor');
@@ -16420,6 +17258,181 @@ impakt.playbook.service('_playbook', [
                 d.resolve(play);
             }, function (error) {
                 notification.error('Failed to delete play "', play.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Creates the given scenario for the current user
+         * @param {Common.Models.Scenario} scenario The scenario to create
+         */
+        this.createScenario = function (scenario) {
+            var scenarioData = scenario.toJson();
+            var d = $q.defer();
+            var notification = __notifications.pending('Creating scenario "', scenario.name, '"...');
+            __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.CREATE_SCENARIO), {
+                version: 1,
+                name: scenario.name,
+                ownerRK: 1,
+                parentRK: 1,
+                data: {
+                    version: 1,
+                    name: scenario.name,
+                    ownerRK: 1,
+                    parentRK: 1,
+                    scenario: scenarioData
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var scenarioModel = null;
+                if (results && results.data && results.data.scenario) {
+                    scenarioModel = new Common.Models.Scenario();
+                    results.data.scenario.key = results.key;
+                    scenarioModel.fromJson(results.data.scenario);
+                    impakt.context.Playbook.scenarios.add(scenarioModel);
+                }
+                notification.success('Successfully created scenario "', scenario.name, '"');
+                d.resolve(scenarioModel);
+            }, function (error) {
+                notification.error('Failed to create scenario "', scenario.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Saves the given scenario according to the options passed for the given user
+         * TODO @theBull create Options model
+         *
+         * @param {Common.Models.Scenario} scenario    [description]
+         * @param {any}                  options [description]
+         */
+        this.saveScenario = function (scenario, options) {
+            var d = $q.defer();
+            var notification = __notifications.pending('Saving scenario "', scenario.name, '"...');
+            async.parallel([
+                function (callback) {
+                    callback(null, null);
+                }
+            ], function (err, results) {
+                if (err) {
+                    notification.error('Failed to save scenario "', scenario.name, '"');
+                    d.reject(err);
+                }
+                else {
+                    notification.success('Successfully saved scenario "', scenario.name, '"');
+                    d.resolve(results);
+                }
+            });
+            return d.promise;
+        };
+        /**
+         * Updates the given scenario for the current user
+         * @param {Common.Models.Scenario} scenario The scenario to update
+         */
+        this.updateScenario = function (scenario) {
+            var d = $q.defer();
+            var notification = __notifications.pending('Updating scenario "', scenario.name, '"...');
+            var scenarioData = scenario.toJson();
+            __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.UPDATE_SCENARIO), {
+                version: 1,
+                name: scenario.name,
+                key: scenario.key,
+                data: {
+                    version: 1,
+                    name: scenario.name,
+                    key: scenario.key,
+                    scenario: scenarioData
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var scenarioModel = new Common.Models.PlayPrimary(Team.Enums.UnitTypes.Other);
+                if (results && results.data && results.data.scenario) {
+                    scenarioModel.fromJson(results.data.scenario);
+                    // update the context
+                    impakt.context.Playbook.scenario.set(scenarioModel.guid, scenarioModel);
+                }
+                notification.success('Successfully updated scenario "', scenarioModel.name, '"');
+                d.resolve(scenarioModel);
+            }, function (error) {
+                notification.error('Failed to update scenario "', scenario.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Retrieves all scenarios for the current user
+         */
+        this.getScenarios = function () {
+            var d = $q.defer();
+            var notification = __notifications.pending('Getting Scenarios...');
+            __api.get(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.GET_SCENARIOS))
+                .then(function (response) {
+                var scenarioCollection = new Common.Models.ScenarioCollection(Team.Enums.UnitTypes.Mixed);
+                if (response && response.data && response.data.results) {
+                    var results = Common.Utilities.parseData(response.data.results);
+                    if (results) {
+                        var rawScenarios = results;
+                        for (var i = 0; i < results.length; i++) {
+                            var result = results[i];
+                            if (result && result.data && result.data.scenario) {
+                                var rawScenario = result.data.scenario;
+                                var scenarioModel = new Common.Models.Scenario();
+                                rawScenario.key = result.key;
+                                scenarioModel.fromJson(rawScenario);
+                                scenarioCollection.add(scenarioModel);
+                            }
+                        }
+                    }
+                }
+                notification.success(scenarioCollection.size(), ' Scenarios successfully retrieved');
+                d.resolve(scenarioCollection);
+            }, function (error) {
+                notification.error('Failed to retrieve Scenarios');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Prepares the given scenario to be opened in the editor
+         * @param {Common.Models.Scenario} scenario The scenario to be edited
+         */
+        this.editScenario = function (scenario) {
+            var notification = __notifications.info('Opened scenario "', scenario.name, '" for editing.');
+            // add the scenario onto the editor context
+            var scenarioCopy = scenario.copy();
+            scenarioCopy.editorType = Playbook.Enums.EditorTypes.Scenario;
+            // Set association data
+            if (Common.Utilities.isNotNullOrUndefined(scenarioCopy.playPrimary)) {
+                _setPlayAssociations(scenario.playPrimary);
+            }
+            if (Common.Utilities.isNotNullOrUndefined(scenarioCopy.playOpponent)) {
+                _setPlayAssociations(scenario.playOpponent);
+            }
+            impakt.context.Playbook.editor.scenarios.add(scenarioCopy); // <-- create copy
+            // navigate to playbook editor
+            //if (!$state.is('playbook.editor'))
+            $state.transitionTo('playbook.editor');
+        };
+        /**
+         * Deletes the given scenario for the current user
+         * @param {Common.Models.Scenario} scenario The scenario to be deleted
+         */
+        this.deleteScenario = function (scenario) {
+            var d = $q.defer();
+            var notification = __notifications.pending('Deleting scenario "', scenario.name, '"...');
+            __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.DELETE_SCENARIO), {
+                key: scenario.key
+            })
+                .then(function (response) {
+                var scenarioKey = response.data.results.key;
+                // update the context
+                impakt.context.Playbook.scenarios.remove(scenario.guid);
+                notification.success('Successfully deleted scenario "', scenario.name, '"');
+                d.resolve(scenario);
+            }, function (error) {
+                notification.error('Failed to delete scenario "', scenario.name, '"');
                 d.reject(error);
             });
             return d.promise;
@@ -16509,11 +17522,26 @@ impakt.playbook.service('_playbook', [
                     return _playbookModals.deleteFormation(entity);
                 case Common.Enums.ImpaktDataTypes.AssignmentGroup:
                     return _playbookModals.deleteAssignmentGroup(entity);
+                case Common.Enums.ImpaktDataTypes.Scenario:
+                    return _playbookModals.deleteScenario(entity);
                 default:
                     d.reject(new Error('_playbook deleteEntityByType: impaktDataType not supported'));
             }
             return d.promise;
         };
+        function _setPlayAssociations(play, setFormation, setAssignmentGroup, setPersonnel) {
+            var associations = _associations.getAssociated(play);
+            play.formation = associations.formations.first();
+            play.assignmentGroup = associations.assignmentGroups.first();
+            play.personnel = associations.personnel.first();
+            return play;
+        }
+        function _setFormationAssociations(play) {
+            if (Common.Utilities.isNullOrUndefined(play))
+                return;
+            var associations = _associations.getAssociated(play.formation);
+            play.personnel = associations.personnel.first();
+        }
     }]);
 /// <reference path='../playbook.mdl.ts' />
 impakt.playbook.sidebar = angular.module('impakt.playbook.sidebar', [])

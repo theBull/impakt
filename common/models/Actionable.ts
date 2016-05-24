@@ -17,7 +17,8 @@ module Common.Models {
 		public selectable: boolean;
         public dragging: boolean;
         public draggable: boolean;
-        public dragged: boolean;
+        public flipped: boolean;
+        public flippable: boolean;
         public contextmenuTemplateUrl: string;
         public actions: Common.Models.ActionRegistry;
 
@@ -32,8 +33,9 @@ module Common.Models {
             this.hoverable = true;
             this.dragging = false;
             this.draggable = true;
-            this.dragged = false;
             this.selectable = true;
+            this.flipped = false;
+            this.flippable = false;
 		}
 
 		public toJson(): any {
@@ -59,7 +61,7 @@ module Common.Models {
         /**
          * Toggles the opacity for show/hide effect
          */
-        public toggleOpacity() {
+        public toggleOpacity(): void {
             if (!this.disabled &&
                 !this.selected &&
                 this.hoverable) {
@@ -137,7 +139,6 @@ module Common.Models {
         }
 
         public drop(): void {
-            this.dragged = false;
             this.dragging = false;
             this.graphics.drop();
         }

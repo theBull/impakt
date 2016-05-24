@@ -18,6 +18,11 @@ module Common.Models {
 			this._count = 0;
 			this._keys = new Array(size || 0);
 		}
+		public copy(newCollection?: Common.Models.Collection<T>): Common.Models.Collection<T> {
+			let copyCollection = newCollection || new Common.Models.Collection<T>();
+			return <Common.Models.Collection<T>>super.copy(copyCollection, this);
+
+		}
 		private _getKey(data: T) {
 			if (data && data.guid) {
 				return data.guid;
@@ -80,7 +85,7 @@ module Common.Models {
 			let key = this._keys[this._keys.length - 1];
 			return this.get(key);
 		}
-		public set(key: string | number, data: T) {
+		public set(key: string | number, data: T, listen?: boolean) {
 			if (!this.hasOwnProperty(key.toString()))
 				throw Error('Object does not have key ' + key + '. Use the add(key) method.');
 
@@ -90,7 +95,9 @@ module Common.Models {
 			data.onModified(function() {
 				self.setModified(true);
 			});
-			this.setModified(true);
+
+			if(listen !== false)
+				this.setModified(true);
 		}
 		public replace(replaceKey: string | number, data: T) {
 			let key = this._getKey(data);
@@ -114,10 +121,10 @@ module Common.Models {
 
 			this.set(key, data);
 		}
-		public add(data: T) {
+		public add(data: T, listen?: boolean) {
 			let key = this._getKey(data);
 			if(this[key] && this._keys.indexOf(key) > -1) {
-				this.set(key, data);
+				this.set(key, data, listen);
 			} else {
 				this[key] = data;
 				
@@ -134,23 +141,30 @@ module Common.Models {
 
 				this._count++;	
 				let self = this;
-				data.onModified(function() {
+				data.onModified(function(item) {
 					self.setModified(true);
 				});
-				this.setModified(true);
+				
+				if(listen !== false)
+					this.setModified(true);
 			}			
 
 		}
-		public addAll(...args: T[]) {
-			if (!args)
+		public addAll(elements: T[]) {
+			if (!elements || elements.length < 1)
 				return;
 
-			for (let i = 0; i < args.length; i++) {
-				let item = args[i];
+			for (let i = 0; i < elements.length; i++) {
+				let item = elements[i];
 				if (item) {
-					this.add(item);
+					// this.add(item, false) <- NOTE: false
+					// defer the set modification until 
+					// after all items have been added
+					this.add(item, false);
 				}
 			}
+
+			this.setModified(true);
 		}
 		public addAtIndex(data: T, index: number) {
 			let key = this._getKey(data);

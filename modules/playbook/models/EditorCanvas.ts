@@ -7,18 +7,12 @@ module Playbook.Models {
     implements Common.Interfaces.ICanvas {
 
         constructor(
-            playPrimary: Common.Models.PlayPrimary, 
-            playOpponent: Common.Models.PlayOpponent, 
+            scenario: Common.Models.Scenario, 
             width?: number, 
             height?: number
         ) {
-            super();
-            /**
-             * TODO @theBull - find a better way to pass data into the canvas...
-             * it shouldn't be dependent on play data at this level..........? maybe?
-             */
-            this.playPrimary = playPrimary;
-            this.playOpponent = playOpponent;
+            super(scenario);
+
             /**
              * Note that paper is created during the initialize() method;
              * canvas is dependent on angular directive / dynamic HTML include
@@ -65,20 +59,6 @@ module Playbook.Models {
         public setDimensions(): void {
             this.dimensions.width = this.$container.width();
             this.dimensions.height = this.$container.height();
-        }
-
-        public updatePlay(
-            playPrimary: Common.Models.PlayPrimary, 
-            playOpponent: Common.Models.PlayOpponent, 
-            redraw?: boolean): void 
-        {
-            this.playPrimary = playPrimary || this.playPrimary;
-            this.playOpponent = playOpponent || this.playOpponent;
-            this.unitType = this.playPrimary.unitType;
-            this.editorType = this.playPrimary.editorType;
-            this.paper.updatePlay(this.playPrimary, this.playOpponent);
-            
-            this.setModified(true);
         }
 
         public resetHeight() {

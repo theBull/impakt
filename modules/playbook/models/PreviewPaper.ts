@@ -23,18 +23,7 @@ module Playbook.Models {
             );
 
             this.drawing = new Common.Drawing.Utilities(this.canvas, this.grid);
-
-            // Paper methods within field are dependent on 
-            // this.Raphael
-            this.field = new Playbook.Models.PreviewField(
-                this, 
-                this.canvas.playPrimary, 
-                this.canvas.playOpponent
-            );
-        }
-
-        public updatePlay(playPrimary, playOpponent) {
-            throw new Error('PreviewPaper updatePlay(): not implemented');
+            this.field = new Playbook.Models.PreviewField(this, this.canvas.scenario);
         }
     }
 }

@@ -2,7 +2,7 @@
 
 module Common.Models {
 
-    export class Play
+    export abstract class Play
     extends Common.Models.AssociableEntity {
 
         public field: Common.Interfaces.IField;
@@ -11,7 +11,7 @@ module Common.Models {
         public formation: Common.Models.Formation;
         public personnel: Team.Models.Personnel;
         public unitType: Team.Enums.UnitTypes;
-        public editorType: Playbook.Enums.EditorTypes;
+        public playType: Playbook.Enums.PlayTypes;
         public png: string;
 
         constructor(unitType: Team.Enums.UnitTypes) {
@@ -23,9 +23,35 @@ module Common.Models {
             this.assignmentGroup = null;
             this.formation = null;
             this.personnel = null;
-            this.editorType = Playbook.Enums.EditorTypes.Play;
             this.png = null;
             this.contextmenuTemplateUrl = Common.Constants.PLAY_CONTEXTMENU_TEMPLATE_URL;
+            this.playType = Playbook.Enums.PlayTypes.Unknown;
+            this.flipped = false;
+        }
+        
+        public copy(newPlay: Common.Interfaces.IPlay): Common.Interfaces.IPlay {
+            newPlay.formation = this.formation && this.formation.copy();
+            newPlay.personnel = this.personnel && this.personnel.copy();
+            newPlay.assignmentGroup = this.assignmentGroup && this.assignmentGroup.copy();
+            return <Common.Interfaces.IPlay>super.copy(newPlay, this);
+        }
+
+        public toJson(): any {
+            return $.extend({
+                name: this.name,
+                unitType: this.unitType,
+                png: this.png,
+                playType: this.playType
+            }, super.toJson());
+        }
+        public fromJson(json: any): any {
+            // TODO
+            this.name = json.name;
+            this.unitType = json.unitType;
+            this.png = json.png;
+            this.playType = json.playType || this.playType;
+
+            super.fromJson(json);
         }
         public setPlaybook(playbook: Common.Models.PlaybookModel): void {
             // TODO @theBull - handle associations
@@ -75,85 +101,33 @@ module Common.Models {
             this.isFieldSet(this.field);
             this.isBallSet(this.field.ball);
 
-            // 1. if formation doesn't match unit type, select default formation
-            // of unit type
-            if(this.formation && this.formation.unitType != unitType) {
-                let confirmed = confirm('Formation unit type mismatch.\nContinue with a default formation of the correct unit type?');
-                if(confirmed) {
-                    this.formation.unitType = unitType;
-                } else {
-                    return;
+            if(unitType != this.unitType) {
+                this.unitType = unitType;
+
+                // 1. reset formation unit type
+                if (this.formation) {
+                    this.formation.setUnitType(unitType);
                 }
-            }
 
-            // Handle the formation / confirm dialog first; that way if user clicks cancel
-            // in the confirm, we don't end up setting the play's unit type anyway.
-            this.unitType = unitType;            
+                // 2. reset default personnel
+                if (this.personnel && this.personnel.unitType != unitType) {
+                    this.personnel.unitType = unitType;
+                    this.personnel.setDefault();
+                }
 
-            // 2. if personnel doesn't match unit type, select default personnel
-            // of unit type
-            if(this.personnel && this.personnel.unitType != unitType) {
-                this.personnel.unitType = unitType;
-                this.personnel.setDefault();
-            }
+                // 3. clear assignments
+                if (this.assignmentGroup && this.assignmentGroup.unitType != this.unitType) {
+                    this.assignmentGroup = null;
+                }
 
-            // 3. if assignments do not match unit type, clear them.
-            if(this.assignmentGroup.unitType != this.unitType) {
-                this.assignmentGroup = new Common.Models.AssignmentGroup(this.unitType);
+                this.setModified(true);
             }
         }
-        public draw(field: Common.Interfaces.IField): void {
-            this.isFieldSet(field);
-            this.isBallSet(field.ball);
 
-            this.field = field;
-
-            // Clear the players
-            this.field.clearPlayers();
-            
-            var self = this;
-            // set defaults, in case no assignments / personnel were assigned
-            if (!this.personnel) {
-                this.personnel = new Team.Models.Personnel(this.unitType);
-            }
-            if(!this.personnel.positions) {
-                this.personnel.setDefault();
-            }
-            if (!this.assignmentGroup) {
-                this.assignmentGroup = new Common.Models.AssignmentGroup(this.unitType);
-            }
-            if (!this.formation) {
-                this.formation = new Common.Models.Formation(this.unitType);
-            }
-            if(!this.formation.placements || this.formation.placements.isEmpty()) {   
-                this.formation.setDefault(this.field.ball);
-            }
-            this.formation.placements.forEach(function(placement, index) {
-                var position = self.personnel.positions.getIndex(index);
-                var assignment = self.assignmentGroup.assignments.getIndex(index);
-                self.field.addPlayer(placement, position, assignment);
-            });
-        }
-        public fromJson(json: any): any {
-            // TODO
-            this.name = json.name;
-            this.unitType = json.unitType;
-            this.editorType = json.editorType;
-            this.png = json.png;
-
-            super.fromJson(json);
-        }
-        public toJson(): any {
-            return $.extend({
-                name: this.name,
-                unitType: this.unitType,
-                editorType: this.editorType,
-                png: this.png
-            }, super.toJson());
-        }
         public hasAssignments() {
             return this.assignmentGroup && this.assignmentGroup.assignments.size() > 0;
         }
+
         public setDefault(field: Common.Interfaces.IField) {
             this.isFieldSet(field);
 
@@ -191,6 +165,49 @@ module Common.Models {
                 throw new Error('Play draw(): Ball is null or undefined');
 
             return true;
+        }
+
+        public setField(field: Common.Interfaces.IField): void {
+            this.isFieldSet(field);
+            this.isBallSet(field.ball);
+
+            this.field = field;
+        }
+
+        public static toPrimary(play: Common.Interfaces.IPlay): Common.Models.PlayPrimary {
+            if (play.playType == Playbook.Enums.PlayTypes.Primary)
+                return <Common.Models.PlayPrimary>play; 
+
+            let newPlay = new Common.Models.PlayPrimary(play.unitType);
+            newPlay.fromJson(play.toJson());
+            newPlay.playType = Playbook.Enums.PlayTypes.Primary;
+            newPlay.assignmentGroup = play.assignmentGroup;
+            newPlay.formation = play.formation;
+            newPlay.personnel = play.personnel;
+            return newPlay;
+        }
+
+        public static toOpponent(play: Common.Interfaces.IPlay): Common.Models.PlayOpponent {
+            if (play.playType == Playbook.Enums.PlayTypes.Opponent)
+                return <Common.Models.PlayOpponent>play;
+
+            let newPlay = new Common.Models.PlayOpponent(play.unitType);
+            newPlay.fromJson(play.toJson());
+            newPlay.playType = Playbook.Enums.PlayTypes.Opponent;
+            newPlay.assignmentGroup = play.assignmentGroup;
+            newPlay.formation = play.formation;
+            newPlay.personnel = play.personnel;
+            return newPlay;
+        }
+
+        public flip(): void {
+            if (Common.Utilities.isNotNullOrUndefined(this.formation)) {
+                this.formation.flip();
+            }
+            if(Common.Utilities.isNotNullOrUndefined(this.assignmentGroup)) {
+                //this.assignmentGroup.flip();
+            }
+            this.flipped = !this.flipped;
         }
     }
 }

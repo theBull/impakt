@@ -380,32 +380,41 @@ function(
         let notification = __notifications.info('Opened formation "', formation.name, '" for editing.');
 
         // determine whether the formation is already open            
-        let formationOpen = forceOpen ? forceOpen : impakt.context.Playbook.editor.plays.hasElementWhich(
-            function(play) {
-                return play.editorType == Playbook.Enums.EditorTypes.Formation &&
-                    play.formation.guid == formation.guid;
+        let formationOpen = forceOpen ? forceOpen : impakt.context.Playbook.editor.scenarios.hasElementWhich(
+            function(scenario: Common.Models.Scenario) {
+                if (Common.Utilities.isNullOrUndefined(scenario.playPrimary) ||
+                    Common.Utilities.isNullOrUndefined(scenario.playPrimary.formation))
+                    return false;
+
+                return scenario.editorType == Playbook.Enums.EditorTypes.Formation &&
+                    scenario.playPrimary.formation.guid == formation.guid;
             });
 
-        // do not add a new editor play to the context if the formation
-        // is already open
         if(!formationOpen) {
             // formation isn't opened yet,
-            // 1. create new play for the formation to sit in
+            // 1. create new scenario / primary play for the formation to sit in
             // 2. create a working copy of the formation
             // 3. update the working copy's properties accordingly
             // 4. add the working play to the editor context
         
             // Set Play to formation-only editing mode
-            let play = new Common.Models.PlayPrimary(formation.unitType);
+            let primaryPlay = new Common.Models.PlayPrimary(formation.unitType);
 
             // need to make a copy of the formation here
             let formationCopy = formation.copy();
-            play.setFormation(formationCopy);
-            play.editorType = Playbook.Enums.EditorTypes.Formation;
-            play.name = formation.name;
+            primaryPlay.setFormation(formationCopy);
+
+            // Set association data
+			_setFormationAssociations(primaryPlay);
+
+            let scenario = new Common.Models.Scenario();
+            scenario.setPlayPrimary(primaryPlay);
+            scenario.setPlayOpponent(null);
+            scenario.editorType = Playbook.Enums.EditorTypes.Formation;
+            scenario.name = formation.name;
 
             // add the play onto the editor context
-            impakt.context.Playbook.editor.plays.add(play);
+            impakt.context.Playbook.editor.scenarios.add(scenario);
         }
 
         // navigate to playbook editor
@@ -751,7 +760,7 @@ function(
             let results = Common.Utilities.parseData(response.data.results);
             let playModel = null;
             if(results && results.data && results.data.play) {
-                playModel = new Common.Models.Play(Team.Enums.UnitTypes.Other);
+                playModel = new Common.Models.PlayPrimary(Team.Enums.UnitTypes.Other);
                 results.data.play.key = results.key;
                 playModel.fromJson(results.data.play);
                 impakt.context.Playbook.plays.add(playModel);
@@ -934,7 +943,7 @@ function(
         )
         .then(function(response: any) {
             let results = Common.Utilities.parseData(response.data.results);
-            let playModel = new Common.Models.Play(Team.Enums.UnitTypes.Other);
+            let playModel = new Common.Models.PlayPrimary(Team.Enums.UnitTypes.Other);
             if(results && results.data && results.data.play) {
                 playModel.fromJson(results.data.play);
 
@@ -985,7 +994,7 @@ function(
                         let result = results[i];
                         if (result && result.data && result.data.play) {
                             let rawPlay = result.data.play;
-                            let playModel = new Common.Models.Play(Team.Enums.UnitTypes.Other);
+                            let playModel = new Common.Models.PlayPrimary(Team.Enums.UnitTypes.Other);
                             rawPlay.key = result.key;
                             playModel.fromJson(rawPlay);
                             playCollection.add(playModel);
@@ -1009,28 +1018,24 @@ function(
      * Prepares the given play to be opened in the play editor
      * @param {Common.Models.Play} play The play to be edited
      */
-    this.editPlay = function(play: Common.Models.Play) {
+    this.editPlay = function(play: Common.Interfaces.IPlay) {
         let notification = __notifications.info('Opened play "', play.name, '" for editing.');
         
         // Set Play to play editing mode
-        play.editorType = Playbook.Enums.EditorTypes.Play;
-
-        if(!play.formation) {
-            // let associatedFormation = play.associated.formations.primary();
-            // if(associatedFormation) {
-            //     play.formation = impakt.context.Playbook.formations.get(associatedFormation);
-            // }
+        let scenario = new Common.Models.Scenario();
+        let playCopy = <Common.Models.PlayPrimary>play.copy();
+        if(play.playType != Playbook.Enums.PlayTypes.Primary) {
+            playCopy = Common.Models.Play.toPrimary(playCopy);
         }
-        if (!play.personnel) {
-            // let associatedPersonnel = play.associated.personnel.primary();
-            // if (associatedPersonnel) {
-            //     play.personnel = impakt.context.Team.personnel.get(associatedPersonnel);
-            // }
-        }
+        scenario.setPlayPrimary(playCopy);
+        scenario.setPlayOpponent(null);;
+        scenario.editorType = Playbook.Enums.EditorTypes.Play;
 
+        // Set association data
+        _setPlayAssociations(scenario.playPrimary);
         
         // add the play onto the editor context
-        impakt.context.Playbook.editor.plays.add(play);
+        impakt.context.Playbook.editor.scenarios.add(scenario);
 
         // navigate to playbook editor
         //if (!$state.is('playbook.editor'))
@@ -1067,6 +1072,256 @@ function(
                 d.resolve(play);
             }, function(error: any) {
                 notification.error('Failed to delete play "', play.name, '"');
+
+                d.reject(error);
+            });
+
+        return d.promise;
+    }
+
+
+    /**
+     * Creates the given scenario for the current user
+     * @param {Common.Models.Scenario} scenario The scenario to create
+     */
+    this.createScenario = function(scenario: Common.Models.Scenario) {
+
+        let scenarioData = scenario.toJson();
+
+        var d = $q.defer();
+
+        let notification = __notifications.pending(
+            'Creating scenario "', scenario.name, '"...'
+        );
+
+        __api.post(
+            __api.path(
+                PLAYBOOK.ENDPOINT,
+                PLAYBOOK.CREATE_SCENARIO
+            ),
+            {
+                version: 1,
+                name: scenario.name,
+                ownerRK: 1,
+                parentRK: 1,
+                data: {
+                    version: 1,
+                    name: scenario.name,
+                    ownerRK: 1,
+                    parentRK: 1,
+                    scenario: scenarioData
+                }
+            }
+        )
+        .then(function(response: any) {
+            let results = Common.Utilities.parseData(response.data.results);
+            let scenarioModel = null;
+            if(results && results.data && results.data.scenario) {
+                scenarioModel = new Common.Models.Scenario();
+                results.data.scenario.key = results.key;
+                scenarioModel.fromJson(results.data.scenario);
+                impakt.context.Playbook.scenarios.add(scenarioModel);
+            }
+
+            notification.success(
+                'Successfully created scenario "', scenario.name, '"'
+            );
+
+            d.resolve(scenarioModel);
+            
+        }, function(error: any) {
+            notification.error(
+                'Failed to create scenario "', scenario.name, '"'
+            );
+
+            d.reject(error);
+        });
+
+        return d.promise;
+    }
+
+    /**
+     * Saves the given scenario according to the options passed for the given user
+     * TODO @theBull create Options model
+     *
+     * @param {Common.Models.Scenario} scenario    [description]
+     * @param {any}                  options [description]
+     */
+    this.saveScenario = function(scenario: Common.Models.Scenario, options: any) {
+        var d = $q.defer();
+
+        let notification = __notifications.pending('Saving scenario "', scenario.name, '"...');
+
+        async.parallel([
+            function(callback) {
+                callback(null, null);
+            }
+        ], function(err, results) {
+            if(err) {
+                notification.error('Failed to save scenario "', scenario.name, '"');
+                d.reject(err);
+            } else {
+                notification.success('Successfully saved scenario "', scenario.name, '"');
+                d.resolve(results);
+            }
+        });
+
+        return d.promise;
+    }
+
+
+    /**
+     * Updates the given scenario for the current user
+     * @param {Common.Models.Scenario} scenario The scenario to update
+     */
+    this.updateScenario = function(scenario: Common.Models.Scenario) {
+        var d = $q.defer();
+
+        let notification = __notifications.pending('Updating scenario "', scenario.name, '"...');
+
+        let scenarioData = scenario.toJson();
+
+        __api.post(
+            __api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.UPDATE_SCENARIO),
+            {
+                version: 1,
+                name: scenario.name,
+                key: scenario.key,
+                data: {
+                    version: 1,
+                    name: scenario.name,
+                    key: scenario.key,
+                    scenario: scenarioData
+                }
+            }
+        )
+        .then(function(response: any) {
+            let results = Common.Utilities.parseData(response.data.results);
+            let scenarioModel = new Common.Models.PlayPrimary(Team.Enums.UnitTypes.Other);
+            if(results && results.data && results.data.scenario) {
+                scenarioModel.fromJson(results.data.scenario);
+
+                // update the context
+                impakt.context.Playbook.scenario.set(scenarioModel.guid, scenarioModel);
+            }
+
+            notification.success('Successfully updated scenario "', scenarioModel.name, '"');
+
+            d.resolve(scenarioModel);
+        }, function(error: any) {
+            notification.error(
+                'Failed to update scenario "', scenario.name, '"'
+            );
+
+            d.reject(error);
+        });
+
+        return d.promise;
+    }
+
+
+    /**
+     * Retrieves all scenarios for the current user
+     */
+    this.getScenarios = function() {
+        var d = $q.defer();
+
+        let notification = __notifications.pending(
+            'Getting Scenarios...'
+        );
+
+        __api.get(
+            __api.path(
+                PLAYBOOK.ENDPOINT,
+                PLAYBOOK.GET_SCENARIOS
+            )
+        )
+        .then(function(response: any) {
+            
+            let scenarioCollection = new Common.Models.ScenarioCollection(Team.Enums.UnitTypes.Mixed);
+            
+            if(response && response.data && response.data.results) {
+                let results = Common.Utilities.parseData(response.data.results);
+                if (results) {
+                    let rawScenarios = results;
+                    for (let i = 0; i < results.length; i++) {
+                        let result = results[i];
+                        if (result && result.data && result.data.scenario) {
+                            let rawScenario = result.data.scenario;
+                            let scenarioModel = new Common.Models.Scenario();
+                            rawScenario.key = result.key;
+                            scenarioModel.fromJson(rawScenario);
+                            scenarioCollection.add(scenarioModel);
+                        }
+                    }    
+                }                
+            }
+            
+            notification.success(scenarioCollection.size(), ' Scenarios successfully retrieved');
+            d.resolve(scenarioCollection);
+            
+        }, function(error: any) {
+            notification.error('Failed to retrieve Scenarios');
+            d.reject(error);
+        });
+
+        return d.promise;
+    }
+
+    /**
+     * Prepares the given scenario to be opened in the editor
+     * @param {Common.Models.Scenario} scenario The scenario to be edited
+     */
+    this.editScenario = function(scenario: Common.Models.Scenario) {
+        let notification = __notifications.info('Opened scenario "', scenario.name, '" for editing.');
+
+        // add the scenario onto the editor context
+        let scenarioCopy = scenario.copy();
+        scenarioCopy.editorType = Playbook.Enums.EditorTypes.Scenario;
+        // Set association data
+        if (Common.Utilities.isNotNullOrUndefined(scenarioCopy.playPrimary)) {
+			_setPlayAssociations(scenario.playPrimary);
+        }
+        if (Common.Utilities.isNotNullOrUndefined(scenarioCopy.playOpponent)) {
+			_setPlayAssociations(scenario.playOpponent);
+        }
+        impakt.context.Playbook.editor.scenarios.add(scenarioCopy); // <-- create copy
+
+        // navigate to playbook editor
+        //if (!$state.is('playbook.editor'))
+        $state.transitionTo('playbook.editor');
+    }
+
+    /**
+     * Deletes the given scenario for the current user
+     * @param {Common.Models.Scenario} scenario The scenario to be deleted
+     */
+    this.deleteScenario = function(scenario: Common.Models.Scenario) {
+        var d = $q.defer();
+
+        let notification = __notifications.pending(
+            'Deleting scenario "', scenario.name, '"...'
+        );
+
+        __api.post(
+            __api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.DELETE_SCENARIO),
+            {
+                key: scenario.key
+            }
+        )
+            .then(function(response: any) {
+                let scenarioKey = response.data.results.key;
+                
+                // update the context
+                impakt.context.Playbook.scenarios.remove(scenario.guid);
+
+                notification.success(
+                    'Successfully deleted scenario "', scenario.name, '"'
+                );
+
+                d.resolve(scenario);
+            }, function(error: any) {
+                notification.error('Failed to delete scenario "', scenario.name, '"');
 
                 d.reject(error);
             });
@@ -1170,11 +1425,30 @@ function(
                 return _playbookModals.deleteFormation(entity);
             case Common.Enums.ImpaktDataTypes.AssignmentGroup:
                 return _playbookModals.deleteAssignmentGroup(entity);
+            case Common.Enums.ImpaktDataTypes.Scenario:
+                return _playbookModals.deleteScenario(entity);
             default:
                d.reject(new Error('_playbook deleteEntityByType: impaktDataType not supported'))
         }
 
         return d.promise;
+    }
+
+    function _setPlayAssociations(play: Common.Interfaces.IPlay, setFormation?: boolean, setAssignmentGroup?: boolean, setPersonnel?: boolean): Common.Interfaces.IPlay {
+		let associations = _associations.getAssociated(play);
+		play.formation = associations.formations.first();
+		play.assignmentGroup = associations.assignmentGroups.first();
+		play.personnel = associations.personnel.first();
+
+		return play;
+    }
+
+    function _setFormationAssociations(play: Common.Interfaces.IPlay): Common.Interfaces.IPlay {
+		if (Common.Utilities.isNullOrUndefined(play))
+			return;
+
+    	let associations = _associations.getAssociated(play.formation);
+		play.personnel = associations.personnel.first();
     }
 
 }]);

@@ -1,0 +1,79 @@
+<div class="modal-header">
+    <h3 class="modal-title">Create Scenario</h3>
+</div>
+<div class="modal-body">
+    <div class='row'>
+
+        <!-- Scenario details -->
+        <div class='col marginRight2'>
+        	<div class='marginBottom2'>
+                <p>Scenario name</p>
+        	    <input type='text' ng-model='newScenario.name' 
+        	        placeholder='Scenario name?' />
+            </div>	
+
+            <div class='marginBottom2'>
+
+                <div class='marginBottom1'>
+                    Playbook ({{playbooks.size()}})
+                    <div ng-show='playbooks.hasElements()'>
+                        <select ng-options='playbook as playbook.name for playbook in playbooks.toArray()'
+                            ng-model='selectedPlaybook'
+                            ng-change='selectPlaybook(selectedPlaybook)'>
+                        </select>
+                    </div>
+                    <div ng-show='playbooks.isEmpty()'>
+                        <span class='marginRight1'>
+                            <span class='glyphicon glyphicon-exclamation-sign'></span>
+                        </span>
+                        <em>There are no playbooks to add this play to.</em>
+                    </div>
+                </div>
+
+                <div ng-show='plays.size() > 1'>
+                    <div class='marginBottom1'>
+                        Opponent Play ({{plays.size()}})
+                        
+                        <select ng-options='play as play.name for play in plays.toArray()'
+                            ng-model='selectedOpponentPlay'
+                            ng-change='selectOpponentPlay()'>
+                        </select>
+                                           
+                    </div>
+
+                    <div class='marginBottom1'>
+                        Primary Play ({{plays.size()}})
+                    
+                        <select ng-options='play as play.name for play in plays.toArray()'
+                            ng-model='selectedPrimaryPlay'
+                            ng-change='selectPrimaryPlay()'>
+                        </select>
+                    
+                    </div>
+                </div>
+                <div ng-show='plays.size() <= 1'>
+                    <span class='marginRight1'>
+                        <span class='glyphicon glyphicon-exclamation-sign'></span>
+                    </span>
+                    <em>Creating a scenario requires two plays; please create another play.</em>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Scenario preview -->
+        <div class='col shrink'>
+            <div class='center'>
+                <scenario-preview 
+                    scenario='newScenario' 
+                    class='width35 height40'>
+                </scenario-preview>
+            </div>
+        </div>
+    </div>
+
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary" type="button" ng-click="ok()">Create</button>
+    <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+</div>

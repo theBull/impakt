@@ -14,6 +14,8 @@ module Common.Models {
 		public position: Team.Models.Position;
 		public assignment: Common.Models.Assignment;
 		public placement: Common.Models.Placement;
+		public renderType: Common.Enums.RenderTypes;
+		public unitType: Team.Enums.UnitTypes;
 
 		/**
 		 * 
@@ -35,27 +37,41 @@ module Common.Models {
 			super();
 			this.placement = placement;
 			this.position = position;
-			this.assignment = assignment || new Common.Models.Assignment(this.position.unitType);
+			this.unitType = this.position ? this.position.unitType : Team.Enums.UnitTypes.Other;
+			this.assignment = assignment || new Common.Models.Assignment(this.unitType);
+			this.flippable = true;
 			
-			if(Common.Utilities.isNotNullOrUndefined(this.assignment))
+			if (Common.Utilities.isNotNullOrUndefined(this.assignment) &&
+				Common.Utilities.isNotNullOrUndefined(this.position)) {
 				this.assignment.positionIndex = this.position.index;
+			}
 		}
 
 		public initialize(field: Common.Interfaces.IField): void {
 			super.initialize(field, field.ball);
 
 			this.layer.type = Common.Enums.LayerTypes.Player;
-			this.graphics.setPlacement(this.placement);
+			this.graphics.initializePlacement(
+				new Common.Models.Placement(
+					this.placement.relative.rx,
+					this.placement.relative.ry,
+					this.field.ball
+				)
+			);
 			this.graphics.dimensions.setWidth(this.grid.getSize());
 			this.graphics.dimensions.setHeight(this.grid.getSize());
 
 			let self = this;
 			this.onModified(function() {
-				self.field.players.setModified(true);
+				self.field.primaryPlayers.setModified(true);
 			});
 			this.layer.onModified(function() {
 				self.setModified(true);
 			});
+		}
+
+		public flip(): void {
+			this.layer.flip();
 		}
 
 		public remove(): void {
@@ -115,8 +131,7 @@ module Common.Models {
 			return this.graphics.placement;
 		}
 		public setPlacement(placement: Common.Models.Placement): void {
-			this.graphics.updateFromCoordinates(placement.coordinates.x, placement.coordinates.y);
-			this.layer.setPlacement(placement);
+			this.graphics.placement.update(placement);
 			this.setModified(true);
 		}
 	}

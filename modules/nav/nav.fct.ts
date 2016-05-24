@@ -36,7 +36,7 @@ function(
 			'/league',
 			false,
 			function(self: Navigation.Models.NavigationItem) {
-				$state.transitionTo('league');
+				$state.transitionTo('league.browser');
 			}
 		)
 	);
@@ -64,7 +64,7 @@ function(
 			'/playbook/browser',
 			false,
 			function(self: Navigation.Models.NavigationItem) {
-				$state.transitionTo('playbook');
+				$state.transitionTo('playbook.browser');
 			}
 		)
 	);
@@ -101,7 +101,7 @@ function(
 	menuItems.add(
 		new Navigation.Models.NavigationItem(
 			'team',
-			'Team Management',
+			'Team',
 			'list-alt',
 			'/team',
 			false,

@@ -6,10 +6,10 @@ module Common.Interfaces {
 
 		paper: Common.Interfaces.IPaper;
 		grid: Common.Interfaces.IGrid;
-		playPrimary: Common.Models.PlayPrimary;
-		playOpponent: Common.Models.PlayOpponent;
+		scenario: Common.Models.Scenario;
 		ball: Common.Interfaces.IBall;
-		players: Common.Models.PlayerCollection;
+		primaryPlayers: Common.Models.PlayerCollection;
+		opponentPlayers: Common.Models.PlayerCollection;
         ground: Common.Interfaces.IGround;
         los: Common.Interfaces.ILineOfScrimmage;
         endzone_top: Common.Interfaces.IEndzone;
@@ -22,22 +22,29 @@ module Common.Interfaces {
         hashmark_sideline_right: Common.Interfaces.IHashmark;
         selected: Common.Interfaces.ICollection<Common.Interfaces.IFieldElement>;
 		cursorCoordinates: Common.Models.Coordinates;
+		editorType: Playbook.Enums.EditorTypes;
 		
 		initialize(): void;
 		draw(): void;
-			registerLayer(layer: Common.Models.Layer);
-		
-		addPlayer(
+		drawScenario(): void;
+		registerLayer(layer: Common.Models.Layer);
+		addPrimaryPlayer(
 			placement: Common.Models.Placement,
 			position: Team.Models.Position,
 			assignment: Common.Models.Assignment
 		): Common.Interfaces.IPlayer;
-		clearPlay(): void;
+		addOpponentPlayer(
+			placement: Common.Models.Placement,
+			position: Team.Models.Position,
+			assignment: Common.Models.Assignment
+		): Common.Interfaces.IPlayer;
+		clearPrimaryPlayers(): void;
+        clearOpponentPlayers(): void;
+        clearScenario(): void;
+        clearPrimaryPlay(): void;
+        clearOpponentPlay(): void;
 		clearPlayers(): void;
-		updatePlay(
-			playPrimary: Common.Models.PlayPrimary, 
-			playOpponent: Common.Models.PlayOpponent
-		): void;
+		updateScenario(scenario: Common.Models.Scenario): void;
 
 		getSelectedByLayerType(layerType: Common.Enums.LayerTypes)
 			: Common.Models.Collection<Common.Interfaces.IFieldElement>;

@@ -6,23 +6,24 @@
         <div class='col'>
             <div class='marginBottom2'>
                 <p>Formation name</p>
-                <input type='text' ng-model='formation.name' 
+                <input type='text' ng-model='play.formation.name' 
                     placeholder='Formation name?' />
             </div>
 
-            <div ng-repeat='unitType in unitTypes.toArray()'>
-                <label>
-                    <div class='row marginBottom1'>
+            <div class='marginBottom2'>
+                <p>Unit type</p>
+                <div ng-repeat='unitType in unitTypeCollection.toArray()'>
+                    <label class='pointer gray-bg-0-hover row'>
                         <div class='width1 marginRight1'>
                             <input type='radio' 
-                                ng-model='$parent.selectedUnitType'
-                                ng-change='unitTypeSelected()'
+                                ng-model='selectedUnitType.unitType'
                                 ng-value='unitType.unitType'
+                                ng-change='selectUnitType()'
                                 name='unitType' />
                         </div>
-                        <span>{{unitType.name}}</span>
-                    </div>
-                </label>
+                        <span>{{unitType.name}} ({{unitType.unitType}})</span>
+                    </label>
+                </div>
             </div>
 
             <div class='marginBottom1'>
@@ -54,7 +55,7 @@
         </div>
         <div class='col width37 pad'>
             <div class='center'>
-                <formation-preview formation='formation' class='height30 width35'></formation-preview>
+                <formation-preview play='play' class='height30 width35'></formation-preview>
             </div>
         </div>
     </div>

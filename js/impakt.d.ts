@@ -16,7 +16,7 @@ declare module Common.Interfaces {
         replace(replaceKey: string | number, data: T): void;
         setAtIndex(index: number, data: T): void;
         add(data: T): void;
-        addAll(...args: T[]): void;
+        addAll(elements: T[]): void;
         addAtIndex(data: T, index: number): void;
         only(data: T): void;
         append(collection: Common.Interfaces.ICollection<T>): void;
@@ -87,6 +87,13 @@ declare module Common.Interfaces {
         selectable: boolean;
         draggable: boolean;
         dragging: boolean;
+        flipped: boolean;
+        flippable: boolean;
+        contextmenuTemplateUrl: string;
+        actions: Common.Models.ActionRegistry;
+        hasGraphics(): boolean;
+        toggleOpacity(): void;
+        isSelectable(): boolean;
         select(): void;
         deselect(): void;
         toggleSelect(metaKey?: boolean): void;
@@ -155,7 +162,6 @@ declare module Common.Interfaces {
 declare module Common.Interfaces {
     interface IDraggable extends Common.Interfaces.IActionable {
         dragging: boolean;
-        dragged: boolean;
         ondrag(dragStart: Function, dragMove: Function, dragEnd: Function, context: Common.Interfaces.IFieldElement): void;
         dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void;
         dragStart(x: number, y: number, e: any): void;
@@ -197,6 +203,22 @@ declare module Common.Interfaces {
     }
 }
 declare module Common.Interfaces {
+    interface IPlay extends Common.Interfaces.IActionable {
+        playType: Playbook.Enums.PlayTypes;
+        unitType: Team.Enums.UnitTypes;
+        assignmentGroup: Common.Models.AssignmentGroup;
+        formation: Common.Models.Formation;
+        personnel: Team.Models.Personnel;
+        name: string;
+        setField(field: Common.Interfaces.IField): void;
+        copy(newElement?: Common.Interfaces.IPlay): Common.Interfaces.IPlay;
+    }
+}
+declare module Common.Interfaces {
+    interface IScenario extends Common.Interfaces.IActionable {
+    }
+}
+declare module Common.Interfaces {
     interface IPaper {
         canvas: Common.Interfaces.ICanvas;
         field: Common.Interfaces.IField;
@@ -217,7 +239,7 @@ declare module Common.Interfaces {
         resize(): void;
         setViewBox(): void;
         scroll(scrollToX: number, scrollToY: number, center?: boolean): void;
-        updatePlay(playPrimary: Common.Models.PlayPrimary, playOpponent: Common.Models.PlayOpponent): any;
+        updateScenario(scenario: Common.Models.Scenario): any;
     }
 }
 declare module Common.Interfaces {
@@ -256,12 +278,9 @@ declare module Common.Interfaces {
         $exportCanvas: any;
         dimensions: Common.Models.Dimensions;
         toolMode: Playbook.Enums.ToolModes;
-        unitType: Team.Enums.UnitTypes;
-        editorType: Playbook.Enums.EditorTypes;
         tab: Common.Models.Tab;
         scrollable: any;
-        playPrimary: Common.Models.PlayPrimary;
-        playOpponent: Common.Models.PlayOpponent;
+        scenario: Common.Models.Scenario;
         listener: Common.Models.CanvasListener;
         exportToPng(): string;
         setDimensions(): void;
@@ -272,10 +291,10 @@ declare module Common.Interfaces {
     interface IField extends Common.Interfaces.IModifiable {
         paper: Common.Interfaces.IPaper;
         grid: Common.Interfaces.IGrid;
-        playPrimary: Common.Models.PlayPrimary;
-        playOpponent: Common.Models.PlayOpponent;
+        scenario: Common.Models.Scenario;
         ball: Common.Interfaces.IBall;
-        players: Common.Models.PlayerCollection;
+        primaryPlayers: Common.Models.PlayerCollection;
+        opponentPlayers: Common.Models.PlayerCollection;
         ground: Common.Interfaces.IGround;
         los: Common.Interfaces.ILineOfScrimmage;
         endzone_top: Common.Interfaces.IEndzone;
@@ -288,13 +307,20 @@ declare module Common.Interfaces {
         hashmark_sideline_right: Common.Interfaces.IHashmark;
         selected: Common.Interfaces.ICollection<Common.Interfaces.IFieldElement>;
         cursorCoordinates: Common.Models.Coordinates;
+        editorType: Playbook.Enums.EditorTypes;
         initialize(): void;
         draw(): void;
+        drawScenario(): void;
         registerLayer(layer: Common.Models.Layer): any;
-        addPlayer(placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment): Common.Interfaces.IPlayer;
-        clearPlay(): void;
+        addPrimaryPlayer(placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment): Common.Interfaces.IPlayer;
+        addOpponentPlayer(placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment): Common.Interfaces.IPlayer;
+        clearPrimaryPlayers(): void;
+        clearOpponentPlayers(): void;
+        clearScenario(): void;
+        clearPrimaryPlay(): void;
+        clearOpponentPlay(): void;
         clearPlayers(): void;
-        updatePlay(playPrimary: Common.Models.PlayPrimary, playOpponent: Common.Models.PlayOpponent): void;
+        updateScenario(scenario: Common.Models.Scenario): void;
         getSelectedByLayerType(layerType: Common.Enums.LayerTypes): Common.Models.Collection<Common.Interfaces.IFieldElement>;
         toggleSelectionByLayerType(layerType: Common.Enums.LayerTypes): void;
         toggleSelection(element: Common.Interfaces.IFieldElement): void;
@@ -342,6 +368,9 @@ declare module Common.Interfaces {
         relativeCoordinatesLabel: Common.Interfaces.IPlayerRelativeCoordinatesLabel;
         personnelLabel: Common.Interfaces.IPlayerPersonnelLabel;
         indexLabel: any;
+        renderType: Common.Enums.RenderTypes;
+        unitType: Team.Enums.UnitTypes;
+        flip(): void;
     }
 }
 declare module Common.Interfaces {
@@ -404,7 +433,9 @@ declare module Common.Interfaces {
         dragInitialized: boolean;
         type: Common.Enums.RouteTypes;
         renderType: Common.Enums.RenderTypes;
+        flipped: boolean;
         draw(): void;
+        flip(): void;
         initializeCurve(coords: Common.Models.Coordinates, flip?: boolean): any;
         addNode(routeNode: Common.Interfaces.IRouteNode, render?: boolean): Common.Interfaces.IRouteNode;
         getMixedStringFromNodes(nodeArray: Common.Interfaces.IRouteNode[]): string;
@@ -428,6 +459,8 @@ declare module Common.Interfaces {
         routeAction: Common.Interfaces.IRouteAction;
         routeControlPath: Common.Interfaces.IRouteControlPath;
         route: Common.Interfaces.IRoute;
+        flipped: boolean;
+        flip(): void;
     }
 }
 declare module Common.Interfaces {
@@ -516,6 +549,7 @@ declare module Common.Models {
         private _count;
         private _keys;
         constructor(size?: number);
+        copy(newCollection?: Common.Models.Collection<T>): Common.Models.Collection<T>;
         private _getKey(data);
         private _ensureKeyType(key);
         size(): number;
@@ -534,11 +568,11 @@ declare module Common.Models {
          * @return {T} [description]
          */
         getLast(): T;
-        set(key: string | number, data: T): void;
+        set(key: string | number, data: T, listen?: boolean): void;
         replace(replaceKey: string | number, data: T): void;
         setAtIndex(index: number, data: T): any;
-        add(data: T): void;
-        addAll(...args: T[]): void;
+        add(data: T, listen?: boolean): void;
+        addAll(elements: T[]): void;
         addAtIndex(data: T, index: number): void;
         only(data: T): void;
         append(collection: Common.Models.Collection<T>): void;
@@ -585,8 +619,9 @@ declare module Common.Models {
          * @param {boolean} startListening true to start listening, false to stop
          */
         listen(startListening: boolean): LinkedList<T>;
-        add(node: T): void;
+        add(node: T, listen?: boolean): void;
         getIndex(index: number): T;
+        first(): T;
         forEach(iterator: Function): void;
         toJson(): any[];
         toArray(): T[];
@@ -598,6 +633,24 @@ declare module Common.Models {
         isEmpty(): boolean;
     }
 }
+/**
+ *
+ *
+ *
+ *
+ *
+ *
+ *   DEPRECATED!!
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ */
 declare module Common.Models {
     class ModifiableCollection<T extends Common.Models.Modifiable> {
         callbacks: Function[];
@@ -633,7 +686,7 @@ declare module Common.Models {
         replace(replaceKey: string | number, data: T): ModifiableCollection<T>;
         setAtIndex(index: number, data: T): ModifiableCollection<T>;
         add(data: T): ModifiableCollection<T>;
-        addAll(...args: T[]): ModifiableCollection<T>;
+        addAll(elements: T[]): ModifiableCollection<T>;
         addAtIndex(data: T, index: number): ModifiableCollection<T>;
         only(data: T): ModifiableCollection<T>;
         append(collection: Common.Models.Collection<T>, clearListeners?: boolean): ModifiableCollection<T>;
@@ -694,7 +747,8 @@ declare module Common.Models {
         selectable: boolean;
         dragging: boolean;
         draggable: boolean;
-        dragged: boolean;
+        flipped: boolean;
+        flippable: boolean;
         contextmenuTemplateUrl: string;
         actions: Common.Models.ActionRegistry;
         constructor(impaktDataType: Common.Enums.ImpaktDataTypes);
@@ -902,6 +956,15 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
+    class AssociationResults {
+        playbooks: Common.Models.PlaybookModelCollection;
+        plays: Common.Models.PlayCollection;
+        formations: Common.Models.FormationCollection;
+        personnel: Team.Models.PersonnelCollection;
+        assignmentGroups: Common.Models.AssignmentGroupCollection;
+    }
+}
+declare module Common.Models {
     class Notification extends Common.Models.Modifiable {
         message: string;
         type: Common.Models.NotificationType;
@@ -978,10 +1041,11 @@ declare module Common.Models {
         remove(): void;
         setContext(context: any): void;
         draw(): void;
-        setRoutes(player: Common.Interfaces.IPlayer, routeType: Common.Enums.RenderTypes): void;
+        setRoutes(player: Common.Interfaces.IPlayer, renderType: Common.Enums.RenderTypes): void;
         hasRouteArray(): boolean;
         fromJson(json: any): void;
         toJson(): any;
+        flip(): void;
     }
 }
 declare module Common.Models {
@@ -990,9 +1054,11 @@ declare module Common.Models {
         name: string;
         assignments: Common.Models.Collection<Common.Models.Assignment>;
         constructor(unitType: Team.Enums.UnitTypes, count?: number);
+        copy(newAssignmentGroup?: Common.Models.AssignmentGroup): Common.Models.AssignmentGroup;
         toJson(): any;
         fromJson(json: any): any;
         getAssignmentByPositionIndex(index: number): any;
+        flip(): void;
     }
 }
 declare module Common.Models {
@@ -1018,6 +1084,8 @@ declare module Common.Models {
         setDefault(ball: Common.Interfaces.IBall): void;
         isValid(): boolean;
         setPlacements(placements: Common.Models.PlacementCollection): void;
+        setUnitType(unitType: Team.Enums.UnitTypes): void;
+        flip(): void;
     }
 }
 declare module Common.Models {
@@ -1034,46 +1102,51 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
-    class Play extends Common.Models.AssociableEntity {
+    abstract class Play extends Common.Models.AssociableEntity {
         field: Common.Interfaces.IField;
         name: string;
         assignmentGroup: Common.Models.AssignmentGroup;
         formation: Common.Models.Formation;
         personnel: Team.Models.Personnel;
         unitType: Team.Enums.UnitTypes;
-        editorType: Playbook.Enums.EditorTypes;
+        playType: Playbook.Enums.PlayTypes;
         png: string;
         constructor(unitType: Team.Enums.UnitTypes);
+        copy(newPlay: Common.Interfaces.IPlay): Common.Interfaces.IPlay;
+        toJson(): any;
+        fromJson(json: any): any;
         setPlaybook(playbook: Common.Models.PlaybookModel): void;
         setFormation(formation: Common.Models.Formation): void;
         setAssignmentGroup(assignmentGroup: Common.Models.AssignmentGroup): void;
         setPersonnel(personnel: Team.Models.Personnel): void;
         setUnitType(unitType: Team.Enums.UnitTypes): void;
-        draw(field: Common.Interfaces.IField): void;
-        fromJson(json: any): any;
-        toJson(): any;
         hasAssignments(): boolean;
         setDefault(field: Common.Interfaces.IField): void;
         getOpposingUnitType(): Team.Enums.UnitTypes;
         isFieldSet(field: Common.Interfaces.IField): boolean;
         isBallSet(ball: Common.Interfaces.IBall): boolean;
+        setField(field: Common.Interfaces.IField): void;
+        static toPrimary(play: Common.Interfaces.IPlay): Common.Models.PlayPrimary;
+        static toOpponent(play: Common.Interfaces.IPlay): Common.Models.PlayOpponent;
+        flip(): void;
     }
 }
 declare module Common.Models {
-    class PlayPrimary extends Common.Models.Play {
-        playType: Playbook.Enums.PlayTypes;
+    class PlayPrimary extends Common.Models.Play implements Common.Interfaces.IPlay {
         constructor(unitType: Team.Enums.UnitTypes);
-    }
-}
-declare module Common.Models {
-    class PlayOpponent extends Common.Models.Play {
-        playType: Playbook.Enums.PlayTypes;
-        constructor(unitType: Team.Enums.UnitTypes);
+        copy(newPlay?: Common.Interfaces.IPlay): Common.Models.PlayPrimary;
         draw(field: Common.Interfaces.IField): void;
     }
 }
 declare module Common.Models {
-    class PlayCollection extends Common.Models.ActionableCollection<Common.Models.Play> {
+    class PlayOpponent extends Common.Models.Play implements Common.Interfaces.IPlay {
+        constructor(unitType: Team.Enums.UnitTypes);
+        copy(newPlay?: Common.Interfaces.IPlay): Common.Models.PlayOpponent;
+        draw(field: Common.Interfaces.IField): void;
+    }
+}
+declare module Common.Models {
+    class PlayCollection extends Common.Models.ActionableCollection<Common.Interfaces.IPlay> {
         unitType: Team.Enums.UnitTypes;
         constructor(unitType: Team.Enums.UnitTypes);
         toJson(): any;
@@ -1098,17 +1171,41 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
+    class Scenario extends Common.Models.AssociableEntity {
+        unitType: Team.Enums.UnitTypes;
+        playPrimary: Common.Models.PlayPrimary;
+        playOpponent: Common.Models.PlayOpponent;
+        editorType: Playbook.Enums.EditorTypes;
+        name: string;
+        png: string;
+        key: number;
+        constructor();
+        copy(newScenario?: Common.Models.Scenario): Common.Models.Scenario;
+        toJson(): void;
+        fromJson(json: any): void;
+        setPlayPrimary(play: Common.Interfaces.IPlay): void;
+        setPlayOpponent(play: Common.Interfaces.IPlay): void;
+        clear(): void;
+        draw(field: Common.Interfaces.IField): void;
+    }
+}
+declare module Common.Models {
+    class ScenarioCollection extends Common.Models.ActionableCollection<Common.Interfaces.IScenario> {
+        unitType: Team.Enums.UnitTypes;
+        constructor(unitType: Team.Enums.UnitTypes);
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Common.Models {
     class Tab extends Common.Models.Modifiable implements Common.Interfaces.ICollectionItem {
         title: string;
         key: number;
         active: boolean;
-        playPrimary: Common.Models.PlayPrimary;
-        playOpponent: Common.Models.PlayOpponent;
-        editorType: Playbook.Enums.EditorTypes;
-        unitType: Team.Enums.UnitTypes;
+        scenario: Common.Models.Scenario;
         canvas: Common.Models.Canvas;
         private _closeCallbacks;
-        constructor(playPrimary: Common.Models.PlayPrimary, playOpponent: Common.Models.PlayOpponent);
+        constructor(scenario: Common.Models.Scenario);
         onclose(callback: Function): void;
         close(): void;
     }
@@ -1222,8 +1319,7 @@ declare module Playbook.Models {
 declare module Common.Models {
     abstract class Canvas extends Common.Models.Modifiable implements Common.Interfaces.ICanvas {
         paper: Common.Interfaces.IPaper;
-        playPrimary: Common.Models.PlayPrimary;
-        playOpponent: Common.Models.PlayOpponent;
+        scenario: Common.Models.Scenario;
         $container: any;
         container: HTMLElement;
         $exportCanvas: any;
@@ -1238,7 +1334,7 @@ declare module Common.Models {
         readyCallbacks: Function[];
         widthChangeInterval: any;
         active: boolean;
-        constructor(width?: number, height?: number);
+        constructor(scenario: Common.Models.Scenario, width?: number, height?: number);
         clear(): void;
         /**
          * Converts this canvas's SVG graphics element into a data-URI
@@ -1250,6 +1346,7 @@ declare module Common.Models {
          */
         exportToPng(): any;
         getSvg(): string;
+        updateScenario(scenario: Common.Models.Scenario, redraw?: boolean): void;
         refresh(): void;
         abstract setDimensions(): void;
         onready(callback: any): void;
@@ -1328,7 +1425,6 @@ declare module Common.Models {
         hideLayers(): void;
         remove(): void;
         removeGraphics(): void;
-        setPlacement(placement: Common.Models.Placement): void;
         moveByDelta(dx: number, dy: number): void;
         drop(): void;
         hasLayers(): boolean;
@@ -1338,6 +1434,7 @@ declare module Common.Models {
          * Draws the current layer and its nested layers (recursive)
          */
         draw(): void;
+        flip(): void;
     }
 }
 declare module Common.Models {
@@ -1377,6 +1474,7 @@ declare module Common.Models {
         getHeight(): number;
         getXOffset(): number;
         draw(): void;
+        updateScenario(scenario: Common.Models.Scenario): void;
         resize(): void;
         clear(): void;
         setViewBox(center?: boolean): void;
@@ -1523,12 +1621,13 @@ declare module Common.Models {
     abstract class Field extends Common.Models.Modifiable {
         paper: Common.Interfaces.IPaper;
         grid: Common.Interfaces.IGrid;
-        playPrimary: Common.Models.PlayPrimary;
-        playOpponent: Common.Models.PlayOpponent;
-        players: Common.Models.PlayerCollection;
+        scenario: Common.Models.Scenario;
+        primaryPlayers: Common.Models.PlayerCollection;
+        opponentPlayers: Common.Models.PlayerCollection;
         selected: Common.Models.Collection<Common.Interfaces.IFieldElement>;
         layers: Common.Models.LayerCollection;
         cursorCoordinates: Common.Models.Coordinates;
+        editorType: Playbook.Enums.EditorTypes;
         ball: Common.Interfaces.IBall;
         ground: Common.Interfaces.IGround;
         los: Common.Interfaces.ILineOfScrimmage;
@@ -1540,24 +1639,30 @@ declare module Common.Models {
         hashmark_right: Common.Interfaces.IHashmark;
         hashmark_sideline_left: Common.Interfaces.IHashmark;
         hashmark_sideline_right: Common.Interfaces.IHashmark;
-        constructor(paper: Common.Interfaces.IPaper, playPrimary: Common.Models.PlayPrimary, playOpponent: Common.Models.PlayOpponent);
+        constructor(paper: Common.Interfaces.IPaper, scenario: Common.Models.Scenario);
         abstract initialize(): void;
         /**
          *
          * ABSTRACT METHODS
          *
          */
-        abstract addPlayer(placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment): Common.Interfaces.IPlayer;
+        abstract addPrimaryPlayer(placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment): Common.Interfaces.IPlayer;
+        abstract addOpponentPlayer(placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment): Common.Interfaces.IPlayer;
         abstract useAssignmentTool(coords: Common.Models.Coordinates): any;
         registerLayer(layer: Common.Models.Layer): void;
         draw(): void;
         clearPlayers(): void;
-        clearPlay(): void;
-        drawPlay(): void;
-        updatePlay(playPrimary: Common.Models.PlayPrimary, playOpponent: Common.Models.PlayOpponent): void;
+        clearPrimaryPlayers(): void;
+        clearOpponentPlayers(): void;
+        clearScenario(): void;
+        clearPrimaryPlay(): void;
+        clearOpponentPlay(): void;
+        drawScenario(): void;
+        updateScenario(scenario: Common.Models.Scenario): void;
         updatePlacements(): void;
         setCursorCoordinates(offsetX: number, offsetY: number): void;
-        getPlayerWithPositionIndex(index: number): Common.Interfaces.IPlayer;
+        getPrimaryPlayerWithPositionIndex(index: number): Common.Interfaces.IPlayer;
+        getOpponentPlayerWithPositionIndex(index: number): Common.Interfaces.IPlayer;
         applyPrimaryPlay(play: any): void;
         applyPrimaryFormation(formation: Common.Models.Formation): void;
         applyPrimaryAssignmentGroup(assignmentGroup: Common.Models.AssignmentGroup): void;
@@ -1708,6 +1813,8 @@ declare module Common.Models {
         position: Team.Models.Position;
         assignment: Common.Models.Assignment;
         placement: Common.Models.Placement;
+        renderType: Common.Enums.RenderTypes;
+        unitType: Team.Enums.UnitTypes;
         /**
          *
          * Graphics layers
@@ -1721,6 +1828,7 @@ declare module Common.Models {
         indexLabel: any;
         constructor(placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment);
         initialize(field: Common.Interfaces.IField): void;
+        flip(): void;
         remove(): void;
         abstract draw(): void;
         getPositionRelativeToBall(): Common.Models.RelativeCoordinates;
@@ -1816,7 +1924,9 @@ declare module Common.Models {
         drawLine(): void;
         bringNodesToFront(): void;
         addNode(routeNode: Common.Interfaces.IRouteNode, render?: boolean): Common.Interfaces.IRouteNode;
+        disableRootNode(routeNode: Common.Interfaces.IRouteNode): void;
         getLastNode(): any;
+        flip(): void;
         getMixedStringFromNodes(nodeArray: Common.Interfaces.IRouteNode[]): string;
         getPathStringFromNodes(initialize: boolean, nodeArray: Common.Interfaces.IRouteNode[]): string;
         getCurveStringFromNodes(initialize: boolean, nodeArray: Common.Interfaces.IRouteNode[]): string;
@@ -1875,6 +1985,7 @@ declare module Common.Models {
         };
         isCurveNode(): boolean;
         setAction(action: Common.Enums.RouteNodeActions): void;
+        flip(): void;
     }
 }
 declare module Common.Models {
@@ -1899,19 +2010,27 @@ declare module Common.Models {
         relative: Common.Models.RelativeCoordinates;
         coordinates: Common.Models.Coordinates;
         relativeElement: Common.Interfaces.IFieldElement;
+        flipped: boolean;
         index: number;
         constructor(rx: number, ry: number, relativeElement?: Common.Interfaces.IFieldElement, index?: number);
+        copy(newPlacement?: Common.Models.Placement): Common.Models.Placement;
         toJson(): any;
         fromJson(json: any): any;
+        setRelativeElement(relativeElement: Common.Interfaces.IFieldElement): void;
+        update(placement: Common.Models.Placement): void;
+        updateFromAbsolute(ax: number, ay: number): void;
         updateFromCoordinates(x: number, y: number): void;
         updateFromRelative(rx: number, ry: number, relativeElement?: Common.Interfaces.IFieldElement): void;
+        flip(): void;
     }
 }
 declare module Common.Models {
     class PlacementCollection extends Common.Models.Collection<Common.Models.Placement> {
+        flipped: boolean;
         constructor();
         fromJson(placements: any): void;
         toJson(): any;
+        flip(): void;
     }
 }
 declare module Common.Models {
@@ -1987,6 +2106,7 @@ declare module Common.Models {
         drawingHandler: Common.Models.DrawingHandler;
         font: any;
         set: Common.Models.GraphicsSet;
+        snapping: boolean;
         /**
          *
          * Color information
@@ -2031,9 +2151,6 @@ declare module Common.Models {
          */
         hasGraphics(): boolean;
         hasRaphael(): boolean;
-        hasLocation(): boolean;
-        hasPlacement(): boolean;
-        setPlacement(placement: Common.Models.Placement): void;
         hasSet(): boolean;
         getFill(): string;
         setFill(fill: string): Common.Models.Graphics;
@@ -2041,6 +2158,10 @@ declare module Common.Models {
         getFillOpacity(): number;
         setFillOpacity(opacity: number): Common.Models.Graphics;
         setOriginalFillOpacity(opacity: number): Common.Models.Graphics;
+        getSelectedFill(): string;
+        setSelectedFill(fill: string): Common.Models.Graphics;
+        getSelectedFillOpacity(): number;
+        setSelectedFillOpacity(opacity: number): Common.Models.Graphics;
         getStroke(): string;
         setStroke(stroke: string): Common.Models.Graphics;
         setOriginalStroke(stroke: string): Common.Models.Graphics;
@@ -2050,12 +2171,6 @@ declare module Common.Models {
         setOriginalStrokeWidth(width: number): Common.Models.Graphics;
         setHoverOpacity(opacity: number): Common.Models.Graphics;
         setHoverFillOpacity(opacity: number): Common.Models.Graphics;
-        /**
-         *
-         * Dimension pass-through methods
-         *
-         */
-        setOffsetXY(x: number, y: number): void;
         /**
          * Gets the current opacity
          * @return {number} [description]
@@ -2103,11 +2218,13 @@ declare module Common.Models {
         moveByDelta(dx: number, dy: number): void;
         moveByDeltaX(dx: number): void;
         moveByDeltaY(dy: number): void;
-        updatePlacement(x?: number, y?: number): void;
-        updateLocation(ax?: number, ay?: number): void;
+        hasLocation(): boolean;
+        hasPlacement(): boolean;
+        setOffsetXY(x: number, y: number): void;
+        initializePlacement(placement: Common.Models.Placement): void;
         updateFromAbsolute(ax: number, ay: number): void;
-        updateFromCoordinates(x: number, y: number): void;
         updateFromRelative(rx: number, ry: number, relativeElement?: Common.Interfaces.IFieldElement): void;
+        updateFromCoordinates(x: number, y: number): void;
         /**
          *
          * DRAWING METHODS
@@ -2124,6 +2241,7 @@ declare module Common.Models {
         toFront(): Common.Models.Graphics;
         toBack(): Common.Models.Graphics;
         attr(attrs: any): Common.Models.Graphics;
+        attrKeyValue(key: string, value: string): Common.Models.Graphics;
         setAttribute(attribute: string, value: string): void;
         getBBox(isWithoutTransforms?: boolean): {
             x: number;
@@ -2132,6 +2250,7 @@ declare module Common.Models {
             height: number;
         };
         transform(ax: number, ay: number): void;
+        resetTransform(): void;
         rotate(degrees: number): void;
         remove(): void;
         show(): void;
@@ -2199,6 +2318,7 @@ declare module Common.Models {
          */
         mousemove(e: any): void;
         ondrag(dragMove: Function, dragStart: Function, dragEnd: Function, context: Common.Interfaces.IActionable): void;
+        flip(): void;
         drop(): void;
     }
 }
@@ -2484,6 +2604,7 @@ declare module Common.Enums {
     enum RenderTypes {
         Preview = 0,
         Editor = 1,
+        Unknown = 2,
     }
     enum RouteNodeTypes {
         None = 0,
@@ -2744,10 +2865,8 @@ declare module Playbook.Models {
 declare module Playbook.Models {
     class EditorField extends Common.Models.Field implements Common.Interfaces.IField {
         type: Team.Enums.UnitTypes;
-        editorType: Playbook.Enums.EditorTypes;
         zoom: number;
-        constructor(paper: Common.Interfaces.IPaper, playPrimary: Common.Models.PlayPrimary, playOpponent: Common.Models.PlayOpponent);
-        debug(context: Playbook.Models.EditorField): void;
+        constructor(paper: Common.Interfaces.IPaper, scenario: Common.Models.Scenario);
         initialize(): void;
         draw(): void;
         useAssignmentTool(coords: Common.Models.Coordinates): void;
@@ -2756,15 +2875,15 @@ declare module Playbook.Models {
         placeAtYardline(element: any, yardline: any): void;
         remove(): void;
         getBBoxCoordinates(): void;
-        addPlayer(placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment): Common.Interfaces.IPlayer;
+        addPrimaryPlayer(placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment): Common.Interfaces.IPlayer;
+        addOpponentPlayer(placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment): Common.Interfaces.IPlayer;
     }
 }
 declare module Playbook.Models {
     class EditorCanvas extends Common.Models.Canvas implements Common.Interfaces.ICanvas {
-        constructor(playPrimary: Common.Models.PlayPrimary, playOpponent: Common.Models.PlayOpponent, width?: number, height?: number);
+        constructor(scenario: Common.Models.Scenario, width?: number, height?: number);
         initialize($container: any): void;
         setDimensions(): void;
-        updatePlay(playPrimary: Common.Models.PlayPrimary, playOpponent: Common.Models.PlayOpponent, redraw?: boolean): void;
         resetHeight(): void;
         zoomIn(): void;
         zoomOut(): void;
@@ -2777,21 +2896,21 @@ declare module Playbook.Models {
         drawing: Common.Drawing.Utilities;
         constructor(canvas: Common.Interfaces.ICanvas);
         initialize(): void;
-        updatePlay(playPrimary: Common.Models.PlayPrimary, playOpponent: Common.Models.PlayOpponent): void;
     }
 }
 declare module Playbook.Models {
     class PreviewField extends Common.Models.Field implements Common.Interfaces.IField {
-        constructor(paper: Common.Interfaces.IPaper, playPrimary: Common.Models.PlayPrimary, playOpponent: Common.Models.PlayOpponent);
+        constructor(paper: Common.Interfaces.IPaper, scenario: Common.Models.Scenario);
         initialize(): void;
         draw(): void;
-        addPlayer(placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment): Common.Interfaces.IPlayer;
+        addPrimaryPlayer(placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment): Common.Interfaces.IPlayer;
+        addOpponentPlayer(placement: Common.Models.Placement, position: Team.Models.Position, assignment: Common.Models.Assignment): Common.Interfaces.IPlayer;
         useAssignmentTool(coords: Common.Models.Coordinates): void;
     }
 }
 declare module Playbook.Models {
     class PreviewCanvas extends Common.Models.Canvas implements Common.Interfaces.ICanvas {
-        constructor(playPrimary: Common.Models.PlayPrimary, playOpponent: Common.Models.PlayOpponent);
+        constructor(scenario: Common.Models.Scenario);
         initialize($container: any): void;
         setDimensions(): void;
     }
@@ -2800,7 +2919,6 @@ declare module Playbook.Models {
     class PreviewPaper extends Common.Models.Paper implements Common.Interfaces.IPaper {
         constructor(previewCanvas: Common.Interfaces.ICanvas);
         initialize(): void;
-        updatePlay(playPrimary: any, playOpponent: any): void;
     }
 }
 declare module Playbook.Models {
@@ -2930,7 +3048,6 @@ declare module Playbook.Models {
 declare module Playbook.Models {
     class PreviewPlayerPersonnelLabel extends Common.Models.PlayerPersonnelLabel {
         constructor(player: Common.Interfaces.IPlayer);
-        draw(): void;
     }
 }
 declare module Playbook.Models {
@@ -2959,6 +3076,7 @@ declare module Playbook.Models {
     class PreviewRoute extends Common.Models.Route implements Common.Interfaces.IRoute {
         constructor();
         setPlayer(player: Common.Interfaces.IPlayer): void;
+        addNode(routeNode: Common.Interfaces.IRouteNode, render?: boolean): Common.Interfaces.IRouteNode;
         setContext(player: Common.Interfaces.IPlayer): void;
         moveNodesByDelta(dx: number, dy: number): void;
         initializeCurve(coords: Common.Models.Coordinates, flip?: boolean): void;
@@ -2969,6 +3087,7 @@ declare module Playbook.Models {
         constructor(dragInitialized?: boolean);
         setPlayer(player: Common.Interfaces.IPlayer): void;
         setContext(player: Common.Interfaces.IPlayer): void;
+        addNode(routeNode: Common.Interfaces.IRouteNode, render?: boolean): Common.Interfaces.IRouteNode;
         initializeCurve(coords: Common.Models.Coordinates, flip?: boolean): void;
         moveNodesByDelta(dx: number, dy: number): void;
     }
@@ -3059,14 +3178,17 @@ declare module Playbook.Enums {
         Assignment = 7,
     }
     enum EditorTypes {
-        Formation = 0,
-        Assignment = 1,
-        Play = 2,
+        Any = 0,
+        Formation = 1,
+        Assignment = 2,
+        Play = 3,
+        Scenario = 4,
     }
     enum PlayTypes {
         Any = 0,
         Primary = 1,
         Opponent = 2,
+        Unknown = 3,
     }
     enum PlayerIconTypes {
         CircleEditor = 0,
@@ -3153,9 +3275,9 @@ declare module Team.Models {
         positions: Team.Models.PositionCollection;
         setType: Common.Enums.SetTypes;
         constructor(unitType: Team.Enums.UnitTypes);
+        copy(newPersonnel?: Team.Models.Personnel): Team.Models.Personnel;
         hasPositions(): boolean;
         update(personnel: Team.Models.Personnel): void;
-        copy(newPersonnel: Team.Models.Personnel): Team.Models.Personnel;
         fromJson(json: any): any;
         toJson(): any;
         setDefault(): void;
@@ -3380,7 +3502,6 @@ declare var impakt: any;
 declare var impakt: any, playbook: any;
 declare var impakt: any, angular: any;
 declare var impakt: any, angular: any;
-declare var impakt: any;
 declare var impakt: any;
 declare var impakt: any;
 declare var impakt: any;

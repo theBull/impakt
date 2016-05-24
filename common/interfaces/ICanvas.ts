@@ -11,12 +11,9 @@ module Common.Interfaces {
 		$exportCanvas: any; // jquery
 		dimensions: Common.Models.Dimensions;
 		toolMode: Playbook.Enums.ToolModes;
-		unitType: Team.Enums.UnitTypes;
-        editorType: Playbook.Enums.EditorTypes;
         tab: Common.Models.Tab;
         scrollable: any;
-        playPrimary: Common.Models.PlayPrimary;
-        playOpponent: Common.Models.PlayOpponent;
+        scenario: Common.Models.Scenario;
         listener: Common.Models.CanvasListener;
 
 		exportToPng(): string;

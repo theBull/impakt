@@ -19,6 +19,7 @@ function(
 	$scope.formations;
 	$scope.plays;
 	$scope.assignmentGroups;
+	$scope.scenarios;
 	
 	_details.selectedPlay = null;
 
@@ -28,6 +29,7 @@ function(
 		$scope.formations = impakt.context.Playbook.formations;
 		$scope.plays = impakt.context.Playbook.plays;
 		$scope.assignmentGroups = impakt.context.Playbook.assignmentGroups;
+		$scope.scenarios = impakt.context.Playbook.scenarios;
 	});
 
 
@@ -49,6 +51,9 @@ function(
 		}, function(err) {
 
 		});
+	}
+	$scope.createScenario = function() {
+		_playbookModals.createScenario();
 	}
 	$scope.createPlay = function() {
 		_playbookModals.createPlay();

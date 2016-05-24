@@ -9,24 +9,12 @@ function() {
 			it's whether you get back up.",
 			"Vince Lombardi"),
 		new Common.Models.Quote(
-			"Attitude is a little thing that makes a big \
-			difference between football success and \
-			football failure.",
-			"Felicity Luckey"),
-		new Common.Models.Quote(
 			"Winning isn't everything...it's the only thing.",
 			"Vince Lombardi"),
 		new Common.Models.Quote(
 			"The essence of football was blocking, tackling, \
 			and execution based on timing, rhythm and deception.",
 			"Knute Rockne"),
-		new Common.Models.Quote(
-			"There's two times of year for me: Football season \
-			and waiting for football season.",
-			"Darius Rucker"),
-		new Common.Models.Quote(
-			"In football, the good thing is things can change in a second.",
-			"Didier Drogba"),
 		new Common.Models.Quote(
 			"It's not the will to win, but the will to prepare \
 			to win that makes the difference.",
@@ -47,6 +35,9 @@ function() {
 		new Common.Models.Quote(
 			"If tomorrow wasn't promised, what would you give for today?",
 			"Ray Lewis"),
+		new Common.Models.Quote(
+			"I'm just here so I don't get fined.",
+			"Marshawn Lynch")
 
 	];
 

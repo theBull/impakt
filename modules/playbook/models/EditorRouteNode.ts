@@ -14,7 +14,8 @@ module Playbook.Models {
             
             this.routeAction = new Playbook.Models.EditorRouteAction(Common.Enums.RouteNodeActions.None);
             this.routeControlPath = new Playbook.Models.EditorRouteControlPath();
-            this.renderType = Common.Enums.RenderTypes.Editor;   
+            this.renderType = Common.Enums.RenderTypes.Editor;  
+            this.contextmenuTemplateUrl = Common.Constants.EDITOR_ROUTENODE_CONTEXTMENU_TEMPLATE_URL;
         }
 
         public initialize(field: Common.Interfaces.IField, route: Common.Interfaces.IFieldElement): void {
@@ -24,8 +25,8 @@ module Playbook.Models {
             this.graphics.setOriginalFill('#222222');
             this.graphics.setHoverOpacity(1);
             this.graphics.setOriginalOpacity(0.05);
-
-            this.contextmenuTemplateUrl = Common.Constants.EDITOR_ROUTENODE_CONTEXTMENU_TEMPLATE_URL;
+            this.graphics.setSelectedFillOpacity(1);
+            this.graphics.setSelectedFill('#222222');
 
             // Related route node graphics
             this.routeAction.initialize(this.field, this);
@@ -119,17 +120,16 @@ module Playbook.Models {
             }
 
             this.route.draw();
-
-            this.setModified(true);
         }
         
         public dragStart(x: number, y: number, e: any) {
             super.dragStart(x, y, e);
+            this.listen(false);
         }
 
         public dragEnd(e: any) {
             super.dragEnd(e);
-
+            this.listen(true);
             this.drop();
 
             // re-draw the route again after dropping,
@@ -137,6 +137,7 @@ module Playbook.Models {
             // coordinates to snap to a grid point, which
             // doesn't happen during the onDrag method
             this.route.draw();
+            this.setModified(true);
         }
 
         public drop(): void {

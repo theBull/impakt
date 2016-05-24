@@ -23,6 +23,7 @@ module Playbook.Models {
 			this.relativeCoordinatesLabel = new Playbook.Models.EditorPlayerRelativeCoordinatesLabel(this);
 			this.personnelLabel = new Playbook.Models.EditorPlayerPersonnelLabel(this);
 			this.indexLabel = new Playbook.Models.EditorPlayerIndexLabel(this);
+			this.renderType = Common.Enums.RenderTypes.Editor;
 
 			this.layer.addLayer(this.selectionBox.layer);
 			this.layer.addLayer(this.icon.layer);
@@ -36,9 +37,14 @@ module Playbook.Models {
 				self.setModified(true);
 			});
 
-			// parse route json data
-			if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+			// parse route json data 
+			// don't render the assignments if the editor type is of type Formation
+			if (Common.Utilities.isNotNullOrUndefined(this.assignment) && 
+				this.field.editorType != Playbook.Enums.EditorTypes.Formation
+			) {
+				this.assignment.listen(false);
 				this.assignment.setRoutes(this, Common.Enums.RenderTypes.Editor);
+				this.assignment.listen(true);
 			}
 
 			this.contextmenuTemplateUrl = Common.Constants.PLAYER_CONTEXTMENU_TEMPLATE_URL;
@@ -148,11 +154,14 @@ module Playbook.Models {
 		public dragMove(dx: number, dy: number, posx: number, posy: number, e: any) {
 			// Ignore drag motions under specified threshold to prevent
 			// click/mousedown from triggering drag method
-			if (!this.isOverDragThreshold(dx, dy))
+			if (!this.dragging && !this.isOverDragThreshold(dx, dy)) {
 				return;
+			} else {
+				this.dragging = true;
+				if(this.relativeCoordinatesLabel)
+					this.relativeCoordinatesLabel.layer.show();
+			}
 			
-			this.dragged = true;
-
 			// do not allow dragging while in route mode
 			if (this.canvas.toolMode == Playbook.Enums.ToolModes.Assignment) {
 
@@ -197,11 +206,11 @@ module Playbook.Models {
 
 				// Update relative coordinates label, if it exists
 				if (this.relativeCoordinatesLabel) {
-					this.relativeCoordinatesLabel.graphics.text([
-						this.graphics.placement.relative.rx,
-						', ',
+					let updatedRelativeCoordinates = [
+						this.graphics.placement.relative.rx, ', ',
 						this.graphics.placement.relative.ry
-					].join(''));
+					].join('');
+					this.relativeCoordinatesLabel.graphics.attrKeyValue('text', updatedRelativeCoordinates);
 				}
 										
 			} else if (this.canvas.toolMode == Playbook.Enums.ToolModes.Select) {
@@ -218,34 +227,29 @@ module Playbook.Models {
 		}
 		public dragStart(x: number, y: number, e: any) {
 			super.dragStart(x, y, e);
-
-			if(this.dragging) {
-				if (this.relativeCoordinatesLabel)
-					this.relativeCoordinatesLabel.layer.show();
-
-				//this.field.toggleSelection(this);
-			}
 		}
 		public dragEnd(e: any) {
-			super.dragEnd(e);
-			
-			this.drop();
-			
-			if(this.assignment) {
-				// TODO: implement route switching
-				this.assignment.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
-					if (Common.Utilities.isNotNullOrUndefined(route)) {
-						if (route.dragInitialized) {
-							route.dragInitialized = false;
-						}
+			if(this.dragging) {
+				this.drop();
 
-						route.draw();
-					}
-				});
+				if (this.assignment) {
+					// TODO: implement route switching
+					this.assignment.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
+						if (Common.Utilities.isNotNullOrUndefined(route)) {
+							if (route.dragInitialized) {
+								route.dragInitialized = false;
+							}
+							route.drop();
+							route.draw();
+						}
+					});
+				}
+
+				if (this.relativeCoordinatesLabel)
+					this.relativeCoordinatesLabel.layer.hide();
 			}
 
-			if(this.relativeCoordinatesLabel)
-				this.relativeCoordinatesLabel.layer.hide();
+			super.dragEnd(e);
 		}
 
 		public clearRoute() {

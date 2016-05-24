@@ -61,13 +61,11 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 		this.create = function(tab: Common.Models.Tab) {
 			if (Common.Utilities.isNullOrUndefined(tab))
 				throw new Error('playbook-editor-canvas.srv create(): tab is null or undefined');
-			if (Common.Utilities.isNullOrUndefined(tab.playPrimary))
-				throw new Error('playbook-editor-canvas.srv create(): tab.playPrimary is null or undefined');
+			if (Common.Utilities.isNullOrUndefined(tab.scenario))
+				throw new Error('playbook-editor-canvas.srv create(): tab.scenario is null or undefined');
 
-			let canvas = new Playbook.Models.EditorCanvas(
-				tab.playPrimary,
-				new Common.Models.PlayOpponent(tab.playPrimary.getOpposingUnitType()) 
-			);
+
+			let canvas = new Playbook.Models.EditorCanvas(tab.scenario);
 			canvas.tab = tab;
 		}
 

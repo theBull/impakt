@@ -7,26 +7,38 @@ module Common.Models {
 		public title: string = 'Untitled';
 		public key: number;
 		public active: boolean = true;
-		public playPrimary: Common.Models.PlayPrimary;
-		public playOpponent: Common.Models.PlayOpponent;
-		public editorType: Playbook.Enums.EditorTypes;
-		public unitType: Team.Enums.UnitTypes;
+		public scenario: Common.Models.Scenario;
 		public canvas: Common.Models.Canvas;
 
 		private _closeCallbacks: Array<Function>;
 
 		constructor(
-			playPrimary: Common.Models.PlayPrimary,
-			playOpponent: Common.Models.PlayOpponent
+			scenario: Common.Models.Scenario
 		) {
 			super();
 			super.setContext(this);
 			
-			this.playPrimary = playPrimary;
-			this.editorType = this.playPrimary.editorType;
-			this.key = this.playPrimary.key;
-			this.unitType = this.playPrimary.unitType;
-			this.title = this.playPrimary.name;
+			if (Common.Utilities.isNullOrUndefined(scenario))
+				throw new Error('Tab constructor(): scenario is null or undefined');
+
+			this.scenario = scenario;
+			
+			switch(this.scenario.editorType) {
+				case Playbook.Enums.EditorTypes.Formation: 
+					if (Common.Utilities.isNullOrUndefined(this.scenario.playPrimary) ||
+						Common.Utilities.isNullOrUndefined(this.scenario.playPrimary.formation))
+						throw new Error('Tab constructor(): scenario formation is null or undefined');
+					this.title = this.scenario.playPrimary.formation.name;
+					break;
+				case Playbook.Enums.EditorTypes.Play:
+					if (Common.Utilities.isNullOrUndefined(this.scenario.playPrimary))
+						throw new Error('Tab constructor(): scenario primary play is null or undefined');
+					this.title = this.scenario.playPrimary.name;
+					break;
+				case Playbook.Enums.EditorTypes.Scenario:
+					this.title = this.scenario.name;
+					break;
+			}
 
 			this._closeCallbacks = [function() {
 				console.log('tab closed', this.guid);

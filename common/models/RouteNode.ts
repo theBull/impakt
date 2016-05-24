@@ -26,12 +26,19 @@ module Common.Models {
 
             this.relativeCoordinates = relativeCoordinates; 
             this.type = type;
+            this.flippable = true;
         }
 
         public initialize(field: Common.Interfaces.IField, route: Common.Interfaces.IFieldElement): void {
             super.initialize(field, this.relativeCoordinates.relativeElement);
             this.route = <Common.Interfaces.IRoute>route;
-            this.graphics.updateFromRelative(this.relativeCoordinates.rx, this.relativeCoordinates.ry, this.relativeElement);
+            this.graphics.initializePlacement(
+                new Common.Models.Placement(
+                    this.relativeCoordinates.rx, 
+                    this.relativeCoordinates.ry, 
+                    this.relativeElement
+                )
+            );
             this.graphics.dimensions.radius = this.grid.getSize() / 3.5;
             this.graphics.dimensions.width = this.graphics.dimensions.radius * 2;
             this.graphics.dimensions.height = this.graphics.dimensions.radius * 2;
@@ -41,26 +48,12 @@ module Common.Models {
         public draw() {
             this.graphics.circle();
         }
-        
-        // public setContext(route: Common.Interfaces.IRoute) {
-        //     this.route = route;
-        //     this.player = route.player;
-        //     this.field = route.field;
-        //     this.grid = this.context.grid;
-        //     this.paper = this.context.paper;
-        //     this.graphics.updateLocation();
-        //     this.graphics.dimensions.radius = this.grid.getSize() / 4;
-        //     this.graphics.dimensions.width = this.graphics.dimensions.radius * 2;
-        //     this.graphics.dimensions.height = this.graphics.dimensions.radius * 2;
-        //     this.draw();
-        // }
 
         public fromJson(json: any) {
             if (!json)
                 return;
 
             this.routeAction.fromJson(json.routeAction);
-            this.contextmenuTemplateUrl = json.contextmenuTemplateUrl;
             this.type = json.type;
             this.renderType = json.renderType;
             this.relativeCoordinates.fromJson(json.relative);
@@ -88,6 +81,11 @@ module Common.Models {
             
             // route node has been modified
             this.setModified();
+        }
+
+        public flip(): void {
+            this.graphics.placement.flip();
+            this.flipped = this.graphics.placement.flipped;
         }
     }
 }

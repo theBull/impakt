@@ -8,9 +8,5 @@ module Playbook.Models {
 		constructor(player: Common.Interfaces.IPlayer) {
 			super(player);
 		}
-
-		public draw(): void {
-			// player label not visible for preview player
-		}
 	}
 }

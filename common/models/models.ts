@@ -17,6 +17,7 @@
 /// <reference path='./AssociableEntityCollection.ts' />
 /// <reference path='./AssociationCollection.ts' />
 /// <reference path='./Association.ts' />
+/// <reference path='./AssociationResults.ts' />
 /// <reference path='./Notification.ts' />
 /// <reference path='./NotificationCollection.ts' />
 
@@ -33,6 +34,8 @@
 /// <reference path='./PlayCollection.ts' />
 /// <reference path='./PlaybookModel.ts' />
 /// <reference path='./PlaybookModelCollection.ts' />
+/// <reference path='./Scenario.ts' />
+/// <reference path='./ScenarioCollection.ts' />
 /// <reference path='./Tab.ts' />
 /// <reference path='./TabCollection.ts' />
 

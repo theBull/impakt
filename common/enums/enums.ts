@@ -160,7 +160,8 @@ module Common.Enums {
 
     export enum RenderTypes {
     	Preview,
-    	Editor
+    	Editor,
+    	Unknown
     }
 
 	export enum RouteNodeTypes {

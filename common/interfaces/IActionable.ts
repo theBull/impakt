@@ -14,7 +14,14 @@ module Common.Interfaces {
 		selectable: boolean;
 		draggable: boolean;
 		dragging: boolean;
+		flipped: boolean;
+		flippable: boolean;
+		contextmenuTemplateUrl: string;
+		actions: Common.Models.ActionRegistry;
 
+		hasGraphics(): boolean;
+		toggleOpacity(): void;
+		isSelectable(): boolean;
 		select(): void;
 		deselect(): void;
 		toggleSelect(metaKey?: boolean): void;

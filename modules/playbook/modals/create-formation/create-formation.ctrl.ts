@@ -11,26 +11,26 @@ function(
 	_associations: any,
 	_playbook: any) {
 
-	$scope.selectedUnitType = Team.Enums.UnitTypes.Offense;
+	$scope.unitTypeCollection = impakt.context.Team.unitTypes;
+	$scope.selectedUnitType = $scope.unitTypeCollection.getByUnitType(Team.Enums.UnitTypes.Offense).toJson();
 	$scope.playbooks = impakt.context.Playbook.playbooks;
-	$scope.formation = new Common.Models.Formation($scope.selectedUnitType);
+	$scope.play = new Common.Models.PlayPrimary($scope.selectedUnitType.unitType)
+	$scope.play.formation = new Common.Models.Formation($scope.selectedUnitType.unitType);
 	$scope.formations = impakt.context.Playbook.formations;
-	$scope.formation.unitType = $scope.selectedUnitType;
-	$scope.unitTypes = impakt.context.Team.unitTypes;
 	$scope.selectedPlaybook = $scope.playbooks.first();
 
 	/**
 	 * Check to ensure there are formations to select as a base formation;
 	 * Add a new empty formation if there are no others to select from
 	 */
-	$scope.formations.add($scope.formation);
+	$scope.formations.add($scope.play.formation);
 
 	/** 
 	 * If there are no other formations, the selected base formation
 	 * will be the current, new formation
 	 */
-	$scope.selectedBaseFormation = $scope.formation;
-	impakt.context.Playbook.creation.formations.add($scope.formation);
+	$scope.selectedBaseFormation = $scope.play.formation;
+	impakt.context.Playbook.creation.plays.add($scope.play);
 
 	/**
 	 * If there is a selected playbook available, add an association to
@@ -61,18 +61,18 @@ function(
 	$scope.selectBaseFormation = function(formation: Common.Models.Formation) {
 		if($scope.selectedBaseFormation != '' && 
 			Common.Utilities.isNotNullOrUndefined($scope.selectedBaseFormation)) {
-			$scope.formation.setPlacements($scope.selectedBaseFormation.placements);
+			$scope.play.formation.setPlacements($scope.selectedBaseFormation.placements);
 		}			
 	}
 
-	$scope.unitTypeSelected = function() {
-		$scope.formation.unitType = $scope.selectedUnitType;
+	$scope.selectUnitType = function() {
+		$scope.play.setUnitType($scope.selectedUnitType.unitType);
 	}
 
 	$scope.ok = function () {
-        $scope.formation.parentRK = 1; // TODO @theBull - deprecate parentRK
+        $scope.play.formation.parentRK = 1; // TODO @theBull - deprecate parentRK
 		
-		_playbook.createFormation($scope.formation)
+		_playbook.createFormation($scope.play.formation)
 		.then(function(createdFormation: Common.Models.Formation) {
 			_associations.createAssociation(createdFormation, $scope.selectedPlaybook);
 			removeFormationFromCreationContext();
@@ -93,8 +93,8 @@ function(
 	function removeFormationFromCreationContext() {
 		// Remove the formation from the creation context
 		// after creating the new formation or cancelling
-		if (Common.Utilities.isNotNullOrUndefined($scope.formation)) {
-			impakt.context.Playbook.creation.formations.remove($scope.formation.guid);
+		if (Common.Utilities.isNotNullOrUndefined($scope.play.formation)) {
+			impakt.context.Playbook.creation.formations.remove($scope.play.formation.guid);
 		}
 	}
 
@@ -104,8 +104,8 @@ function(
 		// the createFormation request, since the formation is temporarily
 		// added to the formation collection in the situation where
 		// there are 0 formations in the user's collection.
-		if (Common.Utilities.isNotNullOrUndefined($scope.formation)) {
-			$scope.formations.remove($scope.formation.guid);
+		if (Common.Utilities.isNotNullOrUndefined($scope.play.formation)) {
+			$scope.formations.remove($scope.play.formation.guid);
 		}
 	}
 }]);

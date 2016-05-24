@@ -6,7 +6,6 @@ module Common.Interfaces {
 	extends Common.Interfaces.IActionable {
 
 		dragging: boolean;
-		dragged: boolean;
 
 		ondrag(
 			dragStart: Function, 

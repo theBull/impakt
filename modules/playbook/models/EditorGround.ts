@@ -113,7 +113,7 @@ module Playbook.Models {
                 this.selectionBox.graphics.remove();
 
                 console.log(bounds);
-                this.field.players.forEach(function(player: Common.Interfaces.IPlayer, index: number) {
+                this.field.primaryPlayers.forEach(function(player: Common.Interfaces.IPlayer, index: number) {
                     // Here, we want to get the x,y vales of each object
                     // regardless of what sort of shape it is.
                     // But rect uses rx and ry, circle uses cx and cy, etc

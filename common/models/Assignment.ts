@@ -42,7 +42,7 @@ module Common.Models {
             });
         }
 
-        public setRoutes(player: Common.Interfaces.IPlayer, routeType: Common.Enums.RenderTypes) {
+        public setRoutes(player: Common.Interfaces.IPlayer, renderType: Common.Enums.RenderTypes) {
             // intiialize the routeArray json for transferrence between
             // different rendering types for editor and preview modes
 
@@ -50,18 +50,19 @@ module Common.Models {
                 // no route data! skip ahead...
                 return;
 
-            if(!this.hasRouteArray() && this.routes.hasElements()) {
+            if(this.routes.hasElements()) {
                 // we have routes but no generic route json; we need to
                 // convert the routes into json so that we can convert
                 // the routes between preview/editor/etc. modes.
                 this.routeArray = this.routes.toJson();
             }
-
+            
+            let routesToAdd: Array<Common.Interfaces.IRoute> = [];
             for (let i = 0; i < this.routeArray.length; i++) {
                 let routeJson = this.routeArray[i];
                 if (Common.Utilities.isNotNullOrUndefined(routeJson)) {
                     let route = null;
-                    switch (routeType) {
+                    switch (renderType) {
                         case Common.Enums.RenderTypes.Preview:
                             route = new Playbook.Models.PreviewRoute();
                             break;
@@ -78,10 +79,15 @@ module Common.Models {
 
                     // convert json into respective type
                     route.fromJson(routeJson);
-
-                    this.routes.add(route);
+                    routesToAdd.push(route);
                 }
-            }            
+            }
+
+            if(routesToAdd.length > 0) {
+                this.routes.listen(false);
+                this.routes.addAll(routesToAdd);       
+                this.routes.listen(true);
+            }
         }
 
         public hasRouteArray(): boolean {
@@ -97,7 +103,6 @@ module Common.Models {
             // object in order to be constructed ( :-/ )
             // for now, avoid serializing
             this.routeArray = json.routes;
-
             this.positionIndex = json.positionIndex;
             this.unitType = json.unitType;
             
@@ -109,6 +114,16 @@ module Common.Models {
                 positionIndex: this.positionIndex,
                 unitType: this.unitType
             }, super.toJson());
+        }
+
+        public flip(): void {
+            if(Common.Utilities.isNotNullOrUndefined(this.routes)) {
+                this.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
+                    if(Common.Utilities.isNotNullOrUndefined(route))
+                        route.flip();
+                });
+                this.flipped = !this.flipped;
+            }
         }
     }
 }

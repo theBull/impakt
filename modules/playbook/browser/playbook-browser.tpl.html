@@ -55,6 +55,42 @@
 
 		</div>
 
+		<!-- SCENARIOS -->
+		<div class='marginBottom1 light-border-bottom'>
+			<h4>Scenarios ({{scenarios.size()}})</h4>
+			<div ng-show='plays.hasElements()'>
+				<div class='pad green-bg-hover pointer marginBottom1 width6'
+					 ng-click='createScenario()'>
+					<span class='glyphicon glyphicon-plus'></span>
+					new
+				</div>
+			</div>
+			<div ng-show='plays.isEmpty() || playbooks.isEmpty()'>
+				<div class='pad gray-bg-3-hover pointer marginBottom1 width6' 
+					ng-click='alertDataRequired("scenarios")'>
+					<strike>
+						<span class='glyphicon glyphicon-plus'></span>
+						new
+					</strike>
+				</div>
+				<div class='pad' ng-show='playbooks.hasElements()'>
+					<span class='glyphicon glyphicon-warning-sign'></span>
+					<span>Create a base formation to begin creating scenarios</span>
+				</div>
+				<div class='pad' ng-show='playbooks.isEmpty()'>
+					<span class='glyphicon glyphicon-warning-sign'></span>
+					<span>Create a playbook to begin creating scenarios</span>
+				</div>
+			</div>
+
+			<div class='grid'>
+				<scenario-item
+					scenario='scenario'
+					ng-repeat='scenario in scenarios.toArray()'>
+				</scenario-item>
+			</div>
+		</div>
+
 		<!-- PLAYS -->
 		<div class='marginBottom1 light-border-bottom'>
 			<h4>Plays ({{plays.size()}})</h4>
@@ -88,76 +124,6 @@
 					play='play'
 					ng-repeat='play in plays.toArray()'>
 				</play-item>
-			</div>
-		</div>
-
-		<!-- SCENARIOS -->
-		<div class='marginBottom1 light-border-bottom'>
-			<h4>Scenarios ({{scenarios.size()}})</h4>
-			<div ng-show='plays.hasElements()'>
-				<div class='pad green-bg-hover pointer marginBottom1 width6'
-					 ng-click='createScenario()'>
-					<span class='glyphicon glyphicon-plus'></span>
-					new
-				</div>
-			</div>
-			<div ng-show='plays.isEmpty() || playbooks.isEmpty()'>
-				<div class='pad gray-bg-3-hover pointer marginBottom1 width6' 
-					ng-click='alertDataRequired("scenarios")'>
-					<strike>
-						<span class='glyphicon glyphicon-plus'></span>
-						new
-					</strike>
-				</div>
-				<div class='pad' ng-show='playbooks.hasElements()'>
-					<span class='glyphicon glyphicon-warning-sign'></span>
-					<span>Create a base formation to begin creating scenarios</span>
-				</div>
-				<div class='pad' ng-show='playbooks.isEmpty()'>
-					<span class='glyphicon glyphicon-warning-sign'></span>
-					<span>Create a playbook to begin creating scenarios</span>
-				</div>
-			</div>
-
-			<div class='grid'>
-				<div 
-					ng-repeat='scenario in scenarios.toArray()'
-					class='positionRelative gray-bg-3-hover marginBottom1 height21 width18 pointer marginRight1 positionRelative overflowHidden'
-					ng-mouseover='editVisible = true'
-					ng-mouseout='editVisible = false'
-					ng-init='editVisible = false'>
-					<div class='col positionRelative'>
-						
-						<div class='right0 top0 pad gray-bg-2-hover opacity09' 
-							ng-show='editVisible'
-							ng-click='openScenarioInEditor(scenario)'>
-							edit
-							<span class='glyphicon glyphicon-pencil' 
-								title='Edit scenario'>
-							</span>
-						</div>
-						
-						<div class='pad'>
-							<div class='row'>
-								<p>
-									{{scenario.name}}
-								</p>
-							</div>
-						</div>					
-
-						<scenario-thumbnail scenario='scenario' class='height18'>
-						</scenario-thumbnail>				
-
-						<div class='pad gray-bg-2 opacity09 bottom0 left0 fontSize8'>
-							<type-formatter
-								value='scenario.unitType'
-								type='Team.Enums.UnitTypes'>
-							</type-formatter>
-						</div>		
-
-					</div>
-					
-				</div>
 			</div>
 		</div>
 

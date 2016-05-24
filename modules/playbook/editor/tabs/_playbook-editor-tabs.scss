@@ -9,7 +9,7 @@
 	position: relative;
 }
 .playbook-editor-tab:hover {
-	background-color: #888;
+	background-color: $gray-bg-7-hover;
 }
 .playbook-editor-tab span {
 	display: inline-block;
@@ -18,9 +18,11 @@
 	overflow: hidden;
 	white-space: nowrap;*/
 }
-.playbook-editor-tab .glyphicon-remove {
-	border-radius: 50%;
-	margin-left: 1em;
+.playbook-editor-tab-close:hover .glyphicon {
+	color: #333;
+}
+.playbook-editor-tab-close:hover {
+	background-color: rgba(0, 0, 0, 0.1);
 }
 .playbook-editor-tab:not(.active) {
 	color: #ccc;

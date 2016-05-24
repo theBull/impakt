@@ -29,15 +29,18 @@ module Playbook.Enums {
 	}
 
 	export enum EditorTypes {
+		Any,
 		Formation,
 		Assignment,
-		Play
+		Play,
+		Scenario
 	}
 
 	export enum PlayTypes {
 		Any,
 		Primary,
-		Opponent
+		Opponent,
+		Unknown
 	}
 
     export enum PlayerIconTypes {

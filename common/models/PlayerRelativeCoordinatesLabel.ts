@@ -13,17 +13,19 @@ module Common.Models {
 			this.initialize(this.player.field, this.player);
 			this.layer.type = Common.Enums.LayerTypes.PlayerRelativeCoordinatesLabel;
 			this.selectable = false;
-			this.graphics.dimensions.offset.y = 8;
-			this.graphics.updateLocation(
-				this.player.graphics.location.ax,
-				this.player.graphics.location.ay + this.graphics.dimensions.offset.y
+			this.graphics.snapping = false;
+			this.graphics.setOffsetXY(
+				0, 
+				this.grid.getSize()
 			);
+			this.graphics.initializePlacement(this.player.graphics.placement);
+			this.graphics.placement.setRelativeElement(this.player);
 		}	
 
 		public draw(): void {
 			this.graphics.text([
-				this.graphics.placement.relative.rx, ', ',
-				this.graphics.placement.relative.ry
+				this.player.graphics.placement.relative.rx, ', ',
+				this.player.graphics.placement.relative.ry
 			].join(''));
 			this.graphics.setAttribute('class', 'no-highlight');
 			this.layer.hide();

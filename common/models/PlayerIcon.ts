@@ -15,27 +15,34 @@ module Common.Models {
 			this.graphics.dimensions.setRadius(this.grid.getSize() / 2);
 			this.graphics.dimensions.setWidth(this.player.graphics.dimensions.getWidth());
 			this.graphics.dimensions.setHeight(this.player.graphics.dimensions.getHeight());
-			this.graphics.setPlacement(this.player.graphics.placement);
-			// this.graphics.dimensions.offset.x = -this.graphics.dimensions.getRadius();
-			// this.graphics.dimensions.offset.y = -this.graphics.dimensions.getRadius();
-			this.graphics.updateLocation(
-				this.player.graphics.location.ax,
-				this.player.graphics.location.ay
-			);
+			this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.player));
+			this.flippable = true;
 		}
 
 		public draw(): void {
-			switch (this.player.position.unitType) {
+			switch (this.player.unitType) {
 				case Team.Enums.UnitTypes.Offense:
+					this.graphics.setOffsetXY(0, 0);
 					this.graphics.circle();
 					break;
 				case Team.Enums.UnitTypes.Defense:
+					this.graphics.setOffsetXY(0, 0);
 					this.graphics.triangle();
 					break;
 				case Team.Enums.UnitTypes.SpecialTeams:
+					this.graphics.setOffsetXY(
+						-(this.graphics.dimensions.getWidth() / 2),
+						-(this.graphics.dimensions.getHeight() / 2)
+					);
+					this.graphics.initializePlacement(this.player.graphics.placement);
 					this.graphics.rect();
 					break;
 				case Team.Enums.UnitTypes.Other:
+					this.graphics.setOffsetXY(
+						-(this.graphics.dimensions.getWidth() / 2),
+						-(this.graphics.dimensions.getHeight() / 2)
+					);
+					this.graphics.initializePlacement(this.player.graphics.placement);
 					this.graphics.rhombus();
 					break;
 			}

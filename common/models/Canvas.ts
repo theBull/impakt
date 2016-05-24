@@ -6,8 +6,7 @@ module Common.Models {
     implements Common.Interfaces.ICanvas {
         
         public paper: Common.Interfaces.IPaper;
-        public playPrimary: Common.Models.PlayPrimary;
-        public playOpponent: Common.Models.PlayOpponent;
+        public scenario: Common.Models.Scenario;
         public $container: any;
         public container: HTMLElement;
         public $exportCanvas: any;
@@ -24,11 +23,17 @@ module Common.Models {
         public active: boolean;
 
         constructor(
+            scenario: Common.Models.Scenario,
             width?: number, 
             height?: number
         ) {
             super();   
             super.setContext(this);
+
+            if (Common.Utilities.isNullOrUndefined(scenario))
+                throw new Error('EditorCanvas constructor(): scenario is null or undefined');
+            
+            this.scenario = scenario;
                      
             /**
              * Note that paper is created during the initialize() method;
@@ -51,9 +56,8 @@ module Common.Models {
         }
 
         public clear(): void {
-            this.playOpponent = null;
-            this.playPrimary = null;
             this.paper.clear();
+            this.scenario.clear();
             this.clearListeners();
             this.setModified(true);
         }
@@ -83,6 +87,18 @@ module Common.Models {
             var serializer = new XMLSerializer();
             var svg_blob = serializer.serializeToString($svg[0]);
             return svg_blob;
+        }
+
+        public updateScenario(
+            scenario: Common.Models.Scenario,
+            redraw?: boolean): void {
+            if (Common.Utilities.isNullOrUndefined(scenario))
+                return;
+
+            this.paper.updateScenario(scenario);
+            this.scenario = scenario;
+
+            this.setModified(true);
         }
 
         public refresh() {

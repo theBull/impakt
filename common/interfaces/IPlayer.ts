@@ -13,7 +13,10 @@ module Common.Interfaces {
 		relativeCoordinatesLabel: Common.Interfaces.IPlayerRelativeCoordinatesLabel;
 		personnelLabel: Common.Interfaces.IPlayerPersonnelLabel;
 		indexLabel: any;
-		
+		renderType: Common.Enums.RenderTypes;
+		unitType: Team.Enums.UnitTypes;
+
+		flip(): void;		
 	}
 
 }

@@ -19,12 +19,12 @@ module Common.Models {
 			this.graphics.setOriginalStrokeWidth(1);
 			this.graphics.dimensions.width = (this.player.graphics.dimensions.getWidth());
 			this.graphics.dimensions.height = (this.player.graphics.dimensions.getHeight());
-			this.graphics.dimensions.offset.x = -this.player.graphics.dimensions.getWidth() / 2;
-			this.graphics.dimensions.offset.y = -this.player.graphics.dimensions.getHeight() / 2;
-			this.graphics.updateLocation(
-				this.player.graphics.location.ax + this.graphics.dimensions.offset.x,
-				this.player.graphics.location.ay + this.graphics.dimensions.offset.y
+			this.graphics.setOffsetXY(
+				-this.player.graphics.dimensions.getWidth() / 2,
+				- this.player.graphics.dimensions.getHeight() / 2
 			);
+			this.graphics.initializePlacement(this.player.graphics.placement);
+			this.graphics.placement.setRelativeElement(this.player);
 		}
 
 		public draw(): void {

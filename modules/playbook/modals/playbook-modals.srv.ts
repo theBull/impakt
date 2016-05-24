@@ -76,6 +76,79 @@ function($q: any, __modals: any) {
 
 	/**
 	 * 
+	 * SCENARIO
+	 * 
+	 */
+	this.createScenario = function() {
+		let d = $q.defer();
+		console.log('create scenario');
+		let modalInstance = __modals.open(
+			'lg',
+			'modules/playbook/modals/create-scenario/create-scenario.tpl.html',
+			'playbook.modals.createScenario.ctrl',
+			{}
+		);
+
+		modalInstance.result.then(function(createdScenario) {
+			console.log(createdScenario);
+			d.resolve();
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+
+		return d.promise;
+	}
+	this.saveScenario = function(scenario: Common.Models.Scenario) {
+		let d = $q.defer();
+		
+		let modalInstance = __modals.open(
+			'lg',
+			'modules/playbook/modals/save-scenario/save-scenario.tpl.html',
+			'playbook.modals.saveScenario.ctrl',
+			{
+				scenario: function() {
+					return scenario;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(results) {
+			console.log(results);
+			d.resolve();
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+
+		return d.promise;
+	}
+	this.deleteScenario = function(scenario: Common.Models.Scenario) {
+		let d = $q.defer();
+		let modalInstance = __modals.open(
+			'',
+			'modules/playbook/modals/delete-scenario/delete-scenario.tpl.html',
+			'playbook.modals.deleteScenario.ctrl',
+			{
+				scenario: function() {
+					return scenario;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(results) {
+			console.log(results);
+			d.resolve();
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+
+		return d.promise;
+	}
+
+	/**
+	 * 
 	 * PLAY
 	 * 
 	 */
@@ -89,8 +162,8 @@ function($q: any, __modals: any) {
 			{}
 		);
 
-		modalInstance.result.then(function(createdPlaybook) {
-			console.log(createdPlaybook);
+		modalInstance.result.then(function(createdPlay) {
+			console.log(createdPlay);
 			d.resolve();
 		}, function(results) {
 			console.log('dismissed');
@@ -123,7 +196,7 @@ function($q: any, __modals: any) {
 
 		return d.promise;
 	}
-	this.deletePlay = function(play: Common.Models.PlaybookModel) {
+	this.deletePlay = function(play: Common.Models.Play) {
 		let d = $q.defer();
 		let modalInstance = __modals.open(
 			'',

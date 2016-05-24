@@ -12,9 +12,9 @@
 					
 		<!-- editor FORMATION tabs -->
 		<div 
-			class='playbook-editor-tab noselect {{getEditorTypeClass(tab.playPrimary.editorType)}} gray-bg-6-hover pointer dark-border-right'
-			ng-repeat='tab in tabs.toArray() | orderBy : "-playPrimary.editorType"'
-			ng-attr-id='playbook-editor-tab-{{tab.key}}'
+			class='playbook-editor-tab noselect {{getEditorTypeClass(tab.scenario.editorType)}} gray-bg-6-hover pointer dark-border-right'
+			ng-repeat='tab in tabs.toArray() | orderBy : "-scenario.editorType"'
+			ng-attr-id='playbook-editor-tab-{{tab.guid}}'
 			ng-class='{ active : tab.active }'>
 
 				<div class='pad height3 inlineBlock' ng-click='activate(tab)'>
@@ -24,10 +24,9 @@
 					</span>
 				</div>
 
-				<div class='pad inlineBlock'>
+				<div class='pad inlineBlock width3 height3 playbook-editor-tab-close' ng-click='close(tab)'>
 					<!-- close button -->
-					<span class='glyphicon glyphicon-remove' 
-						ng-click='close(tab)'>
+					<span class='glyphicon glyphicon-remove'>
 					</span>
 				</div>
 

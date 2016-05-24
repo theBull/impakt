@@ -8,10 +8,9 @@ module Playbook.Models {
 
         constructor(
             paper: Common.Interfaces.IPaper,
-            playPrimary: Common.Models.PlayPrimary,
-            playOpponent: Common.Models.PlayOpponent
+            scenario: Common.Models.Scenario
         ) {
-            super(paper, playPrimary, playOpponent);
+            super(paper, scenario);
         }
 
         public initialize(): void {
@@ -60,9 +59,16 @@ module Playbook.Models {
             this.layers.add(this.hashmark_sideline_left.layer);
             this.layers.add(this.hashmark_sideline_right.layer);
 
-            if (!this.playPrimary.formation) {
-                this.playPrimary.formation = new Common.Models.Formation(this.playPrimary.unitType);
-                this.playPrimary.formation.setDefault(this.ball);
+            if(Common.Utilities.isNotNullOrUndefined(this.scenario)) {
+                if (Common.Utilities.isNotNullOrUndefined(this.scenario.playPrimary) && Common.Utilities.isNullOrUndefined(this.scenario.playPrimary.formation)) {
+                    this.scenario.playPrimary.formation = new Common.Models.Formation(this.scenario.playPrimary.unitType);
+                    this.scenario.playPrimary.formation.setDefault(this.ball);
+                }
+
+                if (Common.Utilities.isNotNullOrUndefined(this.scenario.playOpponent) && Common.Utilities.isNullOrUndefined(this.scenario.playOpponent.formation)) {
+                    this.scenario.playOpponent.formation = new Common.Models.Formation(this.scenario.playOpponent.unitType);
+                    this.scenario.playOpponent.formation.setDefault(this.ball);
+                }
             }
 
             this.draw();
@@ -78,9 +84,9 @@ module Playbook.Models {
             this.endzone_bottom.draw();
             this.los.draw();
             this.ball.draw();
-            this.drawPlay();
+            this.drawScenario();
         }
-        public addPlayer(
+        public addPrimaryPlayer(
             placement: Common.Models.Placement,
             position: Team.Models.Position,
             assignment: Common.Models.Assignment
@@ -99,7 +105,29 @@ module Playbook.Models {
             // TODO @theBull - add players to new layers
             player.draw();
             
-            this.players.add(player);
+            this.primaryPlayers.add(player);
+            return player;
+        }
+        public addOpponentPlayer(
+            placement: Common.Models.Placement,
+            position: Team.Models.Position,
+            assignment: Common.Models.Assignment
+        ): Common.Interfaces.IPlayer {
+            // TODO @theBull - look into this
+            // adjust for no sidelines...
+            //placement.x -= 1;
+            let player = new Playbook.Models.PreviewPlayer(
+                placement, 
+                position, 
+                assignment
+            );
+
+            player.initialize(this);
+
+            // TODO @theBull - add players to new layers
+            player.draw();
+            
+            this.opponentPlayers.add(player);
             return player;
         }
 

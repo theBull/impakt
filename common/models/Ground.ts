@@ -12,9 +12,12 @@ module Common.Models {
         public initialize(field: Common.Interfaces.IField, relativeElement: Common.Interfaces.IFieldElement) {
             super.initialize(field, null);
             this.selectable = false;
-            this.graphics.updateFromCoordinates(
-                this.paper.x,
-                this.paper.y
+            this.graphics.initializePlacement(
+                new Common.Models.Placement(
+                    this.paper.x, 
+                    this.paper.y,
+                    null
+                )
             );
             this.graphics.dimensions.setWidth(this.grid.dimensions.width + 2);
             this.graphics.dimensions.setHeight(this.grid.dimensions.height + 2);

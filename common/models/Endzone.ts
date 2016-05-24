@@ -17,7 +17,13 @@ module Common.Models {
             this.layer.type = Common.Enums.LayerTypes.Endzone;
             this.graphics.fill = 'black';
             this.graphics.setOpacity(0.25);
-            this.graphics.updateFromCoordinates(1, this.offsetY);
+            this.graphics.initializePlacement(
+                new Common.Models.Placement(
+                    1, 
+                    this.offsetY,
+                    null
+                )
+            );
             this.graphics.dimensions.setWidth(this.paper.getWidth() - (2 * this.grid.getSize()));
             this.graphics.dimensions.setHeight(10 * this.grid.getSize());
         }

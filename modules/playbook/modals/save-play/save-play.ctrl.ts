@@ -10,10 +10,11 @@ function(
 	$scope: any, 
 	$uibModalInstance: any, 
 	_playbook: any,
-	play: Common.Models.Play
+	play: Common.Interfaces.IPlay
 ) {
 
-	$scope.play = play;
+	$scope.play = play.copy();
+	
 	$scope.copyPlay = false;
 	$scope.copyFormation = false;
 	$scope.copyPersonnel = false;

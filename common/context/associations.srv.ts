@@ -190,7 +190,7 @@ function(
 	 *                                                type are found, or will be populated with entities
 	 *                                                of the given type if associations are found
 	 */
-	this.getAssociated = function(entity: Common.Interfaces.IAssociable): any {
+	this.getAssociated = function(entity: Common.Interfaces.IAssociable): Common.Models.AssociationResults {
 
 		// 
 		// Gets the associations for the given entity by its associationKey
@@ -201,23 +201,24 @@ function(
 
 		// Instantiate the set of association collections for the given
 		// entity.
-		let results = {
-			playbooks: new Common.Models.PlaybookModelCollection(
-				Team.Enums.UnitTypes.Mixed
-			),
-			plays: new Common.Models.PlayCollection(
-				Team.Enums.UnitTypes.Mixed
-			),
-			formations: new Common.Models.FormationCollection(
-				Team.Enums.UnitTypes.Mixed
-			),
-			personnel: new Team.Models.PersonnelCollection(
-				Team.Enums.UnitTypes.Mixed
-			),
-			assignmentGroups: new Common.Models.AssignmentGroupCollection(
-				Team.Enums.UnitTypes.Mixed
-			)
-		};
+		// NOTE: the return type of this function must mimic the typed contents
+		// of this results object
+		let results = new Common.Models.AssociationResults();
+		results.playbooks = new Common.Models.PlaybookModelCollection(
+			Team.Enums.UnitTypes.Mixed
+		);
+		results.plays = new Common.Models.PlayCollection(
+			Team.Enums.UnitTypes.Mixed
+		);
+		results.formations = new Common.Models.FormationCollection(
+			Team.Enums.UnitTypes.Mixed
+		);
+		results.personnel = new Team.Models.PersonnelCollection(
+			Team.Enums.UnitTypes.Mixed
+		);
+		results.assignmentGroups = new Common.Models.AssignmentGroupCollection(
+			Team.Enums.UnitTypes.Mixed
+		);
 
 		//
 		// Clients of this service should expect to receive back

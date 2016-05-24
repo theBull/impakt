@@ -17,9 +17,12 @@ module Common.Models {
             this.graphics.setOriginalOpacity(1);
             this.graphics.dimensions.width = this.grid.dimensions.width - (this.grid.getSize() * 2);
             this.graphics.dimensions.height = 1;
-            this.graphics.updateFromCoordinates(
-                1,
-                this.field.ball.graphics.placement.coordinates.y
+            this.graphics.initializePlacement(
+                new Common.Models.Placement(
+                    1, 
+                    this.field.ball.graphics.placement.coordinates.y,
+                    null
+                )
             );
         }
     }

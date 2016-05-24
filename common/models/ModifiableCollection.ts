@@ -1,5 +1,25 @@
 /// <reference path='./models.ts' />
 
+
+/**
+ *
+ *
+ *
+ *
+ *
+ *
+ *   DEPRECATED!!
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ *
+ * 
+ */
+
 module Common.Models {
 
 	export class ModifiableCollection<T extends Common.Models.Modifiable> {
@@ -134,15 +154,15 @@ module Common.Models {
 			this.setModified(true);
 			return this;
 		}
-		public addAll(...args: T[]) {
-			if (!args || args.length == 0)
+		public addAll(elements: T[]) {
+			if (!elements || elements.length == 0)
 				return this;
 
-			this._collection.addAll(...args);
+			this._collection.addAll(elements);
 
 			let self = this;
-			for (let i = 0; i < args.length; i++) {
-				let modifiable = args[i];
+			for (let i = 0; i < elements.length; i++) {
+				let modifiable = elements[i];
 				modifiable.onModified(function() {
 					self.setModified(true);
 				});

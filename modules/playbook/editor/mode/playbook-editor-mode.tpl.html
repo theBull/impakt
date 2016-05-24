@@ -1,6 +1,17 @@
 <div class='font-white height3 height3 gray-bg-2 row' 
 	ng-controller='playbook.editor.mode.ctrl'>
 
+	<!-- Editor type message -->
+	<div class='pad'>
+		<div>
+			<strong>Mode:</strong>
+			<type-formatter 
+				value='canvas.scenario.editorType'
+				type='Playbook.Enums.EditorTypes'>
+			</type-formatter>
+		</div>
+	</div>
+
 	<div class='pad'>
 		<strong>Tool:</strong> {{canvas.getToolModeName()}}
 	</div>

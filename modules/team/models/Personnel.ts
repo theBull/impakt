@@ -21,6 +21,10 @@ module Team.Models {
             this.setType = Common.Enums.SetTypes.Personnel;
             this.onModified(function(data) {});
         }
+        public copy(newPersonnel?: Team.Models.Personnel): Team.Models.Personnel {
+            let copyPersonnel = newPersonnel || new Team.Models.Personnel(this.unitType);
+            return <Team.Models.Personnel>super.copy(copyPersonnel, this);
+        }
         public hasPositions(): boolean {
             return this.positions && this.positions.size() > 0;
         }
@@ -29,9 +33,6 @@ module Team.Models {
             this.key = personnel.key;
             this.name = personnel.name;
             this.guid = personnel.guid;
-        }
-        public copy(newPersonnel: Team.Models.Personnel): Team.Models.Personnel {
-            return <Team.Models.Personnel>super.copy(newPersonnel, this);
         }
         public fromJson(json: any): any {
             if (!json)

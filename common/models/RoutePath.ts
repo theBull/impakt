@@ -18,6 +18,7 @@ module Common.Models {
 			this.graphics.setOriginalFill(null);
             this.graphics.setOriginalStroke('black');
             this.graphics.setOriginalStrokeWidth(3);
+            this.graphics.initializePlacement(this.route.graphics.placement);
             this.layer.type = Common.Enums.LayerTypes.PlayerRoutePath;
 		}
 

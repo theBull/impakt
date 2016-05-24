@@ -12,25 +12,8 @@ module Playbook.Models {
 
         public setPlayer(player: Common.Interfaces.IPlayer): void {
             super.setPlayer(player);
-
-            if (this.player) {
-                // add root node
-                let rootNode = new Playbook.Models.EditorRouteNode(
-                    new Common.Models.RelativeCoordinates(
-                        0, 0, this.player
-                    ),
-                    Common.Enums.RouteNodeTypes.Root
-                );
-                rootNode.initialize(this.field, this.player);
-                rootNode.layer.toBack();
-                rootNode.layer.hide();
-                rootNode.disable();
-                this.addNode(rootNode, false);
-            }
             this.routePath = new Playbook.Models.EditorRoutePath();
-            this.routePath.initialize(this.field, this.player);
-
-            this.layer.addLayer(this.routePath.layer);
+            this.routePath.initialize(this.field, this);
             this.renderType = Common.Enums.RenderTypes.Editor;
         }
 
@@ -51,6 +34,29 @@ module Playbook.Models {
                 });
                 this.draw();
             }
+        }
+
+        public addNode(
+            routeNode: Common.Interfaces.IRouteNode,
+            render?: boolean
+        ): Common.Interfaces.IRouteNode {
+            // Ensure there is a root node before attempting to add the given node
+            if (this.nodes.isEmpty() && routeNode.type != Common.Enums.RouteNodeTypes.Root) {
+                // add root node
+                let rootNode = new Playbook.Models.EditorRouteNode(
+                    new Common.Models.RelativeCoordinates(
+                        0, 0, this.player
+                    ),
+                    Common.Enums.RouteNodeTypes.Root
+                );
+                rootNode.initialize(this.field, this.player);
+                
+                // add first, since this step includes drawing the node
+                super.addNode(rootNode, false);
+
+                this.disableRootNode(rootNode);
+            }
+            return super.addNode(routeNode, false);
         }
 
         public initializeCurve(coords: Common.Models.Coordinates, flip?: boolean) {
@@ -109,20 +115,20 @@ module Playbook.Models {
             }
 
             if (flip === true) {
-                controlNode.graphics.updateLocation(
+                controlNode.graphics.updateFromAbsolute(
                     coords.x,
                     lastNode.graphics.location.ay
                 );
             }
             else {
 
-                controlNode.graphics.updateLocation(
+                controlNode.graphics.updateFromAbsolute(
                     lastNode.graphics.location.ax,
                     coords.y
                 );
             }
 
-            endNode.graphics.updateLocation(coords.x, coords.y);
+            endNode.graphics.updateFromAbsolute(coords.x, coords.y);
 
             this.drawCurve(controlNode);
         }

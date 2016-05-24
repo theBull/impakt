@@ -10,23 +10,23 @@
 	<div>
 		<div class='pad light-border-bottom'>
 			<details>
-				<summary><strong>Primary play:</strong> &quot;{{canvas.playPrimary.name}}&quot;</summary>
+				<summary><strong>Primary play:</strong> &quot;{{canvas.scenario.playPrimary.name}}&quot;</summary>
 				<div class='pad'>
 					<div class='marginBottom1'>
-						<div><strong>Formation:</strong> {{canvas.playPrimary.formation.name}}</div>
-						<div><strong>Personnel:</strong> {{canvas.playPrimary.personnel.name}}</div>
-						<div><strong>Assignments:</strong> {{canvas.playPrimary.assignments.name}}</div>
+						<div><strong>Formation:</strong> {{canvas.scenario.playPrimary.formation.name}}</div>
+						<div><strong>Personnel:</strong> {{canvas.scenario.playPrimary.personnel.name}}</div>
+						<div><strong>Assignments:</strong> {{canvas.scenario.playPrimary.assignments.name}}</div>
 						<div><strong>Unit type:</strong> 
 							<type-formatter 
-								value='canvas.playPrimary.unitType'
+								value='canvas.scenario.playPrimary.unitType'
 								type='Team.Enums.UnitTypes'>
 							</type-formatter> 
 						</div>
 					</div>
-					<play-preview 
-						play='canvas.playPrimary' 
+					<scenario-preview 
+						scenario='canvas.scenario' 
 						class='height28 width35'>
-					</play-preview>				
+					</scenario-preview>				
 				</div>
 			</details>
 		</div>
@@ -98,14 +98,6 @@
 					</div>
 				</div>
 			</details>
-		</div>
-
-		<div class='pad'>
-			<div class='height3 pad red-bg-hover pointer textCenter width9' 
-				ng-click='deletePrimary(canvas.playPrimary)'>
-				<span class='glyphicon glyphicon-remove'></span>
-				<span>delete</span>
-			</div>
 		</div>
 
 	</div>

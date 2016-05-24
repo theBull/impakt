@@ -3,7 +3,7 @@
 module Common.Models {
     
     export class PlayCollection
-    extends Common.Models.ActionableCollection<Common.Models.Play> {
+    extends Common.Models.ActionableCollection<Common.Interfaces.IPlay> {
 
         public unitType: Team.Enums.UnitTypes;
 
@@ -40,7 +40,7 @@ module Common.Models {
 
                 rawPlay.key = obj.key;
                 // TODO
-                var playModel = new Common.Models.Play(rawPlay.unitType);
+                var playModel = new Common.Models.PlayPrimary(rawPlay.unitType);
                 playModel.fromJson(rawPlay);
                 this.add(playModel);
             }

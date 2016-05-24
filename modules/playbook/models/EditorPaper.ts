@@ -27,15 +27,7 @@ module Playbook.Models {
 
             // Paper methods within field are dependent on 
             // this.Raphael
-            this.field = this.field ||
-                new Playbook.Models.EditorField(
-                    this,
-                    this.canvas.playPrimary,
-                    this.canvas.playOpponent
-                );
-        }
-        public updatePlay(playPrimary: Common.Models.PlayPrimary, playOpponent: Common.Models.PlayOpponent) {
-            this.field.updatePlay(playPrimary, playOpponent);
+            this.field = this.field || new Playbook.Models.EditorField(this, this.canvas.scenario);
         }
     }
 }

@@ -17,6 +17,9 @@
 /// <reference path='./IHoverable.ts' />
 /// <reference path='./IAssociable.ts' />
 
+/// <reference path='./IPlay.ts' />
+/// <reference path='./IScenario.ts' />
+
 /// <reference path='./IPaper.ts' />
 /// <reference path='./IGrid.ts' />
 /// <reference path='./ICanvas.ts' />

@@ -26,9 +26,16 @@ module Common.Models {
             }
             this.name = 'Untitled';
             this.key = -1;
+            this.flipped = false;
             this.onModified(function() {
                 // TODO
             });
+        }
+
+        public copy(newAssignmentGroup?: Common.Models.AssignmentGroup): Common.Models.AssignmentGroup {
+            var copyAssignmentGroup = newAssignmentGroup || new Common.Models.AssignmentGroup(this.unitType);
+            copyAssignmentGroup.assignments = this.assignments.copy();
+            return <Common.Models.AssignmentGroup>super.copy(copyAssignmentGroup, this);
         }
         
         public toJson(): any {
@@ -55,7 +62,7 @@ module Common.Models {
 
                 let assignmentModel = new Common.Models.Assignment(rawAssignment.unitType);
                 assignmentModel.fromJson(rawAssignment);
-                this.assignments.add(assignmentModel);
+                this.assignments.addAtIndex(assignmentModel, i);
             }
             super.fromJson(json);
         }
@@ -67,6 +74,16 @@ module Common.Models {
                 });
             }
             return result;
+        }
+
+        public flip(): void {
+            if(Common.Utilities.isNotNullOrUndefined(this.assignments)) {
+                this.assignments.forEach(function(assignment: Common.Models.Assignment, index: number) {
+                    if(Common.Utilities.isNotNullOrUndefined(assignment))
+                        assignment.flip();
+                });
+                this.flipped = !this.flipped;
+            }
         }
     }
 }

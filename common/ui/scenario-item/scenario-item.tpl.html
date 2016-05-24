@@ -1,0 +1,40 @@
+<div 
+	class='positionRelative gray-bg-3-hover marginBottom1 
+		height21 width18 pointer marginRight1 overflowHidden'
+	ng-mouseover='editVisible = true'
+	ng-mouseout='editVisible = false'
+	ng-init='editVisible = false'
+	ng-click='toggleSelection(scenario)'
+	ng-class='{"selected-border": scenario.selected}'>
+	
+	<div class='col positionRelative' enable-contextmenu entity='scenario'>
+		
+		<div class='right0 top0 height3 pad gray-bg-2-hover opacity09' 
+			ng-show='editVisible'
+			ng-click='openInEditor(scenario)'>
+			edit
+			<span class='glyphicon glyphicon-pencil' 
+				title='Edit scenario'>
+			</span>
+		</div>
+		
+		<div class='pad height3'>
+			<div class='row'>
+				<p>
+					{{scenario.name}}
+				</p>
+			</div>
+		</div>					
+
+		<scenario-thumbnail scenario='scenario' class='height18'></scenario-thumbnail>				
+
+		<div class='pad gray-bg-2 opacity09 bottom0 left0 fontSize8'>
+			<type-formatter
+				value='scenario.unitType'
+				type='Team.Enums.UnitTypes'>
+			</type-formatter>
+		</div>	
+
+	</div>
+	
+</div>

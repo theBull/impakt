@@ -19,6 +19,7 @@ module Common.Models {
 			this.disabled = this.routeNode.type == Common.Enums.RouteNodeTypes.CurveControl;
             this.layer.type = Common.Enums.LayerTypes.PlayerRouteAction;
             this.graphics.setOffsetXY(0.5, 0.5);
+            this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.routeNode));
 		}
 
         public draw(): void {

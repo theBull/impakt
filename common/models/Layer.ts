@@ -67,6 +67,9 @@ module Common.Models {
 		}
 
 		public toFront(): void {
+			if(this.hasGraphics()) {
+				this.actionable.graphics.toFront();
+			}
 			if(this.hasLayers()) {
 				this.layers.forEach(function(layer: Common.Models.Layer, index: number) {
 					if(layer && layer.actionable.graphics) {
@@ -123,13 +126,6 @@ module Common.Models {
 				this.actionable.graphics.remove();
 		}
 
-		public setPlacement(placement: Common.Models.Placement): void {
-			this.actionable.graphics.setPlacement(placement);
-			this.layers.forEach(function(layer: Common.Models.Layer, index: number) {
-				layer.actionable.graphics.setPlacement(placement);
-			});
-		}
-
 		public moveByDelta(dx: number, dy: number) {
 			this.actionable.graphics.moveByDelta(dx, dy);
 			if(this.hasLayers()) {
@@ -172,6 +168,18 @@ module Common.Models {
 				this.layers.forEach(function(layer: Common.Models.Layer, index: number) {
 					layer.draw();
 				});
+		}
+
+		public flip(): void {
+			if(this.actionable.flippable) {
+				this.actionable.graphics.flip();
+
+				if(this.hasLayers()) {
+					this.layers.forEach(function(layer: Common.Models.Layer, index: number) {
+						layer.flip();
+					});
+				}
+			}
 		}
 	}
 

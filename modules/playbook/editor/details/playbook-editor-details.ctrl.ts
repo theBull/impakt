@@ -16,8 +16,7 @@ function(
 	$scope.paper;
 	$scope.field;
 	$scope.grid;
-	$scope.playPrimary;
-	$scope.playOpponent;
+	$scope.scenario;
 	$scope.layers;
 	$scope.selected;
 	$scope.players;
@@ -26,11 +25,10 @@ function(
 		$scope.paper = $scope.canvas.paper;
 		$scope.field = $scope.paper.field;
 		$scope.grid = $scope.paper.grid;
-		$scope.playPrimary = $scope.canvas.playPrimary;
-		$scope.playOpponent = $scope.canvas.playOpponent;
+		$scope.scenario = $scope.canvas.scenario;
 		$scope.layers = $scope.field.layers;
 		$scope.selected = $scope.field.selected;
-		$scope.players = $scope.field.players;
+		$scope.players = $scope.field.primaryPlayers;
 
 		// update scope when changes to field occur
 		$scope.field.onModified(function() {
@@ -42,22 +40,6 @@ function(
 
 	$scope.refreshPreview = function() {
 		
-	}
-
-	$scope.deletePrimary = function(play: Common.Models.PlayPrimary) {
-		if(play.editorType == Playbook.Enums.EditorTypes.Play) {
-			_playbookModals.deletePlay(play).then(function() {
-				_playbookEditorDetails.closeActiveTab();
-			}, function(err) {
-
-			});
-		} else if(play.editorType == Playbook.Enums.EditorTypes.Formation) {
-			_playbookModals.deleteFormation(play.formation).then(function() {
-				_playbookEditorDetails.closeActiveTab();
-			}, function(err) {
-			
-			});
-		}
 	}
 
 }]);

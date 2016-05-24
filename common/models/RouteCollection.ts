@@ -2,7 +2,7 @@
 
 module Common.Models {
     export class RouteCollection
-        extends Common.Models.Collection<Common.Interfaces.IRoute> {
+    extends Common.Models.Collection<Common.Interfaces.IRoute> {
 
         constructor() {
             super();

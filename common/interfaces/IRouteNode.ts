@@ -9,5 +9,8 @@ module Common.Interfaces {
         routeAction: Common.Interfaces.IRouteAction;
         routeControlPath: Common.Interfaces.IRouteControlPath;
         route: Common.Interfaces.IRoute;
+        flipped: boolean;
+
+        flip(): void;
 	}
 }
