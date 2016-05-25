@@ -405,7 +405,7 @@ function(
             primaryPlay.setFormation(formationCopy);
 
             // Set association data
-			_setFormationAssociations(primaryPlay);
+			this.setFormationAssociations(primaryPlay);
 
             let scenario = new Common.Models.Scenario();
             scenario.setPlayPrimary(primaryPlay);
@@ -1032,7 +1032,7 @@ function(
         scenario.editorType = Playbook.Enums.EditorTypes.Play;
 
         // Set association data
-        _setPlayAssociations(scenario.playPrimary);
+        this.setPlayAssociations(scenario.playPrimary);
         
         // add the play onto the editor context
         impakt.context.Playbook.editor.scenarios.add(scenario);
@@ -1278,13 +1278,7 @@ function(
         // add the scenario onto the editor context
         let scenarioCopy = scenario.copy();
         scenarioCopy.editorType = Playbook.Enums.EditorTypes.Scenario;
-        // Set association data
-        if (Common.Utilities.isNotNullOrUndefined(scenarioCopy.playPrimary)) {
-			_setPlayAssociations(scenario.playPrimary);
-        }
-        if (Common.Utilities.isNotNullOrUndefined(scenarioCopy.playOpponent)) {
-			_setPlayAssociations(scenario.playOpponent);
-        }
+        this.setScenarioAssociations(scenarioCopy);
         impakt.context.Playbook.editor.scenarios.add(scenarioCopy); // <-- create copy
 
         // navigate to playbook editor
@@ -1434,21 +1428,48 @@ function(
         return d.promise;
     }
 
-    function _setPlayAssociations(play: Common.Interfaces.IPlay, setFormation?: boolean, setAssignmentGroup?: boolean, setPersonnel?: boolean): Common.Interfaces.IPlay {
+    this.setScenarioAssociations = function(scenario: Common.Models.Scenario): Common.Models.Scenario {
+        let associations = _associations.getAssociated(scenario);
+        let plays = associations.plays;
+        if(Common.Utilities.isNotNullOrUndefined(plays)) {
+            let playPrimary = plays.filterFirst(function(play: Common.Interfaces.IPlay, index: number) {
+                return play.guid == scenario.playPrimaryGuid;
+            });
+            let playOpponent = plays.filterFirst(function(play: Common.Interfaces.IPlay, index: number) {
+                return play.guid == scenario.playOpponentGuid;
+            });
+            if(Common.Utilities.isNotNullOrUndefined(playPrimary)) {
+                this.setPlayAssociations(playPrimary);
+                scenario.setPlayPrimary(playPrimary);
+            }
+            if(Common.Utilities.isNotNullOrUndefined(playOpponent)) {
+                this.setPlayAssociations(playOpponent);
+                scenario.setPlayOpponent(playOpponent);
+            }
+        }
+
+        return scenario;
+    }
+
+    this.setPlayAssociations = function(play: Common.Interfaces.IPlay): Common.Interfaces.IPlay {
 		let associations = _associations.getAssociated(play);
-		play.formation = associations.formations.first();
-		play.assignmentGroup = associations.assignmentGroups.first();
-		play.personnel = associations.personnel.first();
+		let formation = associations.formations.first();
+        play.formation = formation && formation.copy();
+		let assignmentGroup = associations.assignmentGroups.first();
+        play.assignmentGroup = assignmentGroup && assignmentGroup.copy();
+		let personnel = associations.personnel.first();
+        play.personnel = personnel && personnel.copy();
 
 		return play;
     }
 
-    function _setFormationAssociations(play: Common.Interfaces.IPlay): Common.Interfaces.IPlay {
+    this.setFormationAssociations = function(play: Common.Interfaces.IPlay): Common.Interfaces.IPlay {
 		if (Common.Utilities.isNullOrUndefined(play))
 			return;
 
     	let associations = _associations.getAssociated(play.formation);
-		play.personnel = associations.personnel.first();
+		let personnel = associations.personnel.first();
+        play.personnel = personnel && personnel.copy();
     }
 
 }]);

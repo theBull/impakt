@@ -171,6 +171,10 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 			}
 		}
 
+		this.flipScenario = function() {
+			_playbookEditor.flipScenario();
+		}
+
 		function canApplyData(): boolean {
 			if(!_playbookEditor.canvas ||
 				!_playbookEditor.canvas.paper ||

@@ -1849,6 +1849,33 @@ var Common;
                     self.setModified(true);
                 });
             }
+            Assignment.prototype.toJson = function () {
+                return $.extend({
+                    routes: this.routes.toJson(),
+                    positionIndex: this.positionIndex,
+                    unitType: this.unitType
+                }, _super.prototype.toJson.call(this));
+            };
+            Assignment.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                // NOTE:
+                // Route models rely on the presence of a field
+                // object in order to be constructed ( :-/ )
+                // for now, avoid serializing
+                this.routeArray = json.routes;
+                this.positionIndex = json.positionIndex;
+                this.unitType = json.unitType;
+                _super.prototype.fromJson.call(this, json);
+            };
+            Assignment.prototype.copy = function (newAssignment) {
+                var copyAssignment = newAssignment || new Common.Models.Assignment(this.unitType);
+                var copied = _super.prototype.copy.call(this, copyAssignment, this);
+                // explicitly set the routeArray field here since it's not part
+                // of this object's toJson() result
+                copied.routeArray = this.routeArray;
+                return copied;
+            };
             Assignment.prototype.remove = function () {
                 this.routes.removeAll();
             };
@@ -1861,6 +1888,12 @@ var Common;
                 this.routes.forEach(function (route, index) {
                     route.draw();
                 });
+            };
+            Assignment.prototype.addRoute = function (route) {
+                if (Common.Utilities.isNullOrUndefined(route))
+                    return;
+                this.routes.add(route);
+                this.routeArray = this.routes.toJson();
             };
             Assignment.prototype.setRoutes = function (player, renderType) {
                 // intiialize the routeArray json for transferrence between
@@ -1906,24 +1939,8 @@ var Common;
             Assignment.prototype.hasRouteArray = function () {
                 return this.routeArray && this.routeArray.length > 0;
             };
-            Assignment.prototype.fromJson = function (json) {
-                if (!json)
-                    return;
-                // NOTE:
-                // Route models rely on the presence of a field
-                // object in order to be constructed ( :-/ )
-                // for now, avoid serializing
-                this.routeArray = json.routes;
-                this.positionIndex = json.positionIndex;
-                this.unitType = json.unitType;
-                _super.prototype.fromJson.call(this, json);
-            };
-            Assignment.prototype.toJson = function () {
-                return $.extend({
-                    routes: this.routes.toJson(),
-                    positionIndex: this.positionIndex,
-                    unitType: this.unitType
-                }, _super.prototype.toJson.call(this));
+            Assignment.prototype.updateRouteArray = function () {
+                this.routeArray = this.routes.toJson();
             };
             Assignment.prototype.flip = function () {
                 if (Common.Utilities.isNotNullOrUndefined(this.routes)) {
@@ -1969,8 +1986,13 @@ var Common;
             }
             AssignmentGroup.prototype.copy = function (newAssignmentGroup) {
                 var copyAssignmentGroup = newAssignmentGroup || new Common.Models.AssignmentGroup(this.unitType);
-                copyAssignmentGroup.assignments = this.assignments.copy();
-                return _super.prototype.copy.call(this, copyAssignmentGroup, this);
+                copyAssignmentGroup.assignments = new Common.Models.Collection();
+                var copied = _super.prototype.copy.call(this, copyAssignmentGroup, this);
+                this.assignments.forEach(function (assignment, index) {
+                    if (Common.Utilities.isNotNullOrUndefined(assignment))
+                        copied.assignments.add(assignment.copy());
+                });
+                return copied;
             };
             AssignmentGroup.prototype.toJson = function () {
                 return $.extend({
@@ -2487,12 +2509,13 @@ var Common;
                     self.field.addOpponentPlayer(placement, position, assignment);
                 });
                 // flip the formation and assignments
-                if (Common.Utilities.isNotNullOrUndefined(this.field.opponentPlayers)) {
+                if (Common.Utilities.isNotNullOrUndefined(this.field.opponentPlayers) && !this.flipped) {
                     this.field.opponentPlayers.forEach(function (player, index) {
-                        if (Common.Utilities.isNotNullOrUndefined(player)) {
+                        if (Common.Utilities.isNotNullOrUndefined(player) && !player.flipped) {
                             player.flip();
                         }
                     });
+                    this.flipped = !this.flipped;
                 }
             };
             return PlayOpponent;
@@ -2629,7 +2652,9 @@ var Common;
             function Scenario() {
                 _super.call(this, Common.Enums.ImpaktDataTypes.Scenario);
                 this.playPrimary = new Common.Models.PlayPrimary(Team.Enums.UnitTypes.Other);
+                this.playPrimaryGuid = this.playPrimary.guid;
                 this.playOpponent = new Common.Models.PlayOpponent(Team.Enums.UnitTypes.Other);
+                this.playOpponentGuid = this.playOpponent.guid;
                 this.unitType = this.playPrimary.unitType;
                 this.editorType = Playbook.Enums.EditorTypes.Play;
             }
@@ -2646,7 +2671,9 @@ var Common;
                     name: this.name,
                     png: this.png,
                     unitType: this.unitType,
-                    editorType: this.editorType
+                    editorType: this.editorType,
+                    playPrimaryGuid: this.playPrimaryGuid,
+                    playOpponentGuid: this.playOpponentGuid
                 }, _super.prototype.toJson.call(this));
             };
             Scenario.prototype.fromJson = function (json) {
@@ -2656,6 +2683,8 @@ var Common;
                 this.unitType = json.unitType;
                 this.png = json.png;
                 this.editorType = json.editorType;
+                this.playPrimaryGuid = json.playPrimaryGuid;
+                this.playOpponentGuid = json.playOpponentGuid;
                 _super.prototype.fromJson.call(this, json);
             };
             Scenario.prototype.setPlayPrimary = function (play) {
@@ -2665,6 +2694,7 @@ var Common;
                 }
                 // ensure the play passed in is of type primary
                 this.playPrimary = Common.Models.Play.toPrimary(play);
+                this.playPrimaryGuid = this.playPrimary.guid;
                 this.unitType = this.playPrimary.unitType;
                 this.setModified(true);
             };
@@ -2675,11 +2705,14 @@ var Common;
                 }
                 // ensure the play passed in is of type Opponent
                 this.playOpponent = Common.Models.Play.toOpponent(play);
+                this.playOpponentGuid = this.playOpponent.guid;
                 this.setModified(true);
             };
             Scenario.prototype.clear = function () {
                 this.playPrimary = null;
+                this.playPrimaryGuid = null;
                 this.playOpponent = null;
+                this.playOpponentGuid = null;
             };
             Scenario.prototype.draw = function (field) {
                 if (Common.Utilities.isNotNullOrUndefined(this.playPrimary))
@@ -3438,13 +3471,11 @@ var Common;
                     });
             };
             Layer.prototype.flip = function () {
-                if (this.actionable.flippable) {
-                    this.actionable.graphics.flip();
-                    if (this.hasLayers()) {
-                        this.layers.forEach(function (layer, index) {
-                            layer.flip();
-                        });
-                    }
+                this.actionable.graphics.flip(this.actionable.flippable);
+                if (this.hasLayers()) {
+                    this.layers.forEach(function (layer, index) {
+                        layer.flip();
+                    });
                 }
             };
             return Layer;
@@ -4510,7 +4541,9 @@ var Common;
             Player.prototype.initialize = function (field) {
                 _super.prototype.initialize.call(this, field, field.ball);
                 this.layer.type = Common.Enums.LayerTypes.Player;
-                this.graphics.initializePlacement(new Common.Models.Placement(this.placement.relative.rx, this.placement.relative.ry, this.field.ball));
+                //this.graphics.setPlacement(this.placement);
+                this.graphics.initializePlacement(this.placement);
+                this.placement.setRelativeElement(this.field.ball);
                 this.graphics.dimensions.setWidth(this.grid.getSize());
                 this.graphics.dimensions.setHeight(this.grid.getSize());
                 var self = this;
@@ -4523,9 +4556,26 @@ var Common;
             };
             Player.prototype.flip = function () {
                 this.layer.flip();
+                if (Common.Utilities.isNotNullOrUndefined(this.assignment) &&
+                    Common.Utilities.isNotNullOrUndefined(this.assignment.routes)) {
+                    this.assignment.routes.forEach(function (route, index) {
+                        route.flip();
+                    });
+                }
+                this.flipped = !this.flipped;
             };
             Player.prototype.remove = function () {
                 this.layer.remove();
+            };
+            Player.prototype.drawRoute = function () {
+                // Draw the player's assignment
+                if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+                    if (this.assignment.routes.hasElements()) {
+                        this.assignment.routes.forEach(function (route, index) {
+                            route.draw();
+                        });
+                    }
+                }
             };
             Player.prototype.getPositionRelativeToBall = function () {
                 return this.graphics.placement.relative;
@@ -4619,11 +4669,11 @@ var Common;
                 this.graphics.dimensions.width = (this.player.graphics.dimensions.getWidth());
                 this.graphics.dimensions.height = (this.player.graphics.dimensions.getHeight());
                 this.graphics.setOffsetXY(-this.player.graphics.dimensions.getWidth() / 2, -this.player.graphics.dimensions.getHeight() / 2);
-                this.graphics.initializePlacement(this.player.graphics.placement);
-                this.graphics.placement.setRelativeElement(this.player);
+                this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.player));
             }
             PlayerSelectionBox.prototype.draw = function () {
                 this.graphics.rect();
+                this.graphics.hide();
             };
             return PlayerSelectionBox;
         })(Common.Models.FieldElement);
@@ -4660,12 +4710,12 @@ var Common;
                         break;
                     case Team.Enums.UnitTypes.SpecialTeams:
                         this.graphics.setOffsetXY(-(this.graphics.dimensions.getWidth() / 2), -(this.graphics.dimensions.getHeight() / 2));
-                        this.graphics.initializePlacement(this.player.graphics.placement);
+                        this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.player));
                         this.graphics.rect();
                         break;
                     case Team.Enums.UnitTypes.Other:
                         this.graphics.setOffsetXY(-(this.graphics.dimensions.getWidth() / 2), -(this.graphics.dimensions.getHeight() / 2));
-                        this.graphics.initializePlacement(this.player.graphics.placement);
+                        this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.player));
                         this.graphics.rhombus();
                         break;
                 }
@@ -4690,8 +4740,7 @@ var Common;
                 this.selectable = false;
                 this.graphics.snapping = false;
                 this.graphics.setOffsetXY(0, this.grid.getSize());
-                this.graphics.initializePlacement(this.player.graphics.placement);
-                this.graphics.placement.setRelativeElement(this.player);
+                this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.player));
             }
             PlayerRelativeCoordinatesLabel.prototype.draw = function () {
                 this.graphics.text([
@@ -4721,8 +4770,7 @@ var Common;
                 this.selectable = false;
                 this.graphics.snapping = false;
                 this.graphics.setOffsetXY(0, -(this.player.graphics.dimensions.getHeight() / 2) * 0.4);
-                this.graphics.initializePlacement(this.player.graphics.placement);
-                this.graphics.placement.setRelativeElement(this.player);
+                this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.player));
             }
             PlayerPersonnelLabel.prototype.draw = function () {
                 this.graphics.text(this.player.position.label);
@@ -4748,8 +4796,7 @@ var Common;
                 this.selectable = false;
                 this.graphics.snapping = false;
                 this.graphics.setOffsetXY(0, (this.player.graphics.dimensions.getHeight() / 2) * 0.4);
-                this.graphics.initializePlacement(this.player.graphics.placement);
-                this.graphics.placement.setRelativeElement(this.player);
+                this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.player));
             }
             PlayerIndexLabel.prototype.draw = function () {
                 this.graphics.text((this.player.position.index).toString());
@@ -4850,6 +4897,7 @@ var Common;
                 this.routePath.draw();
                 // ensure the route nodes are above the route path
                 this.bringNodesToFront();
+                this.player.assignment.updateRouteArray();
             };
             Route.prototype.drawCurve = function (node) {
                 if (!this.player) {
@@ -4908,6 +4956,7 @@ var Common;
                     routeNode.flip();
                 });
                 this.flipped = !this.flipped;
+                this.draw();
             };
             Route.prototype.getMixedStringFromNodes = function (nodeArray) {
                 if (!nodeArray || nodeArray.length <= 1) {
@@ -5186,8 +5235,8 @@ var Common;
                 this.setModified();
             };
             RouteNode.prototype.flip = function () {
-                this.graphics.placement.flip();
-                this.flipped = this.graphics.placement.flipped;
+                this.graphics.flip(true);
+                this.flipped = !this.flipped;
             };
             return RouteNode;
         })(Common.Models.FieldElement);
@@ -5925,7 +5974,7 @@ var Common;
             Graphics.prototype.updateFromRelative = function (rx, ry, relativeElement) {
                 this.placement.updateFromRelative(rx, ry, relativeElement);
                 var absCoords = this.grid.getAbsoluteFromCoordinates(this.placement.coordinates.x, this.placement.coordinates.y);
-                this.location.updateFromAbsolute(absCoords.x, absCoords.y);
+                this.location.updateFromAbsolute(absCoords.x + this.dimensions.offset.x, absCoords.y + this.dimensions.offset.y);
                 this.refresh();
             };
             Graphics.prototype.updateFromCoordinates = function (x, y) {
@@ -6035,16 +6084,17 @@ var Common;
             Graphics.prototype.transform = function (ax, ay) {
                 if (!this.hasRaphael())
                     return;
-                this.raphael.transform(['t', ax, ', ', ay].join(''));
+                this.raphael.transform(['t', ax, ', ', ay, ' r', this.dimensions.rotation].join(''));
             };
             Graphics.prototype.resetTransform = function () {
                 if (!this.hasRaphael())
                     return;
-                this.raphael.transform('');
+                this.raphael.transform('t 0, 0 r', this.dimensions.rotation);
             };
             Graphics.prototype.rotate = function (degrees) {
                 if (!this.hasRaphael())
                     return;
+                this.dimensions.rotation = degrees;
                 this.raphael.rotate(degrees);
             };
             Graphics.prototype.remove = function () {
@@ -6206,14 +6256,19 @@ var Common;
                     return;
                 this.raphael.drag(dragMove, dragStart, dragEnd, context, context, context);
             };
-            Graphics.prototype.flip = function () {
-                if (this.hasRaphael()) {
-                    // rotate element
-                    this.rotate(180);
-                }
+            Graphics.prototype.flip = function (rotate) {
                 // update placemement
                 this.placement.flip();
                 this.updateFromRelative(this.placement.relative.rx, this.placement.relative.ry, this.placement.relativeElement);
+                if (this.hasRaphael() && rotate === true) {
+                    // rotate element
+                    this.rotate(180);
+                    // need to reset the transform because the rotation
+                    // causes unresolved transforms that screw up the placement
+                    // (thanks, raphael)
+                    this.resetTransform();
+                    this._updateTriangle();
+                }
             };
             Graphics.prototype.drop = function () {
                 if (this.location.hasChanged())
@@ -6225,6 +6280,14 @@ var Common;
                 if (!this.hasRaphael())
                     return;
                 this.resetTransform();
+                this._updateTriangle();
+            };
+            // Special case for triangle. Since the triangle is actually a `path` element,
+            // the transform functionality doesn't work the same. We have to create a new
+            // temporary triangle where the updated triangle's positon should be and then
+            // reset the actual raphael path with the temp triangle's new coordinates.
+            // For some reason, transform(0,0) doesn't work the same on a path.
+            Graphics.prototype._updateTriangle = function () {
                 if (this.raphael.data('element-type') == 'triangle') {
                     var tempTriangle = this.paper.drawing.triangle(this.placement.coordinates.x, this.placement.coordinates.y, this.dimensions.getHeight(), false, this.dimensions.getOffsetX(), this.dimensions.getOffsetY());
                     var pathStr = tempTriangle.attr('path').toString();
@@ -7772,7 +7835,8 @@ var Playbook;
                     player.assignment.routes.size() == 0) {
                     var route = new Playbook.Models.EditorRoute();
                     route.setPlayer(player);
-                    player.assignment.routes.add(route);
+                    route.flipped = player.flipped;
+                    player.assignment.addRoute(route);
                 }
                 // TODO: this will only get the first route, implement
                 // route switching
@@ -7783,7 +7847,7 @@ var Playbook;
                 newNode.initialize(this, player);
                 // route exists, append the node
                 playerRoute.addNode(newNode);
-                console.log('set player route', player.relativeCoordinatesLabel, playerRoute);
+                player.assignment.updateRouteArray();
                 this.scenario.playPrimary.assignmentGroup.assignments.addAtIndex(player.assignment, player.position.index);
             };
             EditorField.prototype.export = function () {
@@ -8456,14 +8520,7 @@ var Playbook;
                  * Index label
                  */
                 this.indexLabel.draw();
-                // Draw the player's assignment
-                if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
-                    if (this.assignment.routes.hasElements()) {
-                        this.assignment.routes.forEach(function (route, index) {
-                            route.draw();
-                        });
-                    }
-                }
+                this.drawRoute();
             };
             EditorPlayer.prototype.remove = function () {
                 this.layer.remove();
@@ -8645,13 +8702,7 @@ var Playbook;
             PreviewPlayer.prototype.draw = function () {
                 this.icon.draw();
                 //this.personnelLabel.draw();
-                if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
-                    if (this.assignment.routes.hasElements()) {
-                        this.assignment.routes.forEach(function (route, index) {
-                            route.draw();
-                        });
-                    }
-                }
+                this.drawRoute();
             };
             PreviewPlayer.prototype.dragMove = function (dx, dy, posx, posy, e) {
                 // Not implemented - preview player does not have drag functionality
@@ -14800,6 +14851,9 @@ impakt.playbook.editor.canvas.controller('playbook.editor.canvas.ctrl', [
             _playbookEditorCanvas.applyPrimaryUnitType(unitType.unitType);
             $scope.unitTypeDropdownVisible = false;
         };
+        $scope.flipScenario = function () {
+            _playbookEditorCanvas.flipScenario();
+        };
         /**
          * Determine whether to show quick formation dropdown. Should only
          * be possible when in play- or formation-editing types.
@@ -14808,7 +14862,8 @@ impakt.playbook.editor.canvas.controller('playbook.editor.canvas.ctrl', [
          */
         $scope.isFormationVisible = function (editorType) {
             return editorType == Playbook.Enums.EditorTypes.Formation ||
-                editorType == Playbook.Enums.EditorTypes.Play;
+                editorType == Playbook.Enums.EditorTypes.Play ||
+                editorType == Playbook.Enums.EditorTypes.Scenario;
         };
         /**
          * Personnel should be visible when setting assignments, since we need the
@@ -14818,11 +14873,16 @@ impakt.playbook.editor.canvas.controller('playbook.editor.canvas.ctrl', [
          */
         $scope.isPersonnelVisible = function (editorType) {
             return editorType == Playbook.Enums.EditorTypes.Assignment ||
-                editorType == Playbook.Enums.EditorTypes.Play;
+                editorType == Playbook.Enums.EditorTypes.Play ||
+                editorType == Playbook.Enums.EditorTypes.Scenario;
         };
         $scope.isAssignmentGroupsVisible = function (editorType) {
             return editorType == Playbook.Enums.EditorTypes.Assignment ||
-                editorType == Playbook.Enums.EditorTypes.Play;
+                editorType == Playbook.Enums.EditorTypes.Play ||
+                editorType == Playbook.Enums.EditorTypes.Scenario;
+        };
+        $scope.isOpponentBarVisible = function (editorType) {
+            return editorType == Playbook.Enums.EditorTypes.Scenario;
         };
         $scope.toBrowser = function () {
             _playbookEditorCanvas.toBrowser();
@@ -15010,6 +15070,9 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas', [
             if (canApplyData()) {
                 _playbookEditor.canvas.paper.field.applyPrimaryUnitType(unitType);
             }
+        };
+        this.flipScenario = function () {
+            _playbookEditor.flipScenario();
         };
         function canApplyData() {
             if (!_playbookEditor.canvas ||
@@ -15331,6 +15394,16 @@ impakt.playbook.editor.service('_playbookEditor', [
         this.getEditorTypeClass = function (editorType) {
             return _playbook.getEditorTypeClass(editorType);
         };
+        this.flipScenario = function () {
+            if (Common.Utilities.isNotNullOrUndefined(this.canvas)) {
+                this.canvas.paper.field.primaryPlayers.forEach(function (player, index) {
+                    player.flip();
+                });
+                this.canvas.paper.field.opponentPlayers.forEach(function (player, index) {
+                    player.flip();
+                });
+            }
+        };
         /*
         *
         *	Tool -> Canvas bindings
@@ -15345,8 +15418,7 @@ impakt.playbook.editor.service('_playbookEditor', [
         this.save = function () {
             // save the data for the active item
             var activeTab = this.activeTab;
-            console.log(activeTab);
-            if (activeTab) {
+            if (Common.Utilities.isNotNullOrUndefined(activeTab)) {
                 var scenario = activeTab.scenario;
                 switch (scenario.editorType) {
                     case Playbook.Enums.EditorTypes.Formation:
@@ -15838,19 +15910,11 @@ impakt.playbook.modals.controller('playbook.modals.createScenario.ctrl', [
             $scope.newPlay.setPlaybook($scope.playbooks.get(playbook.guid));
         };
         $scope.selectPrimaryPlay = function (play) {
-            var associations = _associations.getAssociated($scope.selectedPrimaryPlay);
-            // set the formation to the associated formation
-            $scope.selectedPrimaryPlay.formation = associations.formations.first();
-            $scope.selectedPrimaryPlay.assignmentGroup = associations.assignmentGroups.first();
-            $scope.selectedPrimaryPlay.personnel = associations.personnel.first();
+            _playbook.setPlayAssociations($scope.selectedPrimaryPlay);
             $scope.newScenario.setPlayPrimary($scope.selectedPrimaryPlay);
         };
         $scope.selectOpponentPlay = function (play) {
-            var associations = _associations.getAssociated($scope.selectedOpponentPlay);
-            // set the formation to the associated formation
-            $scope.selectedOpponentPlay.formation = associations.formations.first();
-            $scope.selectedOpponentPlay.assignmentGroup = associations.assignmentGroups.first();
-            $scope.selectedOpponentPlay.personnel = associations.personnel.first();
+            _playbook.setPlayAssociations($scope.selectedOpponentPlay);
             $scope.newScenario.setPlayOpponent($scope.selectedOpponentPlay);
         };
         $scope.ok = function () {
@@ -16265,7 +16329,8 @@ impakt.playbook.modals.controller('playbook.modals.saveFormation.ctrl', ['$scope
     function ($scope, $uibModalInstance, _playbook, play) {
         $scope.play = play.copy();
         $scope.playbooks = impakt.context.Playbook.playbooks;
-        $scope.formation = play.formation;
+        $scope.formation = play.formation.copy();
+        $scope.play.formation = $scope.formation;
         $scope.copyFormation = false;
         $scope.associatedPlaybook;
         var originalFormationKey = $scope.formation.key;
@@ -16764,7 +16829,7 @@ impakt.playbook.service('_playbook', [
                 var formationCopy = formation.copy();
                 primaryPlay.setFormation(formationCopy);
                 // Set association data
-                _setFormationAssociations(primaryPlay);
+                this.setFormationAssociations(primaryPlay);
                 var scenario = new Common.Models.Scenario();
                 scenario.setPlayPrimary(primaryPlay);
                 scenario.setPlayOpponent(null);
@@ -17233,7 +17298,7 @@ impakt.playbook.service('_playbook', [
             ;
             scenario.editorType = Playbook.Enums.EditorTypes.Play;
             // Set association data
-            _setPlayAssociations(scenario.playPrimary);
+            this.setPlayAssociations(scenario.playPrimary);
             // add the play onto the editor context
             impakt.context.Playbook.editor.scenarios.add(scenario);
             // navigate to playbook editor
@@ -17403,13 +17468,7 @@ impakt.playbook.service('_playbook', [
             // add the scenario onto the editor context
             var scenarioCopy = scenario.copy();
             scenarioCopy.editorType = Playbook.Enums.EditorTypes.Scenario;
-            // Set association data
-            if (Common.Utilities.isNotNullOrUndefined(scenarioCopy.playPrimary)) {
-                _setPlayAssociations(scenario.playPrimary);
-            }
-            if (Common.Utilities.isNotNullOrUndefined(scenarioCopy.playOpponent)) {
-                _setPlayAssociations(scenario.playOpponent);
-            }
+            this.setScenarioAssociations(scenarioCopy);
             impakt.context.Playbook.editor.scenarios.add(scenarioCopy); // <-- create copy
             // navigate to playbook editor
             //if (!$state.is('playbook.editor'))
@@ -17529,19 +17588,44 @@ impakt.playbook.service('_playbook', [
             }
             return d.promise;
         };
-        function _setPlayAssociations(play, setFormation, setAssignmentGroup, setPersonnel) {
+        this.setScenarioAssociations = function (scenario) {
+            var associations = _associations.getAssociated(scenario);
+            var plays = associations.plays;
+            if (Common.Utilities.isNotNullOrUndefined(plays)) {
+                var playPrimary = plays.filterFirst(function (play, index) {
+                    return play.guid == scenario.playPrimaryGuid;
+                });
+                var playOpponent = plays.filterFirst(function (play, index) {
+                    return play.guid == scenario.playOpponentGuid;
+                });
+                if (Common.Utilities.isNotNullOrUndefined(playPrimary)) {
+                    this.setPlayAssociations(playPrimary);
+                    scenario.setPlayPrimary(playPrimary);
+                }
+                if (Common.Utilities.isNotNullOrUndefined(playOpponent)) {
+                    this.setPlayAssociations(playOpponent);
+                    scenario.setPlayOpponent(playOpponent);
+                }
+            }
+            return scenario;
+        };
+        this.setPlayAssociations = function (play) {
             var associations = _associations.getAssociated(play);
-            play.formation = associations.formations.first();
-            play.assignmentGroup = associations.assignmentGroups.first();
-            play.personnel = associations.personnel.first();
+            var formation = associations.formations.first();
+            play.formation = formation && formation.copy();
+            var assignmentGroup = associations.assignmentGroups.first();
+            play.assignmentGroup = assignmentGroup && assignmentGroup.copy();
+            var personnel = associations.personnel.first();
+            play.personnel = personnel && personnel.copy();
             return play;
-        }
-        function _setFormationAssociations(play) {
+        };
+        this.setFormationAssociations = function (play) {
             if (Common.Utilities.isNullOrUndefined(play))
                 return;
             var associations = _associations.getAssociated(play.formation);
-            play.personnel = associations.personnel.first();
-        }
+            var personnel = associations.personnel.first();
+            play.personnel = personnel && personnel.copy();
+        };
     }]);
 /// <reference path='../playbook.mdl.ts' />
 impakt.playbook.sidebar = angular.module('impakt.playbook.sidebar', [])

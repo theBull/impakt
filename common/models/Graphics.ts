@@ -470,7 +470,7 @@ module Common.Models {
         public updateFromRelative(rx: number, ry: number, relativeElement?: Common.Interfaces.IFieldElement) {
             this.placement.updateFromRelative(rx, ry, relativeElement);
             let absCoords = this.grid.getAbsoluteFromCoordinates(this.placement.coordinates.x, this.placement.coordinates.y);
-            this.location.updateFromAbsolute(absCoords.x, absCoords.y);
+            this.location.updateFromAbsolute(absCoords.x + this.dimensions.offset.x, absCoords.y + this.dimensions.offset.y);
             this.refresh();
         }
 
@@ -648,20 +648,21 @@ module Common.Models {
             if (!this.hasRaphael())
                 return;
 
-            this.raphael.transform(['t', ax, ', ', ay].join(''));
+            this.raphael.transform(['t', ax, ', ', ay, ' r', this.dimensions.rotation].join(''));
         }
 
         public resetTransform(): void {
             if (!this.hasRaphael())
                 return;
 
-            this.raphael.transform('');
+            this.raphael.transform('t 0, 0 r', this.dimensions.rotation);
         }
 
         public rotate(degrees: number): void {
             if (!this.hasRaphael())
                 return;
 
+            this.dimensions.rotation = degrees;
             this.raphael.rotate(degrees);
         }
 
@@ -862,16 +863,22 @@ module Common.Models {
             this.raphael.drag(dragMove, dragStart, dragEnd, context, context, context);
         }
 
-        public flip(): void {
-            if (this.hasRaphael()) {
-                // rotate element
-                this.rotate(180);
-            }           
-
+        public flip(rotate?: boolean): void {       
             // update placemement
             this.placement.flip();
 
             this.updateFromRelative(this.placement.relative.rx, this.placement.relative.ry, this.placement.relativeElement);
+
+            if (this.hasRaphael() && rotate === true) {
+                // rotate element
+                this.rotate(180);
+
+                // need to reset the transform because the rotation
+                // causes unresolved transforms that screw up the placement
+                // (thanks, raphael)
+                this.resetTransform();
+                this._updateTriangle();
+            }   
         }
 
         public drop(): void {
@@ -891,13 +898,22 @@ module Common.Models {
                 return;
 
             this.resetTransform();
+            this._updateTriangle();
+        }
+
+        // Special case for triangle. Since the triangle is actually a `path` element,
+        // the transform functionality doesn't work the same. We have to create a new
+        // temporary triangle where the updated triangle's positon should be and then
+        // reset the actual raphael path with the temp triangle's new coordinates.
+        // For some reason, transform(0,0) doesn't work the same on a path.
+        private _updateTriangle(): void {
             if (this.raphael.data('element-type') == 'triangle') {
                 let tempTriangle = this.paper.drawing.triangle(
-                    this.placement.coordinates.x, 
-                    this.placement.coordinates.y, 
-                    this.dimensions.getHeight(), 
-                    false, 
-                    this.dimensions.getOffsetX(), 
+                    this.placement.coordinates.x,
+                    this.placement.coordinates.y,
+                    this.dimensions.getHeight(),
+                    false,
+                    this.dimensions.getOffsetX(),
                     this.dimensions.getOffsetY()
                 );
                 let pathStr = tempTriangle.attr('path').toString();

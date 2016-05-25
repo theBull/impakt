@@ -95,6 +95,9 @@ function(
 		_playbookEditorCanvas.applyPrimaryUnitType(unitType.unitType);
 		$scope.unitTypeDropdownVisible = false;
 	}
+	$scope.flipScenario = function() {
+		_playbookEditorCanvas.flipScenario();
+	}
 
 	/**
 	 * Determine whether to show quick formation dropdown. Should only
@@ -104,7 +107,8 @@ function(
 	 */
 	$scope.isFormationVisible = function(editorType: Playbook.Enums.EditorTypes) {
 		return editorType == Playbook.Enums.EditorTypes.Formation ||
-			editorType == Playbook.Enums.EditorTypes.Play;
+			editorType == Playbook.Enums.EditorTypes.Play ||
+			editorType == Playbook.Enums.EditorTypes.Scenario;
 	}
 	/**
 	 * Personnel should be visible when setting assignments, since we need the
@@ -114,11 +118,16 @@ function(
 	 */
 	$scope.isPersonnelVisible = function(editorType: Playbook.Enums.EditorTypes) {
 		return editorType == Playbook.Enums.EditorTypes.Assignment ||
-			editorType == Playbook.Enums.EditorTypes.Play;
+			editorType == Playbook.Enums.EditorTypes.Play ||
+			editorType == Playbook.Enums.EditorTypes.Scenario;
 	}
 	$scope.isAssignmentGroupsVisible = function(editorType: Playbook.Enums.EditorTypes) {
 		return editorType == Playbook.Enums.EditorTypes.Assignment ||
-			editorType == Playbook.Enums.EditorTypes.Play;
+			editorType == Playbook.Enums.EditorTypes.Play ||
+			editorType == Playbook.Enums.EditorTypes.Scenario;
+	}
+	$scope.isOpponentBarVisible = function(editorType: Playbook.Enums.EditorTypes) {
+		return editorType == Playbook.Enums.EditorTypes.Scenario;
 	}
 
 	$scope.toBrowser = function() {

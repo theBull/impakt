@@ -19,305 +19,317 @@
 	</div> -->
 	
 	<div class='col'>
-	
-		<div class='playbook-editor-play-info row 
-			gray-bg-3
-			height3 font-white overflowVisible {{editorModeClass}}'
-			ng-if='canvas.scenario.playOpponent && canvas.scenario.editorType == Playbook.Enums.EditorTypes.Scenario'>
+		
+		<div class='row overflowVisible' ng-class='{"height3": !isOpponentBarVisible(canvas.scenario.editorType), 
+			"height6": isOpponentBarVisible(canvas.scenario.editorType)}'>
+			<div class='col overflowVisible'>
+				<div class='playbook-editor-play-info row 
+					gray-bg-3 height3 font-white overflowVisible {{editorModeClass}}'
+					ng-show='isOpponentBarVisible(canvas.scenario.editorType)'>
 
-			<div class='pad'>
-				<type-formatter
-					value='canvas.scenario.playOpponent.playType'
-					type='Playbook.Enums.PlayTypes'>
-				</type-formatter>: 
-				<strong>{{canvas.scenario.playOpponent.name}}</strong>
-			</div>
-
-			<!-- Unit type -->
-			<div class='pointer positionRelative'
-				ng-init='unitTypeDropdownVisible = false'>
-				<div class='row height3 pad'
-					ng-click='unitTypeDropdownVisible = !unitTypeDropdownVisible'>
-					<div class='marginRight1'>
-						Unit type:  
+					<div class='pad'>
 						<type-formatter
-							value='canvas.scenario.playOpponent.unitType'
-							type='Team.Enums.UnitTypes'>
-						</type-formatter>
-						
+							value='canvas.scenario.playOpponent.playType'
+							type='Playbook.Enums.PlayTypes'>
+						</type-formatter>: 
+						<strong>{{canvas.scenario.playOpponent.name}}</strong>
 					</div>
-					<div class='glyphicon glyphicon-chevron-down'>
+
+					<!-- Unit type -->
+					<div class='pointer positionRelative'
+						ng-init='unitTypeDropdownVisible = false'>
+						<div class='row height3 pad'
+							ng-click='unitTypeDropdownVisible = !unitTypeDropdownVisible'>
+							<div class='marginRight1'>
+								Unit type:  
+								<type-formatter
+									value='canvas.scenario.playOpponent.unitType'
+									type='Team.Enums.UnitTypes'>
+								</type-formatter>
+								
+							</div>
+							<div class='glyphicon glyphicon-chevron-down'>
+							</div>
+						</div>
+						<div class='col minWidth20 dropdown heightAuto'
+							ng-show='unitTypeDropdownVisible'>
+							<!-- list of formations -->
+							<ul>
+								<li ng-repeat='unitType in unitTypes.toArray()'
+									class='pad pointer gray-bg-4-hover'
+									ng-click='applyUnitType(unitType)'>
+									<type-formatter
+										value='unitType.unitType'
+										type='Team.Enums.UnitTypes'>
+									</type-formatter>
+								</li>
+							</ul>
+						</div>
 					</div>
+
+					<!-- <popout 
+						open='down' 
+						data='tab.play.formation'
+						label='tab.play.formation.name'
+						ng-show='isFormationVisible(tab.play.editorType)'>
+						<popout-toggle >
+							
+						</popout-toggle>
+
+						<popout-contents class='gray-bg-5'>
+							
+							<p>Formations</p>
+							<div ng-repeat='formation in formations.toArray()'
+								class='pointer gray-bg-5-hover'>
+								{{formation.name}}
+							</div>
+						</popout-contents>
+
+					</popout> -->
+
+					<!-- Formation dropdown -->
+					<div class='pointer positionRelative'
+						ng-init='formationDropdownVisible = false'
+						ng-show='isFormationVisible(canvas.scenario.editorType)'>
+						<div class='row height3 pad'
+							ng-click='formationDropdownVisible = !formationDropdownVisible'>
+							<div class='marginRight1'>
+								Formation:  
+								<strong>
+									{{canvas.scenario.playOpponent.formation.name}}
+									<span ng-show='canvas.scenario.playOpponent.formation.modified'>*</span>
+								</strong>
+								
+							</div>
+							<div class='glyphicon glyphicon-chevron-down'>
+							</div>
+						</div>
+						<div class='col minWidth20 dropdown heightAuto'
+							ng-show='formationDropdownVisible'>
+							<!-- list of formations -->
+							<ul>
+								<li ng-repeat='formation in formations.toArray() | filter:{unitType: canvas.scenario.playOpponent.unitType}'
+									class='pad pointer gray-bg-4-hover'
+									ng-click='applyFormation(formation)'>
+									{{formation.name}}
+									<span ng-show='formation.modified'>*</span>
+								</li>
+							</ul>
+						</div>
+					</div>
+
+					<!-- Personnel dropdown -->
+					<div class='pointer positionRelative'
+						ng-init='personnelDropdownVisible = false'
+						ng-show='isPersonnelVisible(canvas.scenario.editorType)'>
+						<div class='row height3 pad'
+							ng-click='personnelDropdownVisible = !personnelDropdownVisible'>
+							<div class='marginRight1'>
+								Personnel:  <strong>{{canvas.playOpponent.personnel.name}}</strong>
+							</div>
+							<div class='glyphicon glyphicon-chevron-down'>
+							</div>
+						</div>
+						<div class='col minWidth20 dropdown heightAuto'
+							ng-show='personnelDropdownVisible'>
+							<!-- list of personnel -->
+							<ul>
+								<li ng-repeat='personnel in personnelCollection.toArray() | filter:{unitType: canvas.scenario.playOpponent.unitType}'
+									class='pad pointer gray-bg-4-hover'
+									ng-click='applyPersonnel(personnel)'>
+									{{personnel.name}}
+								</li>
+							</ul>
+						</div>
+					</div>
+
+					<!-- Assignments dropdown -->
+					<div class='pointer positionRelative'
+						ng-init='assignmentGroupsDropdownVisible = false'
+						ng-show='isAssignmentGroupsVisible(canvas.scenario.editorType)'>
+						<div class='row height3 pad'
+							ng-click='assignmentGroupsDropdownVisible = !assignmentGroupsDropdownVisible'>
+							<div class='marginRight1'>
+								Assignments:  
+								<strong>
+									{{canvas.scenario.playOpponent.assignmentGroup.name}}
+								</strong>
+							</div>
+							<div class='glyphicon glyphicon-chevron-down'>
+							</div>
+						</div>
+						<div class='col minWidth20 dropdown heightAuto'
+							ng-show='assignmentGroupsDropdownVisible'>
+							<!-- list of plays -->
+							<ul>
+								<li ng-repeat='assignmentGroup in assignmentGroups.toArray() | filter:{unitType: canvas.scenario.playOpponent.unitType}'
+									class='pad pointer gray-bg-4-hover'
+									ng-click='applyAssignmentGroup(assignmentGroup)'>
+									{{assignmentGroup.name}}
+								</li>
+							</ul>
+						</div>
+					</div>
+
 				</div>
-				<div class='col minWidth20 dropdown heightAuto'
-					ng-show='unitTypeDropdownVisible'>
-					<!-- list of formations -->
-					<ul>
-						<li ng-repeat='unitType in unitTypes.toArray()'
-							class='pad pointer gray-bg-4-hover'
-							ng-click='applyUnitType(unitType)'>
-							<type-formatter
-								value='unitType.unitType'
-								type='Team.Enums.UnitTypes'>
-							</type-formatter>
-						</li>
-					</ul>
-				</div>
-			</div>
-
-			<!-- <popout 
-				open='down' 
-				data='tab.play.formation'
-				label='tab.play.formation.name'
-				ng-show='isFormationVisible(tab.play.editorType)'>
-				<popout-toggle >
-					
-				</popout-toggle>
-
-				<popout-contents class='gray-bg-5'>
-					
-					<p>Formations</p>
-					<div ng-repeat='formation in formations.toArray()'
-						class='pointer gray-bg-5-hover'>
-						{{formation.name}}
-					</div>
-				</popout-contents>
-
-			</popout> -->
-
-			<!-- Formation dropdown -->
-			<div class='pointer positionRelative'
-				ng-init='formationDropdownVisible = false'
-				ng-show='isFormationVisible(canvas.scenario.editorType)'>
-				<div class='row height3 pad'
-					ng-click='formationDropdownVisible = !formationDropdownVisible'>
-					<div class='marginRight1'>
-						Formation:  
-						<strong>
-							{{canvas.scenario.playOpponent.formation.name}}
-							<span ng-show='canvas.scenario.playOpponent.formation.modified'>*</span>
-						</strong>
-						
-					</div>
-					<div class='glyphicon glyphicon-chevron-down'>
-					</div>
-				</div>
-				<div class='col minWidth20 dropdown heightAuto'
-					ng-show='formationDropdownVisible'>
-					<!-- list of formations -->
-					<ul>
-						<li ng-repeat='formation in formations.toArray() | filter:{unitType: canvas.scenario.playOpponent.unitType}'
-							class='pad pointer gray-bg-4-hover'
-							ng-click='applyFormation(formation)'>
-							{{formation.name}}
-							<span ng-show='formation.modified'>*</span>
-						</li>
-					</ul>
-				</div>
-			</div>
-
-			<!-- Personnel dropdown -->
-			<div class='pointer positionRelative'
-				ng-init='personnelDropdownVisible = false'
-				ng-show='isPersonnelVisible(canvas.scenario.editorType)'>
-				<div class='row height3 pad'
-					ng-click='personnelDropdownVisible = !personnelDropdownVisible'>
-					<div class='marginRight1'>
-						Personnel:  <strong>{{canvas.playOpponent.personnel.name}}</strong>
-					</div>
-					<div class='glyphicon glyphicon-chevron-down'>
-					</div>
-				</div>
-				<div class='col minWidth20 dropdown heightAuto'
-					ng-show='personnelDropdownVisible'>
-					<!-- list of personnel -->
-					<ul>
-						<li ng-repeat='personnel in personnelCollection.toArray() | filter:{unitType: canvas.scenario.playOpponent.unitType}'
-							class='pad pointer gray-bg-4-hover'
-							ng-click='applyPersonnel(personnel)'>
-							{{personnel.name}}
-						</li>
-					</ul>
-				</div>
-			</div>
-
-			<!-- Assignments dropdown -->
-			<div class='pointer positionRelative'
-				ng-init='assignmentGroupsDropdownVisible = false'
-				ng-show='isAssignmentGroupsVisible(canvas.scenario.editorType)'>
-				<div class='row height3 pad'
-					ng-click='assignmentGroupsDropdownVisible = !assignmentGroupsDropdownVisible'>
-					<div class='marginRight1'>
-						Assignments:  
-						<strong>
-							{{canvas.scenario.playOpponent.assignmentGroup.name}}
-						</strong>
-					</div>
-					<div class='glyphicon glyphicon-chevron-down'>
-					</div>
-				</div>
-				<div class='col minWidth20 dropdown heightAuto'
-					ng-show='assignmentGroupsDropdownVisible'>
-					<!-- list of plays -->
-					<ul>
-						<li ng-repeat='assignmentGroup in assignmentGroups.toArray() | filter:{unitType: canvas.scenario.playOpponent.unitType}'
-							class='pad pointer gray-bg-4-hover'
-							ng-click='applyAssignmentGroup(assignmentGroup)'>
-							{{assignmentGroup.name}}
-						</li>
-					</ul>
-				</div>
-			</div>
-
-		</div>
 
 
-		<div class='playbook-editor-play-info row 
-			gray-bg-3
-			height3 font-white overflowVisible {{editorModeClass}}'>
+				<div class='playbook-editor-play-info row 
+					gray-bg-3 positionRelative
+					height3 font-white overflowVisible {{editorModeClass}}'>
 
-			<div class='pad'>
-				<type-formatter
-					value='canvas.scenario.playPrimary.playType'
-					type='Playbook.Enums.PlayTypes'>
-				</type-formatter>: 
-				<strong>{{canvas.scenario.playPrimary.name}}</strong>
-			</div>
-
-			<!-- Unit type -->
-			<div class='pointer positionRelative'
-				ng-init='unitTypeDropdownVisible = false'>
-				<div class='row height3 pad'
-					ng-click='unitTypeDropdownVisible = !unitTypeDropdownVisible'>
-					<div class='marginRight1'>
-						Unit type:  
+					<div class='pad'>
 						<type-formatter
-							value='canvas.scenario.playPrimary.unitType'
-							type='Team.Enums.UnitTypes'>
-						</type-formatter>
-						
+							value='canvas.scenario.playPrimary.playType'
+							type='Playbook.Enums.PlayTypes'>
+						</type-formatter>: 
+						<strong>{{canvas.scenario.playPrimary.name}}</strong>
 					</div>
-					<div class='glyphicon glyphicon-chevron-down'>
+
+					<!-- Unit type -->
+					<div class='pointer positionRelative'
+						ng-init='unitTypeDropdownVisible = false'>
+						<div class='row height3 pad'
+							ng-click='unitTypeDropdownVisible = !unitTypeDropdownVisible'>
+							<div class='marginRight1'>
+								Unit type:  
+								<type-formatter
+									value='canvas.scenario.playPrimary.unitType'
+									type='Team.Enums.UnitTypes'>
+								</type-formatter>
+								
+							</div>
+							<div class='glyphicon glyphicon-chevron-down'>
+							</div>
+						</div>
+						<div class='col minWidth20 dropdown heightAuto'
+							ng-show='unitTypeDropdownVisible'>
+							<!-- list of formations -->
+							<ul>
+								<li ng-repeat='unitType in unitTypes.toArray()'
+									class='pad pointer gray-bg-4-hover'
+									ng-click='applyUnitType(unitType)'>
+									<type-formatter
+										value='unitType.unitType'
+										type='Team.Enums.UnitTypes'>
+									</type-formatter>
+								</li>
+							</ul>
+						</div>
 					</div>
-				</div>
-				<div class='col minWidth20 dropdown heightAuto'
-					ng-show='unitTypeDropdownVisible'>
-					<!-- list of formations -->
-					<ul>
-						<li ng-repeat='unitType in unitTypes.toArray()'
-							class='pad pointer gray-bg-4-hover'
-							ng-click='applyUnitType(unitType)'>
-							<type-formatter
-								value='unitType.unitType'
-								type='Team.Enums.UnitTypes'>
-							</type-formatter>
-						</li>
-					</ul>
+
+					<!-- <popout 
+						open='down' 
+						data='tab.play.formation'
+						label='tab.play.formation.name'
+						ng-show='isFormationVisible(tab.play.editorType)'>
+						<popout-toggle >
+							
+						</popout-toggle>
+
+						<popout-contents class='gray-bg-5'>
+							
+							<p>Formations</p>
+							<div ng-repeat='formation in formations.toArray()'
+								class='pointer gray-bg-5-hover'>
+								{{formation.name}}
+							</div>
+						</popout-contents>
+
+					</popout> -->
+
+					<!-- Formation dropdown -->
+					<div class='pointer positionRelative'
+						ng-init='formationDropdownVisible = false'
+						ng-show='isFormationVisible(canvas.scenario.editorType)'>
+						<div class='row height3 pad'
+							ng-click='formationDropdownVisible = !formationDropdownVisible'>
+							<div class='marginRight1'>
+								Formation:  
+								<strong>
+									{{canvas.scenario.playPrimary.formation.name}}
+								</strong>
+								
+							</div>
+							<div class='glyphicon glyphicon-chevron-down'>
+							</div>
+						</div>
+						<div class='col minWidth20 dropdown heightAuto'
+							ng-show='formationDropdownVisible'>
+							<!-- list of formations -->
+							<ul>
+								<li ng-repeat='formation in formations.toArray() | filter:{unitType: canvas.scenario.playPrimary.unitType}'
+									class='pad pointer gray-bg-4-hover'
+									ng-click='applyFormation(formation)'>
+									{{formation.name}}
+									<span ng-show='formation.modified'>*</span>
+								</li>
+							</ul>
+						</div>
+					</div>
+
+					<!-- Personnel dropdown -->
+					<div class='pointer positionRelative'
+						ng-init='personnelDropdownVisible = false'>
+						<div class='row height3 pad'
+							ng-click='personnelDropdownVisible = !personnelDropdownVisible'>
+							<div class='marginRight1'>
+								Personnel:  <strong>{{canvas.scenario.playPrimary.personnel.name}}</strong>
+							</div>
+							<div class='glyphicon glyphicon-chevron-down'>
+							</div>
+						</div>
+						<div class='col minWidth20 dropdown heightAuto'
+							ng-show='personnelDropdownVisible'>
+							<!-- list of personnel -->
+							<ul>
+								<li ng-repeat='personnel in personnelCollection.toArray() | filter:{unitType: canvas.scenario.playPrimary.unitType}'
+									class='pad pointer gray-bg-4-hover'
+									ng-click='applyPersonnel(personnel)'>
+									{{personnel.name}}
+								</li>
+							</ul>
+						</div>
+					</div>
+
+					<!-- Assignments dropdown -->
+					<div class='pointer positionRelative'
+						ng-init='assignmentGroupsDropdownVisible = false'
+						ng-show='isAssignmentGroupsVisible(canvas.scenario.editorType)'>
+						<div class='row height3 pad'
+							ng-click='assignmentGroupsDropdownVisible = !assignmentGroupsDropdownVisible'>
+							<div class='marginRight1'>
+								Assignments:  
+								<strong>
+									{{canvas.scenario.playPrimary.assignmentGroup.name}}
+								</strong>
+							</div>
+							<div class='glyphicon glyphicon-chevron-down'>
+							</div>
+						</div>
+						<div class='col minWidth20 dropdown heightAuto'
+							ng-show='assignmentGroupsDropdownVisible'>
+							<!-- list of plays -->
+							<ul>
+								<li ng-repeat='assignmentGroup in assignmentGroups.toArray() | filter:{unitType: canvas.scenario.playPrimary.unitType}'
+									class='pad pointer gray-bg-4-hover'
+									ng-click='applyAssignmentGroup(assignmentGroup)'>
+									{{assignmentGroup.name}}
+								</li>
+							</ul>
+						</div>
+					</div>
+
 				</div>
 			</div>
-
-			<!-- <popout 
-				open='down' 
-				data='tab.play.formation'
-				label='tab.play.formation.name'
-				ng-show='isFormationVisible(tab.play.editorType)'>
-				<popout-toggle >
-					
-				</popout-toggle>
-
-				<popout-contents class='gray-bg-5'>
-					
-					<p>Formations</p>
-					<div ng-repeat='formation in formations.toArray()'
-						class='pointer gray-bg-5-hover'>
-						{{formation.name}}
+			
+			<div class='col pointer width6 minHeight3 gray-bg-4-hover textCenter' ng-click='flipScenario()'>
+				<div class='center'>
+					<div class='height3 width6 pad'>
+						Flip
 					</div>
-				</popout-contents>
-
-			</popout> -->
-
-			<!-- Formation dropdown -->
-			<div class='pointer positionRelative'
-				ng-init='formationDropdownVisible = false'
-				ng-show='isFormationVisible(canvas.scenario.editorType)'>
-				<div class='row height3 pad'
-					ng-click='formationDropdownVisible = !formationDropdownVisible'>
-					<div class='marginRight1'>
-						Formation:  
-						<strong>
-							{{canvas.scenario.playPrimary.formation.name}}
-						</strong>
-						
-					</div>
-					<div class='glyphicon glyphicon-chevron-down'>
-					</div>
-				</div>
-				<div class='col minWidth20 dropdown heightAuto'
-					ng-show='formationDropdownVisible'>
-					<!-- list of formations -->
-					<ul>
-						<li ng-repeat='formation in formations.toArray() | filter:{unitType: canvas.scenario.playPrimary.unitType}'
-							class='pad pointer gray-bg-4-hover'
-							ng-click='applyFormation(formation)'>
-							{{formation.name}}
-							<span ng-show='formation.modified'>*</span>
-						</li>
-					</ul>
 				</div>
 			</div>
-
-			<!-- Personnel dropdown -->
-			<div class='pointer positionRelative'
-				ng-init='personnelDropdownVisible = false'>
-				<div class='row height3 pad'
-					ng-click='personnelDropdownVisible = !personnelDropdownVisible'>
-					<div class='marginRight1'>
-						Personnel:  <strong>{{canvas.scenario.playPrimary.personnel.name}}</strong>
-					</div>
-					<div class='glyphicon glyphicon-chevron-down'>
-					</div>
-				</div>
-				<div class='col minWidth20 dropdown heightAuto'
-					ng-show='personnelDropdownVisible'>
-					<!-- list of personnel -->
-					<ul>
-						<li ng-repeat='personnel in personnelCollection.toArray() | filter:{unitType: canvas.scenario.playPrimary.unitType}'
-							class='pad pointer gray-bg-4-hover'
-							ng-click='applyPersonnel(personnel)'>
-							{{personnel.name}}
-						</li>
-					</ul>
-				</div>
-			</div>
-
-			<!-- Assignments dropdown -->
-			<div class='pointer positionRelative'
-				ng-init='assignmentGroupsDropdownVisible = false'
-				ng-show='isAssignmentGroupsVisible(canvas.scenario.editorType)'>
-				<div class='row height3 pad'
-					ng-click='assignmentGroupsDropdownVisible = !assignmentGroupsDropdownVisible'>
-					<div class='marginRight1'>
-						Assignments:  
-						<strong>
-							{{canvas.scenario.playPrimary.assignmentGroup.name}}
-						</strong>
-					</div>
-					<div class='glyphicon glyphicon-chevron-down'>
-					</div>
-				</div>
-				<div class='col minWidth20 dropdown heightAuto'
-					ng-show='assignmentGroupsDropdownVisible'>
-					<!-- list of plays -->
-					<ul>
-						<li ng-repeat='assignmentGroup in assignmentGroups.toArray() | filter:{unitType: canvas.scenario.playPrimary.unitType}'
-							class='pad pointer gray-bg-4-hover'
-							ng-click='applyAssignmentGroup(assignmentGroup)'>
-							{{assignmentGroup.name}}
-						</li>
-					</ul>
-				</div>
-			</div>
-
 		</div>
 
 		<div class='row gray-bg-4'>

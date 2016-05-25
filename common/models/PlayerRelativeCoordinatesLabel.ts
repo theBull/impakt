@@ -18,8 +18,9 @@ module Common.Models {
 				0, 
 				this.grid.getSize()
 			);
-			this.graphics.initializePlacement(this.player.graphics.placement);
-			this.graphics.placement.setRelativeElement(this.player);
+			this.graphics.initializePlacement(
+				new Common.Models.Placement(0, 0, this.player)
+			);
 		}	
 
 		public draw(): void {

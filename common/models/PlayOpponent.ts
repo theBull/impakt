@@ -48,12 +48,13 @@ module Common.Models {
             });
 
             // flip the formation and assignments
-            if (Common.Utilities.isNotNullOrUndefined(this.field.opponentPlayers)) {
+            if (Common.Utilities.isNotNullOrUndefined(this.field.opponentPlayers) && !this.flipped) {
                 this.field.opponentPlayers.forEach(function(player: Common.Interfaces.IPlayer, index: number) {
-                    if(Common.Utilities.isNotNullOrUndefined(player)) {
+                    if(Common.Utilities.isNotNullOrUndefined(player) && !player.flipped) {
                         player.flip();
                     }
                 });
+                this.flipped = !this.flipped;
             }
         }
     }

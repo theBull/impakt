@@ -37,14 +37,7 @@ module Playbook.Models {
 			this.icon.draw();
 			//this.personnelLabel.draw();
 
-			if(Common.Utilities.isNotNullOrUndefined(this.assignment)) {
-				if(this.assignment.routes.hasElements()) {
-					this.assignment.routes.forEach(
-						function(route: Common.Interfaces.IRoute, index: number) {
-							route.draw();
-						});
-				}
-			}
+			this.drawRoute();
 		}
 
 		public dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void {

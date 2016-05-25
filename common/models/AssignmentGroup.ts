@@ -34,8 +34,13 @@ module Common.Models {
 
         public copy(newAssignmentGroup?: Common.Models.AssignmentGroup): Common.Models.AssignmentGroup {
             var copyAssignmentGroup = newAssignmentGroup || new Common.Models.AssignmentGroup(this.unitType);
-            copyAssignmentGroup.assignments = this.assignments.copy();
-            return <Common.Models.AssignmentGroup>super.copy(copyAssignmentGroup, this);
+            copyAssignmentGroup.assignments = new Common.Models.Collection<Common.Models.Assignment>();
+            let copied = <Common.Models.AssignmentGroup>super.copy(copyAssignmentGroup, this);
+            this.assignments.forEach(function(assignment: Common.Models.Assignment, index: number) {
+                if(Common.Utilities.isNotNullOrUndefined(assignment))
+                    copied.assignments.add(assignment.copy());
+            });
+            return copied;
         }
         
         public toJson(): any {

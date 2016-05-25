@@ -15,7 +15,8 @@ function(
 	$scope.play = play.copy();
 	
 	$scope.playbooks = impakt.context.Playbook.playbooks;
-	$scope.formation = play.formation;
+	$scope.formation = play.formation.copy();
+	$scope.play.formation = $scope.formation;
 	$scope.copyFormation = false;
 	$scope.associatedPlaybook;
 	var originalFormationKey = $scope.formation.key;

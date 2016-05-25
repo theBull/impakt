@@ -84,8 +84,8 @@ module Common.Models {
         }
 
         public flip(): void {
-            this.graphics.placement.flip();
-            this.flipped = this.graphics.placement.flipped;
+            this.graphics.flip(true);
+            this.flipped = !this.flipped;
         }
     }
 }

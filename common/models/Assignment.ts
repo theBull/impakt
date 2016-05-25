@@ -26,6 +26,38 @@ module Common.Models {
             });
         }
 
+        public toJson() {
+            return $.extend({
+                routes: this.routes.toJson(),
+                positionIndex: this.positionIndex,
+                unitType: this.unitType
+            }, super.toJson());
+        }
+
+        public fromJson(json) {
+            if (!json)
+                return;
+
+            // NOTE:
+            // Route models rely on the presence of a field
+            // object in order to be constructed ( :-/ )
+            // for now, avoid serializing
+            this.routeArray = json.routes;
+            this.positionIndex = json.positionIndex;
+            this.unitType = json.unitType;
+
+            super.fromJson(json);
+        }
+
+        public copy(newAssignment?: Common.Models.Assignment): Common.Models.Assignment {
+            let copyAssignment = newAssignment || new Common.Models.Assignment(this.unitType);
+            let copied = <Common.Models.Assignment>super.copy(copyAssignment, this);
+            // explicitly set the routeArray field here since it's not part
+            // of this object's toJson() result
+            copied.routeArray = this.routeArray;
+            return copied;
+        }
+
         public remove() {
             this.routes.removeAll();
         }
@@ -40,6 +72,14 @@ module Common.Models {
             this.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
                 route.draw();
             });
+        }
+
+        public addRoute(route: Common.Interfaces.IRoute): void {
+            if (Common.Utilities.isNullOrUndefined(route))
+                return;
+
+            this.routes.add(route);
+            this.routeArray = this.routes.toJson();
         }
 
         public setRoutes(player: Common.Interfaces.IPlayer, renderType: Common.Enums.RenderTypes) {
@@ -94,26 +134,8 @@ module Common.Models {
             return this.routeArray && this.routeArray.length > 0;
         }
 
-        public fromJson(json) {
-            if (!json)
-                return;
-            
-            // NOTE:
-            // Route models rely on the presence of a field
-            // object in order to be constructed ( :-/ )
-            // for now, avoid serializing
-            this.routeArray = json.routes;
-            this.positionIndex = json.positionIndex;
-            this.unitType = json.unitType;
-            
-            super.fromJson(json);
-        }
-        public toJson() {
-            return $.extend({
-                routes: this.routes.toJson(),
-                positionIndex: this.positionIndex,
-                unitType: this.unitType
-            }, super.toJson());
+        public updateRouteArray(): void {
+            this.routeArray = this.routes.toJson();
         }
 
         public flip(): void {

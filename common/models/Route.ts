@@ -122,6 +122,8 @@ module Common.Models {
 
             // ensure the route nodes are above the route path
             this.bringNodesToFront();
+
+            this.player.assignment.updateRouteArray();
         }
 
         public drawCurve(node: Common.Models.RouteNode) {
@@ -199,6 +201,7 @@ module Common.Models {
                 routeNode.flip();
             });
             this.flipped = !this.flipped;
+            this.draw();
         }
 
         public getMixedStringFromNodes(

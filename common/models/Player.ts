@@ -51,13 +51,9 @@ module Common.Models {
 			super.initialize(field, field.ball);
 
 			this.layer.type = Common.Enums.LayerTypes.Player;
-			this.graphics.initializePlacement(
-				new Common.Models.Placement(
-					this.placement.relative.rx,
-					this.placement.relative.ry,
-					this.field.ball
-				)
-			);
+			//this.graphics.setPlacement(this.placement);
+			this.graphics.initializePlacement(this.placement);
+			this.placement.setRelativeElement(this.field.ball);
 			this.graphics.dimensions.setWidth(this.grid.getSize());
 			this.graphics.dimensions.setHeight(this.grid.getSize());
 
@@ -72,10 +68,29 @@ module Common.Models {
 
 		public flip(): void {
 			this.layer.flip();
+			if (Common.Utilities.isNotNullOrUndefined(this.assignment) &&
+				Common.Utilities.isNotNullOrUndefined(this.assignment.routes)) {
+				this.assignment.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
+					route.flip();
+				});
+			}
+			this.flipped = !this.flipped;
 		}
 
 		public remove(): void {
 			this.layer.remove();
+		}
+
+		public drawRoute(): void {
+			// Draw the player's assignment
+			if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+				if (this.assignment.routes.hasElements()) {
+					this.assignment.routes.forEach(
+						function(route: Common.Interfaces.IRoute, index: number) {
+							route.draw();
+						});
+				}
+			}
 		}
 
 		public abstract draw(): void;

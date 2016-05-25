@@ -1038,13 +1038,16 @@ declare module Common.Models {
         setType: Common.Enums.SetTypes;
         unitType: Team.Enums.UnitTypes;
         constructor(unitType: Team.Enums.UnitTypes);
+        toJson(): any;
+        fromJson(json: any): void;
+        copy(newAssignment?: Common.Models.Assignment): Common.Models.Assignment;
         remove(): void;
         setContext(context: any): void;
         draw(): void;
+        addRoute(route: Common.Interfaces.IRoute): void;
         setRoutes(player: Common.Interfaces.IPlayer, renderType: Common.Enums.RenderTypes): void;
         hasRouteArray(): boolean;
-        fromJson(json: any): void;
-        toJson(): any;
+        updateRouteArray(): void;
         flip(): void;
     }
 }
@@ -1175,6 +1178,8 @@ declare module Common.Models {
         unitType: Team.Enums.UnitTypes;
         playPrimary: Common.Models.PlayPrimary;
         playOpponent: Common.Models.PlayOpponent;
+        playPrimaryGuid: string;
+        playOpponentGuid: string;
         editorType: Playbook.Enums.EditorTypes;
         name: string;
         png: string;
@@ -1830,6 +1835,7 @@ declare module Common.Models {
         initialize(field: Common.Interfaces.IField): void;
         flip(): void;
         remove(): void;
+        drawRoute(): void;
         abstract draw(): void;
         getPositionRelativeToBall(): Common.Models.RelativeCoordinates;
         getCoordinatesFromAbsolute(): Common.Models.Coordinates;
@@ -2318,8 +2324,9 @@ declare module Common.Models {
          */
         mousemove(e: any): void;
         ondrag(dragMove: Function, dragStart: Function, dragEnd: Function, context: Common.Interfaces.IActionable): void;
-        flip(): void;
+        flip(rotate?: boolean): void;
         drop(): void;
+        private _updateTriangle();
     }
 }
 declare module Common.Models {

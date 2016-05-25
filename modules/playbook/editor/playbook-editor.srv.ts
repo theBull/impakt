@@ -195,6 +195,17 @@ function(
 		return _playbook.getEditorTypeClass(editorType);
 	}
 
+	this.flipScenario = function() {
+		if(Common.Utilities.isNotNullOrUndefined(this.canvas)) {
+			this.canvas.paper.field.primaryPlayers.forEach(function(player: Common.Interfaces.IPlayer, index: number) {
+				player.flip();
+			});
+			this.canvas.paper.field.opponentPlayers.forEach(function(player: Common.Interfaces.IPlayer, index: number) {
+				player.flip();
+			});
+		}
+	}
+
 
 	/*
 	*
@@ -211,8 +222,7 @@ function(
 	this.save = function() {
 		// save the data for the active item
 		let activeTab = this.activeTab;
-		console.log(activeTab);
-		if (activeTab) {
+		if (Common.Utilities.isNotNullOrUndefined(activeTab)) {
 			
 			let scenario = activeTab.scenario;
 			

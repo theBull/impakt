@@ -15,7 +15,9 @@ module Common.Models {
 			this.graphics.dimensions.setRadius(this.grid.getSize() / 2);
 			this.graphics.dimensions.setWidth(this.player.graphics.dimensions.getWidth());
 			this.graphics.dimensions.setHeight(this.player.graphics.dimensions.getHeight());
-			this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.player));
+			this.graphics.initializePlacement(
+				new Common.Models.Placement(0, 0, this.player)
+			);
 			this.flippable = true;
 		}
 
@@ -34,7 +36,9 @@ module Common.Models {
 						-(this.graphics.dimensions.getWidth() / 2),
 						-(this.graphics.dimensions.getHeight() / 2)
 					);
-					this.graphics.initializePlacement(this.player.graphics.placement);
+					this.graphics.initializePlacement(
+						new Common.Models.Placement(0, 0, this.player)
+					);
 					this.graphics.rect();
 					break;
 				case Team.Enums.UnitTypes.Other:
@@ -42,7 +46,9 @@ module Common.Models {
 						-(this.graphics.dimensions.getWidth() / 2),
 						-(this.graphics.dimensions.getHeight() / 2)
 					);
-					this.graphics.initializePlacement(this.player.graphics.placement);
+					this.graphics.initializePlacement(
+						new Common.Models.Placement(0, 0, this.player)
+					);
 					this.graphics.rhombus();
 					break;
 			}

@@ -131,7 +131,8 @@ module Playbook.Models {
                 player.assignment.routes.size() == 0) {
                 let route = new Playbook.Models.EditorRoute();
                 route.setPlayer(player);
-                player.assignment.routes.add(route);
+                route.flipped = player.flipped;
+                player.assignment.addRoute(route);
             }
             // TODO: this will only get the first route, implement
             // route switching
@@ -147,7 +148,8 @@ module Playbook.Models {
 
             // route exists, append the node
             playerRoute.addNode(newNode);
-            console.log('set player route', player.relativeCoordinatesLabel, playerRoute);
+
+            player.assignment.updateRouteArray();
 
             this.scenario.playPrimary.assignmentGroup.assignments.addAtIndex(
                 player.assignment,

@@ -82,15 +82,7 @@ module Playbook.Models {
 			 */
 			this.indexLabel.draw();
 
-			// Draw the player's assignment
-			if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
-				if (this.assignment.routes.hasElements()) {
-					this.assignment.routes.forEach(
-						function(route: Common.Interfaces.IRoute, index: number) {
-							route.draw();
-						});
-				}
-			}
+			this.drawRoute();
 		}
 
 		public remove(): void {

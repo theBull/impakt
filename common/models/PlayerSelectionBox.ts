@@ -23,12 +23,14 @@ module Common.Models {
 				-this.player.graphics.dimensions.getWidth() / 2,
 				- this.player.graphics.dimensions.getHeight() / 2
 			);
-			this.graphics.initializePlacement(this.player.graphics.placement);
-			this.graphics.placement.setRelativeElement(this.player);
+			this.graphics.initializePlacement(
+				new Common.Models.Placement(0, 0, this.player)
+			);
 		}
 
 		public draw(): void {
 			this.graphics.rect();
+			this.graphics.hide();
 		}
 	}
 }

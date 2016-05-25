@@ -32,22 +32,12 @@ function(
 	}
 
 	$scope.selectPrimaryPlay = function(play: Common.Interfaces.IPlay) {
-		let associations = _associations.getAssociated($scope.selectedPrimaryPlay);
-		// set the formation to the associated formation
-		$scope.selectedPrimaryPlay.formation = associations.formations.first();
-		$scope.selectedPrimaryPlay.assignmentGroup = associations.assignmentGroups.first();
-		$scope.selectedPrimaryPlay.personnel = associations.personnel.first();
-		
+		_playbook.setPlayAssociations($scope.selectedPrimaryPlay);
 		$scope.newScenario.setPlayPrimary($scope.selectedPrimaryPlay);
 	}
 
 	$scope.selectOpponentPlay = function(play: Common.Interfaces.IPlay) {
-		let associations = _associations.getAssociated($scope.selectedOpponentPlay);
-		// set the formation to the associated formation
-		$scope.selectedOpponentPlay.formation = associations.formations.first();
-		$scope.selectedOpponentPlay.assignmentGroup = associations.assignmentGroups.first();
-		$scope.selectedOpponentPlay.personnel = associations.personnel.first();
-
+		_playbook.setPlayAssociations($scope.selectedOpponentPlay);
 		$scope.newScenario.setPlayOpponent($scope.selectedOpponentPlay);
 	}
 

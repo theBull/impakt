@@ -171,14 +171,12 @@ module Common.Models {
 		}
 
 		public flip(): void {
-			if(this.actionable.flippable) {
-				this.actionable.graphics.flip();
+			this.actionable.graphics.flip(this.actionable.flippable);
 
-				if(this.hasLayers()) {
-					this.layers.forEach(function(layer: Common.Models.Layer, index: number) {
-						layer.flip();
-					});
-				}
+			if(this.hasLayers()) {
+				this.layers.forEach(function(layer: Common.Models.Layer, index: number) {
+					layer.flip();
+				});
 			}
 		}
 	}

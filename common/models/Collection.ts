@@ -21,7 +21,6 @@ module Common.Models {
 		public copy(newCollection?: Common.Models.Collection<T>): Common.Models.Collection<T> {
 			let copyCollection = newCollection || new Common.Models.Collection<T>();
 			return <Common.Models.Collection<T>>super.copy(copyCollection, this);
-
 		}
 		private _getKey(data: T) {
 			if (data && data.guid) {
