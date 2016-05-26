@@ -75,4 +75,77 @@ function($q: any, __modals: any) {
 		return d.promise;
 	}
 
+
+	/**
+	 * 
+	 * CONFERENCE
+	 * 
+	 */
+	this.createConference = function() {
+		let d = $q.defer();
+
+		let modalInstance = __modals.open(
+			'',
+			'modules/league/modals/create-conference/create-conference.tpl.html',
+			'league.modals.createConference.ctrl',
+			{}
+		);
+
+		modalInstance.result.then(function(createdConference: League.Models.Conference) {
+			console.log(createdConference);
+			d.resolve();
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+
+		return d.promise;
+	}
+	this.createConferenceDuplicate = function(conference: League.Models.Conference) {
+		let d = $q.defer();
+		let modalInstance = __modals.open(
+			'',
+			'modules/league/modals/create-conference-duplicate-error/create-conference-duplicate-error.tpl.html',
+			'league.modals.createConferenceDuplicateError.ctrl',
+			{
+				conference: function() {
+					return conference;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(createdConference) {
+			console.log(createdConference);
+			d.resolve();
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+
+		return d.promise;
+	}
+	
+	this.deleteConference = function(conference: League.Models.Conference) {
+		let d = $q.defer();
+		let modalInstance = __modals.open(
+			'',
+			'modules/league/modals/delete-conference/delete-conference.tpl.html',
+			'league.modals.deleteConference.ctrl',
+			{
+				conference: function() {
+					return conference;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(results) {
+			console.log(results);
+			d.resolve();
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+		return d.promise;
+	}
+
 }]);

@@ -26,49 +26,76 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas',
 	
 	return {
 		restrict: 'E',
-		scope: {
-			editortype: '@editortype',
-			key: '@key'
-		},
 		link: function($scope: any, $element: any, attrs: any) {
 			console.debug('directive: impakt.playbook.editor.canvas - link');
-			// angular doesn't respect camel-casing in directives, hence
-			// the all-lowercased editortype attribute.
-			let editorType = parseInt(attrs.editortype);
-			let key = attrs.key;
 
+			$scope.canvas = _playbookEditorCanvas.getCanvas();
+
+			// $timeout NOTE:
+			// wrapping this step in a timeout due to a DOM rendering race.
+			// The angular ng-show directive kicks in when activating/
+			// deactivating the tabs, and the .col class (css-flex)
+			// needs time itself to render to the appropriate size.
+			// This timeout lets all of that finish before intializing
+			// the canvas; the canvas requires an accurate $element height
+			// value in order to get its proper dimensions.
 			$timeout(function() {
-				
-				// $timeout NOTE:
-				// wrapping this step in a timeout due to a DOM rendering race.
-				// The angular ng-show directive kicks in when activating/
-				// deactivating the tabs, and the .col class (css-flex)
-				// needs time itself to render to the appropriate size.
-				// This timeout lets all of that finish before intializing
-				// the canvas; the canvas requires an accurate $element height
-				// value in order to get its proper dimensions.
-			
-				let canvas = _playbookEditorCanvas.initialize(
-					$element, editorType, key
-				);
-				canvas.setScrollable(_scrollable);
+				if ($scope.canvas) {
 
-				_scrollable.onready(function(content) {
-					_scrollable.scrollToPercentY(0.5);
-					_playPreview.setViewBox(
-						canvas.paper.x,
-						canvas.paper.y,
-						canvas.dimensions.width, 
-						canvas.dimensions.height
+					$scope.canvas.onready(function() {
+						let scrollTop = $scope.canvas.paper.field.getLOSAbsolute()
+							- ($element.height() / 2);
+						$element.scrollTop(scrollTop);
+					
+						if(Common.Utilities.isNotNullOrUndefined($scope.canvas.paper) &&
+							Common.Utilities.isNotNullOrUndefined($scope.canvas.paper.field) &&
+							Common.Utilities.isNotNullOrUndefined($scope.canvas.paper.field.los)) {
+							$scope.canvas.paper.field.los.onModified(function() {
+								let scrollTop = $scope.canvas.paper.field.getLOSAbsolute()
+									- ($element.height() / 2);
+								$element.scrollTop(scrollTop);			
+							});
+						}
+					});
+
+					$scope.canvas.initialize($element);
+
+					// Listen for routenode contextmenu
+					$scope.canvas.listener.listen(
+						Playbook.Enums.Actions.RouteNodeContextmenu,
+						function(data: Common.Models.ContextmenuData) {
+							_contextmenu.open(data);
+						}
 					);
-				});
 
-				_scrollable.initialize(
-					$element,
-					canvas.paper
-				);
+					/**
+					 *
+					 *	DEPRECATED
+					 * 
+					 */
+					// canvas.setScrollable(_scrollable);
 
-			});
+					// _scrollable.onready(function(content) {
+					// 	_scrollable.scrollToPercentY(0.5);
+					// 	_playPreview.setViewBox(
+					// 		canvas.paper.x,
+					// 		canvas.paper.y,
+					// 		canvas.dimensions.width, 
+					// 		canvas.dimensions.height
+					// 	);
+					// });
+
+					// _scrollable.initialize(
+					// 	$element,
+					// 	canvas.paper
+					// );
+					/**
+					 *
+					 *  DEPRECATED
+					 * 
+					 */
+				}
+			}, 0);
 
 			$(document).on('keydown', function(e: any) {
 				//console.log(e.which);

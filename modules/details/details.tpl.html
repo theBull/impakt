@@ -7,12 +7,11 @@
 		</h4>
 	</div>
 
-	<div>
-
+	<div class='pad'>
+					
 		<!-- Manage associations -->
-		<div class='pad' 
-			ng-repeat='element in selectedElements.toArray()'>
-			
+		<div ng-repeat='element in selectedElements.toArray()'>
+
 			<div class='marginBottom1'>
 				<h4>
 					<strong>
@@ -23,38 +22,41 @@
 					</strong>: {{element.name}}
 				</h4>
 			</div>
-			
-			<div class='light-border-bottom marginBottom1'>
-				<p>Associate to playbooks</p>
 
-				<p><strong>Association Key:</strong> {{element.associationKey}}</p>
+			<details open>
 
-				<tags-input 
-					ng-model='associatedPlaybooks' 
-					display-property='name'
-					placeholder='Add to playbook'
-					add-from-autocomplete-only='true'
-					add-on-enter='true'
-					on-tag-added='associatePlaybook($tag, element, _details)'
-					on-tag-removed='unassociatePlaybook($tag, element, _details)'>
-					<auto-complete 
-						source='loadPlaybooks($query)'
-						display-property='name'
-						load-on-focus='true'
-						select-first-match='true'
-						min-length='1'>
-					</auto-complete>
-				</tags-input>
-			</div>
+				<summary>{{associations.count()}} associations</summary>
 
-			<!-- delete entity -->
-			<div class='height3 pad red-bg-hover pointer width7' 
-				ng-click='delete(element)'>
-				<span class='glyphicon glyphicon-remove'></span>
-				<span>delete</span>
-			</div>
+				<div class='marginTop1 padLeft1 light-border-left'>
+					<div class='light-border-bottom marginBottom1'
+						ng-repeat='associableKey in element.associable'>
+						
+						<p class='marginBottom02'>
+							<span camel-case-to-space string='{{associableKey}}' capitalize='true'></span>
+						</p>
+
+						<association-input
+							entity='element'
+							associations='associations'
+							key='{{associableKey}}'>
+						</association-input>
+
+					</div>
+
+				</div>
+			</details>
+
 		</div>
 
+	</div>
+
+	<div class='pad'>
+		<!-- delete entity -->
+		<div class='height3 pad red-bg-hover pointer width7' 
+			ng-click='delete(element)'>
+			<span class='glyphicon glyphicon-remove'></span>
+			<span>delete</span>
+		</div>
 	</div>
 	
 </div>

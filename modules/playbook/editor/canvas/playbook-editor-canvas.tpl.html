@@ -20,11 +20,11 @@
 	
 	<div class='col'>
 		
-		<div class='row overflowVisible' ng-class='{"height3": !isOpponentBarVisible(canvas.scenario.editorType), 
+		<div class='row overflowVisible {{editorModeClass}}' ng-class='{"height3": !isOpponentBarVisible(canvas.scenario.editorType), 
 			"height6": isOpponentBarVisible(canvas.scenario.editorType)}'>
 			<div class='col overflowVisible'>
 				<div class='playbook-editor-play-info row 
-					gray-bg-3 height3 font-white overflowVisible {{editorModeClass}}'
+					gray-bg-3 height3 font-white overflowVisible'
 					ng-show='isOpponentBarVisible(canvas.scenario.editorType)'>
 
 					<div class='pad'>
@@ -176,7 +176,7 @@
 
 				<div class='playbook-editor-play-info row 
 					gray-bg-3 positionRelative
-					height3 font-white overflowVisible {{editorModeClass}}'>
+					height3 font-white overflowVisible'>
 
 					<div class='pad'>
 						<type-formatter
@@ -323,7 +323,7 @@
 				</div>
 			</div>
 			
-			<div class='col pointer width6 minHeight3 gray-bg-4-hover textCenter' ng-click='flipScenario()'>
+			<div class='col pointer width6 minHeight3 gray-bg-2-hover textCenter' ng-click='flipScenario()'>
 				<div class='center'>
 					<div class='height3 width6 pad'>
 						Flip
@@ -342,12 +342,9 @@
 			</div>
 
 			<div class='col'>
-				<playbook-editor-canvas
-					editortype='{{canvas.scenario.editorType}}'
-					key='{{key}}'
-					scrollable
-					class='col playbook-editor-canvas'>
-				</playbook-editor-canvas>
+
+				<playbook-editor-canvas class='row scrollY scrollX playbook-editor-canvas'>
+				</playbook-editor-canvas> <!-- scrollable -->
 
 				<!-- canvas info -->
 				<ng-include class='height3'

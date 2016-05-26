@@ -12,8 +12,22 @@ module Playbook.Models {
 
 		public initialize(field: Common.Interfaces.IField, route: Common.Interfaces.IFieldElement): void {
 			super.initialize(field, route);
-			this.graphics.setOriginalStroke('#001199');
 			this.route.layer.addLayer(this.layer);
+		}
+
+		public draw(): void {
+			super.draw();
+            this.graphics.setAttribute('class', 'painted-fill pointer');
+
+            this.onhover(this.hoverIn, this.hoverOut, this);
+		}
+
+		public hoverIn(e: any) {
+			this.graphics.setStrokeWidth(6);
+		}
+
+		public hoverOut(e: any) {
+			this.graphics.setStrokeWidth(3);
 		}
 	}
 

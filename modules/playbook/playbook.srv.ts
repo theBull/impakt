@@ -1028,7 +1028,8 @@ function(
             playCopy = Common.Models.Play.toPrimary(playCopy);
         }
         scenario.setPlayPrimary(playCopy);
-        scenario.setPlayOpponent(null);;
+        scenario.setPlayOpponent(null);
+        scenario.name = playCopy.name;
         scenario.editorType = Playbook.Enums.EditorTypes.Play;
 
         // Set association data
@@ -1361,6 +1362,9 @@ function(
             case Playbook.Enums.EditorTypes.Play:
                 editorTypeClass = 'playbook-editor-type-play';
                 break;
+            case Playbook.Enums.EditorTypes.Scenario:
+                editorTypeClass = 'playbook-editor-type-scenario';
+                break;
         }
 
         return editorTypeClass;
@@ -1422,7 +1426,8 @@ function(
             case Common.Enums.ImpaktDataTypes.Scenario:
                 return _playbookModals.deleteScenario(entity);
             default:
-               d.reject(new Error('_playbook deleteEntityByType: impaktDataType not supported'))
+                d.reject(new Error('_playbook deleteEntityByType: impaktDataType not supported'));
+                break;
         }
 
         return d.promise;

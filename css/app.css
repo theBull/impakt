@@ -497,7 +497,7 @@ details summary {
 }
 
 .selected-border {
-  outline: #2A58D2 solid 3px;
+  border: #777777 solid 3px;
 }
 
 /*
@@ -596,6 +596,23 @@ path.painted-fill, rect.painted-fill, circle.painted-fill {
 .dropdown {
   z-index: 1000;
   box-shadow: 0px 0px 10px #000;
+}
+
+/**
+ *
+ *	FONT CLASSES
+ * 
+ */
+.capitalize {
+  text-transform: capitalize;
+}
+
+.lowercase {
+  text-transform: lowercase;
+}
+
+.uppercase {
+  text-transform: uppercase;
 }
 
 /**
@@ -870,6 +887,14 @@ stepper step-nav step-nav-item {
   margin-right: 1em;
 }
 
+association-input input[type=text] {
+  border: none;
+}
+
+association-input .association-input-dropdown {
+  box-shadow: 0 10px 20px 0 #000000;
+}
+
 popout {
   position: relative;
   height: 3em;
@@ -958,6 +983,10 @@ body .popout-clickeater {
 
 .playbook-editor-type-playbook {
   border-left: 3px solid #000;
+}
+
+.playbook-editor-type-scenario {
+  border-left: 3px solid #8B0900;
 }
 
 .playbook-editor-type-formation {

@@ -2116,6 +2116,7 @@
 /*
 *	TOP POSITIONING
 */
+.top100Percent { position: absolute; top: 100%; }
 .top01 { position: absolute; top: 0.1em; }
 .top02 { position: absolute; top: 0.2em; }
 .top03 { position: absolute; top: 0.3em; }
@@ -2230,6 +2231,7 @@
 /*
 *	BOTTOM POSITIONING
 */
+.bottom100Percent {position: absolute; top: 100%;}
 .bottom01 { position: absolute; bottom: 0.1em; }
 .bottom02 { position: absolute; bottom: 0.2em; }
 .bottom03 { position: absolute; bottom: 0.3em; }

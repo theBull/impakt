@@ -267,13 +267,18 @@ function(
 		_playbook.toBrowser();
 	}
 
-	this.editFormation = function(formation: Common.Models.Formation) {
-		_playbook.editFormation(formation);
+	this.editScenario = function(scenario: Common.Models.Scenario) {
+		_playbook.editScenario(scenario);
 		this.loadTabs();
 	}
 
 	this.editPlay = function(play: Common.Models.Play) {
 		_playbook.editPlay(play);
+		this.loadTabs();
+	}
+
+	this.editFormation = function(formation: Common.Models.Formation) {
+		_playbook.editFormation(formation);
 		this.loadTabs();
 	}
 

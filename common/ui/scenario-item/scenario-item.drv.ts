@@ -19,13 +19,7 @@ function(
 	 * 
 	 */
 	$scope.toggleSelection = function(scenario: Common.Models.Scenario) {
-		impakt.context.Playbook.scenarios.toggleSelect(scenario);
-		
-		if (scenario.selected) {
-			_details.selectedElements.only(scenario);
-		} else {
-			_details.selectedElements.remove(scenario.guid);
-		}
+		_details.toggleSelection(scenario);
 	}
 
 	$scope.openInEditor = function(scenario: Common.Models.Scenario) {

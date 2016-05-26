@@ -10,6 +10,7 @@ module Common.Interfaces {
 		disabled: boolean;
 		clickable: boolean;
 		hoverable: boolean;
+		hovered: boolean;
 		selected: boolean;
 		selectable: boolean;
 		draggable: boolean;

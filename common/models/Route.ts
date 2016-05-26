@@ -14,16 +14,19 @@ module Common.Models {
         public dragInitialized: boolean;
         public type: Common.Enums.RouteTypes;
         public renderType: Common.Enums.RenderTypes;
+        public unitType: Team.Enums.UnitTypes;
 
         constructor(dragInitialized?: boolean) {
             super();
             this.dragInitialized = dragInitialized === true;
             this.type = Common.Enums.RouteTypes.Generic;
             this.flippable = true;
+            this.unitType = Team.Enums.UnitTypes.Other;
         }
 
         public setPlayer(player: Common.Interfaces.IPlayer): void {
             this.player = player;
+            this.unitType = this.player.unitType;
             this.initialize(this.player.field, this.player);
             this.graphics.initializePlacement(this.player.graphics.placement);
 
@@ -53,6 +56,8 @@ module Common.Models {
             
             this.guid = json.guid;
             this.type = json.type;
+            this.unitType = json.unitType;
+            
             // initialize route nodes
             if (json.nodes) {
                 
@@ -102,7 +107,8 @@ module Common.Models {
             return {
                 nodes: this.nodes.toJson(),
                 type: this.type,
-                guid: this.guid
+                guid: this.guid,
+                unitType: this.unitType
             };
         }
 

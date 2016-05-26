@@ -1,9 +1,8 @@
-<div class='col font-white'>
+<div class='col scrollY'>
 
-	<div class='col scrollY'>
-
-		<div class='light-border-bottom marginBottom1'>
-			<div class='width6 blue-bg-hover pointer pad marginBottom1'
+	<div class='col'>
+		<div class='light-border-bottom margin'>
+			<div class='width6 gray-bg-2-hover pointer pad marginBottom1'
 				ng-click='toBrowser()'>
 				<span class='glyphicon glyphicon-chevron-left'></span>
 				back
@@ -12,7 +11,14 @@
 
 		<!-- Main -->
 		<div class='col' ui-view></div>
-
 	</div>
 
 </div>
+
+<!-- Details -->
+<expandable 	
+	direction='left'
+	collapsed='false'
+	url='modules/details/details.tpl.html'>
+	
+</expandable>

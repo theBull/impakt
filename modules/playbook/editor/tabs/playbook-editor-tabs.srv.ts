@@ -47,12 +47,16 @@ function(
 		return _playbookEditor.getEditorTypeClass(editorType);
 	}
 
-	this.editFormation = function(formation: Common.Models.Formation) {
-		_playbookEditor.editFormation(formation);
+	this.editScenario = function(scenario: Common.Models.Scenario) {
+		_playbookEditor.editScenario(scenario);
 	}
 
 	this.editPlay = function(play: Common.Models.Play) {
 		_playbookEditor.editPlay(play);
+	}
+
+	this.editFormation = function(formation: Common.Models.Formation) {
+		_playbookEditor.editFormation(formation);
 	}
 
 	init();

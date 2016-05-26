@@ -5,9 +5,14 @@ impakt.league.controller('league.drilldown.team.ctrl',
 function($scope: any, _league: any, _teamModals: any) {
 
 	$scope.team = _league.drilldown.team;
+	$scope.conferences = impakt.context.League.conferences;
 
 	$scope.delete = function() {
 		_teamModals.deleteTeam($scope.team);
+	}
+
+	$scope.createConference = function() {
+		
 	}
 
 }]);

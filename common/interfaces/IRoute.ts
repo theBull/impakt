@@ -16,6 +16,7 @@ module Common.Interfaces {
         type: Common.Enums.RouteTypes;
         renderType: Common.Enums.RenderTypes;
         flipped: boolean;
+        unitType: Team.Enums.UnitTypes;
 
 		draw(): void;
 		flip(): void;

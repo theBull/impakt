@@ -38,7 +38,8 @@ module Common.Models {
             if (!this.formation.placements || this.formation.placements.isEmpty()) {
                 this.formation.setDefault(this.field.ball);
             }
-        
+            
+            this.field.opponentPlayers.listen(false);
             this.formation.placements.forEach(function(placement: Common.Models.Placement, index: number) {
                 // placement.relative.rx *= -1;
                 // placement.relative.ry *= -1;
@@ -56,6 +57,8 @@ module Common.Models {
                 });
                 this.flipped = !this.flipped;
             }
+            this.field.opponentPlayers.listen(true);
+            this.field.opponentPlayers.setModified(true);
         }
     }
 }

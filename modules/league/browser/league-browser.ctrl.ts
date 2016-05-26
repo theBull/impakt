@@ -15,10 +15,6 @@ function($scope: any, _league: any, _leagueModals: any, _teamModals: any) {
 		_teamModals.createTeam();
 	}
 
-	$scope.leagueDrilldown = function(league: League.Models.LeagueModel) {
-		_league.toLeagueDrilldown(league);
-	}
-
 	$scope.teamDrilldown = function(team: Team.Models.TeamModel) {
 		_league.toTeamDrilldown(team);
 	}

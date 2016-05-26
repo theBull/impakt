@@ -1,0 +1,19 @@
+<div 
+	class='col gray-bg-2-hover marginBottom1 height6 pointer marginRight1'
+	ng-click='toggleSelection(conference)'
+	ng-class='{"selected-border": conference.selected}'>
+	
+	<div class='marginBottom1 row pad'>
+
+		<div class='col pad width4 height4 marginRight1 light-border gray-bg-1'>
+			<img src='images/placeholder50x50.png' />
+		</div>
+
+		<div class='col padTop1'>
+			<p class='capitalize'>
+				<em class='font-gray'>{{getLeague(conference)}} &mdash;</em> {{conference.name}}
+			</p>
+		</div>
+	</div>
+		
+</div>

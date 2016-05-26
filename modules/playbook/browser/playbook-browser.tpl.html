@@ -1,13 +1,13 @@
 <div class='col scrollY positionRelative'>
 
 	<div class='pad'>
-		<div ng-show='editor.plays.hasElements()' class='marginBottom1 light-border-bottom'>
+		<div ng-show='editor.scenarios.hasElements()' class='marginBottom1 light-border-bottom'>
 			<h4>Open in editor</h4>
 			
-			<span ng-repeat='play in editor.plays.toArray() | orderBy: "editorType"'
-				class='gray-bg-3-hover pad marginRight1 marginBottom1 pointer {{getEditorTypeClass(play.editorType)}}'
+			<span ng-repeat='scenario in editor.scenarios.toArray() | orderBy: "editorType"'
+				class='gray-bg-3-hover pad marginRight1 marginBottom1 pointer {{getEditorTypeClass(scenario.editorType)}}'
 				ng-click='openEditor()'>
-				{{play.name}}
+				{{scenario.name}}
 			</span>
 			
 		</div>
@@ -48,7 +48,7 @@
 						</type-formatter>
 					</p>
 					<p>
-						({{playbook.associated.size()}} associated)
+						({{getAssociationsCountForPlaybook(playbook)}} associated)
 					</p>
 				</div>
 			</div>
@@ -182,7 +182,7 @@
 <!-- Details -->
 <expandable 	
 	direction='left'
-	collapsed='collapsed'
+	collapsed='true'
 	url='modules/details/details.tpl.html'>
 	
 </expandable>

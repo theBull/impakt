@@ -82,42 +82,8 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas',[
 			_playbookEditor.toBrowser();
 		}
 
-		this.initialize = function($element: any, editorType: number, guid: any)
-			: Common.Interfaces.ICanvas {
-			
-			let canvas = _playbookEditor.canvas;
-			
-			// attach listeners to canvas
-			// canvas.listen(
-			// 	Playbook.Editor.CanvasActions.PlayerContextmenu, 
-			// 	function(message: any, player: Common.Models.Player) {
-
-			// 		console.log('action commanded: player contextmenu');
-
-			// 		var absCoords = getAbsolutePosition(player.set.items[1]);
-					
-			// 		$rootScope.$broadcast(
-			// 			'playbook-editor-canvas.playerContextmenu', 
-			// 			{ 
-			// 				message: message,
-			// 				player: player,
-			// 				left: absCoords.left,
-			// 				top: absCoords.top
-			// 			}
-			// 		);
-
-			// 	});
-
-			// Listen for routenode contextmenu
-			canvas.listener.listen(
-				Playbook.Enums.Actions.RouteNodeContextmenu, 
-				function(data: Common.Models.ContextmenuData) {
-					_contextmenu.open(data);
-				});
-
-			canvas.initialize($element);
-			
-			return canvas;			
+		this.getCanvas = function() : Common.Interfaces.ICanvas {
+			return _playbookEditor.canvas;
 		}
 
 

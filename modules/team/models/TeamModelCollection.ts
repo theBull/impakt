@@ -2,7 +2,7 @@
 
 module Team.Models {
     export class TeamModelCollection
-    extends Common.Models.Collection<Team.Models.TeamModel> {
+    extends Common.Models.ActionableCollection<Team.Models.TeamModel> {
         
         public teamType: Team.Enums.TeamTypes;
 

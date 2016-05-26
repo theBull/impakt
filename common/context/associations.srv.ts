@@ -142,6 +142,26 @@ function(
 	}
 
 	/**
+	* Delete association
+	*/
+	this.deleteAssociation = function(
+		fromEntity: Common.Interfaces.IAssociable,
+		toEntity: Common.Interfaces.IAssociable
+	): void {
+		let d = $q.defer();
+		impakt.context.Associations.associations.disassociate(fromEntity, toEntity);
+
+		this.updateAssociations()
+			.then(function() {
+				d.resolve();
+			}, function(err: any) {
+				d.reject(err);
+			});
+
+		return d.promise;
+	}
+
+	/**
 	* Create association
 	*/
 	this.createAssociation = function(
@@ -204,21 +224,6 @@ function(
 		// NOTE: the return type of this function must mimic the typed contents
 		// of this results object
 		let results = new Common.Models.AssociationResults();
-		results.playbooks = new Common.Models.PlaybookModelCollection(
-			Team.Enums.UnitTypes.Mixed
-		);
-		results.plays = new Common.Models.PlayCollection(
-			Team.Enums.UnitTypes.Mixed
-		);
-		results.formations = new Common.Models.FormationCollection(
-			Team.Enums.UnitTypes.Mixed
-		);
-		results.personnel = new Team.Models.PersonnelCollection(
-			Team.Enums.UnitTypes.Mixed
-		);
-		results.assignmentGroups = new Common.Models.AssignmentGroupCollection(
-			Team.Enums.UnitTypes.Mixed
-		);
 
 		//
 		// Clients of this service should expect to receive back
@@ -259,6 +264,11 @@ function(
 					if (playbook)
 						results.playbooks.add(playbook);
 					break;
+				case Common.Enums.ImpaktDataTypes.Scenario:
+					let scenario = impakt.context.Playbook.scenarios.get(guid);
+					if (scenario)
+						results.scenarios.add(scenario);
+					break;
 				case Common.Enums.ImpaktDataTypes.Play:
 					let play = impakt.context.Playbook.plays.get(guid);
 					if (play)
@@ -279,6 +289,16 @@ function(
 					if (assignmentGroup)
 						results.assignmentGroups.add(assignmentGroup);
 					break;
+				case Common.Enums.ImpaktDataTypes.League:
+					let league = impakt.context.League.leagues.get(guid);
+					if (league)
+						results.leagues.add(league);
+					break;
+				case Common.Enums.ImpaktDataTypes.Conference:
+					let conference = impakt.context.League.conferences.get(guid);
+					if (conference)
+						results.conferences.add(conference);
+					break;
 			}		
 		}
 
@@ -287,6 +307,61 @@ function(
 
 	this.associationExists = function(fromInternalKey: string, toInternalKey: string): boolean {
 		return this.associations.associationExists(fromInternalKey, toInternalKey);
+	}
+
+	this.getContextDataByKey = function(key: string): Common.Interfaces.ICollection<any> {
+		if (Common.Utilities.isNullOrUndefined(key))
+			throw new Error('_associations getContextDataByKey(): key is null or undefined');
+
+		let collection;
+
+		switch(key) {
+			case 'playbooks':
+				collection = impakt.context.Playbook.playbooks;
+				break;
+
+			case 'scenarios':
+				collection = impakt.context.Playbook.scenarios;
+				break;
+
+			case 'plays':
+				collection = impakt.context.Playbook.plays;
+				break;
+
+			case 'formations':
+				collection = impakt.context.Playbook.formations;
+				break;
+
+			case 'personnel':
+				collection = impakt.context.Team.personnel;
+				break
+
+			case 'assignmentGroups':
+				collection = impakt.context.Playbook.assignmentGroups;
+				break;
+
+			case 'leagues':
+				collection = impakt.context.League.leagues;
+				break;
+
+			case 'conferences':
+				collection = impakt.context.League.conferences;
+				break;
+
+			case 'teams':
+				collection = impakt.context.Team.teams;
+				break;
+		}
+
+		let parsedCollection = new Common.Models.ActionableCollection<Common.Interfaces.IActionable>();
+		if(Common.Utilities.isNotNullOrUndefined(collection)) {
+			// create another reference of the entity into the parsed collection
+			collection.forEach(function(element: Common.Interfaces.IActionable, index: number) {
+				parsedCollection.add(element, false);
+			});
+		}
+
+		return parsedCollection;
 	}
 
 }]);

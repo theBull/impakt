@@ -46,10 +46,12 @@ module Common.Models {
 		}
 
 		public addLayer(layer: Common.Models.Layer): void {
+			this.layers.listen(false);
 			if(this.hasLayers())
 				this.layers.add(layer);
 
 			this.actionable.graphics.set.push(layer.actionable.graphics);
+			this.layers.listen(true);
 		}
 
 		public removeLayer(layer: Common.Models.Layer): Common.Models.Layer {

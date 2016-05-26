@@ -98,6 +98,7 @@ module Common.Models {
             this.clearOpponentPlayers();
         }
         public clearPrimaryPlayers(): void {
+            this.primaryPlayers.listen(false);
             this.primaryPlayers.forEach(function(player, index) {
                 if (Common.Utilities.isNotNullOrUndefined(player.assignment)) {
                     player.assignment.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
@@ -107,8 +108,10 @@ module Common.Models {
                 player.layer.remove();
             });
             this.primaryPlayers.removeAll();
+            this.primaryPlayers.listen(true);
         }
         public clearOpponentPlayers(): void {
+            this.opponentPlayers.listen(false);
             this.opponentPlayers.forEach(function(player, index) {
                 if (Common.Utilities.isNotNullOrUndefined(player.assignment)) {
                     player.assignment.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
@@ -118,6 +121,7 @@ module Common.Models {
                 player.layer.remove();
             });
             this.opponentPlayers.removeAll();
+            this.opponentPlayers.listen(true);
         }
         public clearScenario(): void {
             this.clearPrimaryPlay();

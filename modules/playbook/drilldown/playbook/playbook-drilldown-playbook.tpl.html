@@ -1,9 +1,10 @@
-<div class='col pad'>
+<div class='coll scrollY pad'>
 	
 	
-	<h5>{{playbook.name}}</h5>
+	<h2><strong>Playbook:</strong> {{playbook.name}}</h2>
 
 	<div class='marginBottom1'>
+		<strong>Unit type: </strong>
 		<type-formatter 
 			value='playbook.unitType' 
 			type='Team.Enums.UnitTypes'>
@@ -12,7 +13,20 @@
 		
 	<!-- Plays -->
 	<div class='marginBottom1'>
-		<p>Plays (0)</p>
+		<h4>Scenarios (0)</h4>
+		<div class='grid'>
+				
+			<scenario-item
+				ng-repeat='scenario in scenarios.toArray()'
+				scenario='scenario'>
+			</scenario-item>
+
+		</div>
+	</div>
+		
+	<!-- Plays -->
+	<div class='marginBottom1'>
+		<h4>Plays ({{plays.size()}})</h4>
 		<div class='grid'>
 				
 			<play-item
@@ -25,7 +39,7 @@
 
 	<!-- Formations -->
 	<div class='marginBottom1'>
-		<p>Formations (0)</p>
+		<h4>Formations ({{formations.size()}})</h4>
 		<div class='grid'>
 				
 			<formation-item

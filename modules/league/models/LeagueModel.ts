@@ -10,7 +10,18 @@ module League.Models {
 		constructor() {
 			super(Common.Enums.ImpaktDataTypes.League);
 			super.setContext(this);
+
+			this.associable = [
+				'conferences',
+				'divisions',
+				'teams'
+			]
 		}
+
+        public copy(newLeague?: League.Models.LeagueModel): League.Models.LeagueModel {
+            var copyLeague = newLeague || new League.Models.LeagueModel();
+            return <League.Models.LeagueModel>super.copy(copyLeague, this);
+        }
 
 		public toJson(): any {
 			return $.extend({

@@ -1,15 +1,14 @@
 <div class='row positionRelative font-white'>
 
 	<!-- Sidebar -->
-	<div class='col overflowVisible minWidth3 shrink' 
-		ng-include='"modules/sidebar/sidebar.tpl.html"'></div>
+	<expandable
+		class='col holdX width3'
+		direction='right'
+		collapsed='true'
+		url='modules/sidebar/sidebar.tpl.html'>
+	</expandable>
 
-	<div class='col pad scrollY'>
-		<h2>League</h2>
-
-		<!-- Main -->
-		<div class='col' ui-view></div>
-
-	</div>
+	<!-- Main -->
+	<div class='row' ui-view></div>
 
 </div>

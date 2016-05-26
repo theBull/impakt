@@ -13,28 +13,44 @@ function(
 	data: number
 ) {
 
+	$scope.scenarios = impakt.context.Playbook.scenarios;
 	$scope.plays = impakt.context.Playbook.plays;
 	$scope.formations = impakt.context.Playbook.formations;
-	$scope.selectedPlay = null;
-	$scope.selectedFormation = null;
+	$scope.selectedScenario = $scope.scenarios.first();
+	$scope.selectedPlay = $scope.plays.first();
+	$scope.selectedFormation = $scope.formations.first();
+	$scope.editScenarioSelected = false;
 	$scope.editPlaySelected = false;
 	$scope.editFormationSelected = false;
 
+	$scope.selectScenario = function() {}
 	$scope.selectPlay = function() {}
 	$scope.selectFormation = function() {}
+	$scope.editScenario = function() {
+		$scope.editScenarioSelected = true;
+		$scope.editPlaySelected = false;
+		$scope.editFormationSelected = false;
+		$scope.selectedPlay = null;
+		$scope.selectedFormation = null;
+	}
 	$scope.editPlay = function() {
+		$scope.editScenarioSelected = false;
 		$scope.editPlaySelected = true;
 		$scope.editFormationSelected = false;
+		$scope.selectedScenario = null;
 		$scope.selectedFormation = null;
 	}
 	$scope.editFormation = function() {
+		$scope.editScenarioSelected = false;
 		$scope.editPlaySelected = false;
 		$scope.editFormationSelected = true;
+		$scope.selectedScenario = null;
 		$scope.selectedPlay = null;
 	}
 
 	$scope.ok = function () {
-
+		if ($scope.selectedScenario)
+			_playbookEditorTabs.editScenario($scope.selectedScenario);
 		if($scope.selectedPlay)
 			_playbookEditorTabs.editPlay($scope.selectedPlay);
 		if ($scope.selectedFormation)

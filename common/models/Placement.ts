@@ -66,6 +66,9 @@ module Common.Models {
 		}
 
 		public updateFromAbsolute(ax: number, ay: number): void {
+			if (Common.Utilities.isNullOrUndefined(this.grid))
+				throw new Error('Placement updateFromAbsolute(): grid is null or undefined');
+			
 			let coords = this.grid.getCoordinatesFromAbsolute(ax, ay);
 			this.relative.updateFromGridCoordinates(coords.x, coords.y);
 			this.coordinates.update(coords.x, coords.y);

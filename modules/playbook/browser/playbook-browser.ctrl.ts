@@ -4,12 +4,14 @@ impakt.playbook.browser.controller('playbook.browser.ctrl', [
 '$scope',
 '__context',
 '_details',
+'_associations',
 '_playbook',
 '_playbookModals',
 function(
 	$scope: any, 
 	__context: any,
 	_details: any,
+	_associations: any,
 	_playbook: any, 
 	_playbookModals: any
 ) {
@@ -81,6 +83,11 @@ function(
 	}
 	$scope.deleteAssignmentGroup = function(assignmentGroup: Common.Models.AssignmentGroup) {
 		_playbookModals.deleteAssignmentGroup(assignmentGroup);
+	}
+
+	$scope.getAssociationsCountForPlaybook = function(playbook: Common.Models.PlaybookModel) {
+		let associations = _associations.getAssociated(playbook);
+		return associations.count();
 	}
 
 	/**

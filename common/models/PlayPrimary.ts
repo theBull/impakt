@@ -38,11 +38,14 @@ module Common.Models {
             if (!this.formation.placements || this.formation.placements.isEmpty()) {
                 this.formation.setDefault(this.field.ball);
             }
+            this.field.primaryPlayers.listen(false);
             this.formation.placements.forEach(function(placement, index) {
                 var position = self.personnel.positions.getIndex(index);
                 var assignment = self.assignmentGroup.assignments.getIndex(index);
                 self.field.addPrimaryPlayer(placement, position, assignment);
             });
+            this.field.primaryPlayers.listen(true);
+            this.field.primaryPlayers.setModified(true);
         }
     }
 }

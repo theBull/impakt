@@ -120,8 +120,9 @@ module Common.Models {
                 return;
 
             for (var i = 0; i < this.readyCallbacks.length; i++) {
-                this.readyCallbacks.pop()();
+                this.readyCallbacks[i]();
             }
+            this.clearListeners();
         }
         
         public clearListeners(): void {

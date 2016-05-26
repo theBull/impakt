@@ -405,6 +405,30 @@ function(
 		return d.promise;
     }
 
+    this.deleteEntityByType = function(entity: Common.Interfaces.IActionable) {
+        if (Common.Utilities.isNullOrUndefined(entity))
+            return;
+
+        let d = $q.defer();
+
+        switch(entity.impaktDataType) {
+            case Common.Enums.ImpaktDataTypes.Team:
+                return _teamModals.deleteTeam(entity);
+
+            case Common.Enums.ImpaktDataTypes.PersonnelGroup:
+                // TODO @theBull implement
+                //return _teamModals.deletePersonnel(entity);
+                d.reject(new Error('_team deleteEntityByType(): _teamModals.deletePersonnel() not implemented'));
+                break;
+
+            default:
+                d.reject(new Error('_team deleteEntityByType: impaktDataType not supported'));
+                break;
+        }
+
+        return d.promise();
+    }
+
     this.createPrimaryTeam = function(teamModel: Team.Models.TeamModel) {
     	
     }

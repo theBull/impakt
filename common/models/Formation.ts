@@ -57,11 +57,10 @@ module Common.Models {
             super.fromJson(json);
 
             this.placements.onModified(function() {
-                console.log('formation modified: placement collection:', self.guid);
                 self.setModified(true);
             });
             this.onModified(function() {
-                console.log('formation modified?', self.modified);
+                
             });
         }
         

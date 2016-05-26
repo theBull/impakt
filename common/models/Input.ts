@@ -25,8 +25,15 @@ module Common.Input {
 		LeftClick = 1,
 		RightClick = 3,
 
-		Esc = 27,
+		Backspace = 8,
+		Enter = 13,
 
+		Esc = 27,
+		Left = 37,
+		Up = 38,
+		Right = 39,
+		Down = 40,
+		
 		/**
 		 * 
 		 * Uppercase (shift pressed)

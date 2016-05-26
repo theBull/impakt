@@ -59,6 +59,27 @@ module Common.Models {
                 this.select(element);
         }
 
+        public hoverIn(element: Common.Interfaces.IActionable): void {
+            if (Common.Utilities.isNullOrUndefined(element))
+                return;
+
+            this.hoverOutAll();
+            element.hoverIn(null);
+        }
+
+        public hoverOut(element: Common.Interfaces.IActionable): void {
+            if (Common.Utilities.isNullOrUndefined(element))
+                return;
+
+            element.hoverOut(null);
+        }
+
+        public hoverOutAll(): void {
+            this.forEach(function(element: Common.Interfaces.IActionable, index: number) {
+                element.hoverOut(null);
+            });
+        }
+
 	}
 
 }

@@ -18,6 +18,12 @@ module Team.Models {
 
             let self = this;
             this.onModified(function(data) {});
+
+            this.associable = [
+                'leagues',
+                'conferences',
+                'divisions'
+            ];
         }
 
         public toJson(): any {

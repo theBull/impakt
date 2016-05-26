@@ -19,13 +19,7 @@ function(
 	 * 
 	 */
 	$scope.toggleSelection = function(play: Common.Models.Play) {
-		impakt.context.Playbook.plays.toggleSelect(play);
-		
-		if (play.selected) {
-			_details.selectedElements.only(play);
-		} else {
-			_details.selectedElements.remove(play.guid);
-		}
+		_details.toggleSelection(play);
 	}
 
 	$scope.openInEditor = function(play: Common.Models.Play) {

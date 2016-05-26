@@ -260,6 +260,10 @@ module Common.Models {
             this.hoverFillOpacity = opacity;
             return this;
         }
+        public setHeight(height: number): Common.Models.Graphics {
+            this.dimensions.setHeight(height);
+            return this.attr({ 'height': height });
+        }
 
         /**
          * Gets the current opacity
@@ -453,6 +457,11 @@ module Common.Models {
             } else {
                 this.placement.update(placement);
             }
+
+            // ensure there is a grid established for the placement object
+            if (Common.Utilities.isNullOrUndefined(this.placement.grid))
+                this.placement.grid = this.grid;
+
             let absCoords = this.grid.getAbsoluteFromCoordinates(this.placement.coordinates.x, this.placement.coordinates.y);
             this.location.updateFromAbsolute(
                 absCoords.x + this.dimensions.offset.x, 
@@ -877,7 +886,7 @@ module Common.Models {
                 // causes unresolved transforms that screw up the placement
                 // (thanks, raphael)
                 this.resetTransform();
-                this._updateTriangle();
+                this.cleanTransform();
             }   
         }
 
@@ -898,7 +907,7 @@ module Common.Models {
                 return;
 
             this.resetTransform();
-            this._updateTriangle();
+            this.cleanTransform();
         }
 
         // Special case for triangle. Since the triangle is actually a `path` element,
@@ -906,7 +915,7 @@ module Common.Models {
         // temporary triangle where the updated triangle's positon should be and then
         // reset the actual raphael path with the temp triangle's new coordinates.
         // For some reason, transform(0,0) doesn't work the same on a path.
-        private _updateTriangle(): void {
+        private cleanTransform(): void {
             if (this.raphael.data('element-type') == 'triangle') {
                 let tempTriangle = this.paper.drawing.triangle(
                     this.placement.coordinates.x,
@@ -919,6 +928,18 @@ module Common.Models {
                 let pathStr = tempTriangle.attr('path').toString();
                 this.raphael.attr({ 'path': pathStr });
                 tempTriangle.remove();
+            } else if(this.raphael.type == 'ellipse') {
+                let tempEllipse = this.paper.drawing.ellipse(
+                    this.placement.coordinates.x,
+                    this.placement.coordinates.y,
+                    this.dimensions.getWidth(),
+                    this.dimensions.getHeight(),
+                    false,
+                    this.dimensions.getOffsetX(),
+                    this.dimensions.getOffsetY()
+                );
+
+                tempEllipse.remove();
             }
         }
 	}

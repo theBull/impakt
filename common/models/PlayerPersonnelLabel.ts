@@ -16,7 +16,7 @@ module Common.Models {
 			this.graphics.snapping = false;
 			this.graphics.setOffsetXY(
 				0,
-				-(this.player.graphics.dimensions.getHeight() / 2) * 0.4
+				-(this.player.graphics.dimensions.getHeight() / 2) * 0.1
 			);
 			this.graphics.initializePlacement(
 				new Common.Models.Placement(0, 0, this.player)

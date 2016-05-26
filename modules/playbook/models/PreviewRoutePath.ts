@@ -13,7 +13,6 @@ module Playbook.Models {
 		public initialize(field: Common.Interfaces.IField, route: Common.Interfaces.IFieldElement): void {
 			super.initialize(field, route);
 			this.graphics.setOriginalStrokeWidth(2);
-			this.graphics.setOriginalStroke('#0000ff');
 			this.route.layer.addLayer(this.layer);
 		}
 	}

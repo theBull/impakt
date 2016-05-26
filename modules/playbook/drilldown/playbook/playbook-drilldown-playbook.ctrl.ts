@@ -15,12 +15,14 @@ function(
 	$scope.playbook = _playbook.drilldown.playbook;
 	$scope.plays;
 	$scope.formations;
+	$scope.scenarios;
 
 	function init() {
 		let associations = _associations.getAssociated($scope.playbook);
 		if(Common.Utilities.isNotNullOrUndefined(associations)) {
 			$scope.plays = associations.plays;
 			$scope.formations = associations.formations;
+			$scope.scenarios = associations.scenarios;
 		}
 	}
 

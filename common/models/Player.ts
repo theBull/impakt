@@ -93,6 +93,33 @@ module Common.Models {
 			}
 		}
 
+		public moveAssignmentByDelta(dx: number, dy: number): void {
+			if (this.assignment) {
+				// TODO: implement route switching
+				this.assignment.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
+					if (Common.Utilities.isNotNullOrUndefined(route)) {
+						route.layer.moveByDelta(dx, dy);
+					}
+				});
+			}
+		}
+
+
+		public dropAssignment(): void {
+			if (this.assignment) {
+				// TODO: implement route switching
+				this.assignment.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
+					if (Common.Utilities.isNotNullOrUndefined(route)) {
+						if (route.dragInitialized) {
+							route.dragInitialized = false;
+						}
+						route.drop();
+						route.draw();
+					}
+				});
+			}
+		}
+
 		public abstract draw(): void;
 
 		public getPositionRelativeToBall(): Common.Models.RelativeCoordinates {

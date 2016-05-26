@@ -23,9 +23,6 @@ function() {
 			"We love football.",
 			"Impakt Athletics"),
 		new Common.Models.Quote(
-			"To me football is like family. We must strive together.",
-			"Mike Lynch"),
-		new Common.Models.Quote(
 			"Football doesn't build character. It eliminates weak ones.",
 			"Darrell Royal"),
 		new Common.Models.Quote(
@@ -37,7 +34,25 @@ function() {
 			"Ray Lewis"),
 		new Common.Models.Quote(
 			"I'm just here so I don't get fined.",
-			"Marshawn Lynch")
+			"Marshawn Lynch"),
+		new Common.Models.Quote(
+			"I wish I knew about [Impakt] 10 years ago, I wouldn't have so much damn gray hair now!",
+			"Coach, USC"),
+		new Common.Models.Quote(
+			"To me, this is a no brainer.",
+			"Oregon"),
+		new Common.Models.Quote(
+			"People are going to love this",
+			"Harvard"),
+		new Common.Models.Quote(
+			"This is really damn cool. I know I want it.",
+			"Arizona"),
+		new Common.Models.Quote(
+			"This is awesome. It fits perfectly with what we're trying to do.",
+			"Michigan"),
+		new Common.Models.Quote(
+			"This is really slick. I think the way you guys approached this was brilliant.",
+			"Dallas Cowboys")
 
 	];
 

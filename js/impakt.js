@@ -932,6 +932,117 @@ var Common;
 (function (Common) {
     var Models;
     (function (Models) {
+        var Expandable = (function (_super) {
+            __extends(Expandable, _super);
+            function Expandable($element) {
+                _super.call(this);
+                _super.prototype.setContext.call(this, this);
+                // don't listen to modification changes
+                // to Expandable objects
+                this.listen(false);
+                if (Common.Utilities.isNullOrUndefined($element))
+                    throw new Error('Expandable constructor(): $element is null or undefined');
+                this.$element = $element;
+                this.direction;
+                this.min = 3; // in em's
+                this.max = 32; // in em's
+                this.em = parseInt($('body').css('font-size'));
+                this.collapsed = true;
+                this.ready = false;
+                this.url = null;
+                this.handle = new Common.Models.ExpandableHandle();
+                // do a little clean up; the UI glitches due to the flex
+                // property rendering if $element does not have an explicitly
+                // set width, so we add the class 'width3' to the HTML element
+                // by default and remove it once we're in here.
+                this.$element.removeClass('width3');
+            }
+            Expandable.prototype.setHandleClass = function () {
+                this.handle.class = this.collapsed ? this.handle.collapsed : this.handle.expanded;
+            };
+            /**
+             * Deprecated
+             * @param {[type]} value [description]
+             */
+            Expandable.prototype.getWidth = function (width) {
+                return this.em * width;
+            };
+            /**
+             * Deprecated
+             */
+            Expandable.prototype.getInitialWidth = function () {
+                return this.collapsed ? this.getWidth(this.min) : this.getWidth(this.max);
+            };
+            Expandable.prototype.getInitialClass = function () {
+                return this.collapsed ? this.getMinClass() : this.getMaxClass();
+            };
+            Expandable.prototype.toggle = function () {
+                !this.collapsed ? this.close() : this.open();
+            };
+            Expandable.prototype.open = function () {
+                this.collapsed = false;
+                this.$element.removeClass(this.getMinClass()).addClass(this.getMaxClass());
+                this.setHandleClass();
+            };
+            Expandable.prototype.close = function () {
+                this.collapsed = true;
+                this.$element.removeClass(this.getMaxClass()).addClass(this.getMinClass());
+                this.setHandleClass();
+            };
+            Expandable.prototype.getMinClass = function () {
+                return 'width' + this.min;
+            };
+            Expandable.prototype.getMaxClass = function () {
+                return 'width' + this.max;
+            };
+            Expandable.prototype.setInitialClass = function () {
+                this.$element.addClass(this.getInitialClass());
+            };
+            Expandable.prototype.initializeToggleHandle = function () {
+                switch (this.direction) {
+                    case 'left':
+                        this.handle.position = 'top0 left0';
+                        this.handle.expanded = 'glyphicon-chevron-right';
+                        this.handle.collapsed = 'glyphicon-chevron-left';
+                        break;
+                    case 'right':
+                        this.handle.position = 'top0 right0';
+                        this.handle.expanded = 'glyphicon-chevron-left';
+                        this.handle.collapsed = 'glyphicon-chevron-right';
+                        break;
+                    case 'top':
+                        this.handle.position = 'top0 left0';
+                        this.handle.expanded = 'glyphicon-chevron-up';
+                        this.handle.collapsed = 'glyphicon-chevron-down';
+                        break;
+                    case 'bottom':
+                        this.handle.position = 'bottom0 left0';
+                        this.handle.expanded = 'glyphicon-chevron-down';
+                        this.handle.collapsed = 'glyphicon-chevron-up';
+                        break;
+                }
+                this.setHandleClass();
+            };
+            return Expandable;
+        })(Common.Models.Modifiable);
+        Models.Expandable = Expandable;
+        var ExpandableHandle = (function () {
+            function ExpandableHandle() {
+                this.position = '';
+                this.collapsed = '';
+                this.expanded = '';
+                this.class = '';
+            }
+            return ExpandableHandle;
+        })();
+        Models.ExpandableHandle = ExpandableHandle;
+    })(Models = Common.Models || (Common.Models = {}));
+})(Common || (Common = {}));
+/// <reference path='./models.ts' />
+var Common;
+(function (Common) {
+    var Models;
+    (function (Models) {
         var ContextmenuData = (function () {
             function ContextmenuData(data, pageX, pageY, message) {
                 this.data = data;
@@ -973,6 +1084,7 @@ var Common;
                 this.selected = false;
                 this.clickable = true;
                 this.hoverable = true;
+                this.hovered = false;
                 this.dragging = false;
                 this.draggable = true;
                 this.selectable = true;
@@ -1064,46 +1176,62 @@ var Common;
             };
             Actionable.prototype.drop = function () {
                 this.dragging = false;
-                this.graphics.drop();
+                if (this.hasGraphics())
+                    this.graphics.drop();
             };
             Actionable.prototype.onhover = function (hoverIn, hoverOut, context) {
-                this.graphics.onhover(hoverIn, hoverOut, context);
+                if (this.hasGraphics())
+                    this.graphics.onhover(hoverIn, hoverOut, context);
             };
             Actionable.prototype.hoverIn = function (e) {
-                this.graphics.hoverIn(e);
+                this.hovered = true;
+                if (this.hasGraphics())
+                    this.graphics.hoverIn(e);
             };
             Actionable.prototype.hoverOut = function (e) {
-                this.graphics.hoverOut(e);
+                this.hovered = false;
+                if (this.hasGraphics())
+                    this.graphics.hoverOut(e);
             };
             Actionable.prototype.onclick = function (fn, context) {
-                this.graphics.onclick(fn, context);
+                if (this.hasGraphics())
+                    this.graphics.onclick(fn, context);
             };
             Actionable.prototype.click = function (e) {
-                this.graphics.click(e);
+                if (this.hasGraphics())
+                    this.graphics.click(e);
             };
             Actionable.prototype.oncontextmenu = function (fn, context) {
-                this.graphics.oncontextmenu(fn, context);
+                if (this.hasGraphics())
+                    this.graphics.oncontextmenu(fn, context);
             };
             Actionable.prototype.contextmenu = function (e) {
-                this.graphics.contextmenu(e);
+                if (this.hasGraphics())
+                    this.graphics.contextmenu(e);
             };
             Actionable.prototype.onmousedown = function (fn, context) {
-                this.graphics.onmousedown(fn, context);
+                if (this.hasGraphics())
+                    this.graphics.onmousedown(fn, context);
             };
             Actionable.prototype.onmouseup = function (fn, context) {
-                this.graphics.onmouseup(fn, context);
+                if (this.hasGraphics())
+                    this.graphics.onmouseup(fn, context);
             };
             Actionable.prototype.mousedown = function (e) {
-                this.graphics.mousedown(e);
+                if (this.hasGraphics())
+                    this.graphics.mousedown(e);
             };
             Actionable.prototype.onmousemove = function (fn, context) {
-                this.graphics.onmousemove(fn, context);
+                if (this.hasGraphics())
+                    this.graphics.onmousemove(fn, context);
             };
             Actionable.prototype.mousemove = function (e) {
-                this.graphics.mousemove(e);
+                if (this.hasGraphics())
+                    this.graphics.mousemove(e);
             };
             Actionable.prototype.ondrag = function (dragMove, dragStart, dragEnd, context) {
-                this.graphics.ondrag(dragMove, dragStart, dragEnd, context);
+                if (this.hasGraphics())
+                    this.graphics.ondrag(dragMove, dragStart, dragEnd, context);
             };
             return Actionable;
         })(Common.Models.Modifiable);
@@ -1159,6 +1287,22 @@ var Common;
                 else
                     this.select(element);
             };
+            ActionableCollection.prototype.hoverIn = function (element) {
+                if (Common.Utilities.isNullOrUndefined(element))
+                    return;
+                this.hoverOutAll();
+                element.hoverIn(null);
+            };
+            ActionableCollection.prototype.hoverOut = function (element) {
+                if (Common.Utilities.isNullOrUndefined(element))
+                    return;
+                element.hoverOut(null);
+            };
+            ActionableCollection.prototype.hoverOutAll = function () {
+                this.forEach(function (element, index) {
+                    element.hoverOut(null);
+                });
+            };
             return ActionableCollection;
         })(Common.Models.Collection);
         Models.ActionableCollection = ActionableCollection;
@@ -1176,6 +1320,40 @@ var Common;
                 this.key = 0;
                 this.impaktDataType = impaktDataType;
                 this.associationKey = null;
+                /**
+                 * This array maintains a list of associable data types,
+                 * by key name, which can be found in AssociationResults.ts.
+                 *
+                 * The idea is that Associable Entities only have certain
+                 * associations that they can map to, and we want to allow
+                 * the Entity to define what those applicable associations are.
+                 *
+                 * For example, the Associable Entity `League` may only be
+                 * two-way-associated to `Conference`, `Division` and `Team`,
+                 * and each in turn also define their associability back to `League`.
+                 *
+                 * The `associable` list is not an all-authoritive structure;
+                 * setting this does not prevent certain other associations from being
+                 * created programmatically between two Associable Entites that
+                 * do not have one another defined within their `associable` list.
+                 * It is up to the developer to decide how to best use this list.
+                 *
+                 * One use case is to render a set of UI controls that allow the user
+                 * to manage an Associable Entity's associations, but only renders
+                 * the controls for each element in the `assosciable` array.
+                 *
+                 * @type {Array}
+                 */
+                this.associable = [
+                    'playbooks',
+                    'scenarios',
+                    'plays',
+                    'formations',
+                    'personnel',
+                    'assignmentGroups',
+                    'leagues',
+                    'conferences'
+                ];
             }
             AssociableEntity.prototype.generateAssociationKey = function () {
                 this.associationKey = [
@@ -1681,7 +1859,63 @@ var Common;
     (function (Models) {
         var AssociationResults = (function () {
             function AssociationResults() {
+                this.playbooks = new Common.Models.PlaybookModelCollection(Team.Enums.UnitTypes.Mixed);
+                this.scenarios = new Common.Models.ScenarioCollection(Team.Enums.UnitTypes.Mixed);
+                this.plays = new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed);
+                this.formations = new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed);
+                this.personnel = new Team.Models.PersonnelCollection(Team.Enums.UnitTypes.Mixed);
+                this.assignmentGroups = new Common.Models.AssignmentGroupCollection(Team.Enums.UnitTypes.Mixed);
+                this.leagues = new League.Models.LeagueModelCollection();
+                this.conferences = new League.Models.ConferenceCollection();
+                this.divisions = null;
+                this.teams = new Team.Models.TeamModelCollection(Team.Enums.TeamTypes.Primary);
             }
+            AssociationResults.prototype.count = function () {
+                var count = 0;
+                count += this.playbooks.size();
+                count += this.scenarios.size();
+                count += this.plays.size();
+                count += this.formations.size();
+                count += this.personnel.size();
+                count += this.assignmentGroups.size();
+                count += this.leagues.size();
+                count += this.conferences.size();
+                // TODO @theBull implement
+                //count += this.divisions.size();
+                count += this.teams.size();
+                return count;
+            };
+            AssociationResults.prototype.hasAssociations = function () {
+                return this.count() > 0;
+            };
+            AssociationResults.prototype.isEmpty = function () {
+                return this.count() == 0;
+            };
+            AssociationResults.prototype.getPopulatedAssociationKeys = function () {
+                var populated = [];
+                if (this.playbooks.hasElements())
+                    populated.push('playbooks');
+                if (this.scenarios.hasElements())
+                    populated.push('scenarios');
+                if (this.plays.hasElements())
+                    populated.push('plays');
+                if (this.formations.hasElements())
+                    populated.push('formations');
+                if (this.personnel.hasElements())
+                    populated.push('personnel');
+                if (this.assignmentGroups.hasElements())
+                    populated.push('assignmentGroups');
+                if (this.leagues.hasElements())
+                    populated.push('leagues');
+                if (this.conferences.hasElements())
+                    populated.push('conferences');
+                // TODO @theBull implement
+                // if (this.divisions.hasElements())
+                // 	populated.push('divisions');
+                if (this.teams.hasElements())
+                    populated.push('teams');
+                return populated;
+            };
             return AssociationResults;
         })();
         Models.AssociationResults = AssociationResults;
@@ -2137,11 +2371,9 @@ var Common;
                 this.png = json.png;
                 _super.prototype.fromJson.call(this, json);
                 this.placements.onModified(function () {
-                    console.log('formation modified: placement collection:', self.guid);
                     self.setModified(true);
                 });
                 this.onModified(function () {
-                    console.log('formation modified?', self.modified);
                 });
             };
             Formation.prototype.setDefault = function (ball) {
@@ -2455,11 +2687,14 @@ var Common;
                 if (!this.formation.placements || this.formation.placements.isEmpty()) {
                     this.formation.setDefault(this.field.ball);
                 }
+                this.field.primaryPlayers.listen(false);
                 this.formation.placements.forEach(function (placement, index) {
                     var position = self.personnel.positions.getIndex(index);
                     var assignment = self.assignmentGroup.assignments.getIndex(index);
                     self.field.addPrimaryPlayer(placement, position, assignment);
                 });
+                this.field.primaryPlayers.listen(true);
+                this.field.primaryPlayers.setModified(true);
             };
             return PlayPrimary;
         })(Common.Models.Play);
@@ -2501,6 +2736,7 @@ var Common;
                 if (!this.formation.placements || this.formation.placements.isEmpty()) {
                     this.formation.setDefault(this.field.ball);
                 }
+                this.field.opponentPlayers.listen(false);
                 this.formation.placements.forEach(function (placement, index) {
                     // placement.relative.rx *= -1;
                     // placement.relative.ry *= -1;
@@ -2517,6 +2753,8 @@ var Common;
                     });
                     this.flipped = !this.flipped;
                 }
+                this.field.opponentPlayers.listen(true);
+                this.field.opponentPlayers.setModified(true);
             };
             return PlayOpponent;
         })(Common.Models.Play);
@@ -2902,7 +3140,13 @@ var Common;
         (function (Which) {
             Which[Which["LeftClick"] = 1] = "LeftClick";
             Which[Which["RightClick"] = 3] = "RightClick";
+            Which[Which["Backspace"] = 8] = "Backspace";
+            Which[Which["Enter"] = 13] = "Enter";
             Which[Which["Esc"] = 27] = "Esc";
+            Which[Which["Left"] = 37] = "Left";
+            Which[Which["Up"] = 38] = "Up";
+            Which[Which["Right"] = 39] = "Right";
+            Which[Which["Down"] = 40] = "Down";
             /**
              *
              * Uppercase (shift pressed)
@@ -3079,8 +3323,9 @@ var Common;
                 if (Common.Utilities.isNullOrUndefined(this.readyCallbacks))
                     return;
                 for (var i = 0; i < this.readyCallbacks.length; i++) {
-                    this.readyCallbacks.pop()();
+                    this.readyCallbacks[i]();
                 }
+                this.clearListeners();
             };
             Canvas.prototype.clearListeners = function () {
                 this.readyCallbacks = [];
@@ -3367,9 +3612,11 @@ var Common;
                 return this.guid == layer.guid || this.layers.hasElementWhich(predicate);
             };
             Layer.prototype.addLayer = function (layer) {
+                this.layers.listen(false);
                 if (this.hasLayers())
                     this.layers.add(layer);
                 this.actionable.graphics.set.push(layer.actionable.graphics);
+                this.layers.listen(true);
             };
             Layer.prototype.removeLayer = function (layer) {
                 if (this.hasGraphics())
@@ -3969,6 +4216,7 @@ var Common;
                 this.clearOpponentPlayers();
             };
             Field.prototype.clearPrimaryPlayers = function () {
+                this.primaryPlayers.listen(false);
                 this.primaryPlayers.forEach(function (player, index) {
                     if (Common.Utilities.isNotNullOrUndefined(player.assignment)) {
                         player.assignment.routes.forEach(function (route, index) {
@@ -3978,8 +4226,10 @@ var Common;
                     player.layer.remove();
                 });
                 this.primaryPlayers.removeAll();
+                this.primaryPlayers.listen(true);
             };
             Field.prototype.clearOpponentPlayers = function () {
+                this.opponentPlayers.listen(false);
                 this.opponentPlayers.forEach(function (player, index) {
                     if (Common.Utilities.isNotNullOrUndefined(player.assignment)) {
                         player.assignment.routes.forEach(function (route, index) {
@@ -3989,6 +4239,7 @@ var Common;
                     player.layer.remove();
                 });
                 this.opponentPlayers.removeAll();
+                this.opponentPlayers.listen(true);
             };
             Field.prototype.clearScenario = function () {
                 this.clearPrimaryPlay();
@@ -4577,6 +4828,30 @@ var Common;
                     }
                 }
             };
+            Player.prototype.moveAssignmentByDelta = function (dx, dy) {
+                if (this.assignment) {
+                    // TODO: implement route switching
+                    this.assignment.routes.forEach(function (route, index) {
+                        if (Common.Utilities.isNotNullOrUndefined(route)) {
+                            route.layer.moveByDelta(dx, dy);
+                        }
+                    });
+                }
+            };
+            Player.prototype.dropAssignment = function () {
+                if (this.assignment) {
+                    // TODO: implement route switching
+                    this.assignment.routes.forEach(function (route, index) {
+                        if (Common.Utilities.isNotNullOrUndefined(route)) {
+                            if (route.dragInitialized) {
+                                route.dragInitialized = false;
+                            }
+                            route.drop();
+                            route.draw();
+                        }
+                    });
+                }
+            };
             Player.prototype.getPositionRelativeToBall = function () {
                 return this.graphics.placement.relative;
             };
@@ -4769,7 +5044,7 @@ var Common;
                 this.layer.type = Common.Enums.LayerTypes.PlayerPersonnelLabel;
                 this.selectable = false;
                 this.graphics.snapping = false;
-                this.graphics.setOffsetXY(0, -(this.player.graphics.dimensions.getHeight() / 2) * 0.4);
+                this.graphics.setOffsetXY(0, -(this.player.graphics.dimensions.getHeight() / 2) * 0.1);
                 this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.player));
             }
             PlayerPersonnelLabel.prototype.draw = function () {
@@ -4795,7 +5070,7 @@ var Common;
                 this.layer.type = Common.Enums.LayerTypes.PlayerIndexLabel;
                 this.selectable = false;
                 this.graphics.snapping = false;
-                this.graphics.setOffsetXY(0, (this.player.graphics.dimensions.getHeight() / 2) * 0.4);
+                this.graphics.setOffsetXY(0, (this.player.graphics.dimensions.getHeight() / 2) * 0.6);
                 this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.player));
             }
             PlayerIndexLabel.prototype.draw = function () {
@@ -4819,9 +5094,11 @@ var Common;
                 this.dragInitialized = dragInitialized === true;
                 this.type = Common.Enums.RouteTypes.Generic;
                 this.flippable = true;
+                this.unitType = Team.Enums.UnitTypes.Other;
             }
             Route.prototype.setPlayer = function (player) {
                 this.player = player;
+                this.unitType = this.player.unitType;
                 this.initialize(this.player.field, this.player);
                 this.graphics.initializePlacement(this.player.graphics.placement);
                 if (this.player) {
@@ -4842,6 +5119,7 @@ var Common;
                     throw new Error('Route fromJson(): setPlayer() must be called before serializing from json');
                 this.guid = json.guid;
                 this.type = json.type;
+                this.unitType = json.unitType;
                 // initialize route nodes
                 if (json.nodes) {
                     // Don't listen to changes while initializing the nodes list
@@ -4880,7 +5158,8 @@ var Common;
                 return {
                     nodes: this.nodes.toJson(),
                     type: this.type,
-                    guid: this.guid
+                    guid: this.guid,
+                    unitType: this.unitType
                 };
             };
             Route.prototype.remove = function () {
@@ -5256,8 +5535,26 @@ var Common;
             RoutePath.prototype.initialize = function (field, route) {
                 _super.prototype.initialize.call(this, field, route);
                 this.route = route;
+                this.unitType = this.route.unitType;
                 this.graphics.setOriginalFill(null);
-                this.graphics.setOriginalStroke('black');
+                this.graphics.setOriginalOpacity(1);
+                switch (this.unitType) {
+                    case Team.Enums.UnitTypes.Offense:
+                        this.graphics.setOriginalStroke('#001199');
+                        break;
+                    case Team.Enums.UnitTypes.Defense:
+                        this.graphics.setOriginalStroke('#0063FF');
+                        break;
+                    case Team.Enums.UnitTypes.SpecialTeams:
+                        this.graphics.setOriginalStroke('black');
+                        break;
+                    case Team.Enums.UnitTypes.Other:
+                        this.graphics.setOriginalStroke('#333333');
+                        break;
+                    default:
+                        this.graphics.setOriginalStroke('#22B98F');
+                        break;
+                }
                 this.graphics.setOriginalStrokeWidth(3);
                 this.graphics.initializePlacement(this.route.graphics.placement);
                 this.layer.type = Common.Enums.LayerTypes.PlayerRoutePath;
@@ -5335,6 +5632,8 @@ var Common;
                 this.fromJson(placement.toJson());
             };
             Placement.prototype.updateFromAbsolute = function (ax, ay) {
+                if (Common.Utilities.isNullOrUndefined(this.grid))
+                    throw new Error('Placement updateFromAbsolute(): grid is null or undefined');
                 var coords = this.grid.getCoordinatesFromAbsolute(ax, ay);
                 this.relative.updateFromGridCoordinates(coords.x, coords.y);
                 this.coordinates.update(coords.x, coords.y);
@@ -5799,6 +6098,10 @@ var Common;
                 this.hoverFillOpacity = opacity;
                 return this;
             };
+            Graphics.prototype.setHeight = function (height) {
+                this.dimensions.setHeight(height);
+                return this.attr({ 'height': height });
+            };
             /**
              * Gets the current opacity
              * @return {number} [description]
@@ -5962,6 +6265,9 @@ var Common;
                 else {
                     this.placement.update(placement);
                 }
+                // ensure there is a grid established for the placement object
+                if (Common.Utilities.isNullOrUndefined(this.placement.grid))
+                    this.placement.grid = this.grid;
                 var absCoords = this.grid.getAbsoluteFromCoordinates(this.placement.coordinates.x, this.placement.coordinates.y);
                 this.location.updateFromAbsolute(absCoords.x + this.dimensions.offset.x, absCoords.y + this.dimensions.offset.y);
                 this.refresh();
@@ -6267,7 +6573,7 @@ var Common;
                     // causes unresolved transforms that screw up the placement
                     // (thanks, raphael)
                     this.resetTransform();
-                    this._updateTriangle();
+                    this.cleanTransform();
                 }
             };
             Graphics.prototype.drop = function () {
@@ -6280,19 +6586,23 @@ var Common;
                 if (!this.hasRaphael())
                     return;
                 this.resetTransform();
-                this._updateTriangle();
+                this.cleanTransform();
             };
             // Special case for triangle. Since the triangle is actually a `path` element,
             // the transform functionality doesn't work the same. We have to create a new
             // temporary triangle where the updated triangle's positon should be and then
             // reset the actual raphael path with the temp triangle's new coordinates.
             // For some reason, transform(0,0) doesn't work the same on a path.
-            Graphics.prototype._updateTriangle = function () {
+            Graphics.prototype.cleanTransform = function () {
                 if (this.raphael.data('element-type') == 'triangle') {
                     var tempTriangle = this.paper.drawing.triangle(this.placement.coordinates.x, this.placement.coordinates.y, this.dimensions.getHeight(), false, this.dimensions.getOffsetX(), this.dimensions.getOffsetY());
                     var pathStr = tempTriangle.attr('path').toString();
                     this.raphael.attr({ 'path': pathStr });
                     tempTriangle.remove();
+                }
+                else if (this.raphael.type == 'ellipse') {
+                    var tempEllipse = this.paper.drawing.ellipse(this.placement.coordinates.x, this.placement.coordinates.y, this.dimensions.getWidth(), this.dimensions.getHeight(), false, this.dimensions.getOffsetX(), this.dimensions.getOffsetY());
+                    tempEllipse.remove();
                 }
             };
             return Graphics;
@@ -6490,6 +6800,8 @@ var Common;
                 return this.height;
             };
             Dimensions.prototype.setHeight = function (height) {
+                if (height < 0)
+                    throw new Error('Dimensions setHeight(): height cannot be less than zero. You passed: ' + height);
                 this.height = height;
                 this.calculateDimensions();
             };
@@ -6786,6 +7098,7 @@ var Common;
 /// <reference path='./Collection.ts' />
 /// <reference path='./LinkedList.ts' />
 /// <reference path='./ModifiableCollection.ts' />
+/// <reference path='./Expandable.ts' />
 /// <reference path='./ContextmenuData.ts' />
 /// <reference path='./ActionRegistry.ts' />
 /// <reference path='./Actionable.ts' />
@@ -8186,8 +8499,7 @@ var Playbook;
             }
             EditorLineOfScrimmage.prototype.initialize = function (field) {
                 _super.prototype.initialize.call(this, field);
-                this.graphics.dimensions.offset.x = 0;
-                this.graphics.dimensions.offset.y = 8;
+                this.graphics.dimensions.setOffsetXY(0, 8);
                 this.graphics.dimensions.setHeight(4);
                 this.graphics.selectedFill = 'blue';
             };
@@ -8207,6 +8519,7 @@ var Playbook;
                 //     this
                 // );
                 this.graphics.ondrag(this.dragMove, this.dragStart, this.dragEnd, this);
+                this.onhover(this.hoverIn, this.hoverOut, this);
             };
             // public mousedown(e: any, context: Common.Interfaces.IFieldElement): void {
             //     if (e.keyCode == Common.Input.Which.RightClick) {
@@ -8217,27 +8530,51 @@ var Playbook;
             // public mouseup(e: any, context: Common.Interfaces.IFieldElement): void {
             //     this.graphics.deselect();
             // }
-            EditorLineOfScrimmage.prototype.dragMove = function (dx, dy, posx, posy, e) {
-                var snapDx = this.grid.snapping ? this.grid.snapPixel(dx) : dx;
-                var snapDy = this.grid.snapping ? this.grid.snapPixel(dy) : dy;
-                this.graphics.moveByDelta(this.graphics.placement.coordinates.x, snapDy);
-                this.field.ball.dragging = true;
-                this.field.ball.layer.moveByDelta(this.field.ball.graphics.placement.coordinates.x, snapDy);
-                this.field.primaryPlayers.forEach(function (player, index) {
-                    player.layer.layers.forEach(function (layer) {
-                        layer.moveByDelta(player.graphics.placement.coordinates.x, snapDy);
-                    });
-                });
+            EditorLineOfScrimmage.prototype.hoverIn = function (e) {
+                this.graphics.setHeight(7);
             };
-            EditorLineOfScrimmage.prototype.dragStart = function (e) {
-                this.dragging = true;
+            EditorLineOfScrimmage.prototype.hoverOut = function (e) {
+                this.graphics.setHeight(4);
+            };
+            EditorLineOfScrimmage.prototype.dragMove = function (dx, dy, posx, posy, e) {
+                // Ignore drag motions under specified threshold to prevent
+                // click/mousedown from triggering drag method
+                if (!this.dragging && !this.isOverDragThreshold(dx, dy)) {
+                    return;
+                }
+                else {
+                    this.dragging = true;
+                }
+                this.layer.moveByDelta(0, dy);
+                this.field.ball.dragging = true;
+                this.field.ball.layer.moveByDelta(0, dy);
+                this.field.primaryPlayers.forEach(function (player, index) {
+                    player.layer.moveByDelta(0, dy);
+                    player.moveAssignmentByDelta(0, dy);
+                });
+                this.field.opponentPlayers.forEach(function (player, index) {
+                    player.layer.moveByDelta(0, dy);
+                    player.moveAssignmentByDelta(0, dy);
+                });
+                this.setModified(true);
+            };
+            EditorLineOfScrimmage.prototype.dragStart = function (x, y, e) {
+                _super.prototype.dragStart.call(this, x, y, e);
             };
             EditorLineOfScrimmage.prototype.dragEnd = function (e) {
-                this.drop();
-                this.field.ball.drop();
-                this.field.primaryPlayers.forEach(function (player, index) {
-                    player.drop();
-                });
+                if (this.dragging) {
+                    this.drop();
+                    this.field.ball.drop();
+                    this.field.primaryPlayers.forEach(function (player, index) {
+                        player.drop();
+                        player.dropAssignment();
+                    });
+                    this.field.opponentPlayers.forEach(function (player, index) {
+                        player.drop();
+                        player.dropAssignment();
+                    });
+                    this.dragging = false;
+                }
             };
             return EditorLineOfScrimmage;
         })(Common.Models.LineOfScrimmage);
@@ -8603,16 +8940,8 @@ var Playbook;
                     return;
                 }
                 else if (!e.shiftKey && e.which != Common.Input.Which.RightClick) {
-                    // Update the placement to track for modification
                     this.layer.moveByDelta(dx, dy);
-                    if (this.assignment) {
-                        // TODO: implement route switching
-                        this.assignment.routes.forEach(function (route, index) {
-                            if (Common.Utilities.isNotNullOrUndefined(route)) {
-                                route.layer.moveByDelta(dx, dy);
-                            }
-                        });
-                    }
+                    this.moveAssignmentByDelta(dx, dy);
                     // Update relative coordinates label, if it exists
                     if (this.relativeCoordinatesLabel) {
                         var updatedRelativeCoordinates = [
@@ -8635,18 +8964,7 @@ var Playbook;
             EditorPlayer.prototype.dragEnd = function (e) {
                 if (this.dragging) {
                     this.drop();
-                    if (this.assignment) {
-                        // TODO: implement route switching
-                        this.assignment.routes.forEach(function (route, index) {
-                            if (Common.Utilities.isNotNullOrUndefined(route)) {
-                                if (route.dragInitialized) {
-                                    route.dragInitialized = false;
-                                }
-                                route.drop();
-                                route.draw();
-                            }
-                        });
-                    }
+                    this.dropAssignment();
                     if (this.relativeCoordinatesLabel)
                         this.relativeCoordinatesLabel.layer.hide();
                 }
@@ -9180,7 +9498,6 @@ var Playbook;
             PreviewRoutePath.prototype.initialize = function (field, route) {
                 _super.prototype.initialize.call(this, field, route);
                 this.graphics.setOriginalStrokeWidth(2);
-                this.graphics.setOriginalStroke('#0000ff');
                 this.route.layer.addLayer(this.layer);
             };
             return PreviewRoutePath;
@@ -9200,8 +9517,18 @@ var Playbook;
             }
             EditorRoutePath.prototype.initialize = function (field, route) {
                 _super.prototype.initialize.call(this, field, route);
-                this.graphics.setOriginalStroke('#001199');
                 this.route.layer.addLayer(this.layer);
+            };
+            EditorRoutePath.prototype.draw = function () {
+                _super.prototype.draw.call(this);
+                this.graphics.setAttribute('class', 'painted-fill pointer');
+                this.onhover(this.hoverIn, this.hoverOut, this);
+            };
+            EditorRoutePath.prototype.hoverIn = function (e) {
+                this.graphics.setStrokeWidth(6);
+            };
+            EditorRoutePath.prototype.hoverOut = function (e) {
+                this.graphics.setStrokeWidth(3);
             };
             return EditorRoutePath;
         })(Common.Models.RoutePath);
@@ -9416,6 +9743,11 @@ var Team;
                 this.records = new Team.Models.TeamRecordCollection();
                 var self = this;
                 this.onModified(function (data) { });
+                this.associable = [
+                    'leagues',
+                    'conferences',
+                    'divisions'
+                ];
             }
             TeamModel.prototype.toJson = function () {
                 return $.extend({
@@ -9474,7 +9806,7 @@ var Team;
                 }
             };
             return TeamModelCollection;
-        })(Common.Models.Collection);
+        })(Common.Models.ActionableCollection);
         Models.TeamModelCollection = TeamModelCollection;
     })(Models = Team.Models || (Team.Models = {}));
 })(Team || (Team = {}));
@@ -10381,7 +10713,16 @@ var League;
             function LeagueModel() {
                 _super.call(this, Common.Enums.ImpaktDataTypes.League);
                 _super.prototype.setContext.call(this, this);
+                this.associable = [
+                    'conferences',
+                    'divisions',
+                    'teams'
+                ];
             }
+            LeagueModel.prototype.copy = function (newLeague) {
+                var copyLeague = newLeague || new League.Models.LeagueModel();
+                return _super.prototype.copy.call(this, copyLeague, this);
+            };
             LeagueModel.prototype.toJson = function () {
                 return $.extend({
                     name: this.name
@@ -10409,13 +10750,97 @@ var League;
                 _super.call(this);
             }
             return LeagueModelCollection;
-        })(Common.Models.Collection);
+        })(Common.Models.ActionableCollection);
         Models.LeagueModelCollection = LeagueModelCollection;
+    })(Models = League.Models || (League.Models = {}));
+})(League || (League = {}));
+/// <reference path='./models.ts' />
+var League;
+(function (League) {
+    var Models;
+    (function (Models) {
+        var Conference = (function (_super) {
+            __extends(Conference, _super);
+            function Conference() {
+                _super.call(this, Common.Enums.ImpaktDataTypes.Conference);
+                this.name = 'Untitled';
+                this.league = null;
+                this.leagueGuid = '';
+                this.associable = [
+                    'leagues',
+                    'divisions',
+                    'teams'
+                ];
+            }
+            Conference.prototype.copy = function (newConference) {
+                var copyConference = newConference || new League.Models.Conference();
+                return _super.prototype.copy.call(this, copyConference, this);
+            };
+            Conference.prototype.toJson = function () {
+                return $.extend({
+                    name: this.name,
+                    png: this.png,
+                    leagueGuid: this.leagueGuid
+                }, _super.prototype.toJson.call(this));
+            };
+            Conference.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.name = json.name;
+                this.png = json.png;
+                this.leagueGuid = json.leagueGuid;
+                _super.prototype.fromJson.call(this, json);
+            };
+            Conference.prototype.setLeague = function (league) {
+                this.league = league;
+                this.leagueGuid = this.league ? this.league.guid : '';
+            };
+            return Conference;
+        })(Common.Models.AssociableEntity);
+        Models.Conference = Conference;
+    })(Models = League.Models || (League.Models = {}));
+})(League || (League = {}));
+/// <reference path='./models.ts' />
+var League;
+(function (League) {
+    var Models;
+    (function (Models) {
+        var ConferenceCollection = (function (_super) {
+            __extends(ConferenceCollection, _super);
+            function ConferenceCollection() {
+                _super.call(this);
+            }
+            ConferenceCollection.prototype.toJson = function () {
+                return {
+                    guid: this.guid,
+                    conferences: _super.prototype.toJson.call(this)
+                };
+            };
+            ConferenceCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.guid = json.guid;
+                var conferenceArray = json.conferences || [];
+                for (var i = 0; i < conferenceArray.length; i++) {
+                    var rawConferenceModel = conferenceArray[i];
+                    if (Common.Utilities.isNullOrUndefined(rawConferenceModel)) {
+                        continue;
+                    }
+                    var conferenceModel = new League.Models.Conference();
+                    conferenceModel.fromJson(rawConferenceModel);
+                    this.add(conferenceModel);
+                }
+            };
+            return ConferenceCollection;
+        })(Common.Models.ActionableCollection);
+        Models.ConferenceCollection = ConferenceCollection;
     })(Models = League.Models || (League.Models = {}));
 })(League || (League = {}));
 /// <reference path='../league.ts' />
 /// <reference path='./LeagueModel.ts' />
 /// <reference path='./LeagueModelCollection.ts' />
+/// <reference path='./Conference.ts' />
+/// <reference path='./ConferenceCollection.ts' />
 /// <reference path='../modules.ts' />
 /// <reference path='./models/models.ts' />
 /// <reference path='../modules.ts' />
@@ -10958,6 +11383,20 @@ impakt.common.associations.service('_associations', [
             return d.promise;
         };
         /**
+        * Delete association
+        */
+        this.deleteAssociation = function (fromEntity, toEntity) {
+            var d = $q.defer();
+            impakt.context.Associations.associations.disassociate(fromEntity, toEntity);
+            this.updateAssociations()
+                .then(function () {
+                d.resolve();
+            }, function (err) {
+                d.reject(err);
+            });
+            return d.promise;
+        };
+        /**
         * Create association
         */
         this.createAssociation = function (fromEntity, toEntity) {
@@ -11004,11 +11443,6 @@ impakt.common.associations.service('_associations', [
             // NOTE: the return type of this function must mimic the typed contents
             // of this results object
             var results = new Common.Models.AssociationResults();
-            results.playbooks = new Common.Models.PlaybookModelCollection(Team.Enums.UnitTypes.Mixed);
-            results.plays = new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed);
-            results.formations = new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed);
-            results.personnel = new Team.Models.PersonnelCollection(Team.Enums.UnitTypes.Mixed);
-            results.assignmentGroups = new Common.Models.AssignmentGroupCollection(Team.Enums.UnitTypes.Mixed);
             //
             // Clients of this service should expect to receive back
             // a resulting set of associations, even if the collections
@@ -11044,6 +11478,11 @@ impakt.common.associations.service('_associations', [
                         if (playbook_1)
                             results.playbooks.add(playbook_1);
                         break;
+                    case Common.Enums.ImpaktDataTypes.Scenario:
+                        var scenario = impakt.context.Playbook.scenarios.get(guid);
+                        if (scenario)
+                            results.scenarios.add(scenario);
+                        break;
                     case Common.Enums.ImpaktDataTypes.Play:
                         var play = impakt.context.Playbook.plays.get(guid);
                         if (play)
@@ -11064,12 +11503,64 @@ impakt.common.associations.service('_associations', [
                         if (assignmentGroup)
                             results.assignmentGroups.add(assignmentGroup);
                         break;
+                    case Common.Enums.ImpaktDataTypes.League:
+                        var league = impakt.context.League.leagues.get(guid);
+                        if (league)
+                            results.leagues.add(league);
+                        break;
+                    case Common.Enums.ImpaktDataTypes.Conference:
+                        var conference = impakt.context.League.conferences.get(guid);
+                        if (conference)
+                            results.conferences.add(conference);
+                        break;
                 }
             }
             return results;
         };
         this.associationExists = function (fromInternalKey, toInternalKey) {
             return this.associations.associationExists(fromInternalKey, toInternalKey);
+        };
+        this.getContextDataByKey = function (key) {
+            if (Common.Utilities.isNullOrUndefined(key))
+                throw new Error('_associations getContextDataByKey(): key is null or undefined');
+            var collection;
+            switch (key) {
+                case 'playbooks':
+                    collection = impakt.context.Playbook.playbooks;
+                    break;
+                case 'scenarios':
+                    collection = impakt.context.Playbook.scenarios;
+                    break;
+                case 'plays':
+                    collection = impakt.context.Playbook.plays;
+                    break;
+                case 'formations':
+                    collection = impakt.context.Playbook.formations;
+                    break;
+                case 'personnel':
+                    collection = impakt.context.Team.personnel;
+                    break;
+                case 'assignmentGroups':
+                    collection = impakt.context.Playbook.assignmentGroups;
+                    break;
+                case 'leagues':
+                    collection = impakt.context.League.leagues;
+                    break;
+                case 'conferences':
+                    collection = impakt.context.League.conferences;
+                    break;
+                case 'teams':
+                    collection = impakt.context.Team.teams;
+                    break;
+            }
+            var parsedCollection = new Common.Models.ActionableCollection();
+            if (Common.Utilities.isNotNullOrUndefined(collection)) {
+                // create another reference of the entity into the parsed collection
+                collection.forEach(function (element, index) {
+                    parsedCollection.add(element, false);
+                });
+            }
+            return parsedCollection;
         };
     }]);
 /// <reference path='../common.mdl.ts' />
@@ -11119,6 +11610,19 @@ impakt.common.context.factory('__context', ['$q',
             onReady: onReady,
             onInitializing: onInitializing
         };
+        if (!impakt.context.Actionable)
+            impakt.context.Actionable = {};
+        if (!impakt.context.Organization)
+            impakt.context.Organization = {};
+        if (!impakt.context.Associations) {
+            impakt.context.Associations = {};
+        }
+        if (!impakt.context.Playbook)
+            impakt.context.Playbook = {};
+        if (!impakt.context.Team)
+            impakt.context.Team = {};
+        if (!impakt.context.League)
+            impakt.context.League = {};
         function initialize(context) {
             // notify listeners that context initialization
             // has begun
@@ -11126,17 +11630,6 @@ impakt.common.context.factory('__context', ['$q',
             var d = $q.defer();
             console.log('Making application context initialization requests');
             var organizationKey = __localStorage.getOrganizationKey();
-            if (!context.Associations) {
-                context.Associations = {};
-                context.Associations.associations = new Common.Models.AssociationCollection(organizationKey);
-                context.Associations.creation = new Common.Models.AssociationCollection(organizationKey);
-            }
-            if (!context.Playbook)
-                context.Playbook = {};
-            if (!context.Team)
-                context.Team = {};
-            if (!context.League)
-                context.League = {};
             /**
              *
              *
@@ -11145,33 +11638,43 @@ impakt.common.context.factory('__context', ['$q',
              *
              */
             /**
+             * Organization context
+             */
+            // Set in user.srv
+            // impakt.context.Organization.current = new User.Models.Organization();
+            /**
+             *
+             *
+             * Actionable context
+             *
+             *
+             */
+            impakt.context.Actionable.selected = new Common.Models.ActionableCollection();
+            /**
+             *
+             *
              * Association context
+             *
+             *
              */
-            // Already set
+            impakt.context.Associations.associations = new Common.Models.AssociationCollection(organizationKey);
+            impakt.context.Associations.creation = new Common.Models.AssociationCollection(organizationKey);
             /**
+             *
+             *
              * Playbook context
+             *
+             *
              */
-            context.Playbook.playbooks = new Common.Models.PlaybookModelCollection(Team.Enums.UnitTypes.Mixed);
-            context.Playbook.formations = new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed);
-            context.Playbook.assignmentGroups = new Common.Models.AssignmentGroupCollection(Team.Enums.UnitTypes.Mixed);
-            context.Playbook.plays = new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed);
-            context.Playbook.scenarios = new Common.Models.ScenarioCollection(Team.Enums.UnitTypes.Other);
-            /**
-             * Team context
-             */
-            context.Team.teams = new Team.Models.TeamModelCollection(Team.Enums.TeamTypes.Mixed);
-            context.Team.personnel = new Team.Models.PersonnelCollection(Team.Enums.UnitTypes.Mixed);
-            context.Team.positionDefaults = new Team.Models.PositionDefault();
-            context.Team.unitTypes = _playbook.getUnitTypes();
-            context.Team.unitTypesEnum = _playbook.getUnitTypesEnum();
-            /**
-             * League context
-             */
-            context.League.leagues = new League.Models.LeagueModelCollection();
+            impakt.context.Playbook.playbooks = new Common.Models.PlaybookModelCollection(Team.Enums.UnitTypes.Mixed);
+            impakt.context.Playbook.formations = new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed);
+            impakt.context.Playbook.assignmentGroups = new Common.Models.AssignmentGroupCollection(Team.Enums.UnitTypes.Mixed);
+            impakt.context.Playbook.plays = new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed);
+            impakt.context.Playbook.scenarios = new Common.Models.ScenarioCollection(Team.Enums.UnitTypes.Other);
             /**
              * Module-specific context data; plays currently open in the editor
              */
-            context.Playbook.editor = {
+            impakt.context.Playbook.editor = {
                 plays: new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed),
                 tabs: new Common.Models.TabCollection(),
                 scenarios: new Common.Models.ScenarioCollection(Team.Enums.UnitTypes.Other)
@@ -11179,10 +11682,40 @@ impakt.common.context.factory('__context', ['$q',
             /**
              * A creation context for new plays and formations.
              */
-            context.Playbook.creation = {
+            impakt.context.Playbook.creation = {
                 plays: new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed),
                 formations: new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed),
                 scenarios: new Common.Models.ScenarioCollection(Team.Enums.UnitTypes.Other)
+            };
+            /**
+             *
+             *
+             * Team context
+             *
+             *
+             */
+            impakt.context.Team.teams = new Team.Models.TeamModelCollection(Team.Enums.TeamTypes.Mixed);
+            impakt.context.Team.personnel = new Team.Models.PersonnelCollection(Team.Enums.UnitTypes.Mixed);
+            impakt.context.Team.positionDefaults = new Team.Models.PositionDefault();
+            impakt.context.Team.unitTypes = _playbook.getUnitTypes();
+            impakt.context.Team.unitTypesEnum = _playbook.getUnitTypesEnum();
+            /**
+             *
+             *
+             * League context
+             *
+             *
+             */
+            impakt.context.League.leagues = new League.Models.LeagueModelCollection();
+            impakt.context.League.conferences = new League.Models.ConferenceCollection();
+            /**
+             * A creation context for new leagues, conferences, divisions, and teams
+             */
+            impakt.context.League.creation = {
+                leagues: new League.Models.LeagueModelCollection(),
+                conferences: new League.Models.ConferenceCollection(),
+                //divisions: new League.Models.DivisionCollection(), // TODO @theBull
+                teams: new Team.Models.TeamModel(Team.Enums.TeamTypes.Other)
             };
             async.parallel([
                 // Retrieve associations
@@ -11204,6 +11737,17 @@ impakt.common.context.factory('__context', ['$q',
                         context.League.leagues = leagues;
                         __notifications.success('Leagues successfully loaded');
                         callback(null, leagues);
+                    }, function (err) {
+                        callback(err);
+                    });
+                },
+                // Retrieve conferences
+                // Retrieve conferences
+                function (callback) {
+                    _league.getConferences().then(function (conferences) {
+                        context.League.conferences = conferences;
+                        __notifications.success('Conferences successfully loaded');
+                        callback(null, conferences);
                     }, function (err) {
                         callback(err);
                     });
@@ -12498,13 +13042,7 @@ impakt.common.ui.controller('assignmentGroupItem.ctrl', [
          *
          */
         $scope.toggleSelection = function (assignmentGroup) {
-            impakt.context.Playbook.assignmentGroups.toggleSelect(assignmentGroup);
-            if (assignmentGroup.selected) {
-                _details.selectedElements.only(assignmentGroup);
-            }
-            else {
-                _details.selectedElements.remove(assignmentGroup.guid);
-            }
+            _details.toggleSelection(assignmentGroup);
         };
     }]).directive('assignmentGroupItem', [
     function () {
@@ -12526,6 +13064,265 @@ impakt.common.ui.controller('assignmentGroupItem.ctrl', [
         };
     }]);
 /// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('associationInput.ctrl', [
+    '$scope',
+    '_associations',
+    function ($scope, _associations) {
+        $scope.possibleAssociations = new Common.Models.ActionableCollection();
+        $scope.associatedEntities = new Common.Models.ActionableCollection();
+        $scope.possibleAssociationsListVisible = false;
+        $scope.selectedPossibleAssociationIndex = 0;
+        $scope.selectedPossibleAssociation = null;
+        $scope.search = {
+            text: ''
+        };
+        $scope.$watch('search', function (newVal, oldVal) {
+            $scope.possibleAssociationsListVisible = newVal.text.length > 0;
+        }, true);
+        $scope.addAssociation = function (toEntity) {
+            _checkEntities(toEntity);
+            _associations.createAssociation($scope.entity, toEntity).then(function () {
+                // we need to remove the newly added entity from the list of possible
+                // associations...
+                var newlyAssociated = $scope.possibleAssociations.remove(toEntity.guid);
+                $scope.selectedPossibleAssociation = null;
+                if (Common.Utilities.isNotNullOrUndefined(newlyAssociated)) {
+                    // ...but once we remove the newly added entity, we want to keep it some where
+                    // in case we remove the entity's association and want it to reappear in the
+                    // list of possible associations...
+                    $scope.associatedEntities.add(newlyAssociated);
+                }
+                $scope.search.text = '';
+            }, function (err) {
+                $scope.search.text = '';
+            });
+        };
+        $scope.removeAssociation = function (toEntity) {
+            _checkEntities(toEntity);
+            _associations.deleteAssociation($scope.entity, toEntity).then(function () {
+                // ...we just deleted an association
+                var removedAssociation = $scope.associatedEntities.remove(toEntity.guid);
+                if (Common.Utilities.isNotNullOrUndefined(removedAssociation)) {
+                    // ...but once we remove the newly added entity, we want to keep it some where
+                    // in case we remove the entity's association and want it to reappear in the
+                    // list of possible associations...
+                    $scope.possibleAssociations.add(removedAssociation);
+                }
+                $scope.search.text = '';
+            }, function (err) {
+                $scope.search.text = '';
+            });
+        };
+        $scope.addSelectedPossibleAssociation = function () {
+            if (Common.Utilities.isNullOrUndefined($scope.selectedPossibleAssociation))
+                return;
+            $scope.addAssociation($scope.selectedPossibleAssociation);
+            $scope.hidePossibleAssociationsList();
+        };
+        $scope.hidePossibleAssociationsList = function () {
+            $scope.selectedPossibleAssociationIndex = 0;
+            $scope.possibleAssociationsListVisible = false;
+            $scope.selectedPossibleAssociation = null;
+        };
+        $scope.showPossibleAssociationsList = function () {
+            $scope.selectedPossibleAssociationIndex = 0;
+            $scope.possibleAssociationsListVisible = true;
+            $scope.hoverInitialPossibleAssociation();
+        };
+        $scope.hoverInitialPossibleAssociation = function () {
+            if (Common.Utilities.isNullOrUndefined($scope.possibleAssociations))
+                return;
+            var size = $scope.possibleAssociations.size();
+            if (size > 0) {
+                $scope.selectedPossibleAssociation = $scope.possibleAssociations.first();
+                if (Common.Utilities.isNotNullOrUndefined($scope.selectedPossibleAssociation)) {
+                    $scope.possibleAssociations.hoverIn($scope.selectedPossibleAssociation);
+                }
+            }
+        };
+        $scope.hoverNextPossibleAssociation = function () {
+            if (Common.Utilities.isNullOrUndefined($scope.possibleAssociations))
+                return;
+            if (!$scope.possibleAssociationsListVisible) {
+                $scope.showPossibleAssociationsList();
+                return;
+            }
+            var size = $scope.possibleAssociations.size();
+            if ($scope.selectedPossibleAssociationIndex < size - 2) {
+                $scope.selectedPossibleAssociationIndex++;
+                $scope.selectedPossibleAssociation = $scope.possibleAssociations.getIndex($scope.selectedPossibleAssociationIndex);
+                if (Common.Utilities.isNotNullOrUndefined($scope.selectedPossibleAssociation)) {
+                    $scope.possibleAssociations.hoverIn($scope.selectedPossibleAssociation);
+                }
+            }
+        };
+        $scope.hoverPreviousPossibleAssociation = function () {
+            if (Common.Utilities.isNullOrUndefined($scope.possibleAssociations))
+                return;
+            if ($scope.selectedPossibleAssociationIndex > 0) {
+                $scope.selectedPossibleAssociationIndex--;
+                $scope.selectedPossibleAssociation = $scope.possibleAssociations.getIndex($scope.selectedPossibleAssociationIndex);
+                if (Common.Utilities.isNotNullOrUndefined($scope.selectedPossibleAssociation)) {
+                    $scope.possibleAssociations.hoverIn($scope.selectedPossibleAssociation);
+                }
+            }
+            else {
+                if ($scope.possibleAssociationsListVisible)
+                    $scope.hidePossibleAssociationsList();
+            }
+        };
+        function _checkEntities(toEntity) {
+            if (Common.Utilities.isNullOrUndefined($scope.entity))
+                throw new Error('association-input addAssociation(): entity is null or undefined');
+            if (Common.Utilities.isNullOrUndefined(toEntity))
+                throw new Error('association-input addAssociation(): toEntity is null or undefined');
+        }
+    }])
+    .directive('associationInput', [
+    '_associations',
+    function (_associations) {
+        return {
+            restrict: 'E',
+            controller: 'associationInput.ctrl',
+            templateUrl: 'common/ui/association-input/association-input.tpl.html',
+            transclude: true,
+            replace: false,
+            scope: {
+                entity: '=',
+                associations: '=',
+                key: '@'
+            },
+            link: function ($scope, $element, attrs) {
+                if (Common.Utilities.isNullOrUndefined($scope.key))
+                    throw new Error('association-input link(): key is required and is null or undefined');
+                $scope.possibleAssociations = _associations.getContextDataByKey($scope.key);
+                // remove any possible associations from the list if they already exist in the
+                // associations collection, to prevent adding a duplicate association and to
+                // just not suck in general...
+                if (Common.Utilities.isNotNullOrUndefined($scope.associations)) {
+                    $scope.associatedEntities = $scope.associations[$scope.key];
+                    if (Common.Utilities.isNotNullOrUndefined($scope.associatedEntities)) {
+                        $scope.associatedEntities.forEach(function (associated, index) {
+                            $scope.possibleAssociations.remove(associated.guid);
+                        });
+                    }
+                }
+                var $input = $element.find('.associations-input-text');
+                if (Common.Utilities.isNotNullOrUndefined($input)) {
+                    $input.focus(function (e) {
+                        $scope.showPossibleAssociationsList();
+                        $scope.$apply();
+                    });
+                    $input.blur(function (e) {
+                        $scope.hidePossibleAssociationsList();
+                        $scope.$apply();
+                    });
+                    $input.keyup(function (e) {
+                        console.log(e.keyCode);
+                        e.preventDefault();
+                        if (e.keyCode == Common.Input.Which.Esc) {
+                            $scope.possibleAssociationsListVisible = false;
+                        }
+                        else if (e.keyCode == Common.Input.Which.Up) {
+                            $scope.hoverPreviousPossibleAssociation();
+                        }
+                        else if (e.keyCode == Common.Input.Which.Down) {
+                            $scope.hoverNextPossibleAssociation();
+                        }
+                        else if (e.keyCode == Common.Input.Which.Enter) {
+                            $scope.addSelectedPossibleAssociation();
+                        }
+                        $scope.$apply();
+                    });
+                    $scope.$on("$destroy", function () {
+                        $input.off('focus').off('blur').off('keyup)');
+                    });
+                }
+            }
+        };
+    }
+])
+    .directive('associationCandidateItem', [
+    function () {
+        return {
+            restrict: 'E',
+            controller: 'associationInput.ctrl',
+            templateUrl: 'common/ui/association-input/association-candidate-item.tpl.html',
+            transclude: true,
+            replace: false,
+            link: function ($scope, $element, attrs) {
+            }
+        };
+    }
+])
+    .directive('associationTag', [
+    function () {
+        return {
+            restrict: 'E',
+            controller: 'associationInput.ctrl',
+            require: '^associationInput',
+            templateUrl: 'common/ui/association-input/association-tag.tpl.html',
+            transclude: true,
+            replace: false,
+            link: function ($scope, $element, attrs) {
+            }
+        };
+    }
+]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('conferenceItem.ctrl', [
+    '$scope',
+    '_details',
+    '_league',
+    '_associations',
+    function ($scope, _details, _league, _associations) {
+        $scope.conference;
+        $scope.element;
+        $scope.getLeague = function (conference) {
+            return Common.Utilities.isNotNullOrUndefined(conference) ?
+                (Common.Utilities.isNotNullOrUndefined(conference.league) ?
+                    conference.league.name : 'No league') :
+                'No league';
+        };
+        /**
+         *
+         *	Item selection
+         *
+         */
+        $scope.toggleSelection = function (conference) {
+            _details.toggleSelection(conference);
+        };
+    }]).directive('conferenceItem', [
+    '_associations',
+    function (_associations) {
+        /**
+         * conference-item directive
+         */
+        return {
+            restrict: 'E',
+            controller: 'conferenceItem.ctrl',
+            scope: {
+                conference: '='
+            },
+            templateUrl: 'common/ui/conference-item/conference-item.tpl.html',
+            transclude: true,
+            replace: true,
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                        var associations = _associations.getAssociated($scope.conference);
+                        if (Common.Utilities.isNotNullOrUndefined(associations) &&
+                            associations.leagues.hasElements()) {
+                            $scope.conference.setLeague(associations.leagues.first());
+                        }
+                    }
+                };
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
 impakt.common.ui.directive('details', [
     function () {
         return {
@@ -12543,87 +13340,9 @@ impakt.common.ui.directive('details', [
 /// <reference path='../ui.mdl.ts' />
 impakt.common.ui.controller('expandable.ctrl', [
     '$scope',
-    function ($scope) {
-        $scope.direction;
-        $scope.min = 3; // in em's
-        $scope.max = 32; // in em's
-        $scope.$element;
-        $scope.em = parseInt($('body').css('font-size'));
-        $scope.collapsed = true;
-        $scope.ready = false;
-        $scope.url;
-        $scope.handle = {
-            position: '',
-            collapsed: '',
-            expanded: '',
-            class: ''
-        };
-        $scope.toggle = function () {
-            $scope.collapsed = !$scope.collapsed;
-            if ($scope.collapsed) {
-                $scope.$element.removeClass($scope.getMaxClass()).addClass($scope.getMinClass());
-            }
-            else {
-                $scope.$element.removeClass($scope.getMinClass()).addClass($scope.getMaxClass());
-            }
-            $scope.setHandleClass();
-        };
-        $scope.getMinClass = function () {
-            return 'width' + $scope.min;
-        };
-        $scope.getMaxClass = function () {
-            return 'width' + $scope.max;
-        };
-        $scope.getInitialClass = function () {
-            return $scope.collapsed ? $scope.getMinClass() : $scope.getMaxClass();
-        };
-        $scope.setInitialClass = function () {
-            $scope.$element.addClass($scope.getInitialClass());
-        };
-        $scope.initializeToggleHandle = function () {
-            switch ($scope.direction) {
-                case 'left':
-                    $scope.handle.position = 'top0 left0';
-                    $scope.handle.expanded = 'glyphicon-chevron-right';
-                    $scope.handle.collapsed = 'glyphicon-chevron-left';
-                    break;
-                case 'right':
-                    $scope.handle.position = 'top0 right0';
-                    $scope.handle.expanded = 'glyphicon-chevron-left';
-                    $scope.handle.collapsed = 'glyphicon-chevron-right';
-                    break;
-                case 'top':
-                    $scope.handle.position = 'top0 left0';
-                    $scope.handle.expanded = 'glyphicon-chevron-up';
-                    $scope.handle.collapsed = 'glyphicon-chevron-down';
-                    break;
-                case 'bottom':
-                    $scope.handle.position = 'bottom0 left0';
-                    $scope.handle.expanded = 'glyphicon-chevron-down';
-                    $scope.handle.collapsed = 'glyphicon-chevron-up';
-                    break;
-            }
-            $scope.setHandleClass();
-        };
-        $scope.setHandleClass = function () {
-            $scope.handle.class = $scope.collapsed ?
-                $scope.handle.collapsed : $scope.handle.expanded;
-        };
-        /**
-         * Deprecated
-         * @param {[type]} value [description]
-         */
-        $scope.getWidth = function (value) {
-            return $scope.em * parseInt(value);
-        };
-        /**
-         * Deprecated
-         */
-        $scope.getInitialWidth = function () {
-            return $scope.collapsed ?
-                $scope.getWidth($scope.min) :
-                $scope.getWidth($scope.max);
-        };
+    '_expandable',
+    function ($scope, _expandable) {
+        $scope.expandable;
     }]).directive('expandable', [
     '$compile',
     function ($compile) {
@@ -12641,12 +13360,15 @@ impakt.common.ui.controller('expandable.ctrl', [
             compile: function ($element, attrs) {
                 return {
                     pre: function ($scope, $element, attrs, controller, transcludeFn) {
-                        $scope.$element = $element;
+                        $scope.expandable = new Common.Models.Expandable($element);
+                        $scope.expandable.url = $scope.url;
+                        $scope.expandable.direction = $scope.direction;
+                        $scope.expandable.collapsed = Boolean($scope.collapsed) === false ? false : true;
                         /**
                          * Set initial class on the element for proper sizing
                          */
-                        $scope.setInitialClass();
-                        $scope.ready = true;
+                        $scope.expandable.setInitialClass();
+                        $scope.expandable.ready = true;
                     },
                     post: function ($scope, $element, attrs, controller, transcludeFn) {
                     }
@@ -12662,10 +13384,10 @@ impakt.common.ui.controller('expandable.ctrl', [
             transclude: true,
             replace: true,
             require: '^expandable',
-            template: "<div class='width3 pad {{handle.position}} \
+            template: "<div class='width3 pad {{expandable.handle.position}} \
 			gray-bg-3-hover pointer font- white'\
-			ng-click='toggle()'>\
-				<div class='glyphicon {{handle.class}}'></div>\
+			ng-click='expandable.toggle()'>\
+				<div class='glyphicon {{expandable.handle.class}}'></div>\
 			</div>'",
             compile: function ($element, attrs) {
                 return {
@@ -12675,13 +13397,18 @@ impakt.common.ui.controller('expandable.ctrl', [
                         /**
                          * Initialize the toggle handle
                          */
-                        $scope.initializeToggleHandle();
+                        $scope.expandable.initializeToggleHandle();
                     }
                 };
             }
         };
     }
 ]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.service('_expandable', [
+    function () {
+        this.elements = new Common.Models.Collection();
+    }]);
 /// <reference path='../ui.mdl.ts' />
 impakt.common.ui.controller('formationItem.ctrl', [
     '$scope',
@@ -12696,13 +13423,7 @@ impakt.common.ui.controller('formationItem.ctrl', [
          *
          */
         $scope.toggleSelection = function (formation) {
-            impakt.context.Playbook.formations.toggleSelect(formation);
-            if (formation.selected) {
-                _details.selectedElements.only(formation);
-            }
-            else {
-                _details.selectedElements.remove(formation.guid);
-            }
+            _details.toggleSelection(formation);
         };
         $scope.openInEditor = function (formation) {
             _playbook.editFormation(formation);
@@ -12958,6 +13679,129 @@ impakt.common.ui.controller('grid.ctrl', [
         };
     }]);
 /// <reference path='../ui.mdl.ts' />
+impakt.common.ui.directive('ngPlaceholder', [
+    '$sce',
+    function ($sce) {
+        return {
+            restrict: 'A',
+            require: '?ngModel',
+            scope: {
+                ngPlaceholder: '@'
+            },
+            link: function ($scope, $element, attrs, ngModel) {
+                if (!$scope.ngPlaceholder || !attrs)
+                    return;
+                $element.focus(function () {
+                    _clear();
+                }).blur(function () {
+                    _setPlaceholder();
+                }).keyup(function (e) {
+                    if (e.keyCode == Common.Input.Which.Backspace) {
+                        if (_isNgModelSet()) {
+                            _clear();
+                        }
+                    }
+                });
+                $scope.$on("$destroy", function () {
+                    $element.off('focus').off('blur').off('keyup');
+                });
+                function _clear() {
+                    $element.val('');
+                    _setNgModel('');
+                    $element.removeAttr('style');
+                }
+                function _setNgModel(val) {
+                    ngModel.$setViewValue(val);
+                }
+                function _setPlaceholder() {
+                    if (!_isNgModelSet()) {
+                        $element.css({
+                            color: 'rgba(181, 182, 183, 0.8)',
+                            '-webkit-text-fill-color': 'rgba(181, 182, 183, 0.8)',
+                            'font-style': 'italic'
+                        });
+                        $element.val($scope.ngPlaceholder);
+                    }
+                    else {
+                        $element.removeAttr('style');
+                    }
+                }
+                function _isNgModelSet() {
+                    return !isNaN(parseInt(ngModel.$viewValue));
+                }
+                if (Common.Utilities.isNotNullOrUndefined(ngModel) &&
+                    Common.Utilities.isNotNullOrUndefined(attrs.ngModel)) {
+                    var modelValue = ngModel.$viewValue || null;
+                    $scope.$watch(attrs.ngModel, function (newVal, oldVal) {
+                        _setPlaceholder();
+                    }, true);
+                    if (Common.Utilities.isNullOrUndefined(modelValue)) {
+                        _setPlaceholder();
+                    }
+                    else {
+                        $element.removeClass('font-gray').addClass('font-white');
+                        // Specify how UI should be updated
+                        ngModel.$render = function () {
+                            $element.val($sce.getTrustedHtml(ngModel.$viewValue || ''));
+                        };
+                    }
+                }
+            }
+        };
+    }
+]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('leagueItem.ctrl', [
+    '$scope',
+    '$state',
+    '_details',
+    '_league',
+    '_associations',
+    function ($scope, $state, _details, _league, _associations) {
+        $scope.league;
+        $scope.element;
+        /**
+         *
+         *	Item selection
+         *
+         */
+        $scope.toggleSelection = function (league) {
+            if (!$state.is('league.drilldown.league')) {
+                _league.toLeagueDrilldown(league);
+            }
+            else {
+                _details.toggleSelection(league);
+            }
+        };
+    }]).directive('leagueItem', [
+    '_associations',
+    function (_associations) {
+        /**
+         * league-item directive
+         */
+        return {
+            restrict: 'E',
+            controller: 'leagueItem.ctrl',
+            scope: {
+                league: '='
+            },
+            templateUrl: 'common/ui/league-item/league-item.tpl.html',
+            transclude: true,
+            replace: true,
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                        var associations = _associations.getAssociated($scope.league);
+                        if (Common.Utilities.isNotNullOrUndefined(associations)) {
+                        }
+                    }
+                };
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
 impakt.common.ui.controller('playItem.ctrl', [
     '$scope',
     '_details',
@@ -12971,13 +13815,7 @@ impakt.common.ui.controller('playItem.ctrl', [
          *
          */
         $scope.toggleSelection = function (play) {
-            impakt.context.Playbook.plays.toggleSelect(play);
-            if (play.selected) {
-                _details.selectedElements.only(play);
-            }
-            else {
-                _details.selectedElements.remove(play.guid);
-            }
+            _details.toggleSelection(play);
         };
         $scope.openInEditor = function (play) {
             _playbook.editPlay(play);
@@ -13358,12 +14196,17 @@ impakt.common.ui.quotes.service('_quotes', [
             new Common.Models.Quote("It's not the will to win, but the will to prepare \
 			to win that makes the difference.", "Bear Bryant"),
             new Common.Models.Quote("We love football.", "Impakt Athletics"),
-            new Common.Models.Quote("To me football is like family. We must strive together.", "Mike Lynch"),
             new Common.Models.Quote("Football doesn't build character. It eliminates weak ones.", "Darrell Royal"),
             new Common.Models.Quote("Football is like life. It requires perseverance, self denial \
 			hard work, sacrifice, dedication, and respect for authority.", "Vince Lombardi"),
             new Common.Models.Quote("If tomorrow wasn't promised, what would you give for today?", "Ray Lewis"),
-            new Common.Models.Quote("I'm just here so I don't get fined.", "Marshawn Lynch")
+            new Common.Models.Quote("I'm just here so I don't get fined.", "Marshawn Lynch"),
+            new Common.Models.Quote("I wish I knew about [Impakt] 10 years ago, I wouldn't have so much damn gray hair now!", "Coach, USC"),
+            new Common.Models.Quote("To me, this is a no brainer.", "Oregon"),
+            new Common.Models.Quote("People are going to love this", "Harvard"),
+            new Common.Models.Quote("This is really damn cool. I know I want it.", "Arizona"),
+            new Common.Models.Quote("This is awesome. It fits perfectly with what we're trying to do.", "Michigan"),
+            new Common.Models.Quote("This is really slick. I think the way you guys approached this was brilliant.", "Dallas Cowboys")
         ];
         this.getRandomQuote = function () {
             var index = Common.Utilities.randomInt(0, quotes.length - 1);
@@ -13439,13 +14282,7 @@ impakt.common.ui.controller('scenarioItem.ctrl', [
          *
          */
         $scope.toggleSelection = function (scenario) {
-            impakt.context.Playbook.scenarios.toggleSelect(scenario);
-            if (scenario.selected) {
-                _details.selectedElements.only(scenario);
-            }
-            else {
-                _details.selectedElements.remove(scenario.guid);
-            }
+            _details.toggleSelection(scenario);
         };
         $scope.openInEditor = function (scenario) {
             _playbook.editScenario(scenario);
@@ -13762,6 +14599,23 @@ impakt.common.ui.controller('stepper.ctrl', [
         };
     }
 ]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.directive('camelCaseToSpace', [function () {
+        return {
+            restrict: 'A',
+            scope: {
+                string: '@',
+                capitalize: '@'
+            },
+            link: function ($scope, $element, attrs) {
+                if (!$scope.string)
+                    return;
+                $scope.capitalize = Boolean($scope.capitalize);
+                $scope.string = Common.Utilities.camelCaseToSpace($scope.string, $scope.capitalize);
+                $element.html($scope.string);
+            }
+        };
+    }]);
 /// <reference path='../js/impakt.ts' />
 impakt.modules = angular.module('impakt.modules', [
     'impakt.main',
@@ -13809,54 +14663,41 @@ impakt.details.controller('details.ctrl', ['$scope',
     '_details',
     '_associations',
     function ($scope, $q, $timeout, __context, __modals, _details, _associations) {
+        $scope.expandable = $scope.expandable;
         $scope.selectedElements = _details.selectedElements;
         $scope.selectedElement = null;
-        $scope.associatedPlaybooks = [];
+        $scope.associations = new Common.Models.AssociationResults();
+        $scope.populatedAssociationKeys = [];
         $scope.playbooks;
         $scope._details = _details;
+        $scope.collapsed = Common.Utilities.isNotNullOrUndefined($scope.expandable) ? $scope.expandable.collapsed : true;
         __context.onReady(function () {
             $scope.playbooks = impakt.context.Playbook.playbooks;
         });
         function init() {
+            $scope.selectedElements.clearListeners();
             $scope.selectedElements.onModified(function (selectedElements) {
-                // TODO @theBull - open/close details panel when items
-                // are selected - currently buggy; isolate scope in expandable directive?
-                $scope.collapsed = selectedElements.isEmpty();
-                initAssociatedPlaybooks();
+                if (Common.Utilities.isNotNullOrUndefined($scope.expandable)) {
+                    $scope.selectedElements.isEmpty() ?
+                        !$scope.expandable.collapsed && $scope.expandable.close() :
+                        $scope.expandable.collapsed && $scope.expandable.open();
+                }
+                _initAssociated();
             });
+            // Load initial associations, don't wait for the modification handler
+            // for selected elements to fire.
+            _initAssociated();
         }
-        function initAssociatedPlaybooks() {
+        function _initAssociated() {
             if (Common.Utilities.isNullOrUndefined($scope.selectedElements) ||
                 $scope.selectedElements.isEmpty())
                 return;
             $scope.selectedElement = $scope.selectedElements.first();
             if (Common.Utilities.isNotNullOrUndefined($scope.selectedElement)) {
+                $scope.associations = _associations.getAssociated($scope.selectedElement);
+                $scope.populatedAssociationKeys = $scope.associations.getPopulatedAssociationKeys();
             }
         }
-        $scope.loadPlaybooks = function (query) {
-            var d = $q.defer();
-            d.resolve(impakt.context.Playbook.playbooks.toJson().playbooks);
-            return d.promise;
-        };
-        $scope.associatePlaybook = function (playbookJson, play, service) {
-            if (Common.Utilities.isNullOrUndefined(playbookJson))
-                return;
-            // add association to play if it isn't already there
-            // if(!play.associated.playbooks.exists(playbookJson.guid)) {
-            // 	play.associated.setPlaybook(playbookJson.guid);
-            // 	service.updatePlay(play);
-            // }
-        };
-        $scope.unassociatePlaybook = function (playbookJson, play, service) {
-            if (Common.Utilities.isNullOrUndefined(playbookJson))
-                return;
-            // remove association from play if it exists
-            // if(play.associated.playbooks.exists(playbookJson.guid)) {
-            // 	play.associated.removePlaybook(playbookJson.guid);
-            // 	service.updatePlay(play);
-            // }
-            // remove association from playbook if it exists
-        };
         $scope.delete = function (entity) {
             _details.delete(entity);
         };
@@ -13864,9 +14705,12 @@ impakt.details.controller('details.ctrl', ['$scope',
     }]);
 /// <reference path='./details.mdl.ts' />
 impakt.details.service('_details', [
+    '$q',
+    '_league',
     '_playbook',
-    function (_playbook) {
-        this.selectedElements = new Common.Models.ActionableCollection();
+    '_team',
+    function ($q, _league, _playbook, _team) {
+        this.selectedElements = impakt.context.Actionable.selected;
         this.state = {
             collapsed: true
         };
@@ -13875,13 +14719,34 @@ impakt.details.service('_details', [
             if (collection.hasElements())
                 self.state.collapsed = false;
         });
+        this.toggleSelection = function (element) {
+            this.selectedElements.deselectAll();
+            if (!this.selectedElements.contains(element.guid)) {
+                element.select();
+                this.selectedElements.only(element);
+            }
+            else {
+                this.selectedElements.empty();
+            }
+        };
         this.updatePlay = function (play) {
             _playbook.updatePlay(play);
         };
         this.delete = function (entity) {
-            _playbook.deleteEntityByType(entity).then(function () {
-            }, function (err) {
-            });
+            switch (entity.impaktDataType) {
+                case Common.Enums.ImpaktDataTypes.Play:
+                case Common.Enums.ImpaktDataTypes.Formation:
+                case Common.Enums.ImpaktDataTypes.AssignmentGroup:
+                case Common.Enums.ImpaktDataTypes.Scenario:
+                case Common.Enums.ImpaktDataTypes.Playbook:
+                    return _playbook.deleteEntityByType(entity);
+                case Common.Enums.ImpaktDataTypes.Conference:
+                case Common.Enums.ImpaktDataTypes.League:
+                    return _league.deleteEntityByType(entity);
+                case Common.Enums.ImpaktDataTypes.Team:
+                case Common.Enums.ImpaktDataTypes.PersonnelGroup:
+                    return _team.deleteEntityByType(entity);
+            }
         };
     }]);
 /// <reference path='../modules.mdl.ts' />
@@ -13893,12 +14758,16 @@ impakt.home = angular.module('impakt.home', [])
     console.debug('impakt.home - run');
 });
 /// <reference path='./home.mdl.ts' />
-impakt.home.controller('home.ctrl', ['$scope', '$state', '_home',
-    function ($scope, $state, _home) {
+impakt.home.controller('home.ctrl', ['$scope', '$state', '__context', '_home',
+    function ($scope, $state, __context, _home) {
+        $scope.currentOrganization;
         $scope.menuItems = _home.menuItems;
         $scope.goTo = function (menuItem) {
             $scope.menuItems.activate(menuItem);
         };
+        __context.onReady(function () {
+            $scope.currentOrganization = impakt.context.Organization.current;
+        });
     }]);
 /// <reference path='./home.mdl.ts' />
 // Home service
@@ -13955,9 +14824,6 @@ impakt.league.browser.controller('league.browser.ctrl', ['$scope', '_league', '_
         $scope.createTeam = function () {
             _teamModals.createTeam();
         };
-        $scope.leagueDrilldown = function (league) {
-            _league.toLeagueDrilldown(league);
-        };
         $scope.teamDrilldown = function (team) {
             _league.toTeamDrilldown(team);
         };
@@ -14007,13 +14873,37 @@ impakt.league.drilldown.league = angular.module('impakt.league.drilldown.league'
 /// <reference path='./league-drilldown-league.mdl.ts' />
 impakt.league.drilldown.league.controller('league.drilldown.league.ctrl', [
     '$scope',
+    '_associations',
     '_league',
     '_leagueModals',
-    function ($scope, _league, _leagueModals) {
+    function ($scope, _associations, _league, _leagueModals) {
         $scope.league = _league.drilldown.league;
+        $scope.conferences = new League.Models.ConferenceCollection();
+        $scope.teamData = {};
+        function init() {
+            var leagueAssociations = _associations.getAssociated($scope.league);
+            if (Common.Utilities.isNotNullOrUndefined(leagueAssociations) &&
+                leagueAssociations.conferences.hasElements()) {
+                $scope.conferences = leagueAssociations.conferences;
+                if (Common.Utilities.isNotNullOrUndefined($scope.conferences)) {
+                    $scope.conferences.forEach(function (conference, index) {
+                        var conferenceAssociations = _associations.getAssociated(conference);
+                        if (Common.Utilities.isNotNullOrUndefined(conferenceAssociations)) {
+                            $scope.teamData[conference.guid] = conferenceAssociations;
+                        }
+                    });
+                }
+            }
+        }
+        $scope.createConference = function () {
+            _leagueModals.createConference().then(function () {
+                init();
+            });
+        };
         $scope.delete = function () {
             _leagueModals.deleteLeague($scope.league);
         };
+        init();
     }]);
 /// <reference path='../league-drilldown.mdl.ts' />
 impakt.league.drilldown.team = angular.module('impakt.league.drilldown.team', [])
@@ -14034,8 +14924,11 @@ impakt.league.drilldown.team = angular.module('impakt.league.drilldown.team', []
 impakt.league.controller('league.drilldown.team.ctrl', ['$scope', '_league', '_teamModals',
     function ($scope, _league, _teamModals) {
         $scope.team = _league.drilldown.team;
+        $scope.conferences = impakt.context.League.conferences;
         $scope.delete = function () {
             _teamModals.deleteTeam($scope.team);
+        };
+        $scope.createConference = function () {
         };
     }]);
 /// <reference path='./league.mdl.ts' />
@@ -14054,6 +14947,12 @@ impakt.league.constant('LEAGUE', {
     GET_TEAMS: '/getTeams',
     GET_TEAM: '/getTeam',
     DELETE_TEAM: '/deleteTeam',
+    // League Conferences
+    CREATE_CONFERENCE: '/createConference',
+    GET_CONFERENCES: '/getConferences',
+    GET_CONFERENCE: '/getConference',
+    DELETE_CONFERENCE: '/deleteConference',
+    UPDATE_CONFERENCE: '/updateConference'
 });
 /// <reference path='./league.mdl.ts' />
 impakt.league.controller('league.ctrl', ['$scope', '$state', '_league',
@@ -14078,8 +14977,6 @@ impakt.league.service('_league', [
             league: null,
             team: null
         };
-        // TODO @theBull - ensure the 'current user' is being addressed
-        // TODO @theBull - add notification handling
         /**
          * Retrieves all leagues
          */
@@ -14184,6 +15081,8 @@ impakt.league.service('_league', [
                 // update the context
                 impakt.context.League.leagues.remove(league.guid);
                 notification.success('Deleted league "', league.name, '"');
+                if ($state.is('league.drilldown.league'))
+                    self.toBrowser();
                 d.resolve(league);
             }, function (error) {
                 notification.error('Failed to delete league "', league.name, '"');
@@ -14226,13 +15125,177 @@ impakt.league.service('_league', [
             });
             return d.promise;
         };
+        /**
+         * Retrieves all conferences
+         */
+        this.getConferences = function () {
+            var d = $q.defer();
+            var notification = __notifications.pending('Getting conferences...');
+            __api.get(__api.path(LEAGUE.ENDPOINT, LEAGUE.GET_CONFERENCES))
+                .then(function (response) {
+                var collection = new League.Models.ConferenceCollection();
+                if (response && response.data && response.data.results) {
+                    var conferenceResults = Common.Utilities.parseData(response.data.results);
+                    for (var i = 0; i < conferenceResults.length; i++) {
+                        var conferenceResult = conferenceResults[i];
+                        if (conferenceResult && conferenceResult.data && conferenceResult.data.conference) {
+                            var conferenceModel = new League.Models.Conference();
+                            conferenceResult.data.conference.key = conferenceResult.key;
+                            conferenceModel.fromJson(conferenceResult.data.conference);
+                            collection.add(conferenceModel);
+                        }
+                    }
+                }
+                notification.success([collection.size(), ' Conferences successfully retreived'].join(''));
+                d.resolve(collection);
+            }, function (error) {
+                notification.error('Failed to retieve Conferences');
+                console.error(error);
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Gets a single conference with the given key
+         * @param {number} key The key of the conference to retrieve
+         */
+        this.getConference = function (key) {
+            var d = $q.defer();
+            __api.get(__api.path(LEAGUE.ENDPOINT, LEAGUE.GET_CONFERENCE, '/' + key))
+                .then(function (response) {
+                var conference = Common.Utilities.parseData(response.data.results);
+                d.resolve(conference);
+            }, function (error) {
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Sends a conference model to the server for storage
+         * @param {Common.Models.Conference} newConference The conference to be created/saved
+         */
+        this.createConference = function (newConference) {
+            var d = $q.defer();
+            if (Common.Utilities.isNotNullOrUndefined(newConference)) {
+                var nameExists = impakt.context.League.conferences.hasElementWhich(function (conferenceModel, index) {
+                    return conferenceModel.name == newConference.name;
+                });
+                if (nameExists) {
+                    var notification_2 = __notifications.warning('Failed to create conference. Conference "', newConference.name, '" already exists.');
+                    _leagueModals.createConferenceDuplicate(newConference);
+                    return;
+                }
+            }
+            // set key to -1 to ensure a new object is created server-side
+            newConference.key = -1;
+            var conferenceModelJson = newConference.toJson();
+            var notification = __notifications.pending('Creating playbook "', newConference.name, '"...');
+            __api.post(__api.path(LEAGUE.ENDPOINT, LEAGUE.CREATE_CONFERENCE), {
+                version: 1,
+                name: newConference.name,
+                data: {
+                    version: 1,
+                    conference: conferenceModelJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var conferenceModel = new League.Models.Conference();
+                if (results && results.data && results.data.conference) {
+                    results.data.conference.key = results.key;
+                    conferenceModel.fromJson(results.data.conference);
+                    // update the context
+                    impakt.context.League.conferences.add(conferenceModel);
+                }
+                else {
+                    throw new Error('CreateConference did not return a valid conference');
+                }
+                notification.success('Successfully created conference "', conferenceModel.name, '"');
+                d.resolve(conferenceModel);
+            }, function (error) {
+                notification.error('Failed to create conference "', newConference.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Deletes the given conference for the current user
+         * @param {League.Models.Conference} conference The conference to be deleted
+         */
+        this.deleteConference = function (conference) {
+            var d = $q.defer();
+            var notification = __notifications.pending('Deleting conference "', conference.name, '"...');
+            __api.post(__api.path(LEAGUE.ENDPOINT, LEAGUE.DELETE_CONFERENCE), { key: conference.key }).then(function (response) {
+                // update the context
+                impakt.context.League.conferences.remove(conference.guid);
+                notification.success('Deleted conference "', conference.name, '"');
+                d.resolve(conference);
+            }, function (error) {
+                notification.error('Failed to delete conference "', conference.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Updates the given conference for the current user
+         * @param {League.Models.Conference} conference The conference to update
+         */
+        this.updateConference = function (conference) {
+            var d = $q.defer();
+            // update assignment collection to json object
+            var conferenceJson = conference.toJson();
+            var notification = __notifications.pending('Updating conference "', conference.name, '"...');
+            __api.post(__api.path(LEAGUE.ENDPOINT, LEAGUE.UPDATE_CONFERENCE), {
+                version: 1,
+                name: conferenceJson.name,
+                key: conferenceJson.key,
+                data: {
+                    version: 1,
+                    key: conferenceJson.key,
+                    conference: conferenceJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var conferenceModel = new League.Models.Conference();
+                if (results && results.data && results.data.conference) {
+                    conferenceModel.fromJson(results.data.conference);
+                    // update the context
+                    impakt.context.League.conferences.set(conferenceModel.guid, conferenceModel);
+                }
+                notification.success('Successfully updated conference "', conference.name, '"');
+                d.resolve(conferenceModel);
+            }, function (error) {
+                notification.error('Failed to update conference "', conference.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        this.deleteEntityByType = function (entity) {
+            if (Common.Utilities.isNullOrUndefined(entity))
+                return;
+            var d = $q.defer();
+            switch (entity.impaktDataType) {
+                case Common.Enums.ImpaktDataTypes.League:
+                    return _leagueModals.deleteLeague(entity);
+                case Common.Enums.ImpaktDataTypes.Conference:
+                    return _leagueModals.deleteConference(entity);
+                default:
+                    d.reject(new Error('_league deleteEntityByType: impaktDataType not supported'));
+                    break;
+            }
+            return d.promise;
+        };
         this.toBrowser = function () {
             this.drilldown.league = null;
             this.drilldown.team = null;
+            impakt.context.League.leagues.deselectAll();
             $state.transitionTo('league.browser');
         };
         this.toLeagueDrilldown = function (league) {
             this.drilldown.league = league;
+            impakt.context.League.leagues.select(league);
+            impakt.context.Actionable.selected.only(league);
             $state.transitionTo('league.drilldown.league');
         };
         this.toTeamDrilldown = function (team) {
@@ -14248,6 +15311,56 @@ impakt.league.modals = angular.module('impakt.league.modals', [])
     .run(function () {
     console.debug('impakt.league.modals - run');
 });
+/// <reference path='../league-modals.mdl.ts' />
+impakt.league.modals.controller('league.modals.createConferenceDuplicateError.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_league',
+    'conference',
+    function ($scope, $uibModalInstance, _league, conference) {
+        $scope.conference = conference;
+        $scope.ok = function () {
+            $uibModalInstance.close();
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../league-modals.mdl.ts' />
+impakt.league.modals.controller('league.modals.createConference.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_associations',
+    '_league',
+    function ($scope, $uibModalInstance, _associations, _league) {
+        $scope.leagues = impakt.context.League.leagues;
+        $scope.newConference = new League.Models.Conference();
+        $scope.selectedLeague = $scope.leagues.first();
+        $scope.ok = function () {
+            _league.createConference($scope.newConference)
+                .then(function (createdConference) {
+                _associations.createAssociations(createdConference, [
+                    $scope.selectedLeague
+                ]);
+                removeConferenceFromCreationContext();
+                $uibModalInstance.close(createdConference);
+            }, function (err) {
+                removeConferenceFromCreationContext();
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            removeConferenceFromCreationContext();
+            $uibModalInstance.dismiss();
+        };
+        function removeConferenceFromCreationContext() {
+            // Remove the play from the creation context
+            // after creating the new play or cancelling
+            if (Common.Utilities.isNotNullOrUndefined($scope.newConference))
+                impakt.context.League.creation.conferences.remove($scope.newConference.guid);
+        }
+    }]);
 /// <reference path='../league-modals.mdl.ts' />
 impakt.league.modals.controller('league.modals.createLeagueDuplicateError.ctrl', [
     '$scope',
@@ -14274,6 +15387,27 @@ impakt.league.modals.controller('league.modals.createLeague.ctrl', [
             _league.createLeague($scope.newLeagueModel)
                 .then(function (createdLeague) {
                 $uibModalInstance.close(createdLeague);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../league-modals.mdl.ts' />
+impakt.league.modals.controller('league.modals.deleteConference.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_league',
+    'conference',
+    function ($scope, $uibModalInstance, _league, conference) {
+        $scope.conference = conference;
+        $scope.ok = function () {
+            _league.deleteConference($scope.conference)
+                .then(function (results) {
+                $uibModalInstance.close(results);
             }, function (err) {
                 console.error(err);
                 $uibModalInstance.close(err);
@@ -14347,6 +15481,55 @@ impakt.league.modals.service('_leagueModals', [
             var modalInstance = __modals.open('', 'modules/league/modals/delete-league/delete-league.tpl.html', 'league.modals.deleteLeague.ctrl', {
                 league: function () {
                     return league;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        /**
+         *
+         * CONFERENCE
+         *
+         */
+        this.createConference = function () {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/league/modals/create-conference/create-conference.tpl.html', 'league.modals.createConference.ctrl', {});
+            modalInstance.result.then(function (createdConference) {
+                console.log(createdConference);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.createConferenceDuplicate = function (conference) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/league/modals/create-conference-duplicate-error/create-conference-duplicate-error.tpl.html', 'league.modals.createConferenceDuplicateError.ctrl', {
+                conference: function () {
+                    return conference;
+                }
+            });
+            modalInstance.result.then(function (createdConference) {
+                console.log(createdConference);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.deleteConference = function (conference) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/league/modals/delete-conference/delete-conference.tpl.html', 'league.modals.deleteConference.ctrl', {
+                conference: function () {
+                    return conference;
                 }
             });
             modalInstance.result.then(function (results) {
@@ -14548,9 +15731,10 @@ impakt.playbook.browser.controller('playbook.browser.ctrl', [
     '$scope',
     '__context',
     '_details',
+    '_associations',
     '_playbook',
     '_playbookModals',
-    function ($scope, __context, _details, _playbook, _playbookModals) {
+    function ($scope, __context, _details, _associations, _playbook, _playbookModals) {
         $scope.editor;
         $scope.playbooks;
         $scope.formations;
@@ -14611,6 +15795,10 @@ impakt.playbook.browser.controller('playbook.browser.ctrl', [
         };
         $scope.deleteAssignmentGroup = function (assignmentGroup) {
             _playbookModals.deleteAssignmentGroup(assignmentGroup);
+        };
+        $scope.getAssociationsCountForPlaybook = function (playbook) {
+            var associations = _associations.getAssociated(playbook);
+            return associations.count();
         };
         /**
          *
@@ -14729,11 +15917,13 @@ impakt.playbook.drilldown.playbook.controller('playbook.drilldown.playbook.ctrl'
         $scope.playbook = _playbook.drilldown.playbook;
         $scope.plays;
         $scope.formations;
+        $scope.scenarios;
         function init() {
             var associations = _associations.getAssociated($scope.playbook);
             if (Common.Utilities.isNotNullOrUndefined(associations)) {
                 $scope.plays = associations.plays;
                 $scope.formations = associations.formations;
+                $scope.scenarios = associations.scenarios;
             }
         }
         $scope.delete = function () {
@@ -14902,33 +16092,40 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas', ['$rootScope',
         console.debug('directive: impakt.playbook.editor.canvas - register');
         return {
             restrict: 'E',
-            scope: {
-                editortype: '@editortype',
-                key: '@key'
-            },
             link: function ($scope, $element, attrs) {
                 console.debug('directive: impakt.playbook.editor.canvas - link');
-                // angular doesn't respect camel-casing in directives, hence
-                // the all-lowercased editortype attribute.
-                var editorType = parseInt(attrs.editortype);
-                var key = attrs.key;
+                $scope.canvas = _playbookEditorCanvas.getCanvas();
+                // $timeout NOTE:
+                // wrapping this step in a timeout due to a DOM rendering race.
+                // The angular ng-show directive kicks in when activating/
+                // deactivating the tabs, and the .col class (css-flex)
+                // needs time itself to render to the appropriate size.
+                // This timeout lets all of that finish before intializing
+                // the canvas; the canvas requires an accurate $element height
+                // value in order to get its proper dimensions.
                 $timeout(function () {
-                    // $timeout NOTE:
-                    // wrapping this step in a timeout due to a DOM rendering race.
-                    // The angular ng-show directive kicks in when activating/
-                    // deactivating the tabs, and the .col class (css-flex)
-                    // needs time itself to render to the appropriate size.
-                    // This timeout lets all of that finish before intializing
-                    // the canvas; the canvas requires an accurate $element height
-                    // value in order to get its proper dimensions.
-                    var canvas = _playbookEditorCanvas.initialize($element, editorType, key);
-                    canvas.setScrollable(_scrollable);
-                    _scrollable.onready(function (content) {
-                        _scrollable.scrollToPercentY(0.5);
-                        _playPreview.setViewBox(canvas.paper.x, canvas.paper.y, canvas.dimensions.width, canvas.dimensions.height);
-                    });
-                    _scrollable.initialize($element, canvas.paper);
-                });
+                    if ($scope.canvas) {
+                        $scope.canvas.onready(function () {
+                            var scrollTop = $scope.canvas.paper.field.getLOSAbsolute()
+                                - ($element.height() / 2);
+                            $element.scrollTop(scrollTop);
+                            if (Common.Utilities.isNotNullOrUndefined($scope.canvas.paper) &&
+                                Common.Utilities.isNotNullOrUndefined($scope.canvas.paper.field) &&
+                                Common.Utilities.isNotNullOrUndefined($scope.canvas.paper.field.los)) {
+                                $scope.canvas.paper.field.los.onModified(function () {
+                                    var scrollTop = $scope.canvas.paper.field.getLOSAbsolute()
+                                        - ($element.height() / 2);
+                                    $element.scrollTop(scrollTop);
+                                });
+                            }
+                        });
+                        $scope.canvas.initialize($element);
+                        // Listen for routenode contextmenu
+                        $scope.canvas.listener.listen(Playbook.Enums.Actions.RouteNodeContextmenu, function (data) {
+                            _contextmenu.open(data);
+                        });
+                    }
+                }, 0);
                 $(document).on('keydown', function (e) {
                     //console.log(e.which);
                     if (e.which == 8) {
@@ -15001,30 +16198,8 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas', [
         this.toBrowser = function () {
             _playbookEditor.toBrowser();
         };
-        this.initialize = function ($element, editorType, guid) {
-            var canvas = _playbookEditor.canvas;
-            // attach listeners to canvas
-            // canvas.listen(
-            // 	Playbook.Editor.CanvasActions.PlayerContextmenu, 
-            // 	function(message: any, player: Common.Models.Player) {
-            // 		console.log('action commanded: player contextmenu');
-            // 		var absCoords = getAbsolutePosition(player.set.items[1]);
-            // 		$rootScope.$broadcast(
-            // 			'playbook-editor-canvas.playerContextmenu', 
-            // 			{ 
-            // 				message: message,
-            // 				player: player,
-            // 				left: absCoords.left,
-            // 				top: absCoords.top
-            // 			}
-            // 		);
-            // 	});
-            // Listen for routenode contextmenu
-            canvas.listener.listen(Playbook.Enums.Actions.RouteNodeContextmenu, function (data) {
-                _contextmenu.open(data);
-            });
-            canvas.initialize($element);
-            return canvas;
+        this.getCanvas = function () {
+            return _playbookEditor.canvas;
         };
         /**
          * Applies the given formation to the field
@@ -15454,12 +16629,16 @@ impakt.playbook.editor.service('_playbookEditor', [
         this.toBrowser = function () {
             _playbook.toBrowser();
         };
-        this.editFormation = function (formation) {
-            _playbook.editFormation(formation);
+        this.editScenario = function (scenario) {
+            _playbook.editScenario(scenario);
             this.loadTabs();
         };
         this.editPlay = function (play) {
             _playbook.editPlay(play);
+            this.loadTabs();
+        };
+        this.editFormation = function (formation) {
+            _playbook.editFormation(formation);
             this.loadTabs();
         };
         /**
@@ -15544,11 +16723,14 @@ impakt.playbook.editor.tabs.service('_playbookEditorTabs', ['$rootScope',
         this.getEditorTypeClass = function (editorType) {
             return _playbookEditor.getEditorTypeClass(editorType);
         };
-        this.editFormation = function (formation) {
-            _playbookEditor.editFormation(formation);
+        this.editScenario = function (scenario) {
+            _playbookEditor.editScenario(scenario);
         };
         this.editPlay = function (play) {
             _playbookEditor.editPlay(play);
+        };
+        this.editFormation = function (formation) {
+            _playbookEditor.editFormation(formation);
         };
         init();
     }]);
@@ -16057,25 +17239,42 @@ impakt.playbook.modals.controller('playbook.modals.newEditor.ctrl', [
     '_playbookEditorTabs',
     'data',
     function ($scope, $uibModalInstance, _playbookEditorTabs, data) {
+        $scope.scenarios = impakt.context.Playbook.scenarios;
         $scope.plays = impakt.context.Playbook.plays;
         $scope.formations = impakt.context.Playbook.formations;
-        $scope.selectedPlay = null;
-        $scope.selectedFormation = null;
+        $scope.selectedScenario = $scope.scenarios.first();
+        $scope.selectedPlay = $scope.plays.first();
+        $scope.selectedFormation = $scope.formations.first();
+        $scope.editScenarioSelected = false;
         $scope.editPlaySelected = false;
         $scope.editFormationSelected = false;
+        $scope.selectScenario = function () { };
         $scope.selectPlay = function () { };
         $scope.selectFormation = function () { };
+        $scope.editScenario = function () {
+            $scope.editScenarioSelected = true;
+            $scope.editPlaySelected = false;
+            $scope.editFormationSelected = false;
+            $scope.selectedPlay = null;
+            $scope.selectedFormation = null;
+        };
         $scope.editPlay = function () {
+            $scope.editScenarioSelected = false;
             $scope.editPlaySelected = true;
             $scope.editFormationSelected = false;
+            $scope.selectedScenario = null;
             $scope.selectedFormation = null;
         };
         $scope.editFormation = function () {
+            $scope.editScenarioSelected = false;
             $scope.editPlaySelected = false;
             $scope.editFormationSelected = true;
+            $scope.selectedScenario = null;
             $scope.selectedPlay = null;
         };
         $scope.ok = function () {
+            if ($scope.selectedScenario)
+                _playbookEditorTabs.editScenario($scope.selectedScenario);
             if ($scope.selectedPlay)
                 _playbookEditorTabs.editPlay($scope.selectedPlay);
             if ($scope.selectedFormation)
@@ -16629,7 +17828,7 @@ impakt.playbook.service('_playbook', [
                     return playbookModel.name == newPlaybookModel.name;
                 });
                 if (nameExists) {
-                    var notification_2 = __notifications.warning('Failed to create playbook. Playbook "', newPlaybookModel.name, '" already exists.');
+                    var notification_3 = __notifications.warning('Failed to create playbook. Playbook "', newPlaybookModel.name, '" already exists.');
                     _playbookModals.createPlaybookDuplicate(newPlaybookModel);
                     return;
                 }
@@ -17295,7 +18494,7 @@ impakt.playbook.service('_playbook', [
             }
             scenario.setPlayPrimary(playCopy);
             scenario.setPlayOpponent(null);
-            ;
+            scenario.name = playCopy.name;
             scenario.editorType = Playbook.Enums.EditorTypes.Play;
             // Set association data
             this.setPlayAssociations(scenario.playPrimary);
@@ -17531,6 +18730,9 @@ impakt.playbook.service('_playbook', [
                 case Playbook.Enums.EditorTypes.Play:
                     editorTypeClass = 'playbook-editor-type-play';
                     break;
+                case Playbook.Enums.EditorTypes.Scenario:
+                    editorTypeClass = 'playbook-editor-type-scenario';
+                    break;
             }
             return editorTypeClass;
         };
@@ -17585,6 +18787,7 @@ impakt.playbook.service('_playbook', [
                     return _playbookModals.deleteScenario(entity);
                 default:
                     d.reject(new Error('_playbook deleteEntityByType: impaktDataType not supported'));
+                    break;
             }
             return d.promise;
         };
@@ -18106,7 +19309,7 @@ impakt.team.service('_team', [
                     return teamModel.name == newTeamModel.name;
                 });
                 if (nameExists) {
-                    var notification_3 = __notifications.warning('Failed to create team. Team "', newTeamModel.name, '" already exists.');
+                    var notification_4 = __notifications.warning('Failed to create team. Team "', newTeamModel.name, '" already exists.');
                     _teamModals.createTeamDuplicate(newTeamModel);
                     return;
                 }
@@ -18320,6 +19523,24 @@ impakt.team.service('_team', [
                 d.reject(err);
             });
             return d.promise;
+        };
+        this.deleteEntityByType = function (entity) {
+            if (Common.Utilities.isNullOrUndefined(entity))
+                return;
+            var d = $q.defer();
+            switch (entity.impaktDataType) {
+                case Common.Enums.ImpaktDataTypes.Team:
+                    return _teamModals.deleteTeam(entity);
+                case Common.Enums.ImpaktDataTypes.PersonnelGroup:
+                    // TODO @theBull implement
+                    //return _teamModals.deletePersonnel(entity);
+                    d.reject(new Error('_team deleteEntityByType(): _teamModals.deletePersonnel() not implemented'));
+                    break;
+                default:
+                    d.reject(new Error('_team deleteEntityByType: impaktDataType not supported'));
+                    break;
+            }
+            return d.promise();
         };
         this.createPrimaryTeam = function (teamModel) {
         };
@@ -18600,6 +19821,7 @@ impakt.user.service('_user', [
                 d.reject(errorMessage);
             }
             this.selectedOrganization = organization;
+            impakt.context.Organization.current = organization;
             __localStorage.setOrganizationKey(organization.organizationKey);
             // make application context requests
             __context.initialize(impakt.context).then(function (results) {

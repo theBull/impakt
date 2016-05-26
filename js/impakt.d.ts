@@ -83,6 +83,7 @@ declare module Common.Interfaces {
         disabled: boolean;
         clickable: boolean;
         hoverable: boolean;
+        hovered: boolean;
         selected: boolean;
         selectable: boolean;
         draggable: boolean;
@@ -371,6 +372,8 @@ declare module Common.Interfaces {
         renderType: Common.Enums.RenderTypes;
         unitType: Team.Enums.UnitTypes;
         flip(): void;
+        moveAssignmentByDelta(dx: number, dy: number): void;
+        dropAssignment(): void;
     }
 }
 declare module Common.Interfaces {
@@ -434,6 +437,7 @@ declare module Common.Interfaces {
         type: Common.Enums.RouteTypes;
         renderType: Common.Enums.RenderTypes;
         flipped: boolean;
+        unitType: Team.Enums.UnitTypes;
         draw(): void;
         flip(): void;
         initializeCurve(coords: Common.Models.Coordinates, flip?: boolean): any;
@@ -466,6 +470,7 @@ declare module Common.Interfaces {
 declare module Common.Interfaces {
     interface IRoutePath extends Common.Interfaces.IFieldElement {
         pathString: string;
+        unitType: Team.Enums.UnitTypes;
         draw(): void;
         remove(): void;
     }
@@ -716,6 +721,45 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
+    class Expandable extends Common.Models.Modifiable {
+        direction: string;
+        min: number;
+        max: number;
+        $element: any;
+        em: number;
+        collapsed: boolean;
+        ready: boolean;
+        url: string;
+        handle: Common.Models.ExpandableHandle;
+        constructor($element: any);
+        setHandleClass(): void;
+        /**
+         * Deprecated
+         * @param {[type]} value [description]
+         */
+        getWidth(width: number): number;
+        /**
+         * Deprecated
+         */
+        getInitialWidth(): number;
+        getInitialClass(): string;
+        toggle(): void;
+        open(): void;
+        close(): void;
+        getMinClass(): string;
+        getMaxClass(): string;
+        setInitialClass(): void;
+        initializeToggleHandle(): void;
+    }
+    class ExpandableHandle {
+        position: string;
+        collapsed: string;
+        expanded: string;
+        class: string;
+        constructor();
+    }
+}
+declare module Common.Models {
     class ContextmenuData {
         data: Common.Interfaces.IContextual;
         url: string;
@@ -743,6 +787,7 @@ declare module Common.Models {
         disabled: boolean;
         clickable: boolean;
         hoverable: boolean;
+        hovered: boolean;
         selected: boolean;
         selectable: boolean;
         dragging: boolean;
@@ -807,6 +852,9 @@ declare module Common.Models {
         select(element: Common.Interfaces.IActionable): void;
         deselect(element: Common.Interfaces.IActionable): void;
         toggleSelect(element: Common.Interfaces.IActionable): void;
+        hoverIn(element: Common.Interfaces.IActionable): void;
+        hoverOut(element: Common.Interfaces.IActionable): void;
+        hoverOutAll(): void;
     }
 }
 declare module Common.Models {
@@ -814,6 +862,7 @@ declare module Common.Models {
         key: number;
         impaktDataType: Common.Enums.ImpaktDataTypes;
         associationKey: string;
+        associable: string[];
         constructor(impaktDataType: Common.Enums.ImpaktDataTypes);
         generateAssociationKey(): void;
         toJson(): any;
@@ -958,10 +1007,20 @@ declare module Common.Models {
 declare module Common.Models {
     class AssociationResults {
         playbooks: Common.Models.PlaybookModelCollection;
+        scenarios: Common.Models.ScenarioCollection;
         plays: Common.Models.PlayCollection;
         formations: Common.Models.FormationCollection;
         personnel: Team.Models.PersonnelCollection;
         assignmentGroups: Common.Models.AssignmentGroupCollection;
+        leagues: League.Models.LeagueModelCollection;
+        conferences: League.Models.ConferenceCollection;
+        divisions: any;
+        teams: Team.Models.TeamModelCollection;
+        constructor();
+        count(): number;
+        hasAssociations(): boolean;
+        isEmpty(): boolean;
+        getPopulatedAssociationKeys(): string[];
     }
 }
 declare module Common.Models {
@@ -1248,7 +1307,13 @@ declare module Common.Input {
     enum Which {
         LeftClick = 1,
         RightClick = 3,
+        Backspace = 8,
+        Enter = 13,
         Esc = 27,
+        Left = 37,
+        Up = 38,
+        Right = 39,
+        Down = 40,
         /**
          *
          * Uppercase (shift pressed)
@@ -1836,6 +1901,8 @@ declare module Common.Models {
         flip(): void;
         remove(): void;
         drawRoute(): void;
+        moveAssignmentByDelta(dx: number, dy: number): void;
+        dropAssignment(): void;
         abstract draw(): void;
         getPositionRelativeToBall(): Common.Models.RelativeCoordinates;
         getCoordinatesFromAbsolute(): Common.Models.Coordinates;
@@ -1917,6 +1984,7 @@ declare module Common.Models {
         dragInitialized: boolean;
         type: Common.Enums.RouteTypes;
         renderType: Common.Enums.RenderTypes;
+        unitType: Team.Enums.UnitTypes;
         constructor(dragInitialized?: boolean);
         setPlayer(player: Common.Interfaces.IPlayer): void;
         abstract moveNodesByDelta(dx: number, dy: number): any;
@@ -1998,6 +2066,7 @@ declare module Common.Models {
     abstract class RoutePath extends Common.Models.FieldElement {
         route: Common.Interfaces.IRoute;
         pathString: string;
+        unitType: Team.Enums.UnitTypes;
         constructor();
         initialize(field: Common.Interfaces.IField, route: Common.Interfaces.IFieldElement): void;
         toJson(): any;
@@ -2177,6 +2246,7 @@ declare module Common.Models {
         setOriginalStrokeWidth(width: number): Common.Models.Graphics;
         setHoverOpacity(opacity: number): Common.Models.Graphics;
         setHoverFillOpacity(opacity: number): Common.Models.Graphics;
+        setHeight(height: number): Common.Models.Graphics;
         /**
          * Gets the current opacity
          * @return {number} [description]
@@ -2326,7 +2396,7 @@ declare module Common.Models {
         ondrag(dragMove: Function, dragStart: Function, dragEnd: Function, context: Common.Interfaces.IActionable): void;
         flip(rotate?: boolean): void;
         drop(): void;
-        private _updateTriangle();
+        private cleanTransform();
     }
 }
 declare module Common.Models {
@@ -2940,8 +3010,10 @@ declare module Playbook.Models {
         constructor();
         initialize(field: Common.Interfaces.IField): void;
         draw(): void;
+        hoverIn(e: any): void;
+        hoverOut(e: any): void;
         dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void;
-        dragStart(e: any): void;
+        dragStart(x: number, y: number, e: any): void;
         dragEnd(e: any): void;
     }
 }
@@ -3130,6 +3202,9 @@ declare module Playbook.Models {
     class EditorRoutePath extends Common.Models.RoutePath implements Common.Interfaces.IRoutePath {
         constructor();
         initialize(field: Common.Interfaces.IField, route: Common.Interfaces.IFieldElement): void;
+        draw(): void;
+        hoverIn(e: any): void;
+        hoverOut(e: any): void;
     }
 }
 declare module Playbook.Models {
@@ -3231,7 +3306,7 @@ declare module Team.Models {
     }
 }
 declare module Team.Models {
-    class TeamModelCollection extends Common.Models.Collection<Team.Models.TeamModel> {
+    class TeamModelCollection extends Common.Models.ActionableCollection<Team.Models.TeamModel> {
         teamType: Team.Enums.TeamTypes;
         constructor(teamType: Team.Enums.TeamTypes);
         toJson(): {
@@ -3448,13 +3523,34 @@ declare module League.Models {
     class LeagueModel extends Common.Models.AssociableEntity implements Common.Interfaces.IAssociable {
         name: string;
         constructor();
+        copy(newLeague?: League.Models.LeagueModel): League.Models.LeagueModel;
         toJson(): any;
         fromJson(json: any): void;
     }
 }
 declare module League.Models {
-    class LeagueModelCollection extends Common.Models.Collection<League.Models.LeagueModel> {
+    class LeagueModelCollection extends Common.Models.ActionableCollection<League.Models.LeagueModel> {
         constructor();
+    }
+}
+declare module League.Models {
+    class Conference extends Common.Models.AssociableEntity {
+        name: string;
+        png: string;
+        league: League.Models.LeagueModel;
+        leagueGuid: string;
+        constructor();
+        copy(newConference?: League.Models.Conference): League.Models.Conference;
+        toJson(): any;
+        fromJson(json: any): void;
+        setLeague(league: League.Models.LeagueModel): void;
+    }
+}
+declare module League.Models {
+    class ConferenceCollection extends Common.Models.ActionableCollection<League.Models.Conference> {
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
     }
 }
 declare module League.Models {

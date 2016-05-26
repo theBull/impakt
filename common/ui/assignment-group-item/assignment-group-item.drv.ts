@@ -19,13 +19,7 @@ function(
 	 * 
 	 */
 	$scope.toggleSelection = function(assignmentGroup: Common.Models.AssignmentGroup) {
-		impakt.context.Playbook.assignmentGroups.toggleSelect(assignmentGroup);
-		
-		if (assignmentGroup.selected) {
-			_details.selectedElements.only(assignmentGroup);
-		} else {
-			_details.selectedElements.remove(assignmentGroup.guid);
-		}
+		_details.toggleSelection(assignmentGroup);
 	}
 	
 }]).directive('assignmentGroupItem', [

@@ -1,7 +1,8 @@
-<div class='col'>
+<div class='col scrollY positionRelative'>
 	
-	<div class='col'>
-		<div class=''>
+	<div class='pad'>
+
+		<div class='marginBottom1 light-border-bottom'>
 			
 			<h4>Leagues ({{leagues.size()}})</h4>
 			<div class='pad green-bg-hover pointer marginBottom1 width6'
@@ -11,16 +12,18 @@
 			</div>
 
 			<div class='grid'>
-				<div class='marginRight1 marginBottom1 height5 width12 pad gray-bg-3-hover pointer'
-					ng-repeat='league in leagues.toArray()'
-					ng-click='leagueDrilldown(league)'>
-					<strong>{{league.name}}</strong>
-				</div>
+				
+				<league-item 
+					league='league' 
+					class='width16 marginRight1'
+					ng-repeat='league in leagues.toArray()'>
+				</league-item>
+
 			</div>
 
 		</div>
 
-		<div class=''>
+		<div class='marginBottom1 light-border-bottom'>
 			
 			<h4>Teams ({{teams.size()}})</h4>
 			<div class='pad green-bg-hover pointer marginBottom1 width6'
@@ -42,3 +45,11 @@
 	</div>
 	
 </div>
+
+<!-- Details -->
+<expandable 	
+	direction='left'
+	collapsed='true'
+	url='modules/details/details.tpl.html'>
+	
+</expandable>

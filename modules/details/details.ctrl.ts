@@ -18,29 +18,38 @@ function(
 	_associations: any
 ) {
 
+	$scope.expandable = $scope.expandable;
 	$scope.selectedElements = _details.selectedElements;
 	$scope.selectedElement = null;
-	$scope.associatedPlaybooks = [];
+	$scope.associations = new Common.Models.AssociationResults();
+	$scope.populatedAssociationKeys = [];
 	$scope.playbooks;
 	$scope._details = _details;
+	$scope.collapsed = Common.Utilities.isNotNullOrUndefined($scope.expandable) ? $scope.expandable.collapsed : true;
 
 	__context.onReady(function() {
 		$scope.playbooks = impakt.context.Playbook.playbooks;
 	});
 
 	function init() {
+		$scope.selectedElements.clearListeners();
 		$scope.selectedElements.onModified(
 			function(selectedElements: Common.Interfaces.IActionableCollection) {
-				
-				// TODO @theBull - open/close details panel when items
-				// are selected - currently buggy; isolate scope in expandable directive?
-				$scope.collapsed = selectedElements.isEmpty();
 
-				initAssociatedPlaybooks();
+				if(Common.Utilities.isNotNullOrUndefined($scope.expandable)) {
+					$scope.selectedElements.isEmpty() ?
+						!$scope.expandable.collapsed && $scope.expandable.close() :
+						$scope.expandable.collapsed && $scope.expandable.open();
+				}
+				_initAssociated();
 			});
+
+		// Load initial associations, don't wait for the modification handler
+		// for selected elements to fire.
+		_initAssociated();
 	}
 
-	function initAssociatedPlaybooks() {
+	function _initAssociated() {
 		if (Common.Utilities.isNullOrUndefined($scope.selectedElements) ||
 			$scope.selectedElements.isEmpty())
 			return;
@@ -48,41 +57,10 @@ function(
 		$scope.selectedElement = $scope.selectedElements.first();
 		if (Common.Utilities.isNotNullOrUndefined($scope.selectedElement)) {
 			
-			// get associations
+			$scope.associations = _associations.getAssociated($scope.selectedElement);
+			$scope.populatedAssociationKeys = $scope.associations.getPopulatedAssociationKeys();
 			
 		}
-	}
-
-	$scope.loadPlaybooks = function(query) {
-		let d = $q.defer();
-		
-		d.resolve(impakt.context.Playbook.playbooks.toJson().playbooks);
-		
-		return d.promise;
-	}
-
-	$scope.associatePlaybook = function(playbookJson: any, play: Common.Models.Play, service: any) {
-		if (Common.Utilities.isNullOrUndefined(playbookJson))
-			return;
-
-		// add association to play if it isn't already there
-		// if(!play.associated.playbooks.exists(playbookJson.guid)) {
-		// 	play.associated.setPlaybook(playbookJson.guid);
-		// 	service.updatePlay(play);
-		// }
-	}
-
-	$scope.unassociatePlaybook = function(playbookJson: any, play: Common.Models.Play, service: any) {
-		if (Common.Utilities.isNullOrUndefined(playbookJson))
-			return;
-
-		// remove association from play if it exists
-		// if(play.associated.playbooks.exists(playbookJson.guid)) {
-		// 	play.associated.removePlaybook(playbookJson.guid);
-		// 	service.updatePlay(play);
-		// }
-		// remove association from playbook if it exists
-
 	}
 
 	$scope.delete = function(entity: Common.Interfaces.IActionable) {

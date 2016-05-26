@@ -82,6 +82,8 @@ function(
 		}
 
 		this.selectedOrganization = organization;
+		impakt.context.Organization.current = organization;
+		
 		__localStorage.setOrganizationKey(organization.organizationKey);
 
 		// make application context requests

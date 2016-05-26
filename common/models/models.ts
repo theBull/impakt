@@ -8,6 +8,7 @@
 /// <reference path='./LinkedList.ts' />
 /// <reference path='./ModifiableCollection.ts' />
 
+/// <reference path='./Expandable.ts' />
 /// <reference path='./ContextmenuData.ts' />
 /// <reference path='./ActionRegistry.ts' />
 /// <reference path='./Actionable.ts' />

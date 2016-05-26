@@ -19,13 +19,7 @@ function(
 	 * 
 	 */
 	$scope.toggleSelection = function(formation: Common.Models.Formation) {
-		impakt.context.Playbook.formations.toggleSelect(formation);
-		
-		if (formation.selected) {
-			_details.selectedElements.only(formation);
-		} else {
-			_details.selectedElements.remove(formation.guid);
-		}
+		_details.toggleSelection(formation);
 	}
 
 	$scope.openInEditor = function(formation: Common.Models.Formation) {

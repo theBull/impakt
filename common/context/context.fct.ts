@@ -51,6 +51,25 @@ function(
 		onInitializing: onInitializing
 	}
 
+	if (!impakt.context.Actionable)
+		impakt.context.Actionable = {};
+
+	if (!impakt.context.Organization)
+		impakt.context.Organization = {};
+
+	if (!impakt.context.Associations) {
+		impakt.context.Associations = {};
+	}
+
+	if (!impakt.context.Playbook)
+		impakt.context.Playbook = {};
+
+	if (!impakt.context.Team)
+		impakt.context.Team = {};
+
+	if (!impakt.context.League)
+		impakt.context.League = {};
+
 	function initialize(context) {
 		// notify listeners that context initialization
 		// has begun
@@ -61,21 +80,6 @@ function(
 
 		let organizationKey = __localStorage.getOrganizationKey();
 
-		if (!context.Associations) {
-			context.Associations = {};
-			context.Associations.associations = new Common.Models.AssociationCollection(organizationKey);
-			context.Associations.creation = new Common.Models.AssociationCollection(organizationKey);
-		}
-
-		if (!context.Playbook)
-			context.Playbook = {};
-
-		if (!context.Team)
-			context.Team = {};
-
-		if (!context.League)
-			context.League = {};
-
 		/**
 		 *
 		 * 
@@ -83,52 +87,94 @@ function(
 		 *
 		 * 
 		 */
-		
+
 		/**
+		 * Organization context
+		 */
+		// Set in user.srv
+		// impakt.context.Organization.current = new User.Models.Organization();
+
+		/**
+		 *
+		 *
+		 * Actionable context
+		 * 
+		 * 
+		 */
+		impakt.context.Actionable.selected = new Common.Models.ActionableCollection<Common.Interfaces.IActionable>();
+
+		/**
+		 *
+		 * 
 		 * Association context
+		 *
+		 * 
 		 */
-		// Already set
-		
+		impakt.context.Associations.associations = new Common.Models.AssociationCollection(organizationKey);
+		impakt.context.Associations.creation = new Common.Models.AssociationCollection(organizationKey);
+
 		/**
+		 *
+		 * 
 		 * Playbook context
+		 *
+		 * 
 		 */
-		context.Playbook.playbooks = new Common.Models.PlaybookModelCollection(Team.Enums.UnitTypes.Mixed);
-		context.Playbook.formations = new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed);
-		context.Playbook.assignmentGroups = new Common.Models.AssignmentGroupCollection(Team.Enums.UnitTypes.Mixed);
-		context.Playbook.plays = new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed);
-		context.Playbook.scenarios = new Common.Models.ScenarioCollection(Team.Enums.UnitTypes.Other);
-
-		/**
-		 * Team context
-		 */
-		context.Team.teams = new Team.Models.TeamModelCollection(Team.Enums.TeamTypes.Mixed);
-		context.Team.personnel = new Team.Models.PersonnelCollection(Team.Enums.UnitTypes.Mixed);
-		context.Team.positionDefaults = new Team.Models.PositionDefault();
-		context.Team.unitTypes = _playbook.getUnitTypes();
-		context.Team.unitTypesEnum = _playbook.getUnitTypesEnum();
-
-		/**
-		 * League context
-		 */
-		context.League.leagues = new League.Models.LeagueModelCollection();
-		
+		impakt.context.Playbook.playbooks = new Common.Models.PlaybookModelCollection(Team.Enums.UnitTypes.Mixed);
+		impakt.context.Playbook.formations = new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed);
+		impakt.context.Playbook.assignmentGroups = new Common.Models.AssignmentGroupCollection(Team.Enums.UnitTypes.Mixed);
+		impakt.context.Playbook.plays = new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed);
+		impakt.context.Playbook.scenarios = new Common.Models.ScenarioCollection(Team.Enums.UnitTypes.Other);
 		/**
 		 * Module-specific context data; plays currently open in the editor
 		 */
-		context.Playbook.editor = {
+		impakt.context.Playbook.editor = {
 			plays: new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed),
 			tabs: new Common.Models.TabCollection(),
 			scenarios: new Common.Models.ScenarioCollection(Team.Enums.UnitTypes.Other)
 		}
-
 		/**
 		 * A creation context for new plays and formations.
 		 */
-		context.Playbook.creation = {
+		impakt.context.Playbook.creation = {
 			plays: new Common.Models.PlayCollection(Team.Enums.UnitTypes.Mixed),
 			formations: new Common.Models.FormationCollection(Team.Enums.UnitTypes.Mixed),
 			scenarios: new Common.Models.ScenarioCollection(Team.Enums.UnitTypes.Other)
 		}
+
+		/**
+		 *
+		 * 
+		 * Team context
+		 * 
+		 * 
+		 */
+		impakt.context.Team.teams = new Team.Models.TeamModelCollection(Team.Enums.TeamTypes.Mixed);
+		impakt.context.Team.personnel = new Team.Models.PersonnelCollection(Team.Enums.UnitTypes.Mixed);
+		impakt.context.Team.positionDefaults = new Team.Models.PositionDefault();
+		impakt.context.Team.unitTypes = _playbook.getUnitTypes();
+		impakt.context.Team.unitTypesEnum = _playbook.getUnitTypesEnum();
+
+		/**
+		 *
+		 * 
+		 * League context
+		 *
+		 * 
+		 */
+		impakt.context.League.leagues = new League.Models.LeagueModelCollection();
+		impakt.context.League.conferences = new League.Models.ConferenceCollection();
+		/**
+		 * A creation context for new leagues, conferences, divisions, and teams
+		 */
+		impakt.context.League.creation = {
+			leagues: new League.Models.LeagueModelCollection(),
+			conferences: new League.Models.ConferenceCollection(),
+			//divisions: new League.Models.DivisionCollection(), // TODO @theBull
+			teams: new Team.Models.TeamModel(Team.Enums.TeamTypes.Other)
+		}
+
+
 
 		async.parallel([
 			
@@ -150,6 +196,17 @@ function(
 					context.League.leagues = leagues;
 					__notifications.success('Leagues successfully loaded');
 					callback(null, leagues);
+				}, function(err) {
+					callback(err);
+				});
+			},
+
+			// Retrieve conferences
+			function(callback) {
+				_league.getConferences().then(function(conferences) {
+					context.League.conferences = conferences;
+					__notifications.success('Conferences successfully loaded');
+					callback(null, conferences);
 				}, function(err) {
 					callback(err);
 				});

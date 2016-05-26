@@ -12,8 +12,7 @@ module Playbook.Models {
 
         public initialize(field: Common.Interfaces.IField): void {
             super.initialize(field);
-            this.graphics.dimensions.offset.x = 0;
-            this.graphics.dimensions.offset.y = 8;
+            this.graphics.dimensions.setOffsetXY(0, 8);
             this.graphics.dimensions.setHeight(4);
             this.graphics.selectedFill = 'blue';
         }
@@ -43,6 +42,12 @@ module Playbook.Models {
                 this.dragEnd,
                 this
             );
+
+            this.onhover(
+                this.hoverIn,
+                this.hoverOut,
+                this
+            );
         }
         // public mousedown(e: any, context: Common.Interfaces.IFieldElement): void {
         //     if (e.keyCode == Common.Input.Which.RightClick) {
@@ -53,40 +58,64 @@ module Playbook.Models {
         // public mouseup(e: any, context: Common.Interfaces.IFieldElement): void {
         //     this.graphics.deselect();
         // }
+        
+        public hoverIn(e: any): void {
+            this.graphics.setHeight(7);
+        }
+
+        public hoverOut(e: any): void {
+            this.graphics.setHeight(4);
+        }
+
         public dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void {
-            let snapDx = this.grid.snapping ? this.grid.snapPixel(dx) : dx;
-            let snapDy = this.grid.snapping ? this.grid.snapPixel(dy) : dy;
-            this.graphics.moveByDelta(
-                this.graphics.placement.coordinates.x, 
-                snapDy
-            );
+            // Ignore drag motions under specified threshold to prevent
+            // click/mousedown from triggering drag method
+            if (!this.dragging && !this.isOverDragThreshold(dx, dy)) {
+                return;
+            } else {
+                this.dragging = true;
+            }
+
+            this.layer.moveByDelta(0, dy);
             
             this.field.ball.dragging = true;
-            this.field.ball.layer.moveByDelta(
-                this.field.ball.graphics.placement.coordinates.x,
-                snapDy
-            );
+            this.field.ball.layer.moveByDelta(0, dy);
 
-            this.field.primaryPlayers.forEach(
-                function(player: Common.Interfaces.IPlayer, index: number) {
-                    player.layer.layers.forEach(function(layer: Common.Models.Layer) {
-                        layer.moveByDelta(
-                            player.graphics.placement.coordinates.x,
-                            snapDy
-                        );
-                    });
-                });
+            this.field.primaryPlayers.forEach(function(player: Common.Interfaces.IPlayer, index: number) {
+                player.layer.moveByDelta(0, dy);
+                player.moveAssignmentByDelta(0, dy);
+            });
+
+            this.field.opponentPlayers.forEach(function(player: Common.Interfaces.IPlayer, index: number) {
+                player.layer.moveByDelta(0, dy);
+                player.moveAssignmentByDelta(0, dy);
+            });
+
+            this.setModified(true);
         }
-        public dragStart(e: any): void {
-            this.dragging = true;
+        
+        public dragStart(x: number, y: number, e: any): void {
+            super.dragStart(x, y, e);
         }
+
         public dragEnd(e: any): void {
-            this.drop();
-            this.field.ball.drop();
-            this.field.primaryPlayers.forEach(
-                function(player: Common.Interfaces.IPlayer, index: number) {
+            if(this.dragging) {
+                this.drop();
+                
+                this.field.ball.drop();
+
+                this.field.primaryPlayers.forEach(function(player: Common.Interfaces.IPlayer, index: number) {
                     player.drop();
+                    player.dropAssignment();
                 });
+
+                this.field.opponentPlayers.forEach(function(player: Common.Interfaces.IPlayer, index: number) {
+                    player.drop();
+                    player.dropAssignment();
+                });
+
+                this.dragging = false;
+            }
         }
     }
 }

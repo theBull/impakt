@@ -1,0 +1,23 @@
+<div class="modal-header">
+    <h3 class="modal-title">Create Conference</h3>
+</div>
+<div class="modal-body">
+	
+	<div class='marginBottom2'>
+		<p>Conference name</p>
+	    <input type='text' ng-model='newConference.name' 
+	        placeholder='Conference name?' />
+    </div> 
+
+   	<div class='marginBottom2'>
+   		<p>League</p>
+   		<select ng-options='league as league.name for league in leagues.toArray()'
+   			ng-model='selectedLeague'>
+   		</select>
+   	</div>
+
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary" type="button" ng-click="ok()">OK</button>
+    <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+</div>

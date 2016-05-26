@@ -90,6 +90,9 @@ module Common.Models {
 			return this.height;
 		}
 		public setHeight(height: number): void {
+			if (height < 0)
+				throw new Error('Dimensions setHeight(): height cannot be less than zero. You passed: ' + height);
+			
 			this.height = height;
 			this.calculateDimensions();
 		}

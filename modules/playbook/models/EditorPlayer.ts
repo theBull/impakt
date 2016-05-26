@@ -185,16 +185,8 @@ module Playbook.Models {
 
 			} else if (!e.shiftKey && e.which != Common.Input.Which.RightClick) {
 
-				// Update the placement to track for modification
 				this.layer.moveByDelta(dx, dy);
-				if(this.assignment) {
-					// TODO: implement route switching
-					this.assignment.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
-						if (Common.Utilities.isNotNullOrUndefined(route)) {
-							route.layer.moveByDelta(dx, dy);
-						}
-					});
-				}
+				this.moveAssignmentByDelta(dx, dy);
 
 				// Update relative coordinates label, if it exists
 				if (this.relativeCoordinatesLabel) {
@@ -222,20 +214,9 @@ module Playbook.Models {
 		}
 		public dragEnd(e: any) {
 			if(this.dragging) {
+				
 				this.drop();
-
-				if (this.assignment) {
-					// TODO: implement route switching
-					this.assignment.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
-						if (Common.Utilities.isNotNullOrUndefined(route)) {
-							if (route.dragInitialized) {
-								route.dragInitialized = false;
-							}
-							route.drop();
-							route.draw();
-						}
-					});
-				}
+				this.dropAssignment();
 
 				if (this.relativeCoordinatesLabel)
 					this.relativeCoordinatesLabel.layer.hide();

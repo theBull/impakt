@@ -1,102 +1,14 @@
 /// <reference path='../ui.mdl.ts' />
 
 impakt.common.ui.controller('expandable.ctrl', [
-'$scope', 
+'$scope',
+'_expandable',
 function(
-	$scope: any
+	$scope: any,
+	_expandable: any
 ) {
 
-	$scope.direction;
-	$scope.min = 3; // in em's
-	$scope.max = 32; // in em's
-	$scope.$element;
-	$scope.em = parseInt($('body').css('font-size'));
-
-	$scope.collapsed = true;
-	$scope.ready = false;
-
-	$scope.url;
-
-	$scope.handle = {
-		position: '',
-		collapsed: '',
-		expanded: '',
-		class: ''
-	}
-
-	$scope.toggle = function() {
-		
-		$scope.collapsed = !$scope.collapsed;
-
-		if($scope.collapsed) {
-			$scope.$element.removeClass($scope.getMaxClass()).addClass($scope.getMinClass());
-		} else {
-			$scope.$element.removeClass($scope.getMinClass()).addClass($scope.getMaxClass());
-		}
-
-		$scope.setHandleClass();		
-	}
-
-	$scope.getMinClass = function() {
-		return 'width' + $scope.min;
-	}
-	$scope.getMaxClass = function() {
-		return 'width' + $scope.max;
-	}
-	$scope.getInitialClass = function() {
-		return $scope.collapsed ? $scope.getMinClass() : $scope.getMaxClass();
-	}
-	$scope.setInitialClass = function() {
-		$scope.$element.addClass($scope.getInitialClass());
-	}
-
-	$scope.initializeToggleHandle = function() {
-		switch ($scope.direction) {
-			case 'left':
-				$scope.handle.position = 'top0 left0';
-				$scope.handle.expanded = 'glyphicon-chevron-right';
-				$scope.handle.collapsed = 'glyphicon-chevron-left';
-				break;
-			case 'right':
-				$scope.handle.position = 'top0 right0';
-				$scope.handle.expanded = 'glyphicon-chevron-left';
-				$scope.handle.collapsed = 'glyphicon-chevron-right';
-				break;
-			case 'top':
-				$scope.handle.position = 'top0 left0';
-				$scope.handle.expanded = 'glyphicon-chevron-up';
-				$scope.handle.collapsed = 'glyphicon-chevron-down';
-				break;
-			case 'bottom':
-				$scope.handle.position = 'bottom0 left0';
-				$scope.handle.expanded = 'glyphicon-chevron-down';
-				$scope.handle.collapsed = 'glyphicon-chevron-up';
-				break;
-		}
-
-		$scope.setHandleClass();
-	}
-
-	$scope.setHandleClass = function() {
-		$scope.handle.class = $scope.collapsed ?
-			$scope.handle.collapsed : $scope.handle.expanded;
-	}
-
-	/**
-	 * Deprecated
-	 * @param {[type]} value [description]
-	 */
-	$scope.getWidth = function(value) {
-		return $scope.em * parseInt(value);
-	}
-	/**
-	 * Deprecated
-	 */
-	$scope.getInitialWidth = function() {
-		return $scope.collapsed ? 
-			$scope.getWidth($scope.min) : 
-			$scope.getWidth($scope.max);
-	}
+	$scope.expandable;
 
 }]).directive('expandable', [
 '$compile',  
@@ -119,14 +31,16 @@ function(
 
 			return {
 				pre: function($scope, $element, attrs, controller, transcludeFn) {
-					$scope.$element = $element;
+					$scope.expandable = new Common.Models.Expandable($element);
+					$scope.expandable.url = $scope.url;
+					$scope.expandable.direction = $scope.direction;
+					$scope.expandable.collapsed = Boolean($scope.collapsed) === false ? false : true;
 
 					/**
 					 * Set initial class on the element for proper sizing
 					 */
-					$scope.setInitialClass();
-
-					$scope.ready = true;
+					$scope.expandable.setInitialClass();
+					$scope.expandable.ready = true;
 				},
 				post: function($scope, $element, attrs, controller, transcludeFn) {
 
@@ -143,10 +57,10 @@ function() {
 		transclude: true,
 		replace: true,
 		require: '^expandable',
-		template: "<div class='width3 pad {{handle.position}} \
+		template: "<div class='width3 pad {{expandable.handle.position}} \
 			gray-bg-3-hover pointer font- white'\
-			ng-click='toggle()'>\
-				<div class='glyphicon {{handle.class}}'></div>\
+			ng-click='expandable.toggle()'>\
+				<div class='glyphicon {{expandable.handle.class}}'></div>\
 			</div>'",
 		compile: function($element, attrs) {
 
@@ -158,7 +72,7 @@ function() {
 					/**
 					 * Initialize the toggle handle
 					 */
-					$scope.initializeToggleHandle();
+					$scope.expandable.initializeToggleHandle();
 				}
 			}
 		}

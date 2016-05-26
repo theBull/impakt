@@ -9,6 +9,10 @@
 		</div>
 		<div class='row'>
 			<div class='shrink height3 pad gray-bg-3-hover pointer marginRight1'
+				ng-click='editScenario()'>
+				Edit a Scenario
+			</div>		
+			<div class='shrink height3 pad gray-bg-3-hover pointer marginRight1'
 				ng-click='editPlay()'>
 				Edit a Play
 			</div>
@@ -20,13 +24,28 @@
 	</div>
 
 	<div>
+		<div class='marginBottom1' ng-show='editScenarioSelected'>
+	        Scenarios
+	        <div ng-show='scenarios.hasElements()'>
+	            <select ng-options='scenario as scenario.name for scenario in scenarios.toArray()'
+	                ng-model='selectedScenario'
+	                ng-change='selectScenario(selectedScenario)'>
+	            </select>
+	        </div>
+	        <div ng-show='scenarios.isEmpty()'>
+	            <span class='marginRight1'>
+	                <span class='glyphicon glyphicon-exclamation-sign'></span>
+	            </span>
+	            <em>No scenarios available.</em>
+	        </div>
+	    </div>
+
 		<div class='marginBottom1' ng-show='editPlaySelected'>
 	        Plays
 	        <div ng-show='plays.hasElements()'>
 	            <select ng-options='play as play.name for play in plays.toArray()'
 	                ng-model='selectedPlay'
 	                ng-change='selectPlay(selectedPlay)'>
-	                <option value=''>---</option>
 	            </select>
 	        </div>
 	        <div ng-show='plays.isEmpty()'>
@@ -43,7 +62,6 @@
 	            <select ng-options='formation as formation.name for formation in formations.toArray()'
 	                ng-model='selectedFormation'
 	                ng-change='selectFormation()'>
-	                <option value=''>---</option>
 	            </select>
 	        </div>
 	        <div ng-show='formations.isEmpty()'>
