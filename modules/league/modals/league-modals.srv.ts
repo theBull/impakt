@@ -74,6 +74,29 @@ function($q: any, __modals: any) {
 		});
 		return d.promise;
 	}
+	
+	this.saveLeague = function(league: League.Models.LeagueModel) {
+		let d = $q.defer();
+		let modalInstance = __modals.open(
+			'',
+			'modules/league/modals/save-league/save-league.tpl.html',
+			'league.modals.saveLeague.ctrl',
+			{
+				league: function() {
+					return league;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(results) {
+			console.log(results);
+			d.resolve();
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+		return d.promise;
+	}
 
 
 	/**
@@ -151,6 +174,29 @@ function($q: any, __modals: any) {
 		});
 		return d.promise;
 	}
+	
+	this.saveConference = function(conference: League.Models.Conference) {
+		let d = $q.defer();
+		let modalInstance = __modals.open(
+			'',
+			'modules/league/modals/save-conference/save-conference.tpl.html',
+			'league.modals.saveConference.ctrl',
+			{
+				conference: function() {
+					return conference;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(results) {
+			console.log(results);
+			d.resolve();
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+		return d.promise;
+	}
 
 
 	/**
@@ -212,6 +258,29 @@ function($q: any, __modals: any) {
 			'',
 			'modules/league/modals/delete-division/delete-division.tpl.html',
 			'league.modals.deleteDivision.ctrl',
+			{
+				division: function() {
+					return division;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(results) {
+			console.log(results);
+			d.resolve();
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+		return d.promise;
+	}
+	
+	this.saveDivision = function(division: League.Models.Division) {
+		let d = $q.defer();
+		let modalInstance = __modals.open(
+			'',
+			'modules/league/modals/save-division/save-division.tpl.html',
+			'league.modals.saveDivision.ctrl',
 			{
 				division: function() {
 					return division;

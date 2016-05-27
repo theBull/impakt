@@ -16279,6 +16279,22 @@ impakt.league.modals.service('_leagueModals', [
             });
             return d.promise;
         };
+        this.saveLeague = function (league) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/league/modals/save-league/save-league.tpl.html', 'league.modals.saveLeague.ctrl', {
+                league: function () {
+                    return league;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
         /**
          *
          * CONFERENCE
@@ -16332,6 +16348,22 @@ impakt.league.modals.service('_leagueModals', [
             });
             return d.promise;
         };
+        this.saveConference = function (conference) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/league/modals/save-conference/save-conference.tpl.html', 'league.modals.saveConference.ctrl', {
+                conference: function () {
+                    return conference;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
         /**
          *
          * DIVISION
@@ -16372,6 +16404,22 @@ impakt.league.modals.service('_leagueModals', [
         this.deleteDivision = function (division) {
             var d = $q.defer();
             var modalInstance = __modals.open('', 'modules/league/modals/delete-division/delete-division.tpl.html', 'league.modals.deleteDivision.ctrl', {
+                division: function () {
+                    return division;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.saveDivision = function (division) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/league/modals/save-division/save-division.tpl.html', 'league.modals.saveDivision.ctrl', {
                 division: function () {
                     return division;
                 }
