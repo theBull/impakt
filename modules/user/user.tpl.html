@@ -1,0 +1,55 @@
+
+<!-- User template -->
+<div id='main-profile-controls' class='col font-white' 
+		ng-controller='impakt.user.ctrl'>
+		
+		<!-- Profile Image -->
+		<div id='main-profile-image' 
+			class='height10 width10 margin'>
+		</div>
+
+		<div id='main-profile-settings-container' 
+			class='col pad'>
+
+			<div>
+				<h2>Profile name</h2>
+			</div>
+
+			<!-- Organization details -->
+			<div>
+				<p>Organization {{organizationKey}}</p>
+			</div>
+
+			<div class='maxWidth20 marginBottom1'>
+				Choose an organization
+				<select ng-options='organization as organization.name for organization in organizations.toArray()' 
+					ng-model='selectedOrganization'
+					ng-change='selectOrganization()'>
+
+				</select>
+			</div>
+
+			<!-- User details -->
+			<div>
+				<p>{{userName}}</p>
+			</div>
+
+			<!-- Online / offline status -->
+			<div>		
+				<p title='You are {{onlineStatus}}'>
+					<span ng-class='{"font-red": !isOnline, "font-green": isOnline}'>
+						{{onlineStatus}}
+					</span>
+				</p>				
+			</div>
+
+			<div class='marginTop2'>
+				<span class='blue-bg-hover pointer pad widthAuto' ng-click='logout()'>
+					logout 
+					<span class='glyphicon glyphicon-log-out'></span>
+				</span>
+			</div>
+			
+		</div>
+
+</div>

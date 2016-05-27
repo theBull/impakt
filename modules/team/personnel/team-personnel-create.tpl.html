@@ -1,0 +1,145 @@
+<div class='col font-white shrink'>
+		
+	<div class='row marginBottom1'>
+		<span 
+			ng-show='!creating'
+			class='height3 width8 textCenter pad 
+			pointer font-white red-bg-hover pointer' 
+			ng-click='createPersonnel()'>
+			<span class='glyphicon glyphicon-plus'></span>
+			new
+		</span>
+		<span 
+			class='height3 width8 textCenter pad 
+			pointer font-white gray-bg-3 light-border' 
+			ng-show='creating' 
+			ng-click='cancelCreate()'>
+				<span class='glyphicon glyphicon-remove'></span>
+				cancel
+		</span>
+	</div>
+
+	<div class='row marginBottom1 height2'>
+		<h3>
+			<span ng-show='!creating'>Edit</span> 
+			&quot;{{personnel.name}}&quot;...
+		</h3>
+	</div>
+
+	<div class='row'>
+		<div class='col'>
+			
+			<div class='row height6 marginBottom1'>
+				<div class='marginRight1 minWidth10' ng-show='!creating'>
+					<p>Personnel</p>
+
+					<select
+						ng-options='personnelItem.guid as personnelItem.name for personnelItem in personnelCollection.toArray()'
+						ng-model='selectedPersonnel.guid'
+						ng-change='selectPersonnel(personnelItem)'>
+					</select>
+				</div>
+				<div class='marginRight1 minWidth10'>
+					<p>Unit type</p>
+					<select
+						ng-options='enum as label for (enum, label) in unitTypes'
+						ng-model='selectedPersonnel.unitType'
+						ng-value='selectedPersonnel.unitType'
+						ng-change='selectUnitType()'>
+					</select>
+				</div>
+				<div>
+			    	<p>Name</p>
+					<input type='text'
+						ng-model='personnel.name' 
+						placeholder='Set name?' />
+				</div>
+			</div>
+
+			<div class='col width40'>
+				<div>
+					<p>&quot;{{personnel.name}}&quot; positions</p>
+				</div>
+
+				<div>
+			    	<ul class='col'>
+
+			    		<div class='row height3 textLeft'>
+							<div class='width5 padTop1 padRight1 padBottom1'>
+								Index
+							</div>
+			    			<div class='minWidth18 padTop1 padRight2 padBottom1'>
+								Position
+							</div>
+							<div class='width5 padTop1 padRight1 padBottom1'>
+								Label
+							</div>
+							<div class='width5 padTop1 padRight1 padBottom1'>
+								Unit
+							</div>
+							<div class='width5 padTop1 padRight1 padBottom1'>
+								Eligible
+							</div>
+						</div>
+			    		<li ng-repeat='position in personnel.positions.toArray() track by $index'>
+			    		
+				   			<div class='row'>
+				    			<div class='width5 pad'>
+				    				<!-- Index -->
+				    				{{$index}}
+				    			</div>
+				   				<div class='minWidth18 padRight1 width4'>
+				   					<!-- Position -->
+				   					<select 
+				   						class='width100Percent'
+				   						ng-options='positionItem.positionListValue as positionItem.title for (guid, positionItem) in positionOptions.getAll()'
+				   						ng-change='update(position, $index)'
+				   						ng-model='position.positionListValue'>
+				   					</select>
+				   				</div>
+				    			<div class='width5'>
+				    				<!-- Label -->
+				    				<input type='text'
+				    					disabled="disabled" 
+				    					ng-model='position.label' 
+				    					value='position.label'
+				    					class='width3 textCenter'
+				    					tab-index='{{$index}}' />
+				    			</div>
+				    			<div class='width5 pad'>
+				    				{{position.unitType}}
+				    			</div>
+				    			<div class='width5 pad textLeft'>
+				    				<!-- Eligible -->
+				    				<input type='checkbox'
+				    					ng-checked='position.eligible'
+				    					ng-model='position.eligible' 
+				    					tab-index='{{positions.length + 1 + $index}}'/>
+				    			</div>
+			    			</div>
+			    		</li>
+			    	</ul>
+			    </div>
+
+			    <div class='pad textLeft'>
+					<label class='font-white'>
+						<input type='checkbox' ng-model='createNew' />
+						<span>
+							save as a new copy
+						</span>
+					</label>
+				</div>
+			    <div class='row marginTop1'>
+				    <span 
+						class='height3 pad pointer font-white red-bg-hover pointer marginRight1' 
+						ng-click='save()'>
+						<span class='glyphicon glyphicon-ok'></span>
+						save
+					</span>
+				</div>
+			</div>
+
+		</div>
+	</div>
+
+</div>

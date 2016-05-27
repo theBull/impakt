@@ -1,0 +1,104 @@
+
+<div class='panoramic' ng-controller='impakt.team.personnel.ctrl'>
+	<div class='col shrink marginRight4'>
+		<table class='font-white gray-bg-3'>
+			<thead class='gray-bg-2'>
+				<th class='pad light-border'>
+					name
+				</th>
+				<th class='pad light-border'>
+					id
+				</th>
+				<th class='pad light-border'>
+					unit type
+				</th>
+				<th class='pad light-border'>
+					# positions
+				</th>
+				<th class='pad light-border'>
+					remove
+				</th>
+			</thead>
+			<tbody>
+				<tr ng-repeat='(guid, personnelItem) in personnelCollection.getAll()'>
+					<td class='light-border'>
+						{{personnelItem.name}}
+					</td>
+					<td class='light-border'>
+						{{personnelItem.key}}
+					</td>
+					<td class='light-border'>
+						<type-formatter 
+							value='personnelItem.unitType' 
+							type='Team.Enums.UnitTypes'>
+						</type-formatter>
+					</td>
+					<td class='light-border'>
+						{{personnelItem.positions.size()}}
+					</td>
+					<td class='light-border textCenter pointer'>
+						<div ng-click='deletePersonnel(personnelItem)'>
+							<span 
+								class='glyphicon glyphicon-remove font-red'
+								title='delete this personnel group'></span>
+						</div>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+
+		<table ng-show='selectedPersonnelSetKey'>
+			<thead class='textLeft'>
+				<th class='pad'>
+					Index
+				</th>
+				<th class='pad'>
+					Title
+				</th>
+				<th class='pad'>
+					Label
+				</th>
+				<th class='pad'>
+					UnitType
+				</th>
+				<th class='pad'>
+					Eligible
+				</th>
+				<th class='pad'>
+					Players assigned
+				</th>
+			</thead>
+			<tr ng-show='positions.length == 0'>
+				<td colspan='5' class='pad light-bg textCenter'>
+					Select a personnel set to view its positions
+				</td>
+			</tr>
+			<tbody>
+				<tr ng-repeat='position in positions.toArray() | orderBy:"+index"'>
+					<td class='pad'>
+						{{position.index}}
+					</td>
+					<td class='pad'>
+						{{position.title}}
+					</td>
+					<td class='pad'>
+						{{position.label}}
+					</td>
+					<td class='pad'>
+						{{position.unitType}}
+					</td>
+					<td class='pad'>
+						{{position.eligible}}
+					</td>
+					<td class='pad'>
+						<a>0 players assigned to this position</a>
+					</td>
+				</tr>
+			</tbody>
+
+		</table>	
+	</div>
+	<div class='col'>
+		<ng-include src='"modules/team/personnel/team-personnel-create.tpl.html"'></ng-include>
+	</div>
+</div>

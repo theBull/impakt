@@ -1,0 +1,41 @@
+
+<div class='font-white'>
+
+	<div class='pad'>
+		<h4>
+			Formations				
+		</h4>
+
+		<div class='row'>
+			<div class='pad red-bg-hover pointer marginBottom1 width6'
+				 ng-click='createFormation()'>
+				<span class='glyphicon glyphicon-plus'></span>
+				new
+			</div>
+
+			<div class='pad height3'>
+				<span class='glyphicon glyphicon-refresh font-white-hover'
+					ng-click='refreshFormations()'>
+				</span>
+			</div>
+		</div>
+	</div>
+
+	<div class='col'>
+		<div 
+			ng-repeat='formation in formations.toArray()'
+			class='row pad gray-bg-3-hover marginBottom1 height3 pointer positionRelative'>
+				<p>{{formation.name}}</p>
+				
+				<div class='marginLeft1'>
+					<span class='glyphicon glyphicon-pencil font-white-hover' 
+						title='Edit formation'>
+					</span>
+				</div>
+
+				<!-- TODO @theBull - implement; issue #98 -->
+				<!-- <play-preview guid='{{formation.guid}}'></play-preview> -->
+			</div>
+		</div>
+	</div>
+</div>
