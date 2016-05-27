@@ -9742,7 +9742,7 @@ var Team;
             function TeamModel(teamType) {
                 _super.call(this, Common.Enums.ImpaktDataTypes.Team);
                 _super.prototype.setContext.call(this, this);
-                this.name = 'Untitled';
+                this.name = '';
                 this.teamType = teamType;
                 this.records = new Team.Models.TeamRecordCollection();
                 this.division = null;
@@ -15009,6 +15009,10 @@ impakt.details.controller('details.ctrl', [
                 $scope.selectedElements.remove($scope.selectedElement.guid);
             });
         };
+        $scope.update = function (entity) {
+            _details.update(entity).then(function () {
+            });
+        };
         init();
     }]);
 /// <reference path='./details.mdl.ts' />
@@ -15066,6 +15070,34 @@ impakt.details.service('_details', [
                     return _team.deleteEntityByType(entity);
                 default:
                     throw new Error('_details delete(): entity ImpaktDataType not supported ' + entity.impaktDataType);
+            }
+        };
+        /**
+         * NOTE: if the given entity's impaktDataType is not supported,
+         * an exception will be thrown; this is because the function MUST
+         * return a promise object (which is defined within the `updateEntityByType` methods
+         * below in their respecitve services). If no applicable case is met,
+         * we have nothing left but to stop traffic and complain.
+         *
+         * @param {Common.Interfaces.IActionable} entity [description]
+         */
+        this.update = function (entity) {
+            switch (entity.impaktDataType) {
+                case Common.Enums.ImpaktDataTypes.Play:
+                case Common.Enums.ImpaktDataTypes.Formation:
+                case Common.Enums.ImpaktDataTypes.AssignmentGroup:
+                case Common.Enums.ImpaktDataTypes.Scenario:
+                case Common.Enums.ImpaktDataTypes.Playbook:
+                    return _playbook.updateEntityByType(entity);
+                case Common.Enums.ImpaktDataTypes.Conference:
+                case Common.Enums.ImpaktDataTypes.League:
+                case Common.Enums.ImpaktDataTypes.Division:
+                    return _league.updateEntityByType(entity);
+                case Common.Enums.ImpaktDataTypes.Team:
+                case Common.Enums.ImpaktDataTypes.PersonnelGroup:
+                    return _team.updateEntityByType(entity);
+                default:
+                    throw new Error('_details update(): entity ImpaktDataType not supported ' + entity.impaktDataType);
             }
         };
     }]);
@@ -15904,6 +15936,23 @@ impakt.league.service('_league', [
             }
             return d.promise;
         };
+        this.updateEntityByType = function (entity) {
+            if (Common.Utilities.isNullOrUndefined(entity))
+                return;
+            var d = $q.defer();
+            switch (entity.impaktDataType) {
+                case Common.Enums.ImpaktDataTypes.League:
+                    return _leagueModals.saveLeague(entity);
+                case Common.Enums.ImpaktDataTypes.Conference:
+                    return _leagueModals.saveConference(entity);
+                case Common.Enums.ImpaktDataTypes.Division:
+                    return _leagueModals.saveDivision(entity);
+                default:
+                    d.reject(new Error('_league saveEntityByType: impaktDataType not supported'));
+                    break;
+            }
+            return d.promise;
+        };
         this.toBrowser = function () {
             this.drilldown.league = null;
             this.drilldown.team = null;
@@ -16335,6 +16384,63 @@ impakt.league.modals.service('_leagueModals', [
                 d.reject();
             });
             return d.promise;
+        };
+    }]);
+/// <reference path='../league-modals.mdl.ts' />
+impakt.league.modals.controller('league.modals.saveConference.ctrl', ['$scope',
+    '$uibModalInstance',
+    '_league',
+    'conference',
+    function ($scope, $uibModalInstance, _league, conference) {
+        $scope.conference = conference;
+        $scope.ok = function () {
+            _league.updateConference($scope.conference)
+                .then(function (savedConference) {
+                $uibModalInstance.close(savedConference);
+            }, function (err) {
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../league-modals.mdl.ts' />
+impakt.league.modals.controller('league.modals.saveDivision.ctrl', ['$scope',
+    '$uibModalInstance',
+    '_league',
+    'division',
+    function ($scope, $uibModalInstance, _league, division) {
+        $scope.division = division;
+        $scope.ok = function () {
+            _league.updateDivision($scope.division)
+                .then(function (savedDivision) {
+                $uibModalInstance.close(savedDivision);
+            }, function (err) {
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../league-modals.mdl.ts' />
+impakt.league.modals.controller('league.modals.saveLeague.ctrl', ['$scope',
+    '$uibModalInstance',
+    '_league',
+    'league',
+    function ($scope, $uibModalInstance, _league, league) {
+        $scope.league = league;
+        $scope.ok = function () {
+            _league.updateLeague($scope.league)
+                .then(function (savedLeague) {
+                $uibModalInstance.close(savedLeague);
+            }, function (err) {
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
         };
     }]);
 /// <reference path='../modules.mdl.ts' />
@@ -19590,6 +19696,32 @@ impakt.playbook.service('_playbook', [
             }
             return d.promise;
         };
+        /**
+         * Takes a given entity (of unknown type) and uses its internally
+         * defined ImpaktDataType to determine the appropriate API method
+         * to call.
+         *
+         * @param {Common.Interfaces.IActionable} entity The entity to delete
+         */
+        this.updateEntityByType = function (entity) {
+            var d = $q.defer();
+            switch (entity.impaktDataType) {
+                case Common.Enums.ImpaktDataTypes.Playbook:
+                    return _playbookModals.savePlaybook(entity);
+                case Common.Enums.ImpaktDataTypes.Play:
+                    return _playbookModals.savePlay(entity);
+                case Common.Enums.ImpaktDataTypes.Formation:
+                    return _playbookModals.saveFormation(entity);
+                case Common.Enums.ImpaktDataTypes.AssignmentGroup:
+                    return _playbookModals.saveAssignmentGroup(entity);
+                case Common.Enums.ImpaktDataTypes.Scenario:
+                    return _playbookModals.saveScenario(entity);
+                default:
+                    d.reject(new Error('_playbook deleteEntityByType: impaktDataType not supported'));
+                    break;
+            }
+            return d.promise;
+        };
         this.setScenarioAssociations = function (scenario) {
             var associations = _associations.getAssociated(scenario);
             var plays = associations.plays;
@@ -19854,8 +19986,9 @@ impakt.team.modals.controller('team.modals.deleteTeam.ctrl', [
     '$rootScope',
     '$uibModalInstance',
     '_team',
+    '_league',
     'team',
-    function ($scope, $rootScope, $uibModalInstance, _team, team) {
+    function ($scope, $rootScope, $uibModalInstance, _team, _league, team) {
         $scope.team = team;
         $scope.ok = function () {
             _team.deleteTeam($scope.team)
@@ -20378,6 +20511,21 @@ impakt.team.service('_team', [
                     break;
                 default:
                     d.reject(new Error('_team deleteEntityByType: impaktDataType not supported'));
+                    break;
+            }
+            return d.promise();
+        };
+        this.updateEntityByType = function (entity) {
+            if (Common.Utilities.isNullOrUndefined(entity))
+                return;
+            var d = $q.defer();
+            switch (entity.impaktDataType) {
+                case Common.Enums.ImpaktDataTypes.Team:
+                    return _teamModals.saveTeam(entity);
+                case Common.Enums.ImpaktDataTypes.PersonnelGroup:
+                    return _teamModals.savePersonnel(entity);
+                default:
+                    d.reject(new Error('_team updateEntityByType: impaktDataType not supported'));
                     break;
             }
             return d.promise();

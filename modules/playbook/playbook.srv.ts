@@ -1442,6 +1442,35 @@ function(
         return d.promise;
     }
 
+    /**
+     * Takes a given entity (of unknown type) and uses its internally
+     * defined ImpaktDataType to determine the appropriate API method
+     * to call.
+     * 
+     * @param {Common.Interfaces.IActionable} entity The entity to delete
+     */
+    this.updateEntityByType = function(entity: Common.Interfaces.IActionable) {
+        let d = $q.defer();
+
+        switch(entity.impaktDataType) {
+            case Common.Enums.ImpaktDataTypes.Playbook:
+                return _playbookModals.savePlaybook(entity);
+            case Common.Enums.ImpaktDataTypes.Play:
+                return _playbookModals.savePlay(entity);
+            case Common.Enums.ImpaktDataTypes.Formation:
+                return _playbookModals.saveFormation(entity);
+            case Common.Enums.ImpaktDataTypes.AssignmentGroup:
+                return _playbookModals.saveAssignmentGroup(entity);
+            case Common.Enums.ImpaktDataTypes.Scenario:
+                return _playbookModals.saveScenario(entity);
+            default:
+                d.reject(new Error('_playbook deleteEntityByType: impaktDataType not supported'));
+                break;
+        }
+
+        return d.promise;
+    }
+
     this.setScenarioAssociations = function(scenario: Common.Models.Scenario): Common.Models.Scenario {
         let associations = _associations.getAssociated(scenario);
         let plays = associations.plays;

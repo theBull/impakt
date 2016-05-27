@@ -13,7 +13,7 @@ module Team.Models {
             super(Common.Enums.ImpaktDataTypes.Team);
             super.setContext(this);
             
-            this.name = 'Untitled';
+            this.name = '';
             this.teamType = teamType;
             this.records = new Team.Models.TeamRecordCollection();
             this.division = null;

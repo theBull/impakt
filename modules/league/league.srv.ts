@@ -684,6 +684,30 @@ function(
         return d.promise;
     }
 
+    this.updateEntityByType = function(entity: Common.Interfaces.IActionable): void {
+        if (Common.Utilities.isNullOrUndefined(entity))
+            return;
+
+        let d = $q.defer();
+
+        switch(entity.impaktDataType) {
+            case Common.Enums.ImpaktDataTypes.League:
+                return _leagueModals.saveLeague(entity);
+            
+            case Common.Enums.ImpaktDataTypes.Conference:
+                return _leagueModals.saveConference(entity);
+
+            case Common.Enums.ImpaktDataTypes.Division:
+                return _leagueModals.saveDivision(entity);
+
+            default:
+                d.reject(new Error('_league saveEntityByType: impaktDataType not supported'));
+                break;
+        }
+
+        return d.promise;
+    }
+
     this.toBrowser = function() {
         this.drilldown.league = null;
         this.drilldown.team = null;

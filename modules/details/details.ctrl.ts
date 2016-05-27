@@ -95,6 +95,12 @@ function(
 		});
 	}
 
+	$scope.update = function(entity: Common.Interfaces.IActionable) {
+		_details.update(entity).then(function() { 
+			
+		});
+	}
+
 	init();
 
 }]);

@@ -70,4 +70,36 @@ function(
 		}
 	}
 
+	/**
+	 * NOTE: if the given entity's impaktDataType is not supported,
+	 * an exception will be thrown; this is because the function MUST
+	 * return a promise object (which is defined within the `updateEntityByType` methods
+	 * below in their respecitve services). If no applicable case is met,
+	 * we have nothing left but to stop traffic and complain.
+	 * 
+	 * @param {Common.Interfaces.IActionable} entity [description]
+	 */
+	this.update = function(entity: Common.Interfaces.IActionable) {
+		switch (entity.impaktDataType) {
+			case Common.Enums.ImpaktDataTypes.Play:
+			case Common.Enums.ImpaktDataTypes.Formation:
+			case Common.Enums.ImpaktDataTypes.AssignmentGroup:
+			case Common.Enums.ImpaktDataTypes.Scenario:
+			case Common.Enums.ImpaktDataTypes.Playbook:
+				return _playbook.updateEntityByType(entity);
+
+			case Common.Enums.ImpaktDataTypes.Conference:
+			case Common.Enums.ImpaktDataTypes.League:
+			case Common.Enums.ImpaktDataTypes.Division:
+				return _league.updateEntityByType(entity);
+
+			case Common.Enums.ImpaktDataTypes.Team:
+			case Common.Enums.ImpaktDataTypes.PersonnelGroup:
+				return _team.updateEntityByType(entity);
+
+			default:
+				throw new Error('_details update(): entity ImpaktDataType not supported ' + entity.impaktDataType);
+		}
+	}
+
 }]);

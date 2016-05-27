@@ -435,6 +435,27 @@ function(
         return d.promise();
     }
 
+    this.updateEntityByType = function(entity: Common.Interfaces.IActionable) {
+        if (Common.Utilities.isNullOrUndefined(entity))
+            return;
+
+        let d = $q.defer();
+
+        switch(entity.impaktDataType) {
+            case Common.Enums.ImpaktDataTypes.Team:
+                return _teamModals.saveTeam(entity);
+
+            case Common.Enums.ImpaktDataTypes.PersonnelGroup:
+                return _teamModals.savePersonnel(entity);
+
+            default:
+                d.reject(new Error('_team updateEntityByType: impaktDataType not supported'));
+                break;
+        }
+
+        return d.promise();
+    }
+
     this.createPrimaryTeam = function(teamModel: Team.Models.TeamModel) {
     	
     }

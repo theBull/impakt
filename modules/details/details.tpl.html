@@ -19,8 +19,16 @@
 							value='element.impaktDataType'
 							type='Common.Enums.ImpaktDataTypes'>
 						</type-formatter>
-					</strong>: {{element.name}}
+					</strong>:
+					<input type='text' ng-model='element.name' />
 				</h4>
+				
+				<button class='blue-bg-hover pointer height3 pad'
+					ng-click=''>
+					<span class='glyphicon glyphicon-ok'></span>
+					save
+				</button>
+
 			</div>
 
 			<details open>

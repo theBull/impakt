@@ -5,12 +5,14 @@ impakt.team.modals.controller('team.modals.deleteTeam.ctrl', [
 '$rootScope',
 '$uibModalInstance', 
 '_team', 
+'_league',
 'team',
 function(
 	$scope: any, 
 	$rootScope: any,
 	$uibModalInstance: any, 
-	_team: any, 
+	_team: any,
+	_league: any,
 	team: any
 ) {
 
