@@ -398,6 +398,9 @@ a {
 /*
 *	SHRINK & STRETCH
 */
+.flex-even {
+	flex: 1 1 !important; /* remove auto */
+}
 .shrink { 
 	display: flex;
     flex: 0 1 auto !important;

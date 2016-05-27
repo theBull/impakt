@@ -2,11 +2,13 @@
 
 impakt.league.drilldown.league.controller('league.drilldown.league.ctrl', [
 '$scope', 
+'$rootScope',
 '_associations',
 '_league', 
-'_leagueModals', 
+'_leagueModals',
 function(
 	$scope: any,
+	$rootScope: any,
 	_associations: any, 
 	_league: any, 
 	_leagueModals: any
@@ -14,34 +16,37 @@ function(
 
 	$scope.league = _league.drilldown.league;
 	$scope.conferences = new League.Models.ConferenceCollection();
-	$scope.teamData = {};
+
+	let deleteConferenceListener = $rootScope.$on('delete-conference', function(e: any, conference: League.Models.Conference) {
+		$scope.conferences.remove(conference.guid);
+	});
+
+	let associationsUpdatedListener = $rootScope.$on('associations-updated', function(e: any) {
+		init();
+	});
+
+	$scope.$on('$destroy', function() {
+		deleteConferenceListener();
+		associationsUpdatedListener();
+	});
 
 	function init() {
 		let leagueAssociations = _associations.getAssociated($scope.league);
 
-		if (Common.Utilities.isNotNullOrUndefined(leagueAssociations) &&
-			leagueAssociations.conferences.hasElements()) {
+		if (Common.Utilities.isNotNullOrUndefined(leagueAssociations)) {
 			$scope.conferences = leagueAssociations.conferences;
-
-			if(Common.Utilities.isNotNullOrUndefined($scope.conferences)) {
-				$scope.conferences.forEach(function(conference: League.Models.Conference, index: number) {
-					let conferenceAssociations = _associations.getAssociated(conference);
-					if(Common.Utilities.isNotNullOrUndefined(conferenceAssociations)) {
-						$scope.teamData[conference.guid] = conferenceAssociations;
-					}
-				});
-			}
+			$scope.conferences.forEach(function(conference: League.Models.Conference, index: number) {
+				let conferenceAssociations = _associations.getAssociated(conference);
+				conference.setLeague($scope.league);
+			});
 		}
 	}
 
 	$scope.createConference = function() {
-		_leagueModals.createConference().then(function() {
+		_leagueModals.createConference($scope.league)
+		.then(function() {
 			init();	
 		});
-	}
-
-	$scope.delete = function() {
-		_leagueModals.deleteLeague($scope.league);
 	}
 
 	init();

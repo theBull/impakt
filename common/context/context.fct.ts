@@ -154,6 +154,9 @@ function(
 		impakt.context.Team.positionDefaults = new Team.Models.PositionDefault();
 		impakt.context.Team.unitTypes = _playbook.getUnitTypes();
 		impakt.context.Team.unitTypesEnum = _playbook.getUnitTypesEnum();
+		impakt.context.Team.creation = {
+			teams: new Team.Models.TeamModelCollection(Team.Enums.TeamTypes.Mixed)
+		}
 
 		/**
 		 *
@@ -164,14 +167,15 @@ function(
 		 */
 		impakt.context.League.leagues = new League.Models.LeagueModelCollection();
 		impakt.context.League.conferences = new League.Models.ConferenceCollection();
+		impakt.context.League.divisions = new League.Models.DivisionCollection();
 		/**
 		 * A creation context for new leagues, conferences, divisions, and teams
 		 */
 		impakt.context.League.creation = {
 			leagues: new League.Models.LeagueModelCollection(),
 			conferences: new League.Models.ConferenceCollection(),
-			//divisions: new League.Models.DivisionCollection(), // TODO @theBull
-			teams: new Team.Models.TeamModel(Team.Enums.TeamTypes.Other)
+			teams: new Team.Models.TeamModel(Team.Enums.TeamTypes.Other),
+			divisions: new League.Models.DivisionCollection()
 		}
 
 
@@ -207,6 +211,17 @@ function(
 					context.League.conferences = conferences;
 					__notifications.success('Conferences successfully loaded');
 					callback(null, conferences);
+				}, function(err) {
+					callback(err);
+				});
+			},
+
+			// Retrieve divisions
+			function(callback) {
+				_league.getDivisions().then(function(divisions) {
+					context.League.divisions = divisions;
+					__notifications.success('Divisions successfully loaded');
+					callback(null, divisions);
 				}, function(err) {
 					callback(err);
 				});

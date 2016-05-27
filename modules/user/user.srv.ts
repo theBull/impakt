@@ -13,7 +13,7 @@ function(
 	USER: any,
 	$window: any,
 	$q: any,
-	__context: any, // TODO @theBull - might not need this after the Alpha
+	__context: any,
 	__api: any,
 	__notifications: any,
 	__localStorage: any,

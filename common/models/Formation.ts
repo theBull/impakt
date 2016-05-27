@@ -7,7 +7,6 @@ module Common.Models {
         public unitType: Team.Enums.UnitTypes;
         public parentRK: number; // TODO @theBull - deprecate
         public editorType: Playbook.Enums.EditorTypes;
-        public name: string;
         public placements: Common.Models.PlacementCollection;
         public png: string;
 

@@ -1352,7 +1352,8 @@ var Common;
                     'personnel',
                     'assignmentGroups',
                     'leagues',
-                    'conferences'
+                    'conferences',
+                    'divisions'
                 ];
             }
             AssociableEntity.prototype.generateAssociationKey = function () {
@@ -1867,7 +1868,7 @@ var Common;
                 this.assignmentGroups = new Common.Models.AssignmentGroupCollection(Team.Enums.UnitTypes.Mixed);
                 this.leagues = new League.Models.LeagueModelCollection();
                 this.conferences = new League.Models.ConferenceCollection();
-                this.divisions = null;
+                this.divisions = new League.Models.DivisionCollection();
                 this.teams = new Team.Models.TeamModelCollection(Team.Enums.TeamTypes.Primary);
             }
             AssociationResults.prototype.count = function () {
@@ -1880,8 +1881,7 @@ var Common;
                 count += this.assignmentGroups.size();
                 count += this.leagues.size();
                 count += this.conferences.size();
-                // TODO @theBull implement
-                //count += this.divisions.size();
+                count += this.divisions.size();
                 count += this.teams.size();
                 return count;
             };
@@ -1909,9 +1909,8 @@ var Common;
                     populated.push('leagues');
                 if (this.conferences.hasElements())
                     populated.push('conferences');
-                // TODO @theBull implement
-                // if (this.divisions.hasElements())
-                // 	populated.push('divisions');
+                if (this.divisions.hasElements())
+                    populated.push('divisions');
                 if (this.teams.hasElements())
                     populated.push('teams');
                 return populated;
@@ -7198,6 +7197,7 @@ var Common;
             ImpaktDataTypes[ImpaktDataTypes["TeamMember"] = 1016] = "TeamMember";
             ImpaktDataTypes[ImpaktDataTypes["UnitType"] = 1017] = "UnitType";
             ImpaktDataTypes[ImpaktDataTypes["Conference"] = 1018] = "Conference";
+            ImpaktDataTypes[ImpaktDataTypes["Division"] = 1019] = "Division";
             ImpaktDataTypes[ImpaktDataTypes["Scenario"] = 1020] = "Scenario";
             ImpaktDataTypes[ImpaktDataTypes["MatchupPlaybook"] = 1021] = "MatchupPlaybook";
             ImpaktDataTypes[ImpaktDataTypes["Situation"] = 1022] = "Situation";
@@ -7219,6 +7219,7 @@ var Common;
         })(Enums.ImpaktDataTypes || (Enums.ImpaktDataTypes = {}));
         var ImpaktDataTypes = Enums.ImpaktDataTypes;
         (function (AssociationTypes) {
+            AssociationTypes[AssociationTypes["Any"] = -1] = "Any";
             AssociationTypes[AssociationTypes["Unknown"] = 0] = "Unknown";
             AssociationTypes[AssociationTypes["Peer"] = 1] = "Peer";
             AssociationTypes[AssociationTypes["Dependency"] = 2] = "Dependency";
@@ -7884,6 +7885,9 @@ var Common;
         };
         Utilities.isEmptyString = function (str) {
             return Common.Utilities.isNullOrUndefined(str) || str === '';
+        };
+        Utilities.isNotEmptyString = function (str) {
+            return !Common.Utilities.isEmptyString(str);
         };
         /**
          * Iterates over the given array and removes any
@@ -9741,19 +9745,23 @@ var Team;
                 this.name = 'Untitled';
                 this.teamType = teamType;
                 this.records = new Team.Models.TeamRecordCollection();
+                this.division = null;
+                this.divisionGuid = '';
                 var self = this;
                 this.onModified(function (data) { });
                 this.associable = [
                     'leagues',
                     'conferences',
-                    'divisions'
+                    'divisions',
+                    'playbooks'
                 ];
             }
             TeamModel.prototype.toJson = function () {
                 return $.extend({
                     name: this.name,
                     teamType: this.teamType,
-                    records: this.records.toJson()
+                    records: this.records.toJson(),
+                    divisionGuid: this.divisionGuid
                 }, _super.prototype.toJson.call(this));
             };
             TeamModel.prototype.fromJson = function (json) {
@@ -9762,7 +9770,12 @@ var Team;
                 this.teamType = json.teamType;
                 this.name = json.name;
                 this.records.fromJson(json.records);
+                this.divisionGuid = json.divisionGuid;
                 _super.prototype.fromJson.call(this, json);
+            };
+            TeamModel.prototype.setDivision = function (division) {
+                this.division = division;
+                this.divisionGuid = this.division ? this.division.guid : '';
             };
             return TeamModel;
         })(Common.Models.AssociableEntity);
@@ -10763,7 +10776,7 @@ var League;
             __extends(Conference, _super);
             function Conference() {
                 _super.call(this, Common.Enums.ImpaktDataTypes.Conference);
-                this.name = 'Untitled';
+                this.name = null;
                 this.league = null;
                 this.leagueGuid = '';
                 this.associable = [
@@ -10836,11 +10849,95 @@ var League;
         Models.ConferenceCollection = ConferenceCollection;
     })(Models = League.Models || (League.Models = {}));
 })(League || (League = {}));
+/// <reference path='./models.ts' />
+var League;
+(function (League) {
+    var Models;
+    (function (Models) {
+        var Division = (function (_super) {
+            __extends(Division, _super);
+            function Division() {
+                _super.call(this, Common.Enums.ImpaktDataTypes.Division);
+                this.name = '';
+                this.conference = null;
+                this.conferenceGuid = '';
+                this.associable = [
+                    'leagues',
+                    'conferences',
+                    'teams'
+                ];
+            }
+            Division.prototype.copy = function (newDivision) {
+                var copyDivision = newDivision || new League.Models.Division();
+                return _super.prototype.copy.call(this, copyDivision, this);
+            };
+            Division.prototype.toJson = function () {
+                return $.extend({
+                    name: this.name,
+                    png: this.png,
+                    conferenceGuid: this.conferenceGuid
+                }, _super.prototype.toJson.call(this));
+            };
+            Division.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.name = json.name;
+                this.png = json.png;
+                this.conferenceGuid = json.conferenceGuid;
+                _super.prototype.fromJson.call(this, json);
+            };
+            Division.prototype.setConference = function (conference) {
+                this.conference = conference;
+                this.conferenceGuid = this.conference ? this.conference.guid : '';
+            };
+            return Division;
+        })(Common.Models.AssociableEntity);
+        Models.Division = Division;
+    })(Models = League.Models || (League.Models = {}));
+})(League || (League = {}));
+/// <reference path='./models.ts' />
+var League;
+(function (League) {
+    var Models;
+    (function (Models) {
+        var DivisionCollection = (function (_super) {
+            __extends(DivisionCollection, _super);
+            function DivisionCollection() {
+                _super.call(this);
+            }
+            DivisionCollection.prototype.toJson = function () {
+                return {
+                    guid: this.guid,
+                    divisions: _super.prototype.toJson.call(this)
+                };
+            };
+            DivisionCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.guid = json.guid;
+                var divisionArray = json.divisions || [];
+                for (var i = 0; i < divisionArray.length; i++) {
+                    var rawDivisionModel = divisionArray[i];
+                    if (Common.Utilities.isNullOrUndefined(rawDivisionModel)) {
+                        continue;
+                    }
+                    var divisionModel = new League.Models.Division();
+                    divisionModel.fromJson(rawDivisionModel);
+                    this.add(divisionModel);
+                }
+            };
+            return DivisionCollection;
+        })(Common.Models.ActionableCollection);
+        Models.DivisionCollection = DivisionCollection;
+    })(Models = League.Models || (League.Models = {}));
+})(League || (League = {}));
 /// <reference path='../league.ts' />
 /// <reference path='./LeagueModel.ts' />
 /// <reference path='./LeagueModelCollection.ts' />
 /// <reference path='./Conference.ts' />
 /// <reference path='./ConferenceCollection.ts' />
+/// <reference path='./Division.ts' />
+/// <reference path='./DivisionCollection.ts' />
 /// <reference path='../modules.ts' />
 /// <reference path='./models/models.ts' />
 /// <reference path='../modules.ts' />
@@ -11293,11 +11390,12 @@ impakt.common.associations.constant('ASSOCIATIONS', {
 // Association service
 impakt.common.associations.service('_associations', [
     'ASSOCIATIONS',
+    '$rootScope',
     '$q',
     '__api',
     '__localStorage',
     '__notifications',
-    function (ASSOCIATIONS, $q, __api, __localStorage, __notifications) {
+    function (ASSOCIATIONS, $rootScope, $q, __api, __localStorage, __notifications) {
         /**
          * Global associations model;
          *
@@ -11355,6 +11453,7 @@ impakt.common.associations.service('_associations', [
                 associations: associationsJson
             }).then(function (updatedAssociations) {
                 notification.success(impakt.context.Associations.associations.size(), ' Associations successfully updated');
+                $rootScope.$broadcast('associations-updated');
                 d.resolve();
             }, function (err) {
                 notification.error('Failed to update Associations');
@@ -11375,6 +11474,7 @@ impakt.common.associations.service('_associations', [
                 associations: associations.toJson()
             }).then(function () {
                 notification.success(associations.size(), ' Associations successfully deleted');
+                $rootScope.$broadcast('associations-updated');
                 d.resolve();
             }, function (err) {
                 notification.error('Failed to update Associations');
@@ -11388,10 +11488,41 @@ impakt.common.associations.service('_associations', [
         this.deleteAssociation = function (fromEntity, toEntity) {
             var d = $q.defer();
             impakt.context.Associations.associations.disassociate(fromEntity, toEntity);
-            this.updateAssociations()
-                .then(function () {
+            var organizationKey = __localStorage.getOrganizationKey();
+            var notification = __notifications.pending('Deleting association between ', fromEntity.name, ' and ', toEntity.name, '...');
+            // NOTE:
+            // 
+            // need to also specify the "inverse" association, since
+            // a single *peer* association between two entities
+            // are inserted into the database (via this client code)
+            // two at a time, one is the normal from/from-to/to association
+            // and the 'inverse' is the from/to-to/from association, which
+            // simply flips the from/to values as a second.
+            // 
+            __api.post(__api.path(ASSOCIATIONS.ENDPOINT, ASSOCIATIONS.DELETE_ASSOCIATIONS), {
+                contextID: organizationKey,
+                associations: [
+                    {
+                        fromType: fromEntity.impaktDataType,
+                        fromKey: fromEntity.key,
+                        toType: toEntity.impaktDataType,
+                        toKey: toEntity.key,
+                        associationType: Common.Enums.AssociationTypes.Peer
+                    },
+                    {
+                        fromType: toEntity.impaktDataType,
+                        fromKey: toEntity.key,
+                        toType: fromEntity.impaktDataType,
+                        toKey: fromEntity.key,
+                        associationType: Common.Enums.AssociationTypes.Peer
+                    }
+                ]
+            }).then(function () {
+                notification.success('Association between ', fromEntity.name, ' and ', toEntity.name, ' successfully deleted');
+                $rootScope.$broadcast('associations-updated');
                 d.resolve();
             }, function (err) {
+                notification.error('Failed to update Associations');
                 d.reject(err);
             });
             return d.promise;
@@ -11513,6 +11644,16 @@ impakt.common.associations.service('_associations', [
                         if (conference)
                             results.conferences.add(conference);
                         break;
+                    case Common.Enums.ImpaktDataTypes.Division:
+                        var division = impakt.context.League.divisions.get(guid);
+                        if (division)
+                            results.divisions.add(division);
+                        break;
+                    case Common.Enums.ImpaktDataTypes.Team:
+                        var team = impakt.context.Team.teams.get(guid);
+                        if (team)
+                            results.teams.add(team);
+                        break;
                 }
             }
             return results;
@@ -11548,6 +11689,9 @@ impakt.common.associations.service('_associations', [
                     break;
                 case 'conferences':
                     collection = impakt.context.League.conferences;
+                    break;
+                case 'divisions':
+                    collection = impakt.context.League.divisions;
                     break;
                 case 'teams':
                     collection = impakt.context.Team.teams;
@@ -11699,6 +11843,9 @@ impakt.common.context.factory('__context', ['$q',
             impakt.context.Team.positionDefaults = new Team.Models.PositionDefault();
             impakt.context.Team.unitTypes = _playbook.getUnitTypes();
             impakt.context.Team.unitTypesEnum = _playbook.getUnitTypesEnum();
+            impakt.context.Team.creation = {
+                teams: new Team.Models.TeamModelCollection(Team.Enums.TeamTypes.Mixed)
+            };
             /**
              *
              *
@@ -11708,14 +11855,15 @@ impakt.common.context.factory('__context', ['$q',
              */
             impakt.context.League.leagues = new League.Models.LeagueModelCollection();
             impakt.context.League.conferences = new League.Models.ConferenceCollection();
+            impakt.context.League.divisions = new League.Models.DivisionCollection();
             /**
              * A creation context for new leagues, conferences, divisions, and teams
              */
             impakt.context.League.creation = {
                 leagues: new League.Models.LeagueModelCollection(),
                 conferences: new League.Models.ConferenceCollection(),
-                //divisions: new League.Models.DivisionCollection(), // TODO @theBull
-                teams: new Team.Models.TeamModel(Team.Enums.TeamTypes.Other)
+                teams: new Team.Models.TeamModel(Team.Enums.TeamTypes.Other),
+                divisions: new League.Models.DivisionCollection()
             };
             async.parallel([
                 // Retrieve associations
@@ -11748,6 +11896,17 @@ impakt.common.context.factory('__context', ['$q',
                         context.League.conferences = conferences;
                         __notifications.success('Conferences successfully loaded');
                         callback(null, conferences);
+                    }, function (err) {
+                        callback(err);
+                    });
+                },
+                // Retrieve divisions
+                // Retrieve divisions
+                function (callback) {
+                    _league.getDivisions().then(function (divisions) {
+                        context.League.divisions = divisions;
+                        __notifications.success('Divisions successfully loaded');
+                        callback(null, divisions);
                     }, function (err) {
                         callback(err);
                     });
@@ -13066,8 +13225,11 @@ impakt.common.ui.controller('assignmentGroupItem.ctrl', [
 /// <reference path='../ui.mdl.ts' />
 impakt.common.ui.controller('associationInput.ctrl', [
     '$scope',
+    '$rootScope',
     '_associations',
-    function ($scope, _associations) {
+    function ($scope, $rootScope, _associations) {
+        $scope.associations;
+        $scope.key;
         $scope.possibleAssociations = new Common.Models.ActionableCollection();
         $scope.associatedEntities = new Common.Models.ActionableCollection();
         $scope.possibleAssociationsListVisible = false;
@@ -13076,22 +13238,38 @@ impakt.common.ui.controller('associationInput.ctrl', [
         $scope.search = {
             text: ''
         };
+        var associationsUpdateListener = $rootScope.$on('associations-updated', function (e) {
+            $scope.associations = _associations.getAssociated($scope.entity);
+            $scope.initialize();
+        });
+        var createEntityListener = $rootScope.$on('create-entity', function (e, entity) {
+            $scope.initialize();
+        });
         $scope.$watch('search', function (newVal, oldVal) {
             $scope.possibleAssociationsListVisible = newVal.text.length > 0;
         }, true);
+        $scope.$on('$destroy', function () {
+            associationsUpdateListener();
+            createEntityListener();
+        });
+        $scope.initialize = function () {
+            $scope.possibleAssociations = _associations.getContextDataByKey($scope.key);
+            // remove any possible associations from the list if they already exist in the
+            // associations collection, to prevent adding a duplicate association and to
+            // just not suck in general...
+            if (Common.Utilities.isNotNullOrUndefined($scope.associations)) {
+                $scope.associatedEntities = $scope.associations[$scope.key];
+                if (Common.Utilities.isNotNullOrUndefined($scope.associatedEntities)) {
+                    $scope.associatedEntities.forEach(function (associated, index) {
+                        $scope.possibleAssociations.remove(associated.guid);
+                    });
+                }
+            }
+        };
         $scope.addAssociation = function (toEntity) {
             _checkEntities(toEntity);
             _associations.createAssociation($scope.entity, toEntity).then(function () {
-                // we need to remove the newly added entity from the list of possible
-                // associations...
-                var newlyAssociated = $scope.possibleAssociations.remove(toEntity.guid);
                 $scope.selectedPossibleAssociation = null;
-                if (Common.Utilities.isNotNullOrUndefined(newlyAssociated)) {
-                    // ...but once we remove the newly added entity, we want to keep it some where
-                    // in case we remove the entity's association and want it to reappear in the
-                    // list of possible associations...
-                    $scope.associatedEntities.add(newlyAssociated);
-                }
                 $scope.search.text = '';
             }, function (err) {
                 $scope.search.text = '';
@@ -13100,14 +13278,6 @@ impakt.common.ui.controller('associationInput.ctrl', [
         $scope.removeAssociation = function (toEntity) {
             _checkEntities(toEntity);
             _associations.deleteAssociation($scope.entity, toEntity).then(function () {
-                // ...we just deleted an association
-                var removedAssociation = $scope.associatedEntities.remove(toEntity.guid);
-                if (Common.Utilities.isNotNullOrUndefined(removedAssociation)) {
-                    // ...but once we remove the newly added entity, we want to keep it some where
-                    // in case we remove the entity's association and want it to reappear in the
-                    // list of possible associations...
-                    $scope.possibleAssociations.add(removedAssociation);
-                }
                 $scope.search.text = '';
             }, function (err) {
                 $scope.search.text = '';
@@ -13117,21 +13287,21 @@ impakt.common.ui.controller('associationInput.ctrl', [
             if (Common.Utilities.isNullOrUndefined($scope.selectedPossibleAssociation))
                 return;
             $scope.addAssociation($scope.selectedPossibleAssociation);
+            $scope.selectedPossibleAssociation = null;
             $scope.hidePossibleAssociationsList();
         };
         $scope.hidePossibleAssociationsList = function () {
             $scope.selectedPossibleAssociationIndex = 0;
             $scope.possibleAssociationsListVisible = false;
-            $scope.selectedPossibleAssociation = null;
         };
         $scope.showPossibleAssociationsList = function () {
-            $scope.selectedPossibleAssociationIndex = 0;
             $scope.possibleAssociationsListVisible = true;
             $scope.hoverInitialPossibleAssociation();
         };
         $scope.hoverInitialPossibleAssociation = function () {
             if (Common.Utilities.isNullOrUndefined($scope.possibleAssociations))
                 return;
+            $scope.selectedPossibleAssociationIndex = 0;
             var size = $scope.possibleAssociations.size();
             if (size > 0) {
                 $scope.selectedPossibleAssociation = $scope.possibleAssociations.first();
@@ -13148,7 +13318,7 @@ impakt.common.ui.controller('associationInput.ctrl', [
                 return;
             }
             var size = $scope.possibleAssociations.size();
-            if ($scope.selectedPossibleAssociationIndex < size - 2) {
+            if ($scope.selectedPossibleAssociationIndex < size - 1) {
                 $scope.selectedPossibleAssociationIndex++;
                 $scope.selectedPossibleAssociation = $scope.possibleAssociations.getIndex($scope.selectedPossibleAssociationIndex);
                 if (Common.Utilities.isNotNullOrUndefined($scope.selectedPossibleAssociation)) {
@@ -13170,6 +13340,9 @@ impakt.common.ui.controller('associationInput.ctrl', [
                 if ($scope.possibleAssociationsListVisible)
                     $scope.hidePossibleAssociationsList();
             }
+        };
+        $scope.getController = function () {
+            return $scope;
         };
         function _checkEntities(toEntity) {
             if (Common.Utilities.isNullOrUndefined($scope.entity))
@@ -13195,30 +13368,10 @@ impakt.common.ui.controller('associationInput.ctrl', [
             link: function ($scope, $element, attrs) {
                 if (Common.Utilities.isNullOrUndefined($scope.key))
                     throw new Error('association-input link(): key is required and is null or undefined');
-                $scope.possibleAssociations = _associations.getContextDataByKey($scope.key);
-                // remove any possible associations from the list if they already exist in the
-                // associations collection, to prevent adding a duplicate association and to
-                // just not suck in general...
-                if (Common.Utilities.isNotNullOrUndefined($scope.associations)) {
-                    $scope.associatedEntities = $scope.associations[$scope.key];
-                    if (Common.Utilities.isNotNullOrUndefined($scope.associatedEntities)) {
-                        $scope.associatedEntities.forEach(function (associated, index) {
-                            $scope.possibleAssociations.remove(associated.guid);
-                        });
-                    }
-                }
+                $scope.initialize();
                 var $input = $element.find('.associations-input-text');
                 if (Common.Utilities.isNotNullOrUndefined($input)) {
-                    $input.focus(function (e) {
-                        $scope.showPossibleAssociationsList();
-                        $scope.$apply();
-                    });
-                    $input.blur(function (e) {
-                        $scope.hidePossibleAssociationsList();
-                        $scope.$apply();
-                    });
                     $input.keyup(function (e) {
-                        console.log(e.keyCode);
                         e.preventDefault();
                         if (e.keyCode == Common.Input.Which.Esc) {
                             $scope.possibleAssociationsListVisible = false;
@@ -13247,10 +13400,11 @@ impakt.common.ui.controller('associationInput.ctrl', [
         return {
             restrict: 'E',
             controller: 'associationInput.ctrl',
+            require: '^associationInput',
             templateUrl: 'common/ui/association-input/association-candidate-item.tpl.html',
             transclude: true,
             replace: false,
-            link: function ($scope, $element, attrs) {
+            link: function ($scope, $element, attrs, controller) {
             }
         };
     }
@@ -13272,10 +13426,11 @@ impakt.common.ui.controller('associationInput.ctrl', [
 /// <reference path='../ui.mdl.ts' />
 impakt.common.ui.controller('conferenceItem.ctrl', [
     '$scope',
+    '$state',
     '_details',
     '_league',
     '_associations',
-    function ($scope, _details, _league, _associations) {
+    function ($scope, $state, _details, _league, _associations) {
         $scope.conference;
         $scope.element;
         $scope.getLeague = function (conference) {
@@ -13290,7 +13445,13 @@ impakt.common.ui.controller('conferenceItem.ctrl', [
          *
          */
         $scope.toggleSelection = function (conference) {
-            _details.toggleSelection(conference);
+            if (!$state.is('league.drilldown.conference')) {
+                _details.selectedElements.deselectAll();
+                _league.toConferenceDrilldown(conference);
+            }
+            else {
+                _details.toggleSelection(conference);
+            }
         };
     }]).directive('conferenceItem', [
     '_associations',
@@ -13332,6 +13493,66 @@ impakt.common.ui.directive('details', [
                     pre: function ($scope, $element, attrs, controller, transcludeFn) {
                     },
                     post: function ($scope, $element, attrs, controller, transcludeFn) {
+                    }
+                };
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('divisionItem.ctrl', [
+    '$scope',
+    '$state',
+    '_details',
+    '_league',
+    '_associations',
+    function ($scope, $state, _details, _league, _associations) {
+        $scope.division;
+        $scope.element;
+        $scope.getConference = function (division) {
+            return Common.Utilities.isNotNullOrUndefined(division) ?
+                (Common.Utilities.isNotNullOrUndefined(division.conference) ?
+                    division.conference.name : 'No league') :
+                'No league';
+        };
+        /**
+         *
+         *	Item selection
+         *
+         */
+        $scope.toggleSelection = function (division) {
+            if (!$state.is('league.drilldown.division')) {
+                _details.selectedElements.deselectAll();
+                _league.toDivisionDrilldown(division);
+            }
+            else {
+                _details.toggleSelection(division);
+            }
+        };
+    }]).directive('divisionItem', [
+    '_associations',
+    function (_associations) {
+        /**
+         * division-item directive
+         */
+        return {
+            restrict: 'E',
+            controller: 'divisionItem.ctrl',
+            scope: {
+                division: '='
+            },
+            templateUrl: 'common/ui/division-item/division-item.tpl.html',
+            transclude: true,
+            replace: true,
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                        var associations = _associations.getAssociated($scope.division);
+                        if (Common.Utilities.isNotNullOrUndefined(associations) &&
+                            associations.conferences.hasElements()) {
+                            $scope.division.setConference(associations.conferences.first());
+                        }
                     }
                 };
             }
@@ -13692,12 +13913,14 @@ impakt.common.ui.directive('ngPlaceholder', [
                 if (!$scope.ngPlaceholder || !attrs)
                     return;
                 $element.focus(function () {
-                    _clear();
+                    if (!_isNgModelSet())
+                        _clear();
                 }).blur(function () {
-                    _setPlaceholder();
+                    if (!_isNgModelSet())
+                        _setPlaceholder();
                 }).keyup(function (e) {
                     if (e.keyCode == Common.Input.Which.Backspace) {
-                        if (_isNgModelSet()) {
+                        if (!_isNgModelSet()) {
                             _clear();
                         }
                     }
@@ -13727,7 +13950,8 @@ impakt.common.ui.directive('ngPlaceholder', [
                     }
                 }
                 function _isNgModelSet() {
-                    return !isNaN(parseInt(ngModel.$viewValue));
+                    return !isNaN(parseInt(ngModel.$viewValue)) || (Common.Utilities.isNotNullOrUndefined(ngModel.$viewValue) &&
+                        Common.Utilities.isNotEmptyString(ngModel.$viewValue));
                 }
                 if (Common.Utilities.isNotNullOrUndefined(ngModel) &&
                     Common.Utilities.isNotNullOrUndefined(attrs.ngModel)) {
@@ -13767,6 +13991,7 @@ impakt.common.ui.controller('leagueItem.ctrl', [
          */
         $scope.toggleSelection = function (league) {
             if (!$state.is('league.drilldown.league')) {
+                _details.selectedElements.deselectAll();
                 _league.toLeagueDrilldown(league);
             }
             else {
@@ -14616,6 +14841,66 @@ impakt.common.ui.directive('camelCaseToSpace', [function () {
             }
         };
     }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('teamItem.ctrl', [
+    '$scope',
+    '$state',
+    '_details',
+    '_league',
+    '_associations',
+    function ($scope, $state, _details, _league, _associations) {
+        $scope.team;
+        $scope.element;
+        $scope.getConference = function (team) {
+            return Common.Utilities.isNotNullOrUndefined(team) ?
+                (Common.Utilities.isNotNullOrUndefined(team.division) ?
+                    team.division.name : 'No division') :
+                'No division';
+        };
+        /**
+         *
+         *	Item selection
+         *
+         */
+        $scope.toggleSelection = function (team) {
+            if (!$state.is('league.drilldown.team')) {
+                _details.selectedElements.deselectAll();
+                _league.toTeamDrilldown(team);
+            }
+            else {
+                _details.toggleSelection(team);
+            }
+        };
+    }]).directive('teamItem', [
+    '_associations',
+    function (_associations) {
+        /**
+         * team-item directive
+         */
+        return {
+            restrict: 'E',
+            controller: 'teamItem.ctrl',
+            scope: {
+                team: '='
+            },
+            templateUrl: 'common/ui/team-item/team-item.tpl.html',
+            transclude: true,
+            replace: true,
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                        var associations = _associations.getAssociated($scope.team);
+                        if (Common.Utilities.isNotNullOrUndefined(associations) &&
+                            associations.divisions.hasElements()) {
+                            $scope.team.setDivision(associations.divisions.first());
+                        }
+                    }
+                };
+            }
+        };
+    }]);
 /// <reference path='../js/impakt.ts' />
 impakt.modules = angular.module('impakt.modules', [
     'impakt.main',
@@ -14655,14 +14940,16 @@ impakt.details = angular.module('impakt.details', [])
     console.debug('impakt.details - run');
 });
 /// <reference path='./details.mdl.ts' />
-impakt.details.controller('details.ctrl', ['$scope',
+impakt.details.controller('details.ctrl', [
+    '$scope',
+    '$rootScope',
     '$q',
     '$timeout',
     '__context',
     '__modals',
     '_details',
     '_associations',
-    function ($scope, $q, $timeout, __context, __modals, _details, _associations) {
+    function ($scope, $rootScope, $q, $timeout, __context, __modals, _details, _associations) {
         $scope.expandable = $scope.expandable;
         $scope.selectedElements = _details.selectedElements;
         $scope.selectedElement = null;
@@ -14671,19 +14958,34 @@ impakt.details.controller('details.ctrl', ['$scope',
         $scope.playbooks;
         $scope._details = _details;
         $scope.collapsed = Common.Utilities.isNotNullOrUndefined($scope.expandable) ? $scope.expandable.collapsed : true;
+        var modifiedListenerSet = false;
         __context.onReady(function () {
             $scope.playbooks = impakt.context.Playbook.playbooks;
         });
+        var createEntityListener = $rootScope.$on('create-entity', function (e, entity) {
+            init();
+        });
+        var associationsUpdateListener = $rootScope.$on('associations-updated', function (e) {
+            init();
+        });
+        $scope.$on('$destroy', function () {
+            $scope.selectedElements.clearListeners();
+            createEntityListener();
+            associationsUpdateListener();
+        });
         function init() {
             $scope.selectedElements.clearListeners();
-            $scope.selectedElements.onModified(function (selectedElements) {
-                if (Common.Utilities.isNotNullOrUndefined($scope.expandable)) {
-                    $scope.selectedElements.isEmpty() ?
-                        !$scope.expandable.collapsed && $scope.expandable.close() :
-                        $scope.expandable.collapsed && $scope.expandable.open();
-                }
-                _initAssociated();
-            });
+            if (!modifiedListenerSet) {
+                $scope.selectedElements.onModified(function (selectedElements) {
+                    if (Common.Utilities.isNotNullOrUndefined($scope.expandable)) {
+                        $scope.selectedElements.isEmpty() ?
+                            !$scope.expandable.collapsed && $scope.expandable.close() :
+                            $scope.expandable.collapsed && $scope.expandable.open();
+                    }
+                    _initAssociated();
+                });
+                modifiedListenerSet = true;
+            }
             // Load initial associations, don't wait for the modification handler
             // for selected elements to fire.
             _initAssociated();
@@ -14699,7 +15001,13 @@ impakt.details.controller('details.ctrl', ['$scope',
             }
         }
         $scope.delete = function (entity) {
-            _details.delete(entity);
+            _details.delete(entity).then(function () {
+                // entity has been successfully deleted...
+                // grab the associations again to apply
+                // changes
+                _initAssociated();
+                $scope.selectedElements.remove($scope.selectedElement.guid);
+            });
         };
         init();
     }]);
@@ -14732,6 +15040,15 @@ impakt.details.service('_details', [
         this.updatePlay = function (play) {
             _playbook.updatePlay(play);
         };
+        /**
+         * NOTE: if the given entity's impaktDataType is not supported,
+         * an exception will be thrown; this is because the function MUST
+         * return a promise object (which is defined within the `deleteEntityByType` methods
+         * below in their respecitve services). If no applicable case is met,
+         * we have nothing left but to stop traffic and complain.
+         *
+         * @param {Common.Interfaces.IActionable} entity [description]
+         */
         this.delete = function (entity) {
             switch (entity.impaktDataType) {
                 case Common.Enums.ImpaktDataTypes.Play:
@@ -14742,10 +15059,13 @@ impakt.details.service('_details', [
                     return _playbook.deleteEntityByType(entity);
                 case Common.Enums.ImpaktDataTypes.Conference:
                 case Common.Enums.ImpaktDataTypes.League:
+                case Common.Enums.ImpaktDataTypes.Division:
                     return _league.deleteEntityByType(entity);
                 case Common.Enums.ImpaktDataTypes.Team:
                 case Common.Enums.ImpaktDataTypes.PersonnelGroup:
                     return _team.deleteEntityByType(entity);
+                default:
+                    throw new Error('_details delete(): entity ImpaktDataType not supported ' + entity.impaktDataType);
             }
         };
     }]);
@@ -14818,6 +15138,7 @@ impakt.league.browser.controller('league.browser.ctrl', ['$scope', '_league', '_
     function ($scope, _league, _leagueModals, _teamModals) {
         $scope.leagues = impakt.context.League.leagues;
         $scope.teams = impakt.context.Team.teams;
+        $scope.conferences = impakt.context.League.conferences;
         $scope.createLeague = function () {
             _leagueModals.createLeague();
         };
@@ -14831,6 +15152,8 @@ impakt.league.browser.controller('league.browser.ctrl', ['$scope', '_league', '_
 /// <reference path='../league.mdl.ts' />
 impakt.league.drilldown = angular.module('impakt.league.drilldown', [
     'impakt.league.drilldown.league',
+    'impakt.league.drilldown.conference',
+    'impakt.league.drilldown.division',
     'impakt.league.drilldown.team'
 ])
     .config([
@@ -14846,12 +15169,143 @@ impakt.league.drilldown = angular.module('impakt.league.drilldown', [
     .run(function () {
     console.debug('impakt.league.drilldown - run');
 });
+/// <reference path='../league-drilldown.mdl.ts' />
+impakt.league.drilldown.conference = angular.module('impakt.league.drilldown.conference', [])
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.league.drilldown.conference - config');
+        $stateProvider.state('league.drilldown.conference', {
+            url: '/conference',
+            templateUrl: 'modules/league/drilldown/conference/league-drilldown-conference.tpl.html',
+            controller: 'league.drilldown.conference.ctrl'
+        });
+    }])
+    .run(function () {
+    console.debug('impakt.league.drilldown.conference - run');
+});
+/// <reference path='./league-drilldown-conference.mdl.ts' />
+impakt.league.drilldown.conference.controller('league.drilldown.conference.ctrl', [
+    '$scope',
+    '$rootScope',
+    '_associations',
+    '_league',
+    '_leagueModals',
+    '_teamModals',
+    function ($scope, $rootScope, _associations, _league, _leagueModals, _teamModals) {
+        $scope.league = _league.drilldown.league;
+        $scope.conference = _league.drilldown.conference;
+        $scope.divisions = new League.Models.DivisionCollection();
+        var deleteDivisionListener = $rootScope.$on('delete-division', function (e, division) {
+            $scope.divisions.remove(division.guid);
+        });
+        var associationsUpdatedListener = $rootScope.$on('associations-updated', function (e) {
+            init();
+        });
+        $scope.$on('$destroy', function () {
+            deleteDivisionListener();
+            associationsUpdatedListener();
+        });
+        function init() {
+            var conferenceAssociations = _associations.getAssociated($scope.conference);
+            $scope.conference.setLeague($scope.league);
+            if (Common.Utilities.isNotNullOrUndefined(conferenceAssociations)) {
+                $scope.divisions = conferenceAssociations.divisions;
+                $scope.divisions.forEach(function (division, index) {
+                    var divisionAssociations = _associations.getAssociated(division);
+                    division.setConference($scope.conference);
+                });
+            }
+        }
+        $scope.createDivision = function (conference) {
+            _leagueModals.createDivision(conference)
+                .then(function () {
+                init();
+            });
+        };
+        $scope.toDivisionDrilldown = function (division) {
+            _league.toDivisionDrilldown(division);
+        };
+        init();
+    }]);
+/// <reference path='../league-drilldown.mdl.ts' />
+impakt.league.drilldown.division = angular.module('impakt.league.drilldown.division', [])
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.league.drilldown.division - config');
+        $stateProvider.state('league.drilldown.division', {
+            url: '/division',
+            templateUrl: 'modules/league/drilldown/division/league-drilldown-division.tpl.html',
+            controller: 'league.drilldown.division.ctrl'
+        });
+    }])
+    .run(function () {
+    console.debug('impakt.league.drilldown.division - run');
+});
+/// <reference path='./league-drilldown-division.mdl.ts' />
+impakt.league.drilldown.division.controller('league.drilldown.division.ctrl', [
+    '$scope',
+    '$rootScope',
+    '_associations',
+    '_league',
+    '_leagueModals',
+    '_teamModals',
+    function ($scope, $rootScope, _associations, _league, _leagueModals, _teamModals) {
+        $scope.league = _league.drilldown.league;
+        $scope.conference = _league.drilldown.conference;
+        $scope.division = _league.drilldown.division;
+        $scope.teams = new Team.Models.TeamModelCollection(Team.Enums.TeamTypes.Mixed);
+        var deleteTeamListener = $rootScope.$on('delete-team', function (e, team) {
+            $scope.teams.remove(team.guid);
+        });
+        var associationsUpdatedListener = $rootScope.$on('associations-updated', function (e) {
+            init();
+        });
+        $scope.$on('$destroy', function () {
+            associationsUpdatedListener();
+            deleteTeamListener();
+        });
+        function init() {
+            var divisionAssociations = _associations.getAssociated($scope.division);
+            $scope.division.setConference($scope.conference);
+            if (Common.Utilities.isNotNullOrUndefined(divisionAssociations)) {
+                $scope.teams = divisionAssociations.teams;
+                $scope.teams.forEach(function (team, index) {
+                    var teamAssociations = _associations.getAssociated(team);
+                    team.setDivision($scope.division);
+                });
+            }
+        }
+        $scope.createTeam = function (division) {
+            _teamModals.createTeam(division)
+                .then(function () {
+                init();
+            });
+        };
+        init();
+    }]);
 /// <reference path='./league-drilldown.mdl.ts' />
 impakt.league.drilldown.controller('league.drilldown.ctrl', [
     '$scope',
+    '_details',
     '_league',
-    function ($scope, _league) {
+    function ($scope, _details, _league) {
+        $scope.drilldown = _league.drilldown;
+        $scope.toLeagueDrilldown = function (league) {
+            _league.toLeagueDrilldown(league);
+        };
+        $scope.toConferenceDrilldown = function (conference) {
+            _league.toConferenceDrilldown(conference);
+        };
+        $scope.toDivisionDrilldown = function (division) {
+            _league.toDivisionDrilldown(division);
+        };
+        $scope.toTeamDrilldown = function (team) {
+            _league.toTeamDrilldown(team);
+        };
         $scope.toBrowser = function () {
+            _details.selectedElements.deselectAll();
             _league.toBrowser();
         };
     }]);
@@ -14873,35 +15327,38 @@ impakt.league.drilldown.league = angular.module('impakt.league.drilldown.league'
 /// <reference path='./league-drilldown-league.mdl.ts' />
 impakt.league.drilldown.league.controller('league.drilldown.league.ctrl', [
     '$scope',
+    '$rootScope',
     '_associations',
     '_league',
     '_leagueModals',
-    function ($scope, _associations, _league, _leagueModals) {
+    function ($scope, $rootScope, _associations, _league, _leagueModals) {
         $scope.league = _league.drilldown.league;
         $scope.conferences = new League.Models.ConferenceCollection();
-        $scope.teamData = {};
+        var deleteConferenceListener = $rootScope.$on('delete-conference', function (e, conference) {
+            $scope.conferences.remove(conference.guid);
+        });
+        var associationsUpdatedListener = $rootScope.$on('associations-updated', function (e) {
+            init();
+        });
+        $scope.$on('$destroy', function () {
+            deleteConferenceListener();
+            associationsUpdatedListener();
+        });
         function init() {
             var leagueAssociations = _associations.getAssociated($scope.league);
-            if (Common.Utilities.isNotNullOrUndefined(leagueAssociations) &&
-                leagueAssociations.conferences.hasElements()) {
+            if (Common.Utilities.isNotNullOrUndefined(leagueAssociations)) {
                 $scope.conferences = leagueAssociations.conferences;
-                if (Common.Utilities.isNotNullOrUndefined($scope.conferences)) {
-                    $scope.conferences.forEach(function (conference, index) {
-                        var conferenceAssociations = _associations.getAssociated(conference);
-                        if (Common.Utilities.isNotNullOrUndefined(conferenceAssociations)) {
-                            $scope.teamData[conference.guid] = conferenceAssociations;
-                        }
-                    });
-                }
+                $scope.conferences.forEach(function (conference, index) {
+                    var conferenceAssociations = _associations.getAssociated(conference);
+                    conference.setLeague($scope.league);
+                });
             }
         }
         $scope.createConference = function () {
-            _leagueModals.createConference().then(function () {
+            _leagueModals.createConference($scope.league)
+                .then(function () {
                 init();
             });
-        };
-        $scope.delete = function () {
-            _leagueModals.deleteLeague($scope.league);
         };
         init();
     }]);
@@ -14921,14 +15378,15 @@ impakt.league.drilldown.team = angular.module('impakt.league.drilldown.team', []
     console.debug('impakt.league.drilldown.team - run');
 });
 /// <reference path='./league-drilldown-team.mdl.ts' />
-impakt.league.controller('league.drilldown.team.ctrl', ['$scope', '_league', '_teamModals',
+impakt.league.drilldown.team.controller('league.drilldown.team.ctrl', [
+    '$scope',
+    '_league',
+    '_teamModals',
     function ($scope, _league, _teamModals) {
         $scope.team = _league.drilldown.team;
         $scope.conferences = impakt.context.League.conferences;
         $scope.delete = function () {
             _teamModals.deleteTeam($scope.team);
-        };
-        $scope.createConference = function () {
         };
     }]);
 /// <reference path='./league.mdl.ts' />
@@ -14952,7 +15410,13 @@ impakt.league.constant('LEAGUE', {
     GET_CONFERENCES: '/getConferences',
     GET_CONFERENCE: '/getConference',
     DELETE_CONFERENCE: '/deleteConference',
-    UPDATE_CONFERENCE: '/updateConference'
+    UPDATE_CONFERENCE: '/updateConference',
+    // League Divisions
+    CREATE_DIVISION: '/createDivision',
+    GET_DIVISIONS: '/getDivisions',
+    GET_DIVISION: '/getDivision',
+    DELETE_DIVISION: '/deleteDivision',
+    UPDATE_DIVISION: '/updateDivision'
 });
 /// <reference path='./league.mdl.ts' />
 impakt.league.controller('league.ctrl', ['$scope', '$state', '_league',
@@ -14965,16 +15429,19 @@ impakt.league.controller('league.ctrl', ['$scope', '$state', '_league',
 // League service
 impakt.league.service('_league', [
     'LEAGUE',
+    '$rootScope',
     '$q',
     '$state',
     '__api',
     '__localStorage',
     '__notifications',
     '_leagueModals',
-    function (LEAGUE, $q, $state, __api, __localStorage, __notifications, _leagueModals) {
+    function (LEAGUE, $rootScope, $q, $state, __api, __localStorage, __notifications, _leagueModals) {
         var self = this;
         this.drilldown = {
             league: null,
+            conference: null,
+            division: null,
             team: null
         };
         /**
@@ -15041,7 +15508,7 @@ impakt.league.service('_league', [
             // set key to -1 to ensure a new object is created server-side
             newLeagueModel.key = -1;
             var leagueModelJson = newLeagueModel.toJson();
-            var notification = __notifications.pending('Creating playbook "', newLeagueModel.name, '"...');
+            var notification = __notifications.pending('Creating league "', newLeagueModel.name, '"...');
             __api.post(__api.path(LEAGUE.ENDPOINT, LEAGUE.CREATE_LEAGUE), {
                 version: 1,
                 name: newLeagueModel.name,
@@ -15063,6 +15530,7 @@ impakt.league.service('_league', [
                     throw new Error('CreateLeague did not return a valid league model');
                 }
                 notification.success('Successfully created league "', leagueModel.name, '"');
+                $rootScope.$broadcast('create-entity', leagueModel);
                 d.resolve(leagueModel);
             }, function (error) {
                 notification.error('Failed to create league "', newLeagueModel.name, '"');
@@ -15189,7 +15657,7 @@ impakt.league.service('_league', [
             // set key to -1 to ensure a new object is created server-side
             newConference.key = -1;
             var conferenceModelJson = newConference.toJson();
-            var notification = __notifications.pending('Creating playbook "', newConference.name, '"...');
+            var notification = __notifications.pending('Creating conference "', newConference.name, '"...');
             __api.post(__api.path(LEAGUE.ENDPOINT, LEAGUE.CREATE_CONFERENCE), {
                 version: 1,
                 name: newConference.name,
@@ -15211,6 +15679,7 @@ impakt.league.service('_league', [
                     throw new Error('CreateConference did not return a valid conference');
                 }
                 notification.success('Successfully created conference "', conferenceModel.name, '"');
+                $rootScope.$broadcast('create-entity', conferenceModel);
                 d.resolve(conferenceModel);
             }, function (error) {
                 notification.error('Failed to create conference "', newConference.name, '"');
@@ -15271,6 +15740,153 @@ impakt.league.service('_league', [
             });
             return d.promise;
         };
+        /**
+         * Retrieves all divisions
+         */
+        this.getDivisions = function () {
+            var d = $q.defer();
+            var notification = __notifications.pending('Getting divisions...');
+            __api.get(__api.path(LEAGUE.ENDPOINT, LEAGUE.GET_DIVISIONS))
+                .then(function (response) {
+                var collection = new League.Models.DivisionCollection();
+                if (response && response.data && response.data.results) {
+                    var divisionResults = Common.Utilities.parseData(response.data.results);
+                    for (var i = 0; i < divisionResults.length; i++) {
+                        var divisionResult = divisionResults[i];
+                        if (divisionResult && divisionResult.data && divisionResult.data.division) {
+                            var divisionModel = new League.Models.Division();
+                            divisionResult.data.division.key = divisionResult.key;
+                            divisionModel.fromJson(divisionResult.data.division);
+                            collection.add(divisionModel);
+                        }
+                    }
+                }
+                notification.success([collection.size(), ' Divisions successfully retreived'].join(''));
+                d.resolve(collection);
+            }, function (error) {
+                notification.error('Failed to retieve Divisions');
+                console.error(error);
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Gets a single division with the given key
+         * @param {number} key The key of the division to retrieve
+         */
+        this.getDivision = function (key) {
+            var d = $q.defer();
+            __api.get(__api.path(LEAGUE.ENDPOINT, LEAGUE.GET_DIVISION, '/' + key))
+                .then(function (response) {
+                var division = Common.Utilities.parseData(response.data.results);
+                d.resolve(division);
+            }, function (error) {
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Sends a division model to the server for storage
+         * @param {Common.Models.Division} newDivision The division to be created/saved
+         */
+        this.createDivision = function (newDivision) {
+            var d = $q.defer();
+            if (Common.Utilities.isNotNullOrUndefined(newDivision)) {
+                var nameExists = impakt.context.League.divisions.hasElementWhich(function (divisionModel, index) {
+                    return divisionModel.name == newDivision.name;
+                });
+                if (nameExists) {
+                    var notification_3 = __notifications.warning('Failed to create division. Division "', newDivision.name, '" already exists.');
+                    _leagueModals.createDivisionDuplicate(newDivision);
+                    return;
+                }
+            }
+            // set key to -1 to ensure a new object is created server-side
+            newDivision.key = -1;
+            var divisionModelJson = newDivision.toJson();
+            var notification = __notifications.pending('Creating division "', newDivision.name, '"...');
+            __api.post(__api.path(LEAGUE.ENDPOINT, LEAGUE.CREATE_DIVISION), {
+                version: 1,
+                name: newDivision.name,
+                data: {
+                    version: 1,
+                    division: divisionModelJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var divisionModel = new League.Models.Division();
+                if (results && results.data && results.data.division) {
+                    results.data.division.key = results.key;
+                    divisionModel.fromJson(results.data.division);
+                    // update the context
+                    impakt.context.League.divisions.add(divisionModel);
+                }
+                else {
+                    throw new Error('CreateDivision did not return a valid division');
+                }
+                notification.success('Successfully created division "', divisionModel.name, '"');
+                $rootScope.$broadcast('create-entity', divisionModel);
+                d.resolve(divisionModel);
+            }, function (error) {
+                notification.error('Failed to create division "', newDivision.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Deletes the given division for the current user
+         * @param {League.Models.Division} division The division to be deleted
+         */
+        this.deleteDivision = function (division) {
+            var d = $q.defer();
+            var notification = __notifications.pending('Deleting division "', division.name, '"...');
+            __api.post(__api.path(LEAGUE.ENDPOINT, LEAGUE.DELETE_DIVISION), { key: division.key }).then(function (response) {
+                // update the context
+                impakt.context.League.divisions.remove(division.guid);
+                notification.success('Deleted division "', division.name, '"');
+                d.resolve(division);
+            }, function (error) {
+                notification.error('Failed to delete division "', division.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Updates the given division for the current user
+         * @param {League.Models.Division} division The division to update
+         */
+        this.updateDivision = function (division) {
+            var d = $q.defer();
+            // update assignment collection to json object
+            var divisionJson = division.toJson();
+            var notification = __notifications.pending('Updating division "', division.name, '"...');
+            __api.post(__api.path(LEAGUE.ENDPOINT, LEAGUE.UPDATE_DIVISION), {
+                version: 1,
+                name: divisionJson.name,
+                key: divisionJson.key,
+                data: {
+                    version: 1,
+                    key: divisionJson.key,
+                    division: divisionJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var divisionModel = new League.Models.Division();
+                if (results && results.data && results.data.division) {
+                    divisionModel.fromJson(results.data.division);
+                    // update the context
+                    impakt.context.League.divisions.set(divisionModel.guid, divisionModel);
+                }
+                notification.success('Successfully updated division "', division.name, '"');
+                d.resolve(divisionModel);
+            }, function (error) {
+                notification.error('Failed to update division "', division.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
         this.deleteEntityByType = function (entity) {
             if (Common.Utilities.isNullOrUndefined(entity))
                 return;
@@ -15280,6 +15896,8 @@ impakt.league.service('_league', [
                     return _leagueModals.deleteLeague(entity);
                 case Common.Enums.ImpaktDataTypes.Conference:
                     return _leagueModals.deleteConference(entity);
+                case Common.Enums.ImpaktDataTypes.Division:
+                    return _leagueModals.deleteDivision(entity);
                 default:
                     d.reject(new Error('_league deleteEntityByType: impaktDataType not supported'));
                     break;
@@ -15289,19 +15907,48 @@ impakt.league.service('_league', [
         this.toBrowser = function () {
             this.drilldown.league = null;
             this.drilldown.team = null;
-            impakt.context.League.leagues.deselectAll();
             $state.transitionTo('league.browser');
         };
         this.toLeagueDrilldown = function (league) {
             this.drilldown.league = league;
+            this.drilldown.conference = null;
+            this.drilldown.division = null;
+            this.drilldown.team = null;
             impakt.context.League.leagues.select(league);
+            _deselectEntities(false, true, true, true);
             impakt.context.Actionable.selected.only(league);
             $state.transitionTo('league.drilldown.league');
         };
+        this.toConferenceDrilldown = function (conference) {
+            this.drilldown.conference = conference;
+            this.drilldown.division = null;
+            this.drilldown.team = null;
+            impakt.context.League.conferences.select(conference);
+            _deselectEntities(true, false, true, true);
+            impakt.context.Actionable.selected.only(conference);
+            $state.transitionTo('league.drilldown.conference');
+        };
+        this.toDivisionDrilldown = function (division) {
+            this.drilldown.division = division;
+            this.drilldown.team = null;
+            impakt.context.League.divisions.select(division);
+            _deselectEntities(true, true, false, true);
+            impakt.context.Actionable.selected.only(division);
+            $state.transitionTo('league.drilldown.division');
+        };
         this.toTeamDrilldown = function (team) {
             this.drilldown.team = team;
+            impakt.context.Team.teams.select(team);
+            _deselectEntities(true, true, true, false);
+            impakt.context.Actionable.selected.only(team);
             $state.transitionTo('league.drilldown.team');
         };
+        function _deselectEntities(deselectLeagues, deselectConferences, deselectDivisions, deselectTeam) {
+            deselectLeagues && impakt.context.League.leagues.deselectAll();
+            deselectConferences && impakt.context.League.conferences.deselectAll();
+            deselectDivisions && impakt.context.League.divisions.deselectAll();
+            deselectTeam && impakt.context.Team.teams.deselectAll();
+        }
     }]);
 /// <reference path='../league.mdl.ts' />
 impakt.league.modals = angular.module('impakt.league.modals', [])
@@ -15332,10 +15979,11 @@ impakt.league.modals.controller('league.modals.createConference.ctrl', [
     '$uibModalInstance',
     '_associations',
     '_league',
-    function ($scope, $uibModalInstance, _associations, _league) {
+    'league',
+    function ($scope, $uibModalInstance, _associations, _league, league) {
         $scope.leagues = impakt.context.League.leagues;
         $scope.newConference = new League.Models.Conference();
-        $scope.selectedLeague = $scope.leagues.first();
+        $scope.selectedLeague = league ? league : $scope.leagues.first();
         $scope.ok = function () {
             _league.createConference($scope.newConference)
                 .then(function (createdConference) {
@@ -15360,6 +16008,71 @@ impakt.league.modals.controller('league.modals.createConference.ctrl', [
             if (Common.Utilities.isNotNullOrUndefined($scope.newConference))
                 impakt.context.League.creation.conferences.remove($scope.newConference.guid);
         }
+    }]);
+/// <reference path='../league-modals.mdl.ts' />
+impakt.league.modals.controller('league.modals.createDivisionDuplicateError.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_league',
+    'division',
+    function ($scope, $uibModalInstance, _league, division) {
+        $scope.division = division;
+        $scope.ok = function () {
+            $uibModalInstance.close();
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../league-modals.mdl.ts' />
+impakt.league.modals.controller('league.modals.createDivision.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_associations',
+    '_league',
+    'conference',
+    function ($scope, $uibModalInstance, _associations, _league, conference) {
+        $scope.conferences = impakt.context.League.conferences;
+        $scope.newDivision = new League.Models.Division();
+        $scope.selectedConference = conference ? conference : $scope.conferences.first();
+        function init() {
+            if (Common.Utilities.isNotNullOrUndefined($scope.selectedConference))
+                $scope.newDivision.setConference($scope.selectedConference);
+        }
+        $scope.selectConference = function () {
+            $scope.newDivision.setConference($scope.selectedConference);
+        };
+        $scope.ok = function () {
+            if (Common.Utilities.isNullOrUndefined($scope.selectedConference))
+                return;
+            _league.createDivision($scope.newDivision)
+                .then(function (createdDivision) {
+                var associationsToAdd = [
+                    $scope.selectedConference
+                ];
+                if (Common.Utilities.isNotNullOrUndefined($scope.selectedConference.league)) {
+                    associationsToAdd.push($scope.selectedConference.league);
+                }
+                _associations.createAssociations(createdDivision, associationsToAdd);
+                removeDivisionFromCreationContext();
+                $uibModalInstance.close(createdDivision);
+            }, function (err) {
+                removeDivisionFromCreationContext();
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            removeDivisionFromCreationContext();
+            $uibModalInstance.dismiss();
+        };
+        function removeDivisionFromCreationContext() {
+            // Remove the play from the creation context
+            // after creating the new play or cancelling
+            if (Common.Utilities.isNotNullOrUndefined($scope.newDivision))
+                impakt.context.League.creation.divisions.remove($scope.newDivision.guid);
+        }
+        init();
     }]);
 /// <reference path='../league-modals.mdl.ts' />
 impakt.league.modals.controller('league.modals.createLeagueDuplicateError.ctrl', [
@@ -15399,14 +16112,39 @@ impakt.league.modals.controller('league.modals.createLeague.ctrl', [
 /// <reference path='../league-modals.mdl.ts' />
 impakt.league.modals.controller('league.modals.deleteConference.ctrl', [
     '$scope',
+    '$rootScope',
     '$uibModalInstance',
     '_league',
     'conference',
-    function ($scope, $uibModalInstance, _league, conference) {
+    function ($scope, $rootScope, $uibModalInstance, _league, conference) {
         $scope.conference = conference;
         $scope.ok = function () {
             _league.deleteConference($scope.conference)
                 .then(function (results) {
+                $rootScope.$broadcast('delete-conference', $scope.conference);
+                $uibModalInstance.close(results);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../league-modals.mdl.ts' />
+impakt.league.modals.controller('league.modals.deleteDivision.ctrl', [
+    '$scope',
+    '$rootScope',
+    '$uibModalInstance',
+    '_league',
+    'division',
+    function ($scope, $rootScope, $uibModalInstance, _league, division) {
+        $scope.division = division;
+        $scope.ok = function () {
+            _league.deleteDivision($scope.division)
+                .then(function (results) {
+                $rootScope.$broadcast('delete-division', $scope.division);
                 $uibModalInstance.close(results);
             }, function (err) {
                 console.error(err);
@@ -15497,9 +16235,13 @@ impakt.league.modals.service('_leagueModals', [
          * CONFERENCE
          *
          */
-        this.createConference = function () {
+        this.createConference = function (league) {
             var d = $q.defer();
-            var modalInstance = __modals.open('', 'modules/league/modals/create-conference/create-conference.tpl.html', 'league.modals.createConference.ctrl', {});
+            var modalInstance = __modals.open('', 'modules/league/modals/create-conference/create-conference.tpl.html', 'league.modals.createConference.ctrl', {
+                league: function () {
+                    return league;
+                }
+            });
             modalInstance.result.then(function (createdConference) {
                 console.log(createdConference);
                 d.resolve();
@@ -15530,6 +16272,59 @@ impakt.league.modals.service('_leagueModals', [
             var modalInstance = __modals.open('', 'modules/league/modals/delete-conference/delete-conference.tpl.html', 'league.modals.deleteConference.ctrl', {
                 conference: function () {
                     return conference;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        /**
+         *
+         * DIVISION
+         *
+         */
+        this.createDivision = function (conference) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/league/modals/create-division/create-division.tpl.html', 'league.modals.createDivision.ctrl', {
+                conference: function () {
+                    return conference;
+                }
+            });
+            modalInstance.result.then(function (createdDivision) {
+                console.log(createdDivision);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.createDivisionDuplicate = function (division) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/league/modals/create-division-duplicate-error/create-division-duplicate-error.tpl.html', 'league.modals.createDivisionDuplicateError.ctrl', {
+                division: function () {
+                    return division;
+                }
+            });
+            modalInstance.result.then(function (createdDivision) {
+                console.log(createdDivision);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.deleteDivision = function (division) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/league/modals/delete-division/delete-division.tpl.html', 'league.modals.deleteDivision.ctrl', {
+                division: function () {
+                    return division;
                 }
             });
             modalInstance.result.then(function (results) {
@@ -17828,7 +18623,7 @@ impakt.playbook.service('_playbook', [
                     return playbookModel.name == newPlaybookModel.name;
                 });
                 if (nameExists) {
-                    var notification_3 = __notifications.warning('Failed to create playbook. Playbook "', newPlaybookModel.name, '" already exists.');
+                    var notification_4 = __notifications.warning('Failed to create playbook. Playbook "', newPlaybookModel.name, '" already exists.');
                     _playbookModals.createPlaybookDuplicate(newPlaybookModel);
                     return;
                 }
@@ -17858,6 +18653,7 @@ impakt.playbook.service('_playbook', [
                     throw new Error('CreatePlaybook did not return a valid playbook model');
                 }
                 notification.success('Successfully created playbook "', playbookModel.name, '"');
+                $rootScope.$broadcast('create-entity', playbookModel);
                 d.resolve(playbookModel);
             }, function (error) {
                 notification.error('Failed to create playbook "', newPlaybookModel.name, '"');
@@ -17918,7 +18714,7 @@ impakt.playbook.service('_playbook', [
                 console.log(formationModel);
                 impakt.context.Playbook.formations.add(formationModel);
                 notification.success('Successfully created formation "', formationModel.name, '"');
-                //self.editFormation(formationModel);
+                $rootScope.$broadcast('create-entity', formationModel);
                 d.resolve(formationModel);
             }, function (error) {
                 notification.error('Failed to create formation "', newFormation.name, '"');
@@ -18200,6 +18996,7 @@ impakt.playbook.service('_playbook', [
                     assignmentGroup.fromJson(rawAssignmentGroup);
                     impakt.context.Playbook.assignmentGroups.add(assignmentGroup);
                     notification.success('Successfully created assignment group "', assignmentGroup.name, '"');
+                    $rootScope.$broadcast('create-entity', assignmentGroup);
                     d.resolve(assignmentGroup);
                 }
                 else {
@@ -18280,6 +19077,7 @@ impakt.playbook.service('_playbook', [
                     impakt.context.Playbook.plays.add(playModel);
                 }
                 notification.success('Successfully created play "', play.name, '"');
+                $rootScope.$broadcast('create-entity', playModel);
                 d.resolve(playModel);
             }, function (error) {
                 notification.error('Failed to create play "', play.name, '"');
@@ -18557,6 +19355,7 @@ impakt.playbook.service('_playbook', [
                     impakt.context.Playbook.scenarios.add(scenarioModel);
                 }
                 notification.success('Successfully created scenario "', scenario.name, '"');
+                $rootScope.$broadcast('create-entity', scenarioModel);
                 d.resolve(scenarioModel);
             }, function (error) {
                 notification.error('Failed to create scenario "', scenario.name, '"');
@@ -19001,13 +19800,38 @@ impakt.team.modals.controller('team.modals.createTeamDuplicateError.ctrl', [
 impakt.team.modals.controller('team.modals.createTeam.ctrl', [
     '$scope',
     '$uibModalInstance',
+    '_associations',
     '_team',
-    function ($scope, $uibModalInstance, _team) {
+    'division',
+    function ($scope, $uibModalInstance, _associations, _team, division) {
         $scope.newTeamModel = new Team.Models.TeamModel(Team.Enums.TeamTypes.Primary);
         $scope.teamTypes = Common.Utilities.convertEnumToList(Team.Enums.TeamTypes);
+        $scope.divisions = impakt.context.League.divisions;
+        $scope.selectedDivision = division ? division : $scope.divisions.first();
+        // TODO @theBull - implement locations
+        $scope.locations = new Common.Models.Collection();
+        $scope.selectedLocation = null;
+        function init() {
+            if (Common.Utilities.isNotNullOrUndefined($scope.selectedDivision)) {
+                $scope.newTeamModel.setDivision($scope.selectedDivision);
+            }
+        }
+        $scope.selectDivision = function () {
+            init();
+        };
         $scope.ok = function () {
             _team.createTeam($scope.newTeamModel)
                 .then(function (createdTeam) {
+                var associationsToAdd = [
+                    $scope.selectedDivision
+                ];
+                if (Common.Utilities.isNotNullOrUndefined($scope.selectedDivision.conference)) {
+                    associationsToAdd.push($scope.selectedDivision.conference);
+                }
+                if (Common.Utilities.isNotNullOrUndefined($scope.selectedDivision.conference.league)) {
+                    associationsToAdd.push($scope.selectedDivision.conference.league);
+                }
+                _associations.createAssociations(createdTeam, associationsToAdd);
                 $uibModalInstance.close(createdTeam);
             }, function (err) {
                 $uibModalInstance.close(err);
@@ -19016,18 +19840,27 @@ impakt.team.modals.controller('team.modals.createTeam.ctrl', [
         $scope.cancel = function () {
             $uibModalInstance.dismiss();
         };
+        function removeTeamFromCreationContext() {
+            // Remove the play from the creation context
+            // after creating the new play or cancelling
+            if (Common.Utilities.isNotNullOrUndefined($scope.newTeamModel))
+                impakt.context.Team.creation.teams.remove($scope.newTeam.guid);
+        }
+        init();
     }]);
 /// <reference path='../team-modals.mdl.ts' />
 impakt.team.modals.controller('team.modals.deleteTeam.ctrl', [
     '$scope',
+    '$rootScope',
     '$uibModalInstance',
     '_team',
     'team',
-    function ($scope, $uibModalInstance, _team, team) {
+    function ($scope, $rootScope, $uibModalInstance, _team, team) {
         $scope.team = team;
         $scope.ok = function () {
             _team.deleteTeam($scope.team)
                 .then(function (results) {
+                $rootScope.$broadcast('delete-team', $scope.team);
                 $uibModalInstance.close(results);
             }, function (err) {
                 $uibModalInstance.close(err);
@@ -19047,9 +19880,13 @@ impakt.team.modals.service('_teamModals', [
          * Team
          *
          */
-        this.createTeam = function () {
+        this.createTeam = function (division) {
             var d = $q.defer();
-            var modalInstance = __modals.open('', 'modules/team/modals/create-team/create-team.tpl.html', 'team.modals.createTeam.ctrl', {});
+            var modalInstance = __modals.open('', 'modules/team/modals/create-team/create-team.tpl.html', 'team.modals.createTeam.ctrl', {
+                division: function () {
+                    return division;
+                }
+            });
             modalInstance.result.then(function (createdTeam) {
                 console.log(createdTeam);
                 d.resolve();
@@ -19241,6 +20078,7 @@ impakt.team.controller('team.ctrl', ['$scope', '_team',
 /// <reference path='./team.mdl.ts' />
 // Team service
 impakt.team.service('_team', [
+    '$rootScope',
     '$q',
     'PLAYBOOK',
     'TEAM',
@@ -19248,7 +20086,7 @@ impakt.team.service('_team', [
     '__api',
     '__notifications',
     '_teamModals',
-    function ($q, PLAYBOOK, TEAM, LEAGUE, __api, __notifications, _teamModals) {
+    function ($rootScope, $q, PLAYBOOK, TEAM, LEAGUE, __api, __notifications, _teamModals) {
         this.personnel = null;
         this.initialize = function () {
             this.personnel = impakt.context.Team.personnel;
@@ -19309,7 +20147,7 @@ impakt.team.service('_team', [
                     return teamModel.name == newTeamModel.name;
                 });
                 if (nameExists) {
-                    var notification_4 = __notifications.warning('Failed to create team. Team "', newTeamModel.name, '" already exists.');
+                    var notification_5 = __notifications.warning('Failed to create team. Team "', newTeamModel.name, '" already exists.');
                     _teamModals.createTeamDuplicate(newTeamModel);
                     return;
                 }
@@ -19339,6 +20177,7 @@ impakt.team.service('_team', [
                     throw new Error('CreateTeam did not return a valid team model');
                 }
                 notification.success('Successfully created team "', teamModel.name, '"');
+                $rootScope.$broadcast('create-entity', teamModel);
                 d.resolve(teamModel);
             }, function (error) {
                 notification.error('Failed to create team "', newTeamModel.name, '"');
@@ -19472,6 +20311,7 @@ impakt.team.service('_team', [
                 }
                 impakt.context.Team.personnel.add(personnelModel);
                 notification.success('Personnel group "', personnelModel.name, '" successfully created');
+                $rootScope.$broadcast('create-entity', personnelModel);
                 d.resolve(personnelModel);
             }, function (error) {
                 d.reject(error);
@@ -19768,8 +20608,7 @@ impakt.user.service('_user', [
     '__notifications',
     '__localStorage',
     '_userModals',
-    function (USER, $window, $q, __context, // TODO @theBull - might not need this after the Alpha
-        __api, __notifications, __localStorage, _userModals) {
+    function (USER, $window, $q, __context, __api, __notifications, __localStorage, _userModals) {
         this.userName = __localStorage.getUserName();
         this.organizationKey = __localStorage.getOrganizationKey();
         this.organizations = new User.Models.OrganizationCollection();

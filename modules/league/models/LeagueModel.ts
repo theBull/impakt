@@ -5,8 +5,6 @@ module League.Models {
 	extends Common.Models.AssociableEntity
 	implements Common.Interfaces.IAssociable {
 
-		public name: string;
-
 		constructor() {
 			super(Common.Enums.ImpaktDataTypes.League);
 			super.setContext(this);

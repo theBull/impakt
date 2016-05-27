@@ -201,6 +201,7 @@ declare module Common.Interfaces {
         impaktDataType: Common.Enums.ImpaktDataTypes;
         guid: string;
         associationKey: string;
+        name: string;
     }
 }
 declare module Common.Interfaces {
@@ -863,6 +864,7 @@ declare module Common.Models {
         impaktDataType: Common.Enums.ImpaktDataTypes;
         associationKey: string;
         associable: string[];
+        name: string;
         constructor(impaktDataType: Common.Enums.ImpaktDataTypes);
         generateAssociationKey(): void;
         toJson(): any;
@@ -1014,7 +1016,7 @@ declare module Common.Models {
         assignmentGroups: Common.Models.AssignmentGroupCollection;
         leagues: League.Models.LeagueModelCollection;
         conferences: League.Models.ConferenceCollection;
-        divisions: any;
+        divisions: League.Models.DivisionCollection;
         teams: Team.Models.TeamModelCollection;
         constructor();
         count(): number;
@@ -1113,7 +1115,6 @@ declare module Common.Models {
 declare module Common.Models {
     class AssignmentGroup extends Common.Models.AssociableEntity {
         unitType: Team.Enums.UnitTypes;
-        name: string;
         assignments: Common.Models.Collection<Common.Models.Assignment>;
         constructor(unitType: Team.Enums.UnitTypes, count?: number);
         copy(newAssignmentGroup?: Common.Models.AssignmentGroup): Common.Models.AssignmentGroup;
@@ -1136,7 +1137,6 @@ declare module Common.Models {
         unitType: Team.Enums.UnitTypes;
         parentRK: number;
         editorType: Playbook.Enums.EditorTypes;
-        name: string;
         placements: Common.Models.PlacementCollection;
         png: string;
         constructor(unitType: Team.Enums.UnitTypes);
@@ -1166,7 +1166,6 @@ declare module Common.Models {
 declare module Common.Models {
     abstract class Play extends Common.Models.AssociableEntity {
         field: Common.Interfaces.IField;
-        name: string;
         assignmentGroup: Common.Models.AssignmentGroup;
         formation: Common.Models.Formation;
         personnel: Team.Models.Personnel;
@@ -1217,7 +1216,6 @@ declare module Common.Models {
 }
 declare module Common.Models {
     class PlaybookModel extends Common.Models.AssociableEntity {
-        name: string;
         unitType: Team.Enums.UnitTypes;
         constructor(unitType: Team.Enums.UnitTypes);
         toJson(): any;
@@ -1240,7 +1238,6 @@ declare module Common.Models {
         playPrimaryGuid: string;
         playOpponentGuid: string;
         editorType: Playbook.Enums.EditorTypes;
-        name: string;
         png: string;
         key: number;
         constructor();
@@ -2558,6 +2555,7 @@ declare module Common.Enums {
         TeamMember = 1016,
         UnitType = 1017,
         Conference = 1018,
+        Division = 1019,
         Scenario = 1020,
         MatchupPlaybook = 1021,
         Situation = 1022,
@@ -2578,6 +2576,7 @@ declare module Common.Enums {
         Organization = 2021,
     }
     enum AssociationTypes {
+        Any = -1,
         Unknown = 0,
         Peer = 1,
         Dependency = 2,
@@ -2882,6 +2881,7 @@ declare module Common {
         static isNull(obj: any): boolean;
         static isUndefined(obj: any): boolean;
         static isEmptyString(str: string): boolean;
+        static isNotEmptyString(str: string): boolean;
         /**
          * Iterates over the given array and removes any
          * duplicate entries
@@ -3298,11 +3298,13 @@ declare module Playbook {
 declare module Team.Models {
     class TeamModel extends Common.Models.AssociableEntity {
         teamType: Team.Enums.TeamTypes;
-        name: string;
         records: Team.Models.TeamRecordCollection;
+        division: League.Models.Division;
+        divisionGuid: string;
         constructor(teamType: Team.Enums.TeamTypes);
         toJson(): any;
         fromJson(json: any): any;
+        setDivision(division: League.Models.Division): void;
     }
 }
 declare module Team.Models {
@@ -3353,7 +3355,6 @@ declare module Team.Models {
         unitType: Team.Enums.UnitTypes;
         parentRK: number;
         editorType: Playbook.Enums.EditorTypes;
-        name: string;
         positions: Team.Models.PositionCollection;
         setType: Common.Enums.SetTypes;
         constructor(unitType: Team.Enums.UnitTypes);
@@ -3521,7 +3522,6 @@ declare module Season {
 }
 declare module League.Models {
     class LeagueModel extends Common.Models.AssociableEntity implements Common.Interfaces.IAssociable {
-        name: string;
         constructor();
         copy(newLeague?: League.Models.LeagueModel): League.Models.LeagueModel;
         toJson(): any;
@@ -3535,7 +3535,6 @@ declare module League.Models {
 }
 declare module League.Models {
     class Conference extends Common.Models.AssociableEntity {
-        name: string;
         png: string;
         league: League.Models.LeagueModel;
         leagueGuid: string;
@@ -3548,6 +3547,25 @@ declare module League.Models {
 }
 declare module League.Models {
     class ConferenceCollection extends Common.Models.ActionableCollection<League.Models.Conference> {
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module League.Models {
+    class Division extends Common.Models.AssociableEntity {
+        png: string;
+        conference: League.Models.Conference;
+        conferenceGuid: string;
+        constructor();
+        copy(newDivision?: League.Models.Division): League.Models.Division;
+        toJson(): any;
+        fromJson(json: any): void;
+        setConference(conference: League.Models.Conference): void;
+    }
+}
+declare module League.Models {
+    class DivisionCollection extends Common.Models.ActionableCollection<League.Models.Division> {
         constructor();
         toJson(): any;
         fromJson(json: any): void;

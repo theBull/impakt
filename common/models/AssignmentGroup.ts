@@ -6,7 +6,6 @@ module Common.Models {
     extends Common.Models.AssociableEntity {
 
         public unitType: Team.Enums.UnitTypes;
-        public name: string;
         public assignments: Common.Models.Collection<Common.Models.Assignment>;
 
         // at this point I'm expecting an object literal with data / count

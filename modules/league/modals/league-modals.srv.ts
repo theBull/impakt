@@ -81,14 +81,18 @@ function($q: any, __modals: any) {
 	 * CONFERENCE
 	 * 
 	 */
-	this.createConference = function() {
+	this.createConference = function(league?: League.Models.LeagueModel) {
 		let d = $q.defer();
 
 		let modalInstance = __modals.open(
 			'',
 			'modules/league/modals/create-conference/create-conference.tpl.html',
 			'league.modals.createConference.ctrl',
-			{}
+			{
+				league: function() {
+					return league;
+				}
+			}
 		);
 
 		modalInstance.result.then(function(createdConference: League.Models.Conference) {
@@ -134,6 +138,83 @@ function($q: any, __modals: any) {
 			{
 				conference: function() {
 					return conference;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(results) {
+			console.log(results);
+			d.resolve();
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+		return d.promise;
+	}
+
+
+	/**
+	 * 
+	 * DIVISION
+	 * 
+	 */
+	this.createDivision = function(conference?: League.Models.Conference) {
+		let d = $q.defer();
+
+		let modalInstance = __modals.open(
+			'',
+			'modules/league/modals/create-division/create-division.tpl.html',
+			'league.modals.createDivision.ctrl',
+			{
+				conference: function() {
+					return conference;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(createdDivision: League.Models.Division) {
+			console.log(createdDivision);
+			d.resolve();
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+
+		return d.promise;
+	}
+	this.createDivisionDuplicate = function(division: League.Models.Division) {
+		let d = $q.defer();
+		let modalInstance = __modals.open(
+			'',
+			'modules/league/modals/create-division-duplicate-error/create-division-duplicate-error.tpl.html',
+			'league.modals.createDivisionDuplicateError.ctrl',
+			{
+				division: function() {
+					return division;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(createdDivision) {
+			console.log(createdDivision);
+			d.resolve();
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+
+		return d.promise;
+	}
+	
+	this.deleteDivision = function(division: League.Models.Division) {
+		let d = $q.defer();
+		let modalInstance = __modals.open(
+			'',
+			'modules/league/modals/delete-division/delete-division.tpl.html',
+			'league.modals.deleteDivision.ctrl',
+			{
+				division: function() {
+					return division;
 				}
 			}
 		);

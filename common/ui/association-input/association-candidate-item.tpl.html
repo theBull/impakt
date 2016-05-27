@@ -1,3 +1,10 @@
-<div>
-	<!-- TODO @theBull -->
+<div 
+	class='pointer light-border-left light-border-right'
+	ng-class='{"gray-bg-1-hover": !possibleAssociation.hovered, "gray-bg-2": possibleAssociation.hovered}'
+	ng-mousedown='addAssociation(possibleAssociation)'
+	ng-mouseover='possibleAssociations.hoverIn(possibleAssociation)'
+	ng-mouseout='possibleAssociations.hoverOut(possibleAssociation)'>
+		<div class='pad'>
+			{{possibleAssociation.name}}
+		</div>
 </div>

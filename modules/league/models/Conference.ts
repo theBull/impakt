@@ -5,7 +5,6 @@ module League.Models {
 	export class Conference
 	extends Common.Models.AssociableEntity {
 
-		public name: string;
 		public png: string;
 		public league: League.Models.LeagueModel;
 		public leagueGuid: string;
@@ -13,7 +12,7 @@ module League.Models {
 		constructor() {
 			super(Common.Enums.ImpaktDataTypes.Conference);
 
-			this.name = 'Untitled';
+			this.name = null;
 			this.league = null;
 			this.leagueGuid = '';
 

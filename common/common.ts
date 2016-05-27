@@ -428,6 +428,10 @@ module Common {
 			return Common.Utilities.isNullOrUndefined(str) || str === '';
 		}
 
+		public static isNotEmptyString(str: string): boolean {
+			return !Common.Utilities.isEmptyString(str);
+		}
+
 		/**
 		 * Iterates over the given array and removes any
 		 * duplicate entries

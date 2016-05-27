@@ -11,7 +11,6 @@ module Common.Models {
 		public playPrimaryGuid: string;
 		public playOpponentGuid: string;
         public editorType: Playbook.Enums.EditorTypes;
-		public name: string;
 		public png: string;
 		public key: number;
 

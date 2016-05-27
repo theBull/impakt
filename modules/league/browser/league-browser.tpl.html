@@ -2,14 +2,14 @@
 	
 	<div class='pad'>
 
-		<div class='marginBottom1 light-border-bottom'>
+		<div class='marginBottom1'>
 			
-			<h4>Leagues ({{leagues.size()}})</h4>
-			<div class='pad green-bg-hover pointer marginBottom1 width6'
+			<h5>Leagues ({{leagues.size()}})</h5>
+			<button class='pad green-bg-hover pointer marginBottom1'
 				ng-click='createLeague()'>
 				<span class='glyphicon glyphicon-plus'></span>
-				new
-			</div>
+				league
+			</button>
 
 			<div class='grid'>
 				
@@ -23,14 +23,30 @@
 
 		</div>
 
+		<!-- <div class='marginBottom1 light-border-bottom'>
+			
+			<div class='marginBottom1'>
+				<h5>Conferences ({{conferences.size()}})</h5>
+			</div>
+
+			<div class='grid'>
+				<conference-item 
+					class='width12'
+					conference='conference' 
+					ng-repeat='conference in conferences.toArray()'>	
+				</conference-item>
+			</div>
+
+		</div>
+
 		<div class='marginBottom1 light-border-bottom'>
 			
-			<h4>Teams ({{teams.size()}})</h4>
-			<div class='pad green-bg-hover pointer marginBottom1 width6'
+			<h5>Teams ({{teams.size()}})</h5>
+			<button class='pad green-bg-hover pointer marginBottom1'
 				ng-click='createTeam()'>
 				<span class='glyphicon glyphicon-plus'></span>
-				new
-			</div>
+				team
+			</button>
 
 			<div class='grid'>
 				<div class='marginRight1 marginBottom1 height5 width12 pad gray-bg-3-hover pointer'
@@ -41,7 +57,7 @@
 				</div>
 			</div>
 
-		</div>
+		</div> -->
 	</div>
 	
 </div>

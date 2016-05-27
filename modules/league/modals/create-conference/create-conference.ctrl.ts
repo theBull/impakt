@@ -6,16 +6,18 @@ impakt.league.modals.controller('league.modals.createConference.ctrl',
 '$uibModalInstance', 
 '_associations',
 '_league',
+'league',
 function(
 	$scope: any, 
 	$uibModalInstance: any, 
 	_associations: any,
-	_league: any
+	_league: any,
+	league: any
 ) {
 
 	$scope.leagues = impakt.context.League.leagues;
 	$scope.newConference = new League.Models.Conference();
-	$scope.selectedLeague = $scope.leagues.first();
+	$scope.selectedLeague = league ? league : $scope.leagues.first();
 
 	$scope.ok = function () {
 		

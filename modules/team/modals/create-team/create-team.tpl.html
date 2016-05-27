@@ -4,26 +4,26 @@
 <div class="modal-body">
 	<div class='marginBottom2'>
 		<p>Team name</p>
-	    <input type='text' ng-model='newTeamModel.name' 
-	        placeholder='Team name?' />
+	    <input 
+            type='text' 
+            ng-model='newTeamModel.name' 
+	        ng-placeholder='Team name?' />
     </div>	
 
-    <div>
-    	<div class='marginBottom1'>
-    		<p>Team type</p>
-    	</div>
-	    
-    	<div>
-            <label ng-repeat='(enum, teamType) in teamTypes' class='row'>
-                <div class='marginRight1'>
-                    <input type='radio'
-                        ng-model='newTeamModel.teamType'
-                        ng-value='enum'
-                    />
-                </div> 
-                {{teamType}}
-            </label>
-        </div>
+    <div class='marginBottom2'>
+        <p>Division</p>
+        <select 
+            ng-options='division as division.name for division in divisions.toArray()'
+            ng-model='selectedDivision'>
+        </select>
+    </div>
+
+    <div class='marginBottom2'>
+        <p>Location</p>
+        <select 
+            ng-options='location as locations.name for location in locations.toArray()'
+            ng-model='selectedLocation'>
+        </select>
     </div>
 
 </div>

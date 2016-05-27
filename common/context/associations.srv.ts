@@ -4,12 +4,14 @@
 impakt.common.associations.service('_associations',
 [
 'ASSOCIATIONS',
+'$rootScope',
 '$q',
 '__api',
 '__localStorage',
 '__notifications',
 function(
 	ASSOCIATIONS: any,
+	$rootScope: any,
 	$q: any,
 	__api: any,
 	__localStorage: any,
@@ -97,6 +99,9 @@ function(
 				impakt.context.Associations.associations.size(), 
 				' Associations successfully updated'
 			);
+			
+			$rootScope.$broadcast('associations-updated');
+
 			d.resolve();
 		}, function(err: any) {
 			notification.error('Failed to update Associations');
@@ -132,6 +137,9 @@ function(
 				associations.size(),
 				' Associations successfully deleted'
 			);
+
+			$rootScope.$broadcast('associations-updated');
+
 			d.resolve();
 		}, function(err: any) {
 			notification.error('Failed to update Associations');
@@ -151,12 +159,53 @@ function(
 		let d = $q.defer();
 		impakt.context.Associations.associations.disassociate(fromEntity, toEntity);
 
-		this.updateAssociations()
-			.then(function() {
-				d.resolve();
-			}, function(err: any) {
-				d.reject(err);
-			});
+		let organizationKey = __localStorage.getOrganizationKey();
+
+		let notification = __notifications.pending(
+			'Deleting association between ', fromEntity.name, ' and ', toEntity.name, '...');
+
+		// NOTE:
+		// 
+		// need to also specify the "inverse" association, since
+        // a single *peer* association between two entities
+        // are inserted into the database (via this client code)
+        // two at a time, one is the normal from/from-to/to association
+        // and the 'inverse' is the from/to-to/from association, which
+        // simply flips the from/to values as a second.
+        // 
+		__api.post(__api.path(
+			ASSOCIATIONS.ENDPOINT,
+			ASSOCIATIONS.DELETE_ASSOCIATIONS
+		), {
+			contextID: organizationKey,
+			associations: [
+				{
+					fromType: fromEntity.impaktDataType,
+					fromKey: fromEntity.key,
+					toType: toEntity.impaktDataType,
+					toKey: toEntity.key,
+					associationType: Common.Enums.AssociationTypes.Peer
+		        },
+				{
+					fromType: toEntity.impaktDataType,
+					fromKey: toEntity.key,
+					toType: fromEntity.impaktDataType,
+					toKey: fromEntity.key,
+					associationType: Common.Enums.AssociationTypes.Peer
+				}
+	        ]
+		}).then(function() {
+
+			notification.success(
+				'Association between ', fromEntity.name, ' and ', toEntity.name, ' successfully deleted');
+
+			$rootScope.$broadcast('associations-updated');
+
+			d.resolve();
+		}, function(err: any) {
+			notification.error('Failed to update Associations');
+			d.reject(err);
+		});
 
 		return d.promise;
 	}
@@ -299,6 +348,16 @@ function(
 					if (conference)
 						results.conferences.add(conference);
 					break;
+				case Common.Enums.ImpaktDataTypes.Division:
+					let division = impakt.context.League.divisions.get(guid);
+					if (division)
+						results.divisions.add(division);
+					break;
+				case Common.Enums.ImpaktDataTypes.Team:
+					let team = impakt.context.Team.teams.get(guid);
+					if (team)
+						results.teams.add(team);
+					break;
 			}		
 		}
 
@@ -346,6 +405,10 @@ function(
 
 			case 'conferences':
 				collection = impakt.context.League.conferences;
+				break;
+
+			case 'divisions':
+				collection = impakt.context.League.divisions;
 				break;
 
 			case 'teams':

@@ -10,14 +10,18 @@ function($q: any, __modals: any) {
 	 * Team
 	 * 
 	 */
-	this.createTeam = function() {
+	this.createTeam = function(division?: League.Models.Division) {
 		let d = $q.defer();
 		
 		let modalInstance = __modals.open(
 			'',
 			'modules/team/modals/create-team/create-team.tpl.html',
 			'team.modals.createTeam.ctrl',
-			{}
+			{
+				division: function() {
+					return division;
+				}
+			}
 		);
 
 		modalInstance.result.then(function(createdTeam) {

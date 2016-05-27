@@ -1,18 +1,13 @@
-<div class='col font-white'>
+<div class='col pad'>
 	
-	<div>
+	<div class='marginBottom1'>
+		<team-item team='team' class='fontSize15'></team-item>
+	</div>
+
+	<div class='marginBottom1'>
 		<h5>{{team.name}}</h5>
 		<div>
 			<p>{{team.records.first().wins}} &mdash; {{team.records.first().losses}}</p>
-		</div>
-	</div>
-	
-
-	<div class='row marginBottom1'>
-		<div class='width7 red-bg-hover pointer pad'
-			ng-click='delete()'>
-			<span class='glyphicon glyphicon-remove'></span>
-			delete
 		</div>
 	</div>
 

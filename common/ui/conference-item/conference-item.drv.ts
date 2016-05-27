@@ -2,11 +2,13 @@
 
 impakt.common.ui.controller('conferenceItem.ctrl', [
 '$scope',
+'$state',
 '_details',
 '_league',
 '_associations',
 function(
 	$scope: any,
+	$state: any,
 	_details: any,
 	_league: any,
 	_associations: any
@@ -28,7 +30,12 @@ function(
 	 * 
 	 */
 	$scope.toggleSelection = function(conference: League.Models.Conference) {
-		_details.toggleSelection(conference);
+		if (!$state.is('league.drilldown.conference')) {
+			_details.selectedElements.deselectAll();
+			_league.toConferenceDrilldown(conference);
+		} else {
+			_details.toggleSelection(conference);
+		}
 	}
 	
 }]).directive('conferenceItem', [

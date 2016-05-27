@@ -1,30 +1,27 @@
-<div class='col font-white pad'>
+<div class='col pad'>
 
-	<league-item league='league'></league-item>
-
-	<div class='col'>
-		<div class='marginBottom1'>
-			<h5>Conferences ({{conferences.size()}})</h5>
-
-			<div class='width6 green-bg-hover pointer pad'
-				ng-click='createConference()'
-				title='Create a new conference for {{league.name}}'>
-				<span class='glyphicon glyphicon-plus'></span>
-				new
-			</div>
-
-		</div>
-		<div class='row marginBottom1'>
-
-			<conference-item conference='conference' ng-repeat='conference in conferences.toArray()'></conference-item>
-			
-		</div>
-
-		<div class='col marginRight1' ng-repeat='conference in conferences.toArray()'>
-
-			
-
-		</div>
+	<!-- League -->
+	<div class='marginBottom1'>
+		<league-item league='league' class='fontSize15'></league-item>
 	</div>
+ 
+	<div class='marginBottom1'>
+		<h5><strong>{{league.name}}</strong> Conferences ({{conferences.size()}})</h5>
+	</div>
+
+	<div class='marginBottom1'>
+		<button class='green-bg-hover pointer pad'
+			ng-click='createConference()'
+			title='Create a new conference for {{league.name}}'>
+			<span class='glyphicon glyphicon-plus'></span>
+			conference
+		</button>
+	</div>
+
+	<!-- Conferences -->
+	<conference-item 
+		conference='conference' 
+		ng-repeat='conference in conferences.toArray()'>	
+	</conference-item>
 
 </div>

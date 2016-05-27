@@ -23,6 +23,13 @@ impakt.league.constant('LEAGUE', {
     GET_CONFERENCES: '/getConferences',
     GET_CONFERENCE: '/getConference',
     DELETE_CONFERENCE: '/deleteConference',
-    UPDATE_CONFERENCE: '/updateConference'
+    UPDATE_CONFERENCE: '/updateConference',
+
+    // League Divisions
+    CREATE_DIVISION: '/createDivision',
+    GET_DIVISIONS: '/getDivisions',
+    GET_DIVISION: '/getDivision',
+    DELETE_DIVISION: '/deleteDivision',
+    UPDATE_DIVISION: '/updateDivision'
 
 });

@@ -4,6 +4,7 @@
 // League service
 impakt.league.service('_league', [
 'LEAGUE',
+'$rootScope',
 '$q',
 '$state',
 '__api',
@@ -12,6 +13,7 @@ impakt.league.service('_league', [
 '_leagueModals',
 function(
     LEAGUE: any,
+    $rootScope: any,
     $q: any,
     $state: any,
     __api: any,
@@ -23,6 +25,8 @@ function(
 
     this.drilldown = {
         league: null,
+        conference: null,
+        division: null,
         team: null
     }
 
@@ -113,7 +117,7 @@ function(
         newLeagueModel.key = -1;
         let leagueModelJson = newLeagueModel.toJson();
         let notification = __notifications.pending(
-            'Creating playbook "', newLeagueModel.name, '"...'
+            'Creating league "', newLeagueModel.name, '"...'
         );
         __api.post(
             __api.path(LEAGUE.ENDPOINT, LEAGUE.CREATE_LEAGUE),
@@ -144,6 +148,8 @@ function(
                 notification.success(
                     'Successfully created league "', leagueModel.name, '"'
                 );
+
+                $rootScope.$broadcast('create-entity', leagueModel);
 
                 d.resolve(leagueModel);
             }, function(error: any) {
@@ -323,7 +329,7 @@ function(
         newConference.key = -1;
         let conferenceModelJson = newConference.toJson();
         let notification = __notifications.pending(
-            'Creating playbook "', newConference.name, '"...'
+            'Creating conference "', newConference.name, '"...'
         );
         __api.post(
             __api.path(LEAGUE.ENDPOINT, LEAGUE.CREATE_CONFERENCE),
@@ -354,6 +360,8 @@ function(
                 notification.success(
                     'Successfully created conference "', conferenceModel.name, '"'
                 );
+
+                $rootScope.$broadcast('create-entity', conferenceModel);
 
                 d.resolve(conferenceModel);
             }, function(error: any) {
@@ -443,6 +451,215 @@ function(
         return d.promise;
     }
 
+    /**
+     * Retrieves all divisions
+     */
+    this.getDivisions = function() {
+        var d = $q.defer();
+
+        let notification = __notifications.pending(
+            'Getting divisions...'
+        );
+
+        __api.get(__api.path(LEAGUE.ENDPOINT, LEAGUE.GET_DIVISIONS))
+            .then(function(response: any) {
+
+                let collection = new League.Models.DivisionCollection();
+
+                if (response && response.data && response.data.results) {
+
+                    let divisionResults = Common.Utilities.parseData(response.data.results);
+
+
+                    for (let i = 0; i < divisionResults.length; i++) {
+                        let divisionResult = divisionResults[i];
+
+                        if (divisionResult && divisionResult.data && divisionResult.data.division) {
+                            let divisionModel = new League.Models.Division();
+                            divisionResult.data.division.key = divisionResult.key;
+                            divisionModel.fromJson(divisionResult.data.division);
+
+                            collection.add(divisionModel);
+                        }
+                    }
+                }
+
+                notification.success([collection.size(), ' Divisions successfully retreived'].join(''));
+
+                d.resolve(collection);
+
+            }, function(error: any) {
+                notification.error('Failed to retieve Divisions');
+                console.error(error);
+                d.reject(error);
+            });
+
+        return d.promise;
+    }
+
+    /**
+     * Gets a single division with the given key
+     * @param {number} key The key of the division to retrieve
+     */
+    this.getDivision = function(key: number) {
+        var d = $q.defer();
+        __api.get(__api.path(LEAGUE.ENDPOINT, LEAGUE.GET_DIVISION, '/' + key))
+            .then(function(response: any) {
+                let division = Common.Utilities.parseData(response.data.results);
+
+                d.resolve(division);
+            }, function(error: any) {
+                d.reject(error);
+            });
+
+        return d.promise;
+    }
+
+    /**
+     * Sends a division model to the server for storage
+     * @param {Common.Models.Division} newDivision The division to be created/saved
+     */
+    this.createDivision = function(newDivision: League.Models.Division) {
+        var d = $q.defer();
+
+        if (Common.Utilities.isNotNullOrUndefined(newDivision)) {
+            let nameExists = impakt.context.League.divisions.hasElementWhich(
+                function(divisionModel: League.Models.Division, index: number) {
+                    return divisionModel.name == newDivision.name;
+                });
+            if (nameExists) {
+                let notification = __notifications.warning(
+                    'Failed to create division. Division "', newDivision.name, '" already exists.');
+                _leagueModals.createDivisionDuplicate(newDivision);
+                return;
+            }
+        }
+        // set key to -1 to ensure a new object is created server-side
+        newDivision.key = -1;
+        let divisionModelJson = newDivision.toJson();
+        let notification = __notifications.pending(
+            'Creating division "', newDivision.name, '"...'
+        );
+        __api.post(
+            __api.path(LEAGUE.ENDPOINT, LEAGUE.CREATE_DIVISION),
+            {
+                version: 1,
+                name: newDivision.name,
+                data: {
+                    version: 1,
+                    division: divisionModelJson
+                }
+            }
+        )
+            .then(function(response: any) {
+                let results = Common.Utilities.parseData(response.data.results);
+                let divisionModel = new League.Models.Division();
+
+                if (results && results.data && results.data.division) {
+                    results.data.division.key = results.key;
+                    divisionModel.fromJson(results.data.division);
+
+                    // update the context
+                    impakt.context.League.divisions.add(divisionModel);
+
+                } else {
+                    throw new Error('CreateDivision did not return a valid division');
+                }
+
+                notification.success(
+                    'Successfully created division "', divisionModel.name, '"'
+                );
+
+                $rootScope.$broadcast('create-entity', divisionModel);
+
+                d.resolve(divisionModel);
+            }, function(error: any) {
+                notification.error('Failed to create division "', newDivision.name, '"');
+                d.reject(error);
+            });
+
+        return d.promise;
+    }
+
+    /**
+     * Deletes the given division for the current user
+     * @param {League.Models.Division} division The division to be deleted
+     */
+    this.deleteDivision = function(division: League.Models.Division) {
+        var d = $q.defer();
+
+        let notification = __notifications.pending(
+            'Deleting division "', division.name, '"...'
+        );
+
+        __api.post(
+            __api.path(LEAGUE.ENDPOINT, LEAGUE.DELETE_DIVISION),
+            { key: division.key }
+        ).then(function(response: any) {
+            // update the context
+            impakt.context.League.divisions.remove(division.guid);
+
+            notification.success('Deleted division "', division.name, '"');
+
+            d.resolve(division);
+        }, function(error: any) {
+            notification.error('Failed to delete division "', division.name, '"');
+            d.reject(error);
+        });
+
+        return d.promise;
+    }
+
+    /**
+     * Updates the given division for the current user
+     * @param {League.Models.Division} division The division to update
+     */
+    this.updateDivision = function(division: League.Models.Division) {
+        var d = $q.defer();
+
+        // update assignment collection to json object
+        let divisionJson = division.toJson();
+
+        let notification = __notifications.pending('Updating division "', division.name, '"...');
+
+        __api.post(__api.path(
+            LEAGUE.ENDPOINT,
+            LEAGUE.UPDATE_DIVISION),
+            {
+                version: 1,
+                name: divisionJson.name,
+                key: divisionJson.key,
+                data: {
+                    version: 1,
+                    key: divisionJson.key,
+                    division: divisionJson
+                }
+            }
+        )
+            .then(function(response: any) {
+                let results = Common.Utilities.parseData(response.data.results);
+                let divisionModel = new League.Models.Division();
+                if (results && results.data && results.data.division) {
+                    divisionModel.fromJson(results.data.division);
+
+                    // update the context
+                    impakt.context.League.divisions.set(divisionModel.guid, divisionModel);
+                }
+
+                notification.success('Successfully updated division "', division.name, '"');
+
+                d.resolve(divisionModel);
+            }, function(error: any) {
+                notification.error(
+                    'Failed to update division "', division.name, '"'
+                );
+
+                d.reject(error);
+            });
+
+        return d.promise;
+    }
+
     this.deleteEntityByType = function(entity: Common.Interfaces.IActionable): void {
         if (Common.Utilities.isNullOrUndefined(entity))
             return;
@@ -456,6 +673,9 @@ function(
             case Common.Enums.ImpaktDataTypes.Conference:
                 return _leagueModals.deleteConference(entity);
 
+            case Common.Enums.ImpaktDataTypes.Division:
+                return _leagueModals.deleteDivision(entity);
+
             default:
                 d.reject(new Error('_league deleteEntityByType: impaktDataType not supported'));
                 break;
@@ -467,20 +687,58 @@ function(
     this.toBrowser = function() {
         this.drilldown.league = null;
         this.drilldown.team = null;
-        impakt.context.League.leagues.deselectAll();
         $state.transitionTo('league.browser');
     }
 
     this.toLeagueDrilldown = function(league: League.Models.LeagueModel) {
         this.drilldown.league = league;
+        this.drilldown.conference = null;
+        this.drilldown.division = null;
+        this.drilldown.team = null;
         impakt.context.League.leagues.select(league);
+        _deselectEntities(false, true, true, true);
         impakt.context.Actionable.selected.only(league);
         $state.transitionTo('league.drilldown.league');
     }
 
+    this.toConferenceDrilldown = function(conference: League.Models.Conference) {
+        this.drilldown.conference = conference;
+        this.drilldown.division = null;
+        this.drilldown.team = null;
+        impakt.context.League.conferences.select(conference);
+        _deselectEntities(true, false, true, true);
+        impakt.context.Actionable.selected.only(conference);
+        $state.transitionTo('league.drilldown.conference');
+    }
+
+    this.toDivisionDrilldown = function(division: League.Models.Division) {
+        this.drilldown.division = division;
+        this.drilldown.team = null;
+        impakt.context.League.divisions.select(division);
+        _deselectEntities(true, true, false, true);
+        impakt.context.Actionable.selected.only(division);
+        $state.transitionTo('league.drilldown.division');
+    }
+
     this.toTeamDrilldown = function(team: Team.Models.TeamModel) {
         this.drilldown.team = team;
+        impakt.context.Team.teams.select(team);
+        _deselectEntities(true, true, true, false);
+        impakt.context.Actionable.selected.only(team);
         $state.transitionTo('league.drilldown.team');
+    }
+
+    function _deselectEntities(
+        deselectLeagues: boolean,
+        deselectConferences: boolean,
+        deselectDivisions: boolean,
+        deselectTeam: boolean
+    ) {
+
+        deselectLeagues && impakt.context.League.leagues.deselectAll();
+        deselectConferences && impakt.context.League.conferences.deselectAll();
+        deselectDivisions && impakt.context.League.divisions.deselectAll();
+        deselectTeam && impakt.context.Team.teams.deselectAll();
     }
 
 }]);

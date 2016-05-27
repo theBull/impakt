@@ -1,0 +1,19 @@
+<div 
+	class='col black-bg-hover height5 marginRight1 marginBottom1 pointer overflowVisible'
+	ng-click='toggleSelection(division)'
+	ng-class='{"selected-border": division.selected}'>
+	
+	<div class='marginBottom1 row overflowVisible'>
+
+		<div class='col width5 height5 light-border gray-bg-1'>
+			<img class='width5 height5' src='images/placeholder50x50.png' />
+		</div>
+
+		<div class='col pad'>
+			<p class='capitalize'>
+				<em class='font-gray'>{{getConference(division)}} &mdash;</em> {{division.name}}
+			</p>
+		</div>
+	</div>
+		
+</div>

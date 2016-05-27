@@ -2,6 +2,7 @@
 
 // Team service
 impakt.team.service('_team',[
+'$rootScope',
 '$q', 
 'PLAYBOOK', 
 'TEAM',
@@ -10,6 +11,7 @@ impakt.team.service('_team',[
 '__notifications',
 '_teamModals',
 function(
+    $rootScope: any,
 	$q: any, 
 	PLAYBOOK: any, 
 	TEAM: any, 
@@ -143,6 +145,8 @@ function(
                 notification.success(
                     'Successfully created team "', teamModel.name, '"'
                 );
+
+                $rootScope.$broadcast('create-entity', teamModel);
 
                 d.resolve(teamModel);
             }, function(error: any) {
@@ -335,6 +339,8 @@ function(
 			notification.success(
 				'Personnel group "', personnelModel.name, '" successfully created'
 			);
+
+            $rootScope.$broadcast('create-entity', personnelModel);
 
 			d.resolve(personnelModel);
         }, function(error: any) {

@@ -8,21 +8,17 @@
 			<input class='pad02 associations-input-text light-border-top' 
 				type='text' 
 				ng-model='search.text'
-				ng-placeholder='Add association' />
+				ng-placeholder='Add association'
+				ng-blur='hidePossibleAssociationsList()'
+				ng-focus='showPossibleAssociationsList()' />
 
 		</div>
 
 		<div class='gray-bg-1 top100Percent zIndexTop width100Percent association-input-dropdown marginBottom4' 
 			ng-show='possibleAssociationsListVisible'>
-			<div class='pad pointer light-border-left light-border-right'
-				ng-class='{"gray-bg-1-hover": !possibleAssociation.hovered, "gray-bg-2": possibleAssociation.hovered}'
-				ng-repeat='possibleAssociation in possibleAssociations.toArray() | filter: {name: search.text}'
-				ng-click='addAssociation(possibleAssociation)'
-				ng-mouseover='possibleAssociations.hoverIn(possibleAssociation)'
-				ng-mouseout='possibleAssociations.hoverOut(possibleAssociation)'
-				ng-show='possibleAssociationsListVisible'>
-				{{possibleAssociation.name}}
-			</div>
+			<association-candidate-item
+				ng-repeat='possibleAssociation in possibleAssociations.toArray() | filter: {name: search.text}'>
+			</association-candidate-item>
 		</div>
 
 	</div>

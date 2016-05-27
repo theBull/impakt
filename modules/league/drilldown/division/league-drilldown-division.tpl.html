@@ -1,0 +1,23 @@
+<div class='col pad'>
+	<!-- Divisions -->
+	<div class='marginBottom1'>
+		<division-item division='division' class='fontSize15'></division-item>
+	</div>
+
+	<div class='marginBottom1'>
+		<h5><strong>{{division.name}}</strong> Teams ({{teams.size()}})</h5>
+	</div>
+
+	<div class='marginBottom1'>
+		<button class='green-bg-hover pointer pad'
+			ng-click='createTeam(division)'
+			title='Create a new team for {{division.name}}'>
+			<span class='glyphicon glyphicon-plus'></span>
+			team
+		</button>
+	</div>
+		
+	<!-- Teams -->
+	<team-item team='team' ng-repeat='team in teams.toArray()'></team-item>
+	
+</div>

@@ -16,12 +16,16 @@ impakt.common.ui.directive('ngPlaceholder', [
 					return;
 
 				$element.focus(function() {
-					_clear();
+					if(!_isNgModelSet())
+						_clear();
+
 				}).blur(function() {
-					_setPlaceholder();
+					if(!_isNgModelSet())
+						_setPlaceholder();
+
 				}).keyup(function(e: any) {
 					if(e.keyCode == Common.Input.Which.Backspace) {
-						if(_isNgModelSet()) {
+						if(!_isNgModelSet()) {
 							_clear();
 						}
 					}
@@ -55,7 +59,10 @@ impakt.common.ui.directive('ngPlaceholder', [
 				}
 
 				function _isNgModelSet(): boolean {
-					return !isNaN(parseInt(ngModel.$viewValue));
+					return !isNaN(parseInt(ngModel.$viewValue)) || (
+						Common.Utilities.isNotNullOrUndefined(ngModel.$viewValue) &&
+						Common.Utilities.isNotEmptyString(ngModel.$viewValue)
+					);
 				}
 
 				if(Common.Utilities.isNotNullOrUndefined(ngModel) &&

@@ -1,7 +1,8 @@
 /// <reference path='./details.mdl.ts' />
 
-impakt.details.controller('details.ctrl', 
-['$scope',
+impakt.details.controller('details.ctrl', [
+'$scope',
+'$rootScope',
 '$q',
 '$timeout',
 '__context',
@@ -10,6 +11,7 @@ impakt.details.controller('details.ctrl',
 '_associations',
 function(
 	$scope: any, 
+	$rootScope: any,
 	$q: any,
 	$timeout: any,
 	__context: any,
@@ -27,22 +29,42 @@ function(
 	$scope._details = _details;
 	$scope.collapsed = Common.Utilities.isNotNullOrUndefined($scope.expandable) ? $scope.expandable.collapsed : true;
 
+	let modifiedListenerSet = false;
+
 	__context.onReady(function() {
 		$scope.playbooks = impakt.context.Playbook.playbooks;
 	});
 
+	let createEntityListener = $rootScope.$on('create-entity', function(e: any, entity: Common.Interfaces.IActionable) {
+		init();
+	});
+
+	let associationsUpdateListener = $rootScope.$on('associations-updated', function(e: any) {
+		init();
+	});
+
+	$scope.$on('$destroy', function() {
+        $scope.selectedElements.clearListeners();
+        createEntityListener();
+        associationsUpdateListener();
+    });
+
 	function init() {
 		$scope.selectedElements.clearListeners();
-		$scope.selectedElements.onModified(
-			function(selectedElements: Common.Interfaces.IActionableCollection) {
 
-				if(Common.Utilities.isNotNullOrUndefined($scope.expandable)) {
-					$scope.selectedElements.isEmpty() ?
-						!$scope.expandable.collapsed && $scope.expandable.close() :
-						$scope.expandable.collapsed && $scope.expandable.open();
-				}
-				_initAssociated();
-			});
+		if(!modifiedListenerSet) {
+			$scope.selectedElements.onModified(
+				function(selectedElements: Common.Interfaces.IActionableCollection) {
+
+					if (Common.Utilities.isNotNullOrUndefined($scope.expandable)) {
+						$scope.selectedElements.isEmpty() ?
+							!$scope.expandable.collapsed && $scope.expandable.close() :
+							$scope.expandable.collapsed && $scope.expandable.open();
+					}
+					_initAssociated();
+				});
+			modifiedListenerSet = true;
+		}
 
 		// Load initial associations, don't wait for the modification handler
 		// for selected elements to fire.
@@ -64,7 +86,13 @@ function(
 	}
 
 	$scope.delete = function(entity: Common.Interfaces.IActionable) {
-		_details.delete(entity);
+		_details.delete(entity).then(function() {
+			// entity has been successfully deleted...
+			// grab the associations again to apply
+			// changes
+			_initAssociated();
+			$scope.selectedElements.remove($scope.selectedElement.guid);
+		});
 	}
 
 	init();

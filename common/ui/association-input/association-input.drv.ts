@@ -2,12 +2,16 @@
 
 impakt.common.ui.controller('associationInput.ctrl', [
 '$scope',
+'$rootScope',
 '_associations',
 function(
 	$scope: any,
+	$rootScope: any,
 	_associations: any
 ) {
 
+	$scope.associations;
+	$scope.key;
 	$scope.possibleAssociations = new Common.Models.ActionableCollection();
 	$scope.associatedEntities = new Common.Models.ActionableCollection();
 	$scope.possibleAssociationsListVisible = false;
@@ -17,28 +21,47 @@ function(
 		text: ''
 	};
 
+	let associationsUpdateListener = $rootScope.$on('associations-updated', function(e: any) {
+		$scope.associations = _associations.getAssociated($scope.entity);
+		$scope.initialize();
+	});
+
+	let createEntityListener = $rootScope.$on('create-entity', function(e: any, entity: Common.Interfaces.IActionable) {
+		$scope.initialize();
+	});
+
 	$scope.$watch('search', function(newVal: any, oldVal: any) {
 		$scope.possibleAssociationsListVisible = newVal.text.length > 0;
 	}, true);
 
+	$scope.$on('$destroy', function() {
+		associationsUpdateListener();
+		createEntityListener();
+	});
+
+	$scope.initialize = function() {
+		$scope.possibleAssociations = _associations.getContextDataByKey($scope.key);
+
+		// remove any possible associations from the list if they already exist in the
+		// associations collection, to prevent adding a duplicate association and to
+		// just not suck in general...
+		if (Common.Utilities.isNotNullOrUndefined($scope.associations)) {
+			$scope.associatedEntities = $scope.associations[$scope.key];
+			if (Common.Utilities.isNotNullOrUndefined($scope.associatedEntities)) {
+				$scope.associatedEntities.forEach(function(associated: Common.Interfaces.IAssociable, index: number) {
+					$scope.possibleAssociations.remove(associated.guid);
+				});
+			}
+		}
+	}
+
+
 	$scope.addAssociation = function(toEntity: Common.Interfaces.IAssociable): void {
 		_checkEntities(toEntity);
 
-		_associations.createAssociation($scope.entity, toEntity).then(function() {
-			// we need to remove the newly added entity from the list of possible
-			// associations...
-			let newlyAssociated = $scope.possibleAssociations.remove(toEntity.guid);
+		_associations.createAssociation($scope.entity, toEntity).then(function() {			
 			$scope.selectedPossibleAssociation = null;
-
-			if(Common.Utilities.isNotNullOrUndefined(newlyAssociated)) {
-				// ...but once we remove the newly added entity, we want to keep it some where
-				// in case we remove the entity's association and want it to reappear in the
-				// list of possible associations...
-				$scope.associatedEntities.add(newlyAssociated);
-			}
-
 			$scope.search.text = '';
-
 		}, function(err) {
 			$scope.search.text = '';
 		});
@@ -48,16 +71,6 @@ function(
 		_checkEntities(toEntity);
 
 		_associations.deleteAssociation($scope.entity, toEntity).then(function() {
-			// ...we just deleted an association
-			let removedAssociation = $scope.associatedEntities.remove(toEntity.guid);
-
-			if (Common.Utilities.isNotNullOrUndefined(removedAssociation)) {
-				// ...but once we remove the newly added entity, we want to keep it some where
-				// in case we remove the entity's association and want it to reappear in the
-				// list of possible associations...
-				$scope.possibleAssociations.add(removedAssociation);
-			}
-
 			$scope.search.text = '';
 		}, function(err) {
 			$scope.search.text = '';
@@ -69,18 +82,16 @@ function(
 			return;
 
 		$scope.addAssociation($scope.selectedPossibleAssociation);
-
+		$scope.selectedPossibleAssociation = null;
 		$scope.hidePossibleAssociationsList();
 	}
 
 	$scope.hidePossibleAssociationsList = function() {
 		$scope.selectedPossibleAssociationIndex = 0;
 		$scope.possibleAssociationsListVisible = false;
-		$scope.selectedPossibleAssociation = null;
 	}
 
 	$scope.showPossibleAssociationsList = function() {
-		$scope.selectedPossibleAssociationIndex = 0;
 		$scope.possibleAssociationsListVisible = true;
 		$scope.hoverInitialPossibleAssociation();
 	}
@@ -89,6 +100,7 @@ function(
 		if (Common.Utilities.isNullOrUndefined($scope.possibleAssociations))
 			return;
 
+		$scope.selectedPossibleAssociationIndex = 0;
 		let size = $scope.possibleAssociations.size();
 		if(size > 0) {
 			$scope.selectedPossibleAssociation = $scope.possibleAssociations.first();
@@ -108,7 +120,7 @@ function(
 		}
 
 		let size = $scope.possibleAssociations.size();
-		if ($scope.selectedPossibleAssociationIndex < size - 2) {
+		if ($scope.selectedPossibleAssociationIndex < size - 1) {
 			$scope.selectedPossibleAssociationIndex++;
 			$scope.selectedPossibleAssociation = $scope.possibleAssociations.getIndex($scope.selectedPossibleAssociationIndex);
 			if (Common.Utilities.isNotNullOrUndefined($scope.selectedPossibleAssociation)) {
@@ -131,6 +143,10 @@ function(
 			if($scope.possibleAssociationsListVisible)
 				$scope.hidePossibleAssociationsList();
 		}
+	}
+
+	$scope.getController = function() {
+		return $scope;
 	}
 
 	function _checkEntities(toEntity: Common.Interfaces.IAssociable) {
@@ -162,32 +178,11 @@ function(
 				if (Common.Utilities.isNullOrUndefined($scope.key))
 					throw new Error('association-input link(): key is required and is null or undefined');
 
-				$scope.possibleAssociations = _associations.getContextDataByKey($scope.key);
-
-				// remove any possible associations from the list if they already exist in the
-				// associations collection, to prevent adding a duplicate association and to
-				// just not suck in general...
-				if(Common.Utilities.isNotNullOrUndefined($scope.associations)) {
-					$scope.associatedEntities = $scope.associations[$scope.key];
-					if(Common.Utilities.isNotNullOrUndefined($scope.associatedEntities)) {
-						$scope.associatedEntities.forEach(function(associated: Common.Interfaces.IAssociable, index: number) {
-							$scope.possibleAssociations.remove(associated.guid);
-						});
-					}
-				}
+				$scope.initialize();
 
 				let $input = $element.find('.associations-input-text');
 				if(Common.Utilities.isNotNullOrUndefined($input)) {
-					$input.focus(function(e: any) {
-						$scope.showPossibleAssociationsList();
-						$scope.$apply();
-					});
-					$input.blur(function(e: any) {
-						$scope.hidePossibleAssociationsList();
-						$scope.$apply();
-					});
 					$input.keyup(function(e: any) {
-						console.log(e.keyCode);
 						e.preventDefault();
 						if(e.keyCode == Common.Input.Which.Esc) {
 							$scope.possibleAssociationsListVisible = false;
@@ -214,11 +209,12 @@ function(
 		return {
 			restrict: 'E',
 			controller: 'associationInput.ctrl',
+			require: '^associationInput',
 			templateUrl: 'common/ui/association-input/association-candidate-item.tpl.html',
 			transclude: true,
 			replace: false,
-			link: function($scope: any, $element: any, attrs: any) {
-
+			link: function($scope: any, $element: any, attrs: any, controller: any) {
+				
 			}
 		}
 	}

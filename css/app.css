@@ -13,6 +13,10 @@ html, h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
   font-family: "acumin-pro", Helvetica, "sans-serif", sans;
 }
 
+img.fill {
+  object-fit: contain;
+}
+
 table, tr, td {
   border: 1px solid rgba(150, 150, 150, 0.3);
   border-collapse: collapse;
@@ -67,6 +71,13 @@ input[type="checkbox"], input[type="radio"] {
   background-color: #444444;
   border-color: #aaaaaa;
   -webkit-box-shadow: none;
+}
+
+button {
+  border: 0;
+  align-self: baseline;
+  width: auto;
+  text-align: left;
 }
 
 button:focus {
@@ -497,7 +508,7 @@ details summary {
 }
 
 .selected-border {
-  border: #777777 solid 3px;
+  outline: #777777 solid 3px;
 }
 
 /*

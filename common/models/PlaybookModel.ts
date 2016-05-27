@@ -4,7 +4,6 @@ module Common.Models {
     export class PlaybookModel
         extends Common.Models.AssociableEntity {
     
-        public name: string;
         public unitType: Team.Enums.UnitTypes;
         
         constructor(unitType: Team.Enums.UnitTypes) {

@@ -6,7 +6,6 @@ module Common.Models {
     extends Common.Models.AssociableEntity {
 
         public field: Common.Interfaces.IField;
-        public name: string;
         public assignmentGroup: Common.Models.AssignmentGroup;
         public formation: Common.Models.Formation;
         public personnel: Team.Models.Personnel;

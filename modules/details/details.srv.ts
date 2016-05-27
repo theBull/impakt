@@ -38,6 +38,15 @@ function(
 		_playbook.updatePlay(play);
 	}
 
+	/**
+	 * NOTE: if the given entity's impaktDataType is not supported,
+	 * an exception will be thrown; this is because the function MUST
+	 * return a promise object (which is defined within the `deleteEntityByType` methods
+	 * below in their respecitve services). If no applicable case is met,
+	 * we have nothing left but to stop traffic and complain.
+	 * 
+	 * @param {Common.Interfaces.IActionable} entity [description]
+	 */
 	this.delete = function(entity: Common.Interfaces.IActionable) {
 		switch (entity.impaktDataType) {
 			case Common.Enums.ImpaktDataTypes.Play:
@@ -49,11 +58,15 @@ function(
 
 			case Common.Enums.ImpaktDataTypes.Conference:
 			case Common.Enums.ImpaktDataTypes.League:
+			case Common.Enums.ImpaktDataTypes.Division:
 				return _league.deleteEntityByType(entity);
 
 			case Common.Enums.ImpaktDataTypes.Team:
 			case Common.Enums.ImpaktDataTypes.PersonnelGroup:
 				return _team.deleteEntityByType(entity);
+
+			default:
+				throw new Error('_details delete(): entity ImpaktDataType not supported ' + entity.impaktDataType);
 		}
 	}
 

@@ -1,12 +1,36 @@
 <div class='col scrollY'>
 
 	<div class='col'>
-		<div class='light-border-bottom margin'>
-			<div class='width6 gray-bg-2-hover pointer pad marginBottom1'
+		<div class='light-border-bottom row shrinkY'>
+			<button class='gray-bg-2-hover pointer pad'
 				ng-click='toBrowser()'>
-				<span class='glyphicon glyphicon-chevron-left'></span>
-				back
+				<span class='glyphicon glyphicon-folder-open'></span>
+				Browser
+			</button>
+			<button class='gray-bg-1-hover pointer pad'
+				ng-click='toLeagueDrilldown(drilldown.league)'
+				ng-show='drilldown.league'>
+				<span class='glyphicon glyphicon-chevron-right'></span>
+				{{drilldown.league.name}}
+			</button>
+			<button class='gray-bg-1-hover pointer pad'
+				ng-click='toConferenceDrilldown(drilldown.conference)'
+				ng-show='drilldown.conference'>
+				<span class='glyphicon glyphicon-chevron-right'></span>
+				{{drilldown.conference.name}}
+			</button>
+			<button class='gray-bg-1-hover pointer pad'
+				ng-click='toDivisionDrilldown(drilldown.division)'
+				ng-show='drilldown.division'>
+				<span class='glyphicon glyphicon-chevron-right'></span>
+				{{drilldown.division.name}}
+			</button>
+			<div 
+				class='pad' 
+				ng-show='drilldown.team'>
+				{{drilldown.team.name}}
 			</div>
+
 		</div>
 
 		<!-- Main -->

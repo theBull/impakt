@@ -2,6 +2,8 @@
 
 impakt.league.drilldown = angular.module('impakt.league.drilldown', [
 	'impakt.league.drilldown.league',
+	'impakt.league.drilldown.conference',
+	'impakt.league.drilldown.division',
 	'impakt.league.drilldown.team'
 ])
 .config([

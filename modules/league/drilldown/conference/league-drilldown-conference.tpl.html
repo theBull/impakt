@@ -1,0 +1,26 @@
+<div class='col pad'>
+
+	<!-- Conferences -->
+	<div class='marginBottom1'>
+		<conference-item conference='conference' class='fontSize15'></conference-item>
+	</div>
+
+	<div class='marginBottom1'>
+		<h5><strong>{{conference.name}}</strong> Divisions ({{divisions.size()}})</h5>
+	</div>
+	
+	<div class='marginBottom1'>
+		<button class='green-bg-hover pointer pad'
+			ng-click='createDivision(conference)'
+			title='Create a new division for {{conference.name}}'>
+			<span class='glyphicon glyphicon-plus'></span>
+			division
+		</button>
+	</div>	
+		
+	<division-item 
+		division='division'
+		ng-repeat='division in divisions.toArray()'>
+	</division-item>
+
+</div>

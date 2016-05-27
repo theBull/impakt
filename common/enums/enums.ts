@@ -26,6 +26,7 @@ module Common.Enums {
 		TeamMember = 1016,
 		UnitType = 1017,
 		Conference = 1018,
+		Division = 1019,
 		Scenario = 1020,
 		MatchupPlaybook = 1021,
 		Situation = 1022,
@@ -48,6 +49,7 @@ module Common.Enums {
 	}
 
 	export enum AssociationTypes {
+		Any = -1,
 		Unknown = 0,
 		Peer = 1,
 		Dependency = 2

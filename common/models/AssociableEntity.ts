@@ -10,6 +10,7 @@ module Common.Models {
 		public impaktDataType: Common.Enums.ImpaktDataTypes;
 		public associationKey: string;
 		public associable: string[];
+		public name: string;
 
 		constructor(
 			impaktDataType: Common.Enums.ImpaktDataTypes
@@ -52,7 +53,8 @@ module Common.Models {
 				'personnel',
 				'assignmentGroups',
 				'leagues',
-				'conferences'
+				'conferences',
+				'divisions'
 			];
 		}
 

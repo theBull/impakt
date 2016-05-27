@@ -12,7 +12,7 @@ module Common.Models {
 		public assignmentGroups: Common.Models.AssignmentGroupCollection;
 		public leagues: League.Models.LeagueModelCollection;
 		public conferences: League.Models.ConferenceCollection;
-		public divisions: any; // TODO @theBull
+		public divisions: League.Models.DivisionCollection;
 		public teams: Team.Models.TeamModelCollection;
 
 		constructor() {
@@ -24,7 +24,7 @@ module Common.Models {
 			this.assignmentGroups = new Common.Models.AssignmentGroupCollection(Team.Enums.UnitTypes.Mixed);
 			this.leagues = new League.Models.LeagueModelCollection();
 			this.conferences = new League.Models.ConferenceCollection();
-			this.divisions = null;
+			this.divisions = new League.Models.DivisionCollection();
 			this.teams = new Team.Models.TeamModelCollection(Team.Enums.TeamTypes.Primary);
 		}
 
@@ -38,10 +38,7 @@ module Common.Models {
 			count += this.assignmentGroups.size();
 			count += this.leagues.size();
 			count += this.conferences.size();
-			
-			// TODO @theBull implement
-			//count += this.divisions.size();
-			
+			count += this.divisions.size();
 			count += this.teams.size();
 
 			return count;
@@ -82,9 +79,8 @@ module Common.Models {
 			if (this.conferences.hasElements())
 				populated.push('conferences');
 			
-			// TODO @theBull implement
-			// if (this.divisions.hasElements())
-			// 	populated.push('divisions');
+			if (this.divisions.hasElements())
+				populated.push('divisions');
 			
 			if (this.teams.hasElements())
 				populated.push('teams');

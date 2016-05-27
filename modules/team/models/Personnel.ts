@@ -7,7 +7,6 @@ module Team.Models {
         public unitType: Team.Enums.UnitTypes;
         public parentRK: number; // TODO @theBull - deprecate
         public editorType: Playbook.Enums.EditorTypes;
-        public name: string;
         public positions: Team.Models.PositionCollection;
         public setType: Common.Enums.SetTypes; // TODO @theBull - deprecate
 

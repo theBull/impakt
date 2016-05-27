@@ -23,8 +23,8 @@ function(
 	 * 
 	 */
 	$scope.toggleSelection = function(league: League.Models.LeagueModel) {
-
 		if(!$state.is('league.drilldown.league')) {
+			_details.selectedElements.deselectAll();
 			_league.toLeagueDrilldown(league);	
 		} else {
 			_details.toggleSelection(league);

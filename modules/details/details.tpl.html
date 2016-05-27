@@ -25,7 +25,7 @@
 
 			<details open>
 
-				<summary>{{associations.count()}} associations</summary>
+				<summary><strong>{{associations.count()}}</strong> Associations</summary>
 
 				<div class='marginTop1 padLeft1 light-border-left'>
 					<div class='light-border-bottom marginBottom1'
@@ -46,17 +46,17 @@
 				</div>
 			</details>
 
+			<div class='pad'>
+				<!-- delete entity -->
+				<div class='height3 pad red-bg-hover pointer width7' 
+					ng-click='delete(element)'>
+					<span class='glyphicon glyphicon-remove'></span>
+					<span>delete</span>
+				</div>
+			</div>
+
 		</div>
 
-	</div>
-
-	<div class='pad'>
-		<!-- delete entity -->
-		<div class='height3 pad red-bg-hover pointer width7' 
-			ng-click='delete(element)'>
-			<span class='glyphicon glyphicon-remove'></span>
-			<span>delete</span>
-		</div>
 	</div>
 	
 </div>

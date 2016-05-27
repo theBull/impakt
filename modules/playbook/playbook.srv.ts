@@ -151,6 +151,8 @@ function(
             notification.success(
                 'Successfully created playbook "', playbookModel.name, '"'
             );
+
+            $rootScope.$broadcast('create-entity', playbookModel);
             
             d.resolve(playbookModel);
         }, function(error: any) {
@@ -240,7 +242,7 @@ function(
                     'Successfully created formation "', formationModel.name, '"'
                 );
 
-                //self.editFormation(formationModel);
+                $rootScope.$broadcast('create-entity', formationModel);
 
                 d.resolve(formationModel);
             }, function(error: any) {
@@ -650,6 +652,9 @@ function(
                     notification.success(
                         'Successfully created assignment group "', assignmentGroup.name, '"'
                     );
+
+                    $rootScope.$broadcast('create-entity', assignmentGroup);
+
                     d.resolve(assignmentGroup);
                 } else {
                     notification.warning(
@@ -769,6 +774,8 @@ function(
             notification.success(
                 'Successfully created play "', play.name, '"'
             );
+
+            $rootScope.$broadcast('create-entity', playModel);
 
             d.resolve(playModel);
             
@@ -1127,6 +1134,8 @@ function(
             notification.success(
                 'Successfully created scenario "', scenario.name, '"'
             );
+
+            $rootScope.$broadcast('create-entity',scenarioModel);
 
             d.resolve(scenarioModel);
             
