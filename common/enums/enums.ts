@@ -41,6 +41,8 @@ module Common.Enums {
 		GameAnalysis = 1050,
 		PlayByPlayAnalysis = 1051,
 
+		Location = 1101,
+
 		GenericSetting = 2000,
 		User = 2010,
 		SecureUser = 2011,

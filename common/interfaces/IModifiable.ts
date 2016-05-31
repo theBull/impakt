@@ -21,6 +21,7 @@ module Common.Interfaces {
 		isModified(): void;
 		setModified(isModified?: boolean): boolean;
 		listen(startListening: boolean): any;
+		hasListeners(): boolean;
 		clearListeners(): void;
 		generateChecksum(): string;
 	}

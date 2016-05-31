@@ -8,6 +8,7 @@ impakt.common.context.factory('__context',
 '_associations',
 '_playbook',
 '_league',
+'_season',
 '_team',
 function(
 	$q: any, 
@@ -17,6 +18,7 @@ function(
 	_associations: any,
 	_playbook: any,
 	_league: any,
+	_season: any,
 	_team: any
 ) {
 
@@ -69,6 +71,9 @@ function(
 
 	if (!impakt.context.League)
 		impakt.context.League = {};
+
+	if (!impakt.context.Season)
+		impakt.context.Season = {};
 
 	function initialize(context) {
 		// notify listeners that context initialization
@@ -149,13 +154,13 @@ function(
 		 * 
 		 * 
 		 */
-		impakt.context.Team.teams = new Team.Models.TeamModelCollection(Team.Enums.TeamTypes.Mixed);
+		impakt.context.Team.teams = new Team.Models.TeamModelCollection();
 		impakt.context.Team.personnel = new Team.Models.PersonnelCollection(Team.Enums.UnitTypes.Mixed);
 		impakt.context.Team.positionDefaults = new Team.Models.PositionDefault();
 		impakt.context.Team.unitTypes = _playbook.getUnitTypes();
 		impakt.context.Team.unitTypesEnum = _playbook.getUnitTypesEnum();
 		impakt.context.Team.creation = {
-			teams: new Team.Models.TeamModelCollection(Team.Enums.TeamTypes.Mixed)
+			teams: new Team.Models.TeamModelCollection()
 		}
 
 		/**
@@ -168,16 +173,35 @@ function(
 		impakt.context.League.leagues = new League.Models.LeagueModelCollection();
 		impakt.context.League.conferences = new League.Models.ConferenceCollection();
 		impakt.context.League.divisions = new League.Models.DivisionCollection();
+		impakt.context.League.locations = new League.Models.LocationCollection();
 		/**
 		 * A creation context for new leagues, conferences, divisions, and teams
 		 */
 		impakt.context.League.creation = {
 			leagues: new League.Models.LeagueModelCollection(),
 			conferences: new League.Models.ConferenceCollection(),
-			teams: new Team.Models.TeamModel(Team.Enums.TeamTypes.Other),
-			divisions: new League.Models.DivisionCollection()
+			team: new Team.Models.TeamModel(),
+			divisions: new League.Models.DivisionCollection(),
+			locations: new League.Models.LocationCollection()
 		}
 
+		
+		/**
+		 *
+		 * 
+		 * Season context
+		 *
+		 * 
+		 */
+		impakt.context.Season.seasons = new Season.Models.SeasonModelCollection();
+		impakt.context.Season.games = new Season.Models.GameCollection();
+		/**
+		 * A creation context for new seasons, games, and weeks
+		 */
+		impakt.context.Season.creation = {
+			seasons: new Season.Models.SeasonModelCollection(),
+			games: new Season.Models.GameCollection()
+		}
 
 
 		async.parallel([
@@ -233,6 +257,39 @@ function(
 					context.Team.teams = teams;
 					__notifications.success('Teams successfully loaded');
 					callback(null, teams);
+				}, function(err) {
+					callback(err);
+				});
+			},
+
+			// Retrieve locations
+			function(callback) {
+				_league.getLocations().then(function(locations) {
+					context.League.locations = locations;
+					__notifications.success('Locations successfully loaded');
+					callback(null, locations);
+				}, function(err) {
+					callback(err);
+				});
+			},
+
+			// Retrieve seasons
+			function(callback) {
+				_season.getSeasons().then(function(seasons) {
+					context.Season.seasons = seasons;
+					__notifications.success('Seasons successfully loaded');
+					callback(null, seasons);
+				}, function(err) {
+					callback(err);
+				});
+			},
+
+			// Retrieve games
+			function(callback) {
+				_season.getGames().then(function(games) {
+					context.Season.games = games;
+					__notifications.success('Games successfully loaded');
+					callback(null, games);
 				}, function(err) {
 					callback(err);
 				});

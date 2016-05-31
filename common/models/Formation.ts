@@ -26,6 +26,16 @@ module Common.Models {
             this.placements.onModified(function() {
                 self.setModified(true);
             });
+
+            this.associable = [
+                'playbooks',
+                'scenarios',
+                'plays',
+                'formations',
+                'personnel',
+                'assignmentGroups',
+                'teams'
+            ];
         }
         public copy(newFormation?: Common.Models.Formation): Common.Models.Formation {
             var copyFormation = newFormation || new Common.Models.Formation(this.unitType);

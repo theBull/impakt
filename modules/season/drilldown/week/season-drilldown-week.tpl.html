@@ -1,0 +1,23 @@
+<div class='col pad'>
+	<!-- Weeks -->
+	<div class='marginBottom1'>
+		<week-item week='week' class='fontSize15'></week-item>
+	</div>
+
+	<div class='marginBottom1'>
+		<h5>Games ({{games.size()}})</h5>
+	</div>
+
+	<div class='marginBottom1'>
+		<button class='green-bg-hover pointer pad'
+			ng-click='createGame()'
+			title='Create a new game for {{week.name}}'>
+			<span class='glyphicon glyphicon-plus'></span>
+			game
+		</button>
+	</div>
+		
+	<!-- Games -->
+	<game-item game='game' ng-repeat='game in games.toArray()'></game-item>
+	
+</div>

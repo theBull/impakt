@@ -8,6 +8,7 @@ declare var async: any;
 declare var objectHash: any;
 declare var LZString: any;
 declare var canvg: any;
+declare var moment: any;
 
 // global impakt namespace
 var impakt: any = {};
@@ -55,10 +56,6 @@ impakt.app = angular.module('impakt.app', [
 			.state('home', {
 				url: '/home',
 				templateUrl: 'modules/home/home.tpl.html'
-			})
-			.state('season', {
-				url: '/season',
-				templateUrl: 'modules/season/season.tpl.html'
 			})
 			.state('team', {
 				url: '/team',

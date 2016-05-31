@@ -5,11 +5,13 @@ impakt.details.service('_details', [
 '_league',
 '_playbook',
 '_team',
+'_season',
 function(
 	$q: any,
 	_league: any,
 	_playbook: any,
-	_team
+	_team: any,
+	_season: any
 ) {
 	
 	this.selectedElements = impakt.context.Actionable.selected;
@@ -59,11 +61,16 @@ function(
 			case Common.Enums.ImpaktDataTypes.Conference:
 			case Common.Enums.ImpaktDataTypes.League:
 			case Common.Enums.ImpaktDataTypes.Division:
+			case Common.Enums.ImpaktDataTypes.Location:
 				return _league.deleteEntityByType(entity);
 
 			case Common.Enums.ImpaktDataTypes.Team:
 			case Common.Enums.ImpaktDataTypes.PersonnelGroup:
 				return _team.deleteEntityByType(entity);
+
+			case Common.Enums.ImpaktDataTypes.Season:
+			case Common.Enums.ImpaktDataTypes.Game:
+				return _season.deleteEntityByType(entity);
 
 			default:
 				throw new Error('_details delete(): entity ImpaktDataType not supported ' + entity.impaktDataType);
@@ -91,11 +98,16 @@ function(
 			case Common.Enums.ImpaktDataTypes.Conference:
 			case Common.Enums.ImpaktDataTypes.League:
 			case Common.Enums.ImpaktDataTypes.Division:
+			case Common.Enums.ImpaktDataTypes.Location:
 				return _league.updateEntityByType(entity);
 
 			case Common.Enums.ImpaktDataTypes.Team:
 			case Common.Enums.ImpaktDataTypes.PersonnelGroup:
 				return _team.updateEntityByType(entity);
+
+			case Common.Enums.ImpaktDataTypes.Season:
+			case Common.Enums.ImpaktDataTypes.Game:
+				return _season.updateEntityByType(entity);
 
 			default:
 				throw new Error('_details update(): entity ImpaktDataType not supported ' + entity.impaktDataType);

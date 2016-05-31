@@ -7,6 +7,7 @@
 /// <reference path='./Collection.ts' />
 /// <reference path='./LinkedList.ts' />
 /// <reference path='./ModifiableCollection.ts' />
+/// <reference path='./Datetime.ts' />
 
 /// <reference path='./Expandable.ts' />
 /// <reference path='./ContextmenuData.ts' />

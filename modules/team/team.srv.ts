@@ -40,7 +40,7 @@ function(
         __api.get(__api.path(LEAGUE.ENDPOINT, LEAGUE.GET_TEAMS))
             .then(function(response: any) {
 
-                let collection = new Team.Models.TeamModelCollection(Team.Enums.TeamTypes.Mixed);
+                let collection = new Team.Models.TeamModelCollection();
 
                 if (response && response.data && response.data.results) {
 
@@ -51,7 +51,7 @@ function(
                         let teamResult = teamResults[i];
 
                         if (teamResult && teamResult.data && teamResult.data.model) {
-                            let teamModel = new Team.Models.TeamModel(teamResult.data.model.teamType);
+                            let teamModel = new Team.Models.TeamModel();
                             teamResult.data.model.key = teamResult.key;
                             teamModel.fromJson(teamResult.data.model);
 
@@ -129,7 +129,7 @@ function(
         )
             .then(function(response: any) {
                 let results = Common.Utilities.parseData(response.data.results);
-                let teamModel = new Team.Models.TeamModel(Team.Enums.TeamTypes.Other);
+                let teamModel = new Team.Models.TeamModel();
 
                 if (results && results.data && results.data.model) {
                     results.data.model.key = results.key;
@@ -214,7 +214,7 @@ function(
         )
             .then(function(response: any) {
                 let results = Common.Utilities.parseData(response.data.results);
-                let teamModel = new Team.Models.TeamModel(Team.Enums.TeamTypes.Other);
+                let teamModel = new Team.Models.TeamModel();
                 if (results && results.data && results.data.model) {
                     teamModel.fromJson(results.data.model);
 

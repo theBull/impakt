@@ -5,6 +5,7 @@
 
 impakt.league.constant('LEAGUE', {
     ENDPOINT: '/teamInfo',
+    GENERAL_ENDPOINT: '/general',
     
     // League
     CREATE_LEAGUE: '/createLeague',
@@ -30,6 +31,13 @@ impakt.league.constant('LEAGUE', {
     GET_DIVISIONS: '/getDivisions',
     GET_DIVISION: '/getDivision',
     DELETE_DIVISION: '/deleteDivision',
-    UPDATE_DIVISION: '/updateDivision'
+    UPDATE_DIVISION: '/updateDivision',
+
+    // League Locations
+    CREATE_LOCATION: '/createLocation',
+    GET_LOCATIONS: '/getLocations',
+    GET_LOCATION: '/getLocation',
+    DELETE_LOCATION: '/deleteLocation',
+    UPDATE_LOCATION: '/updateLocation',
 
 });

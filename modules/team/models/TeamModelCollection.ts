@@ -6,9 +6,9 @@ module Team.Models {
         
         public teamType: Team.Enums.TeamTypes;
 
-        constructor(teamType: Team.Enums.TeamTypes) {
+        constructor() {
             super();
-            this.teamType = teamType;
+            this.teamType = Team.Enums.TeamTypes.Mixed;
         }
         public toJson() {
             return {
@@ -33,7 +33,7 @@ module Team.Models {
                 rawTeamModel.teamType = Common.Utilities.isNullOrUndefined(rawTeamModel.teamType) &&
                     rawTeamModel.teamType >= 0 ? rawTeamModel.teamType : Team.Enums.TeamTypes.Other;
                     
-                var teamModel = new Team.Models.TeamModel(rawTeamModel.teamType);
+                var teamModel = new Team.Models.TeamModel();
                 teamModel.fromJson(rawTeamModel);
                 this.add(teamModel);
             }

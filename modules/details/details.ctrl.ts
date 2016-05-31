@@ -36,6 +36,7 @@ function(
 	});
 
 	let createEntityListener = $rootScope.$on('create-entity', function(e: any, entity: Common.Interfaces.IActionable) {
+		modifiedListenerSet = false;
 		init();
 	});
 
@@ -50,9 +51,7 @@ function(
     });
 
 	function init() {
-		$scope.selectedElements.clearListeners();
-
-		if(!modifiedListenerSet) {
+		if(!$scope.selectedElements.hasListeners()) {
 			$scope.selectedElements.onModified(
 				function(selectedElements: Common.Interfaces.IActionableCollection) {
 
@@ -63,7 +62,6 @@ function(
 					}
 					_initAssociated();
 				});
-			modifiedListenerSet = true;
 		}
 
 		// Load initial associations, don't wait for the modification handler
@@ -80,8 +78,9 @@ function(
 		if (Common.Utilities.isNotNullOrUndefined($scope.selectedElement)) {
 			
 			$scope.associations = _associations.getAssociated($scope.selectedElement);
-			$scope.populatedAssociationKeys = $scope.associations.getPopulatedAssociationKeys();
-			
+			if(Common.Utilities.isNotNullOrUndefined($scope.associations)) {
+				$scope.populatedAssociationKeys = $scope.associations.getPopulatedAssociationKeys();
+			}			
 		}
 	}
 

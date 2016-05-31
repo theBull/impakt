@@ -1,0 +1,37 @@
+<div class="modal-header">
+    <h3 class="modal-title">Create Location</h3>
+</div>
+<div class="modal-body">
+	
+	<div class='marginBottom2'>
+	    <input 
+	    	type='text' 
+	    	ng-model='newLocation.name' 
+	        ng-placeholder='Location name' />
+
+	    <input 
+	    	type='text' 
+	    	ng-model='newLocation.street' 
+	        ng-placeholder='Street address' />
+
+	    <input
+	    	type='text'
+	    	ng-model='newLocation.city'
+	    	ng-placeholder='City' />
+
+	    <select ng-model='newLocation.state'>
+	    	<option value=''>State...</option>
+	    </select> <!-- TODO @theBull -->
+
+	    <input
+	    	type='text'
+	    	ng-model='newLocation.zip'
+	    	ng-placeholder='Zip' />
+
+    </div>
+
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary" type="button" ng-click="ok()">OK</button>
+    <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+</div>

@@ -298,4 +298,101 @@ function($q: any, __modals: any) {
 		return d.promise;
 	}
 
+	/**
+	 * 
+	 * LOCATION
+	 * 
+	 */
+	this.createLocation = function(associatedEntity?: Common.Interfaces.IAssociable) {
+		let d = $q.defer();
+
+		let modalInstance = __modals.open(
+			'',
+			'modules/league/modals/create-location/create-location.tpl.html',
+			'league.modals.createLocation.ctrl',
+			{
+				associatedEntity: function() {
+					return associatedEntity;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(createdLocation: League.Models.Location) {
+			console.log(createdLocation);
+			d.resolve(createdLocation);
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+		return d.promise;
+	}
+	this.createLocationDuplicate = function(locationModel: League.Models.Location) {
+		let d = $q.defer();
+		let modalInstance = __modals.open(
+			'',
+			'modules/league/modals/create-location-duplicate-error/create-location-duplicate-error.tpl.html',
+			'league.modals.createLocationDuplicateError.ctrl',
+			{
+				location: function() {
+					return locationModel;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(createdLocation) {
+			console.log(createdLocation);
+			d.resolve();
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+		return d.promise;
+	}
+
+	this.deleteLocation = function(location: League.Models.Location) {
+		let d = $q.defer();
+		let modalInstance = __modals.open(
+			'',
+			'modules/league/modals/delete-location/delete-location.tpl.html',
+			'league.modals.deleteLocation.ctrl',
+			{
+				location: function() {
+					return location;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(results) {
+			console.log(results);
+			d.resolve();
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+		return d.promise;
+	}
+
+	this.saveLocation = function(location: League.Models.Location) {
+		let d = $q.defer();
+		let modalInstance = __modals.open(
+			'',
+			'modules/league/modals/save-location/save-location.tpl.html',
+			'league.modals.saveLocation.ctrl',
+			{
+				location: function() {
+					return location;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(results) {
+			console.log(results);
+			d.resolve();
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+		return d.promise;
+	}
+
 }]);

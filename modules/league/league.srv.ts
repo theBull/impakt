@@ -660,6 +660,218 @@ function(
         return d.promise;
     }
 
+
+    /**
+     * Retrieves all locations
+     */
+    this.getLocations = function() {
+        var d = $q.defer();
+
+        let notification = __notifications.pending(
+            'Getting locations...'
+        );
+
+        __api.get(__api.path(LEAGUE.GENERAL_ENDPOINT, LEAGUE.GET_LOCATIONS))
+            .then(function(response: any) {
+
+                let collection = new League.Models.LocationCollection();
+
+                if (response && response.data && response.data.results) {
+
+                    let locationResults = Common.Utilities.parseData(response.data.results);
+
+
+                    for (let i = 0; i < locationResults.length; i++) {
+                        let locationResult = locationResults[i];
+
+                        if (locationResult && locationResult.data && locationResult.data.location) {
+                            let locationModel = new League.Models.Location();
+                            locationResult.data.location.key = locationResult.key;
+                            locationModel.fromJson(locationResult.data.location);
+
+                            collection.add(locationModel);
+                        }
+                    }
+                }
+
+                notification.success([collection.size(), ' Locations successfully retreived'].join(''));
+
+                d.resolve(collection);
+
+            }, function(error: any) {
+                notification.error('Failed to retieve Locations');
+                console.error(error);
+                d.reject(error);
+            });
+
+        return d.promise;
+    }
+
+    /**
+     * Gets a single location with the given key
+     * @param {number} key The key of the location to retrieve
+     */
+    this.getLocation = function(key: number) {
+        var d = $q.defer();
+        __api.get(__api.path(LEAGUE.GENERAL_ENDPOINT, LEAGUE.GET_LOCATION, '/' + key))
+            .then(function(response: any) {
+                let location = Common.Utilities.parseData(response.data.results);
+
+                d.resolve(location);
+            }, function(error: any) {
+                d.reject(error);
+            });
+
+        return d.promise;
+    }
+
+    /**
+     * Sends a location model to the server for storage
+     * @param {Common.Models.Location} newLocation The location to be created/saved
+     */
+    this.createLocation = function(newLocation: League.Models.Location) {
+        var d = $q.defer();
+
+        if (Common.Utilities.isNotNullOrUndefined(newLocation)) {
+            let nameExists = impakt.context.League.locations.hasElementWhich(
+                function(locationModel: League.Models.Location, index: number) {
+                    return locationModel.name == newLocation.name;
+                });
+            if (nameExists) {
+                let notification = __notifications.warning(
+                    'Failed to create location. Location "', newLocation.name, '" already exists.');
+                _leagueModals.createLocationDuplicate(newLocation);
+                return;
+            }
+        }
+        // set key to -1 to ensure a new object is created server-side
+        newLocation.key = -1;
+        let locationModelJson = newLocation.toJson();
+        let notification = __notifications.pending(
+            'Creating location "', newLocation.name, '"...'
+        );
+        __api.post(
+            __api.path(LEAGUE.GENERAL_ENDPOINT, LEAGUE.CREATE_LOCATION),
+            {
+                version: 1,
+                name: newLocation.name,
+                data: {
+                    version: 1,
+                    location: locationModelJson
+                }
+            }
+        )
+            .then(function(response: any) {
+                let results = Common.Utilities.parseData(response.data.results);
+                let locationModel = new League.Models.Location();
+
+                if (results && results.data && results.data.location) {
+                    results.data.location.key = results.key;
+                    locationModel.fromJson(results.data.location);
+
+                    // update the context
+                    impakt.context.League.locations.add(locationModel);
+
+                } else {
+                    throw new Error('CreateLocation did not return a valid location');
+                }
+
+                notification.success(
+                    'Successfully created location "', locationModel.name, '"'
+                );
+
+                $rootScope.$broadcast('create-entity', locationModel);
+
+                d.resolve(locationModel);
+            }, function(error: any) {
+                notification.error('Failed to create location "', newLocation.name, '"');
+                d.reject(error);
+            });
+
+        return d.promise;
+    }
+
+    /**
+     * Deletes the given location for the current user
+     * @param {League.Models.Location} location The location to be deleted
+     */
+    this.deleteLocation = function(location: League.Models.Location) {
+        var d = $q.defer();
+
+        let notification = __notifications.pending(
+            'Deleting location "', location.name, '"...'
+        );
+
+        __api.post(
+            __api.path(LEAGUE.GENERAL_ENDPOINT, LEAGUE.DELETE_LOCATION),
+            { key: location.key }
+        ).then(function(response: any) {
+            // update the context
+            impakt.context.League.locations.remove(location.guid);
+
+            notification.success('Deleted location "', location.name, '"');
+
+            d.resolve(location);
+        }, function(error: any) {
+            notification.error('Failed to delete location "', location.name, '"');
+            d.reject(error);
+        });
+
+        return d.promise;
+    }
+
+    /**
+     * Updates the given location for the current user
+     * @param {League.Models.Location} location The location to update
+     */
+    this.updateLocation = function(location: League.Models.Location) {
+        var d = $q.defer();
+
+        // update assignment collection to json object
+        let locationJson = location.toJson();
+
+        let notification = __notifications.pending('Updating location "', location.name, '"...');
+
+        __api.post(__api.path(
+            LEAGUE.GENERAL_ENDPOINT,
+            LEAGUE.UPDATE_LOCATION),
+            {
+                version: 1,
+                name: locationJson.name,
+                key: locationJson.key,
+                data: {
+                    version: 1,
+                    key: locationJson.key,
+                    location: locationJson
+                }
+            }
+        )
+            .then(function(response: any) {
+                let results = Common.Utilities.parseData(response.data.results);
+                let locationModel = new League.Models.Location();
+                if (results && results.data && results.data.location) {
+                    locationModel.fromJson(results.data.location);
+
+                    // update the context
+                    impakt.context.League.locations.set(locationModel.guid, locationModel);
+                }
+
+                notification.success('Successfully updated location "', location.name, '"');
+
+                d.resolve(locationModel);
+            }, function(error: any) {
+                notification.error(
+                    'Failed to update location "', location.name, '"'
+                );
+
+                d.reject(error);
+            });
+
+        return d.promise;
+    }
+
+
+
     this.deleteEntityByType = function(entity: Common.Interfaces.IActionable): void {
         if (Common.Utilities.isNullOrUndefined(entity))
             return;

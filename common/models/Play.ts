@@ -26,6 +26,15 @@ module Common.Models {
             this.contextmenuTemplateUrl = Common.Constants.PLAY_CONTEXTMENU_TEMPLATE_URL;
             this.playType = Playbook.Enums.PlayTypes.Unknown;
             this.flipped = false;
+            this.associable = [
+                'playbooks',
+                'scenarios',
+                'plays',
+                'formations',
+                'personnel',
+                'assignmentGroups',
+                'teams'
+            ];
         }
         
         public copy(newPlay: Common.Interfaces.IPlay): Common.Interfaces.IPlay {

@@ -1,0 +1,19 @@
+<div 
+	class='gray-bg-3-hover marginBottom1 height6 pointer marginRight1 overflowVisible'
+	ng-click='toggleSelection(game);' 
+	ng-class='{"selected-border": game.selected}'>
+	
+	<div class='marginBottom1 row overflowVisible'>
+		<div class='col width6 height6 marginRight1 light-border gray-bg-1'>
+			<img class='width6 height6' src='images/placeholder50x50.png' />
+		</div>
+		<div class='col pad'>
+			<h4 class='capitalize'>
+				{{game.name}}
+			</h4>
+			<p class='font-gray'>{{game.start.getFormatted()}} &mdash; {{game.location.name}}</p>
+		</div>
+		
+	</div>
+		
+</div>

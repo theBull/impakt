@@ -1,0 +1,15 @@
+<div class='row gray-bg-2-hover height6 marginBottom1 pointer' 
+	ng-click='toggleSelection(season)' 
+	ng-class='{"selected-border": season.selected}'>
+
+	<div class='pad padTop2'>
+		<div class='row'>
+			<div class='marginRight1'>
+				<h4 class='capitalize'>{{season.name}}</h4>
+			</div>
+			<div class='padTop01'>
+				<span class='font-gray'>({{season.weeks.size()}} weeks)</span>
+			</div>
+		</div>
+	</div>
+</div>

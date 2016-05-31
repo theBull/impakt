@@ -1,0 +1,46 @@
+<div class="modal-header">
+    <h3 class="modal-title">Create Season</h3>
+</div>
+<div class="modal-body">
+	<div class='marginBottom2'>
+		<p>Season name</p>
+	    <input 
+	    	type='text' 
+	    	ng-model='newSeasonModel.name' 
+	        ng-placeholder='Season name?' />
+    </div>	
+
+    <div class='col marginBottom2'>
+        <p>Start date</p>
+        
+        <impakt-datepicker 
+            datetime='newSeasonModel.start'
+            update='updateDatetime()'>
+        </impakt-datepicker>
+        
+    </div>
+
+    <div>
+    	<p># Weeks: {{numberOfWeeks}}</p>
+        <p ng-show='numberOfWeeks != null && numberOfWeeks != undefined && numberOfWeeks <= minWeeks'>1 is the minimum number of weeks.</p>
+        <p ng-show='numberOfWeeks != null && numberOfWeeks != undefined && numberOfWeeks >= maxWeeks'>32 is the maximum number of weeks.</p>
+    	<input 
+    		type="number" 
+    		min="1" 
+    		max="100" 
+    		step="1"
+    		ng-value='numberOfWeeks'
+    		ng-model='numberOfWeeks'
+    		ng-change='setWeeks()'
+            ng-blur='weekBlur()' />
+    </div> 	
+
+    <div ng-repeat='week in newSeasonModel.weeks.toArray()'>
+        {{week.getFormattedName()}} <span class='font-gray'>&mdash; {{week.getFormattedDate()}}</span>
+    </div>
+
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary" type="button" ng-click="ok()">OK</button>
+    <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+</div>

@@ -1,0 +1,24 @@
+<div class='row shrinkY'>
+    <div>
+        <input 
+            type='text'
+            uib-datepicker-popup='MM/dd/yyyy' 
+            ng-model='datetime.date'
+            is-open='popup.opened'
+            datepicker-options='datetime.options'
+            ng-required='true'
+            close-text='done'
+            clear-text='clear'
+            current-text='today'
+            close-on-date-selection='true'
+            ng-change='updateMethod()' />
+    </div>
+    <div>
+        <button 
+            type='button' 
+            class='gray-bg-5-hover font-white pad06 light-border' 
+            ng-click='togglePopup()'>
+                <span class='glyphicon glyphicon-calendar'></span>
+        </button>
+    </div>
+</div>

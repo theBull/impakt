@@ -66,6 +66,9 @@ module Common.Models {
 			this.listening = startListening;
 			return this;
 		}
+		public hasListeners(): boolean {
+			return Common.Utilities.isNotNullOrUndefined(this.callbacks) && this.callbacks.length > 0
+		}
 		public clearListeners(): void {
 			// empty all callbacks
 			this.callbacks = [];

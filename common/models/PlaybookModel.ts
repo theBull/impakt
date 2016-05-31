@@ -8,10 +8,18 @@ module Common.Models {
         
         constructor(unitType: Team.Enums.UnitTypes) {
             super(Common.Enums.ImpaktDataTypes.Playbook);
-            super.setContext(this);
 
             this.name = 'Untitled';
             this.unitType = unitType;
+
+            this.associable = [
+                'scenarios',
+                'plays',
+                'formations',
+                'assignmentGroups',
+                'teams',
+                'games'
+            ];
         }
         public toJson(): any {
             return $.extend({

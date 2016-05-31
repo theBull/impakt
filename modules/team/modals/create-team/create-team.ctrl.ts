@@ -5,32 +5,47 @@ impakt.team.modals.controller('team.modals.createTeam.ctrl', [
 '$uibModalInstance', 
 '_associations',
 '_team',
+'_leagueModals',
 'division',
 function(
 	$scope: any, 
 	$uibModalInstance: any, 
 	_associations: any,
 	_team: any,
+	_leagueModals: any,
 	division: any
 ) {
 
-	$scope.newTeamModel = new Team.Models.TeamModel(Team.Enums.TeamTypes.Primary);
+	$scope.newTeamModel = new Team.Models.TeamModel();
 	$scope.teamTypes = Common.Utilities.convertEnumToList(Team.Enums.TeamTypes);
 	$scope.divisions = impakt.context.League.divisions;
+	$scope.locations = impakt.context.League.locations;
 	$scope.selectedDivision = division ? division : $scope.divisions.first();
-
-	// TODO @theBull - implement locations
-	$scope.locations = new Common.Models.Collection<Common.Interfaces.IActionable>();
-	$scope.selectedLocation = null;
+	$scope.selectedLocation = $scope.locations.first();
 
 	function init(): void {
-		if(Common.Utilities.isNotNullOrUndefined($scope.selectedDivision)) {
+		$scope.selectDivision();
+		$scope.selectLocation();
+	}
+
+	$scope.selectDivision = function() {
+		if (Common.Utilities.isNotNullOrUndefined($scope.selectedDivision)) {
 			$scope.newTeamModel.setDivision($scope.selectedDivision);
 		}
 	}
 
-	$scope.selectDivision = function() {
-		init();
+	$scope.selectLocation = function() {
+		if (Common.Utilities.isNotNullOrUndefined($scope.selectedLocation)) {
+			$scope.newTeamModel.setLocation($scope.selectedLocation);
+		}
+	}
+
+	$scope.createLocation = function() {
+		_leagueModals.createLocation().then(function(createdLocation: League.Models.Location) {
+			$scope.locations = impakt.context.League.locations;
+			$scope.selectedLocation = createdLocation;
+			$scope.setLocation();
+		})
 	}
 
 	$scope.ok = function () {
@@ -39,7 +54,8 @@ function(
 		.then(function(createdTeam: Team.Models.TeamModel) {
 
 			let associationsToAdd = [
-				$scope.selectedDivision
+				$scope.selectedDivision,
+				$scope.selectedLocation
 			];
 
 			if (Common.Utilities.isNotNullOrUndefined($scope.selectedDivision.conference)) {

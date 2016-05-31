@@ -7,7 +7,6 @@ module League.Models {
 
 		constructor() {
 			super(Common.Enums.ImpaktDataTypes.League);
-			super.setContext(this);
 
 			this.associable = [
 				'conferences',

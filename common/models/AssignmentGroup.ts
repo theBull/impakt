@@ -29,6 +29,16 @@ module Common.Models {
             this.onModified(function() {
                 // TODO
             });
+
+            this.associable = [
+                'playbooks',
+                'scenarios',
+                'plays',
+                'formations',
+                'personnel',
+                'assignmentGroups',
+                'teams'
+            ];
         }
 
         public copy(newAssignmentGroup?: Common.Models.AssignmentGroup): Common.Models.AssignmentGroup {

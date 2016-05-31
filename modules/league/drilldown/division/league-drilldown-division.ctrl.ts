@@ -19,7 +19,7 @@ function(
 	$scope.league = _league.drilldown.league;
 	$scope.conference = _league.drilldown.conference;
 	$scope.division = _league.drilldown.division;
-	$scope.teams = new Team.Models.TeamModelCollection(Team.Enums.TeamTypes.Mixed);
+	$scope.teams = new Team.Models.TeamModelCollection();
 
 	let deleteTeamListener = $rootScope.$on('delete-team', function(e: any, team: Team.Models.TeamModel) {
 		$scope.teams.remove(team.guid);

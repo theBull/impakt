@@ -1,0 +1,103 @@
+<div class="modal-header">
+	<h3 class="modal-title">Create Game</h3>
+</div>
+<div class="modal-body">
+
+	<div class='marginBottom2'>
+	
+	<p>Game name</p>
+
+	<input 
+		type='text' 
+		ng-model='newGame.name' 
+		ng-placeholder='Game name?' />
+	</div>
+
+	<div class='row marginBottom2'>
+		<div class='col'>
+			<p>Away</p>
+			<select 
+				ng-options='team as team.name for team in teams.toArray()'
+				ng-model='selectedAwayTeam'
+				ng-change='teamChange()'>
+			</select>
+		</div>
+		<div class='pad marginTop1'>
+			<p class='fontSize15'>@</p>
+		</div>
+		<div class='col'>
+			<p>Home</p>
+			<select 
+				ng-options='team as team.name for team in teams.toArray()'
+				ng-model='selectedHomeTeam'
+				ng-change='teamChange()'>
+			</select>
+		</div>
+	</div>
+
+	<div class='marginBottom2'>
+		<p>Location</p>
+        <div class='row shrinkY'>
+            <div class='col marginRight1'>
+                <select 
+                    ng-options='location as location.name for location in locations.toArray()'
+                    ng-model='selectedLocation'
+                    ng-change='selectLocation'>
+                </select>
+            </div>
+            <div>
+                <button class='green-bg-hover pointer pad'
+                    ng-click='createLocation()'>
+                    <span class='glyphicon glyphicon-plus'></span>
+                    location
+                </button>
+            </div>
+        </div>
+	</div>
+
+	<div class='marginBottom2 col'>
+		<p>Date/time</p>
+				
+        <impakt-datepicker 
+            datetime='newGame.start'
+            update='updateDatetime()'>
+        </impakt-datepicker>
+		
+		<!-- <div class='marginBottom1'>
+			<uib-timepicker 
+				ng-model='game.datetime.time' 
+				ng-change='changed()' 
+				hour-step='hstep' 
+				minute-step='mstep' 
+				show-meridian='ismeridian'>
+			</uib-timepicker>
+		</div>
+
+		<input
+			type='text'
+			ng-model='game.timezone'
+			ng-placeholder='Time' /> -->
+
+	</div>
+
+	<div class='marginBottom2'>
+		<p>Season</p>
+		<select 
+			ng-options='season as season.name for season in seasons.toArray()'
+			ng-model='selectedSeason'>
+		</select>
+	</div>
+
+	<div class='marginBottom2'>
+		<p>Week</p>
+		<select 
+			ng-options='week as week.getFormattedName() for week in selectedSeason.weeks.toArray()'
+			ng-model='selectedWeek'>
+		</select>
+	</div>
+
+</div>
+<div class="modal-footer">
+	<button class="btn btn-primary" type="button" ng-click="ok()">OK</button>
+	<button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+</div>

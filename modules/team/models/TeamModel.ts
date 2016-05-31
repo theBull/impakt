@@ -8,16 +8,20 @@ module Team.Models {
         public records: Team.Models.TeamRecordCollection;
         public division: League.Models.Division;
         public divisionGuid: string;
+        public location: League.Models.Location;
+        public locationGuid: string;
 
-        constructor(teamType: Team.Enums.TeamTypes) {
+        constructor() {
             super(Common.Enums.ImpaktDataTypes.Team);
             super.setContext(this);
             
             this.name = '';
-            this.teamType = teamType;
+            this.teamType = Team.Enums.TeamTypes.Mixed;
             this.records = new Team.Models.TeamRecordCollection();
-            this.division = null;
+            this.division = new League.Models.Division();
             this.divisionGuid = '';
+            this.location = new League.Models.Location();
+            this.locationGuid = '';
 
             let self = this;
             this.onModified(function(data) {});
@@ -26,7 +30,8 @@ module Team.Models {
                 'leagues',
                 'conferences',
                 'divisions',
-                'playbooks'
+                'playbooks',
+                'locations'
             ];
         }
 
@@ -35,7 +40,8 @@ module Team.Models {
                 name: this.name,
                 teamType: this.teamType,
                 records: this.records.toJson(),
-                divisionGuid: this.divisionGuid
+                divisionGuid: this.divisionGuid,
+                locationGuid: this.locationGuid 
             }, super.toJson());
         }
 
@@ -47,6 +53,7 @@ module Team.Models {
             this.name = json.name;
             this.records.fromJson(json.records);
             this.divisionGuid = json.divisionGuid;
+            this.locationGuid = json.locationGuid;
 
             super.fromJson(json);
         }
@@ -54,6 +61,11 @@ module Team.Models {
         public setDivision(division: League.Models.Division): void {
             this.division = division;
             this.divisionGuid = this.division ? this.division.guid : '';
+        }
+
+        public setLocation(location: League.Models.Location): void {
+            this.location = location;
+            this.locationGuid = this.location ? this.location.guid : '';
         }
     }
 }

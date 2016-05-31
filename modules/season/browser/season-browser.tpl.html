@@ -1,0 +1,35 @@
+<div class='col scrollY positionRelative'>
+	
+	<div class='pad'>
+
+		<div class='marginBottom1'>
+			
+			<h5>Seasons ({{seasons.size()}})</h5>
+			<button class='pad green-bg-hover pointer marginBottom1'
+				ng-click='createSeason()'>
+				<span class='glyphicon glyphicon-plus'></span>
+				season
+			</button>
+
+			<div class='grid'>
+				
+				<season-item 
+					season='season' 
+					class='width16 marginRight1'
+					ng-repeat='season in seasons.toArray()'>
+				</season-item>
+
+			</div>
+
+		</div>
+	</div>
+	
+</div>
+
+<!-- Details -->
+<expandable 	
+	direction='left'
+	collapsed='true'
+	url='modules/details/details.tpl.html'>
+	
+</expandable>

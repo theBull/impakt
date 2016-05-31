@@ -20,6 +20,7 @@ module Common.Models {
 			this.key = 0;
 			this.impaktDataType = impaktDataType;
 			this.associationKey = null;
+			this.name = null;
 
 			/**
 			 * This array maintains a list of associable data types,
@@ -54,7 +55,11 @@ module Common.Models {
 				'assignmentGroups',
 				'leagues',
 				'conferences',
-				'divisions'
+				'divisions',
+				'locations',
+				'teams',
+				'seasons',
+				'games'
 			];
 		}
 
@@ -72,7 +77,8 @@ module Common.Models {
 			return $.extend({
 				key: this.key,
 				impaktDataType: this.impaktDataType,
-				associationKey: this.associationKey
+				associationKey: this.associationKey,
+				name: this.name
 			}, super.toJson());
 		}
 
@@ -82,6 +88,7 @@ module Common.Models {
 
 			this.key = json.key;
 			this.impaktDataType = json.impaktDataType;
+			this.name = json.name;
 			
 			super.fromJson(json);
 

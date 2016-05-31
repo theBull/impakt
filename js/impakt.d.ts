@@ -61,6 +61,7 @@ declare module Common.Interfaces {
         isModified(): void;
         setModified(isModified?: boolean): boolean;
         listen(startListening: boolean): any;
+        hasListeners(): boolean;
         clearListeners(): void;
         generateChecksum(): string;
     }
@@ -520,6 +521,7 @@ declare module Common.Models {
          * @param {boolean} startListening true or false
          */
         listen(startListening: boolean): Common.Interfaces.IModifiable;
+        hasListeners(): boolean;
         clearListeners(): void;
         /**
          * Register listeners to be fired when this object is modified.
@@ -587,6 +589,7 @@ declare module Common.Models {
         filter(predicate: Function): T[];
         filterFirst(predicate: Function): T;
         remove(key: string | number): T;
+        pop(): T;
         empty(): void;
         removeAll(): void;
         /**
@@ -719,6 +722,24 @@ declare module Common.Models {
         fromJson(json: any): void;
         copy(newElement: Common.Models.ModifiableCollection<T>, context: Common.Models.ModifiableCollection<T>): Common.Models.ModifiableCollection<T>;
         getGuids(): Array<string | number>;
+    }
+}
+declare module Common.Models {
+    class Datetime {
+        date: Date;
+        time: number;
+        meridian: string;
+        timezone: string;
+        options: any;
+        popup: any;
+        format: string;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        openPopup(): void;
+        closePopup(): void;
+        togglePopup(open?: boolean): void;
+        getFormatted(): string;
     }
 }
 declare module Common.Models {
@@ -1017,7 +1038,10 @@ declare module Common.Models {
         leagues: League.Models.LeagueModelCollection;
         conferences: League.Models.ConferenceCollection;
         divisions: League.Models.DivisionCollection;
+        locations: League.Models.LocationCollection;
         teams: Team.Models.TeamModelCollection;
+        seasons: Season.Models.SeasonModelCollection;
+        games: Season.Models.GameCollection;
         constructor();
         count(): number;
         hasAssociations(): boolean;
@@ -2569,6 +2593,7 @@ declare module Common.Enums {
         QBWristband = 1035,
         GameAnalysis = 1050,
         PlayByPlayAnalysis = 1051,
+        Location = 1101,
         GenericSetting = 2000,
         User = 2010,
         SecureUser = 2011,
@@ -3301,16 +3326,19 @@ declare module Team.Models {
         records: Team.Models.TeamRecordCollection;
         division: League.Models.Division;
         divisionGuid: string;
-        constructor(teamType: Team.Enums.TeamTypes);
+        location: League.Models.Location;
+        locationGuid: string;
+        constructor();
         toJson(): any;
         fromJson(json: any): any;
         setDivision(division: League.Models.Division): void;
+        setLocation(location: League.Models.Location): void;
     }
 }
 declare module Team.Models {
     class TeamModelCollection extends Common.Models.ActionableCollection<Team.Models.TeamModel> {
         teamType: Team.Enums.TeamTypes;
-        constructor(teamType: Team.Enums.TeamTypes);
+        constructor();
         toJson(): {
             teamType: Enums.TeamTypes;
             guid: string;
@@ -3518,6 +3546,97 @@ declare module Nav {
 }
 declare module Search {
 }
+declare module Season.Models {
+    class SeasonModel extends Common.Models.AssociableEntity {
+        year: number;
+        start: Common.Models.Datetime;
+        weeks: Season.Models.WeekCollection;
+        constructor();
+        copy(newSeason?: Season.Models.SeasonModel): Season.Models.SeasonModel;
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Season.Models {
+    class SeasonModelCollection extends Common.Models.ActionableCollection<Season.Models.SeasonModel> {
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Season.Models {
+    class Week extends Common.Models.Actionable {
+        name: string;
+        number: number;
+        season: Season.Models.SeasonModel;
+        seasonGuid: string;
+        start: Common.Models.Datetime;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        getFormattedName(): string;
+        setSeason(season: Season.Models.SeasonModel): void;
+        /**
+         * Takes the given start Datetime and then increments the created
+         * date with the given number of weeks (weekOffset)
+         *
+         * @param {Date}   start      [description]
+         * @param {number} weekOffset [description]
+         */
+        incrementWeek(start: Common.Models.Datetime, addWeeks: number): void;
+        /**
+         * Takes the given start Datetime and subtracts the given number of
+         * weeks from that date.
+         *
+         * @param {Common.Models.Datetime} start         [description]
+         * @param {number}                 subtractWeeks [description]
+         */
+        decrementWeek(start: Common.Models.Datetime, subtractWeeks: number): void;
+        getFormattedDate(): string;
+    }
+}
+declare module Season.Models {
+    class WeekCollection extends Common.Models.ActionableCollection<Season.Models.Week> {
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Season.Models {
+    class Game extends Common.Models.AssociableEntity {
+        season: Season.Models.SeasonModel;
+        seasonGuid: string;
+        outcome: any;
+        home: Team.Models.TeamModel;
+        homeGuid: string;
+        away: Team.Models.TeamModel;
+        awayGuid: string;
+        location: League.Models.Location;
+        locationGuid: string;
+        week: Season.Models.Week;
+        weekGuid: string;
+        start: Common.Models.Datetime;
+        constructor();
+        copy(newGame?: Season.Models.Game): Season.Models.Game;
+        toJson(): any;
+        fromJson(json: any): void;
+        getFormattedName(): string;
+        setSeason(season: Season.Models.SeasonModel): void;
+        setWeek(week: Season.Models.Week): void;
+        setLocation(location: League.Models.Location): void;
+        setHome(home: Team.Models.TeamModel): void;
+        setAway(away: Team.Models.TeamModel): void;
+    }
+}
+declare module Season.Models {
+    class GameCollection extends Common.Models.ActionableCollection<Season.Models.Game> {
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Season.Models {
+}
 declare module Season {
 }
 declare module League.Models {
@@ -3618,7 +3737,23 @@ declare var async: any;
 declare var objectHash: any;
 declare var LZString: any;
 declare var canvg: any;
+declare var moment: any;
 declare var impakt: any;
+declare module League.Models {
+    class Location extends Common.Models.AssociableEntity {
+        constructor();
+        copy(newLocation?: League.Models.Location): League.Models.Location;
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module League.Models {
+    class LocationCollection extends Common.Models.ActionableCollection<League.Models.Location> {
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
 declare var impakt: any;
 declare var impakt: any, playbook: any;
 declare var impakt: any, angular: any;

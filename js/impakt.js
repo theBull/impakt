@@ -153,6 +153,9 @@ var Common;
                 this.listening = startListening;
                 return this;
             };
+            Modifiable.prototype.hasListeners = function () {
+                return Common.Utilities.isNotNullOrUndefined(this.callbacks) && this.callbacks.length > 0;
+            };
             Modifiable.prototype.clearListeners = function () {
                 // empty all callbacks
                 this.callbacks = [];
@@ -485,6 +488,10 @@ var Common;
                 this._count--;
                 this.setModified(true);
                 return obj;
+            };
+            Collection.prototype.pop = function () {
+                var key = this._keys[this._count - 1];
+                return this.remove(key);
             };
             Collection.prototype.empty = function () {
                 this.removeAll();
@@ -932,6 +939,63 @@ var Common;
 (function (Common) {
     var Models;
     (function (Models) {
+        var Datetime = (function () {
+            function Datetime() {
+                this.date = new Date();
+                this.time = null;
+                // TODO @theBull handle meridian
+                // TODO @theBull handle timezone
+                this.options = {
+                    // maxDate: new Date(2020, 12, 31),
+                    // minDate: new Date(),
+                    startingDay: 1,
+                    showWeeks: true
+                };
+                this.popup = {
+                    opened: false
+                };
+                this.format = 'MM/DD/YYYY';
+            }
+            Datetime.prototype.toJson = function () {
+                return {
+                    date: this.date,
+                    time: this.time,
+                    meridian: this.meridian,
+                    timezone: this.timezone,
+                    format: this.format
+                };
+            };
+            Datetime.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.date = new Date(json.date);
+                this.time = json.time;
+                this.meridian = json.meridian;
+                this.timezone = json.timezone;
+                this.format = json.format;
+            };
+            Datetime.prototype.openPopup = function () {
+                this.popup.opened = true;
+            };
+            Datetime.prototype.closePopup = function () {
+                this.popup.opened = false;
+            };
+            Datetime.prototype.togglePopup = function (open) {
+                this.popup.opened = !this.popup.opened || open === true ? this.openPopup() : this.closePopup();
+            };
+            Datetime.prototype.getFormatted = function () {
+                return moment(this.date).format(this.format);
+            };
+            return Datetime;
+        })();
+        Models.Datetime = Datetime;
+    })(Models = Common.Models || (Common.Models = {}));
+})(Common || (Common = {}));
+/// <reference path='./models.ts' />
+var Common;
+(function (Common) {
+    var Models;
+    (function (Models) {
         var Expandable = (function (_super) {
             __extends(Expandable, _super);
             function Expandable($element) {
@@ -1320,6 +1384,7 @@ var Common;
                 this.key = 0;
                 this.impaktDataType = impaktDataType;
                 this.associationKey = null;
+                this.name = null;
                 /**
                  * This array maintains a list of associable data types,
                  * by key name, which can be found in AssociationResults.ts.
@@ -1353,7 +1418,11 @@ var Common;
                     'assignmentGroups',
                     'leagues',
                     'conferences',
-                    'divisions'
+                    'divisions',
+                    'locations',
+                    'teams',
+                    'seasons',
+                    'games'
                 ];
             }
             AssociableEntity.prototype.generateAssociationKey = function () {
@@ -1369,7 +1438,8 @@ var Common;
                 return $.extend({
                     key: this.key,
                     impaktDataType: this.impaktDataType,
-                    associationKey: this.associationKey
+                    associationKey: this.associationKey,
+                    name: this.name
                 }, _super.prototype.toJson.call(this));
             };
             AssociableEntity.prototype.fromJson = function (json) {
@@ -1377,6 +1447,7 @@ var Common;
                     throw new Error('AssociableEntity fromJson(): json is null or undefined');
                 this.key = json.key;
                 this.impaktDataType = json.impaktDataType;
+                this.name = json.name;
                 _super.prototype.fromJson.call(this, json);
                 this.generateAssociationKey();
             };
@@ -1869,7 +1940,10 @@ var Common;
                 this.leagues = new League.Models.LeagueModelCollection();
                 this.conferences = new League.Models.ConferenceCollection();
                 this.divisions = new League.Models.DivisionCollection();
-                this.teams = new Team.Models.TeamModelCollection(Team.Enums.TeamTypes.Primary);
+                this.locations = new League.Models.LocationCollection();
+                this.teams = new Team.Models.TeamModelCollection();
+                this.seasons = new Season.Models.SeasonModelCollection();
+                this.games = new Season.Models.GameCollection();
             }
             AssociationResults.prototype.count = function () {
                 var count = 0;
@@ -1882,7 +1956,10 @@ var Common;
                 count += this.leagues.size();
                 count += this.conferences.size();
                 count += this.divisions.size();
+                count += this.locations.size();
                 count += this.teams.size();
+                count += this.seasons.size();
+                count += this.games.size();
                 return count;
             };
             AssociationResults.prototype.hasAssociations = function () {
@@ -1911,8 +1988,14 @@ var Common;
                     populated.push('conferences');
                 if (this.divisions.hasElements())
                     populated.push('divisions');
+                if (this.locations.hasElements())
+                    populated.push('locations');
                 if (this.teams.hasElements())
                     populated.push('teams');
+                if (this.seasons.hasElements())
+                    populated.push('seasons');
+                if (this.games.hasElements())
+                    populated.push('games');
                 return populated;
             };
             return AssociationResults;
@@ -2216,6 +2299,15 @@ var Common;
                 this.onModified(function () {
                     // TODO
                 });
+                this.associable = [
+                    'playbooks',
+                    'scenarios',
+                    'plays',
+                    'formations',
+                    'personnel',
+                    'assignmentGroups',
+                    'teams'
+                ];
             }
             AssignmentGroup.prototype.copy = function (newAssignmentGroup) {
                 var copyAssignmentGroup = newAssignmentGroup || new Common.Models.AssignmentGroup(this.unitType);
@@ -2343,6 +2435,15 @@ var Common;
                 this.placements.onModified(function () {
                     self.setModified(true);
                 });
+                this.associable = [
+                    'playbooks',
+                    'scenarios',
+                    'plays',
+                    'formations',
+                    'personnel',
+                    'assignmentGroups',
+                    'teams'
+                ];
             }
             Formation.prototype.copy = function (newFormation) {
                 var copyFormation = newFormation || new Common.Models.Formation(this.unitType);
@@ -2489,6 +2590,15 @@ var Common;
                 this.contextmenuTemplateUrl = Common.Constants.PLAY_CONTEXTMENU_TEMPLATE_URL;
                 this.playType = Playbook.Enums.PlayTypes.Unknown;
                 this.flipped = false;
+                this.associable = [
+                    'playbooks',
+                    'scenarios',
+                    'plays',
+                    'formations',
+                    'personnel',
+                    'assignmentGroups',
+                    'teams'
+                ];
             }
             Play.prototype.copy = function (newPlay) {
                 newPlay.formation = this.formation && this.formation.copy();
@@ -2812,9 +2922,16 @@ var Common;
             __extends(PlaybookModel, _super);
             function PlaybookModel(unitType) {
                 _super.call(this, Common.Enums.ImpaktDataTypes.Playbook);
-                _super.prototype.setContext.call(this, this);
                 this.name = 'Untitled';
                 this.unitType = unitType;
+                this.associable = [
+                    'scenarios',
+                    'plays',
+                    'formations',
+                    'assignmentGroups',
+                    'teams',
+                    'games'
+                ];
             }
             PlaybookModel.prototype.toJson = function () {
                 return $.extend({
@@ -2894,6 +3011,15 @@ var Common;
                 this.playOpponentGuid = this.playOpponent.guid;
                 this.unitType = this.playPrimary.unitType;
                 this.editorType = Playbook.Enums.EditorTypes.Play;
+                this.associable = [
+                    'playbooks',
+                    'scenarios',
+                    'plays',
+                    'formations',
+                    'personnel',
+                    'assignmentGroups',
+                    'teams'
+                ];
             }
             Scenario.prototype.copy = function (newScenario) {
                 var copyScenario = newScenario || new Common.Models.Scenario();
@@ -7097,6 +7223,7 @@ var Common;
 /// <reference path='./Collection.ts' />
 /// <reference path='./LinkedList.ts' />
 /// <reference path='./ModifiableCollection.ts' />
+/// <reference path='./Datetime.ts' />
 /// <reference path='./Expandable.ts' />
 /// <reference path='./ContextmenuData.ts' />
 /// <reference path='./ActionRegistry.ts' />
@@ -7211,6 +7338,7 @@ var Common;
             ImpaktDataTypes[ImpaktDataTypes["QBWristband"] = 1035] = "QBWristband";
             ImpaktDataTypes[ImpaktDataTypes["GameAnalysis"] = 1050] = "GameAnalysis";
             ImpaktDataTypes[ImpaktDataTypes["PlayByPlayAnalysis"] = 1051] = "PlayByPlayAnalysis";
+            ImpaktDataTypes[ImpaktDataTypes["Location"] = 1101] = "Location";
             ImpaktDataTypes[ImpaktDataTypes["GenericSetting"] = 2000] = "GenericSetting";
             ImpaktDataTypes[ImpaktDataTypes["User"] = 2010] = "User";
             ImpaktDataTypes[ImpaktDataTypes["SecureUser"] = 2011] = "SecureUser";
@@ -9739,21 +9867,24 @@ var Team;
     (function (Models) {
         var TeamModel = (function (_super) {
             __extends(TeamModel, _super);
-            function TeamModel(teamType) {
+            function TeamModel() {
                 _super.call(this, Common.Enums.ImpaktDataTypes.Team);
                 _super.prototype.setContext.call(this, this);
                 this.name = '';
-                this.teamType = teamType;
+                this.teamType = Team.Enums.TeamTypes.Mixed;
                 this.records = new Team.Models.TeamRecordCollection();
-                this.division = null;
+                this.division = new League.Models.Division();
                 this.divisionGuid = '';
+                this.location = new League.Models.Location();
+                this.locationGuid = '';
                 var self = this;
                 this.onModified(function (data) { });
                 this.associable = [
                     'leagues',
                     'conferences',
                     'divisions',
-                    'playbooks'
+                    'playbooks',
+                    'locations'
                 ];
             }
             TeamModel.prototype.toJson = function () {
@@ -9761,7 +9892,8 @@ var Team;
                     name: this.name,
                     teamType: this.teamType,
                     records: this.records.toJson(),
-                    divisionGuid: this.divisionGuid
+                    divisionGuid: this.divisionGuid,
+                    locationGuid: this.locationGuid
                 }, _super.prototype.toJson.call(this));
             };
             TeamModel.prototype.fromJson = function (json) {
@@ -9771,11 +9903,16 @@ var Team;
                 this.name = json.name;
                 this.records.fromJson(json.records);
                 this.divisionGuid = json.divisionGuid;
+                this.locationGuid = json.locationGuid;
                 _super.prototype.fromJson.call(this, json);
             };
             TeamModel.prototype.setDivision = function (division) {
                 this.division = division;
                 this.divisionGuid = this.division ? this.division.guid : '';
+            };
+            TeamModel.prototype.setLocation = function (location) {
+                this.location = location;
+                this.locationGuid = this.location ? this.location.guid : '';
             };
             return TeamModel;
         })(Common.Models.AssociableEntity);
@@ -9789,9 +9926,9 @@ var Team;
     (function (Models) {
         var TeamModelCollection = (function (_super) {
             __extends(TeamModelCollection, _super);
-            function TeamModelCollection(teamType) {
+            function TeamModelCollection() {
                 _super.call(this);
-                this.teamType = teamType;
+                this.teamType = Team.Enums.TeamTypes.Mixed;
             }
             TeamModelCollection.prototype.toJson = function () {
                 return {
@@ -9813,7 +9950,7 @@ var Team;
                     }
                     rawTeamModel.teamType = Common.Utilities.isNullOrUndefined(rawTeamModel.teamType) &&
                         rawTeamModel.teamType >= 0 ? rawTeamModel.teamType : Team.Enums.TeamTypes.Other;
-                    var teamModel = new Team.Models.TeamModel(rawTeamModel.teamType);
+                    var teamModel = new Team.Models.TeamModel();
                     teamModel.fromJson(rawTeamModel);
                     this.add(teamModel);
                 }
@@ -9896,8 +10033,8 @@ var Team;
         var PrimaryTeam = (function (_super) {
             __extends(PrimaryTeam, _super);
             function PrimaryTeam() {
-                _super.call(this, Team.Enums.TeamTypes.Primary);
-                _super.prototype.setContext.call(this, this);
+                _super.call(this);
+                this.teamType = Team.Enums.TeamTypes.Primary;
                 this.onModified(function (data) { });
             }
             PrimaryTeam.prototype.toJson = function () {
@@ -9920,8 +10057,8 @@ var Team;
         var OpponentTeam = (function (_super) {
             __extends(OpponentTeam, _super);
             function OpponentTeam() {
-                _super.call(this, Team.Enums.TeamTypes.Opponent);
-                _super.prototype.setContext.call(this, this);
+                _super.call(this);
+                this.teamType = Team.Enums.TeamTypes.Opponent;
                 this.onModified(function (data) { });
             }
             OpponentTeam.prototype.toJson = function () {
@@ -10715,7 +10852,310 @@ var Navigation;
 /// <reference path='../modules.ts' />
 /// <reference path='./models/models.ts' />
 /// <reference path='../modules.ts' />
+/// <reference path='./models.ts' />
+var Season;
+(function (Season) {
+    var Models;
+    (function (Models) {
+        var SeasonModel = (function (_super) {
+            __extends(SeasonModel, _super);
+            function SeasonModel() {
+                _super.call(this, Common.Enums.ImpaktDataTypes.Season);
+                this.year = (new Date()).getFullYear();
+                this.start = new Common.Models.Datetime();
+                this.weeks = new Season.Models.WeekCollection();
+                this.associable = [
+                    'leagues'
+                ];
+            }
+            SeasonModel.prototype.copy = function (newSeason) {
+                var copySeason = newSeason || new Season.Models.SeasonModel();
+                return _super.prototype.copy.call(this, copySeason, this);
+            };
+            SeasonModel.prototype.toJson = function () {
+                return $.extend({
+                    weeks: this.weeks.toJson(),
+                    year: this.year,
+                    start: this.start.toJson()
+                }, _super.prototype.toJson.call(this));
+            };
+            SeasonModel.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.year = json.year;
+                this.weeks.fromJson(json.weeks);
+                this.start.fromJson(json.start);
+                _super.prototype.fromJson.call(this, json);
+            };
+            return SeasonModel;
+        })(Common.Models.AssociableEntity);
+        Models.SeasonModel = SeasonModel;
+    })(Models = Season.Models || (Season.Models = {}));
+})(Season || (Season = {}));
+/// <reference path='./models.ts' />
+var Season;
+(function (Season) {
+    var Models;
+    (function (Models) {
+        var SeasonModelCollection = (function (_super) {
+            __extends(SeasonModelCollection, _super);
+            function SeasonModelCollection() {
+                _super.call(this);
+            }
+            SeasonModelCollection.prototype.toJson = function () {
+                return null;
+            };
+            SeasonModelCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.guid = json.guid;
+                var seasonArray = json.seasons || [];
+                for (var i = 0; i < seasonArray.length; i++) {
+                    var rawSeasonModel = seasonArray[i];
+                    if (Common.Utilities.isNullOrUndefined(rawSeasonModel)) {
+                        continue;
+                    }
+                    var seasonModel = new Season.Models.SeasonModel();
+                    seasonModel.fromJson(rawSeasonModel);
+                    this.add(seasonModel);
+                }
+            };
+            return SeasonModelCollection;
+        })(Common.Models.ActionableCollection);
+        Models.SeasonModelCollection = SeasonModelCollection;
+    })(Models = Season.Models || (Season.Models = {}));
+})(Season || (Season = {}));
+/// <reference path='./models.ts' />
+var Season;
+(function (Season) {
+    var Models;
+    (function (Models) {
+        var Week = (function (_super) {
+            __extends(Week, _super);
+            function Week() {
+                _super.call(this, Common.Enums.ImpaktDataTypes.Unknown);
+                this.name = null;
+                this.number = 0;
+                this.season = new Season.Models.SeasonModel();
+                this.seasonGuid = '';
+                this.start = new Common.Models.Datetime();
+            }
+            Week.prototype.toJson = function () {
+                return $.extend({
+                    name: this.name,
+                    number: this.number,
+                    guid: this.guid,
+                    seasonGuid: this.seasonGuid,
+                    start: this.start.toJson()
+                }, _super.prototype.toJson.call(this));
+            };
+            Week.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.name = json.name;
+                this.number = json.number;
+                this.seasonGuid = json.seasonGuid;
+                this.start.fromJson(json.start);
+                _super.prototype.fromJson.call(this, json);
+            };
+            Week.prototype.getFormattedName = function () {
+                return this.name + ' ' + this.number;
+            };
+            Week.prototype.setSeason = function (season) {
+                this.season = season;
+                this.seasonGuid = this.season ? this.season.guid : '';
+            };
+            /**
+             * Takes the given start Datetime and then increments the created
+             * date with the given number of weeks (weekOffset)
+             *
+             * @param {Date}   start      [description]
+             * @param {number} weekOffset [description]
+             */
+            Week.prototype.incrementWeek = function (start, addWeeks) {
+                this.start.date = (moment(start.date).add(addWeeks, 'week'))._d;
+            };
+            /**
+             * Takes the given start Datetime and subtracts the given number of
+             * weeks from that date.
+             *
+             * @param {Common.Models.Datetime} start         [description]
+             * @param {number}                 subtractWeeks [description]
+             */
+            Week.prototype.decrementWeek = function (start, subtractWeeks) {
+                this.start.date = (moment(start.date).subtract(subtractWeeks, 'week'))._d;
+            };
+            Week.prototype.getFormattedDate = function () {
+                return this.start.getFormatted();
+            };
+            return Week;
+        })(Common.Models.Actionable);
+        Models.Week = Week;
+    })(Models = Season.Models || (Season.Models = {}));
+})(Season || (Season = {}));
+/// <reference path='./models.ts' />
+var Season;
+(function (Season) {
+    var Models;
+    (function (Models) {
+        var WeekCollection = (function (_super) {
+            __extends(WeekCollection, _super);
+            function WeekCollection() {
+                _super.call(this);
+            }
+            WeekCollection.prototype.toJson = function () {
+                return {
+                    guid: this.guid,
+                    weeks: _super.prototype.toJson.call(this)
+                };
+            };
+            WeekCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.guid = json.guid;
+                var weekArray = json.weeks || [];
+                for (var i = 0; i < weekArray.length; i++) {
+                    var rawWeekModel = weekArray[i];
+                    if (Common.Utilities.isNullOrUndefined(rawWeekModel)) {
+                        continue;
+                    }
+                    var weekModel = new Season.Models.Week();
+                    weekModel.fromJson(rawWeekModel);
+                    this.add(weekModel);
+                }
+            };
+            return WeekCollection;
+        })(Common.Models.ActionableCollection);
+        Models.WeekCollection = WeekCollection;
+    })(Models = Season.Models || (Season.Models = {}));
+})(Season || (Season = {}));
+/// <reference path='./models.ts' />
+var Season;
+(function (Season) {
+    var Models;
+    (function (Models) {
+        var Game = (function (_super) {
+            __extends(Game, _super);
+            function Game() {
+                _super.call(this, Common.Enums.ImpaktDataTypes.Game);
+                this.start = new Common.Models.Datetime();
+                this.location = new League.Models.Location();
+                this.locationGuid = '';
+                this.home = new Team.Models.TeamModel();
+                this.homeGuid = '';
+                this.away = new Team.Models.TeamModel();
+                this.awayGuid = '';
+                this.week = new Season.Models.Week();
+                this.weekGuid = '';
+                this.outcome = null;
+                this.season = null;
+                this.seasonGuid = '';
+                this.associable = [
+                    'seasons',
+                    'teams',
+                    'locations'
+                ];
+            }
+            Game.prototype.copy = function (newGame) {
+                var copyGame = newGame || new Season.Models.Game();
+                return _super.prototype.copy.call(this, copyGame, this);
+            };
+            Game.prototype.toJson = function () {
+                return $.extend({
+                    start: this.start.toJson(),
+                    locationGuid: this.locationGuid,
+                    homeGuid: this.homeGuid,
+                    awayGuid: this.awayGuid,
+                    seasonGuid: this.seasonGuid,
+                    weekGuid: this.weekGuid
+                }, _super.prototype.toJson.call(this));
+            };
+            Game.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.start.fromJson(json.start);
+                this.locationGuid = json.locationGuid;
+                this.homeGuid = json.homeGuid;
+                this.awayGuid = json.awayGuid;
+                this.seasonGuid = json.seasonGuid;
+                this.weekGuid = json.weekGuid;
+                _super.prototype.fromJson.call(this, json);
+            };
+            Game.prototype.getFormattedName = function () {
+                return this.away && this.home ? [this.away.name, ' @ ', this.home.name].join('') : this.name;
+            };
+            Game.prototype.setSeason = function (season) {
+                this.season = season;
+                this.seasonGuid = this.season ? this.season.guid : '';
+            };
+            Game.prototype.setWeek = function (week) {
+                this.week = week;
+                this.weekGuid = this.week ? this.week.guid : '';
+            };
+            Game.prototype.setLocation = function (location) {
+                this.location = location;
+                this.locationGuid = this.location ? this.location.guid : '';
+            };
+            Game.prototype.setHome = function (home) {
+                this.home = home;
+                this.homeGuid = this.home ? this.home.guid : '';
+                this.name = this.getFormattedName();
+            };
+            Game.prototype.setAway = function (away) {
+                this.away = away;
+                this.awayGuid = this.away ? this.away.guid : '';
+                this.name = this.getFormattedName();
+            };
+            return Game;
+        })(Common.Models.AssociableEntity);
+        Models.Game = Game;
+    })(Models = Season.Models || (Season.Models = {}));
+})(Season || (Season = {}));
+/// <reference path='./models.ts' />
+var Season;
+(function (Season) {
+    var Models;
+    (function (Models) {
+        var GameCollection = (function (_super) {
+            __extends(GameCollection, _super);
+            function GameCollection() {
+                _super.call(this);
+            }
+            GameCollection.prototype.toJson = function () {
+                return {
+                    guid: this.guid,
+                    games: _super.prototype.toJson.call(this)
+                };
+            };
+            GameCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.guid = json.guid;
+                var gameArray = json.games || [];
+                for (var i = 0; i < gameArray.length; i++) {
+                    var rawGameModel = gameArray[i];
+                    if (Common.Utilities.isNullOrUndefined(rawGameModel)) {
+                        continue;
+                    }
+                    var gameModel = new Season.Models.Game();
+                    gameModel.fromJson(rawGameModel);
+                    this.add(gameModel);
+                }
+            };
+            return GameCollection;
+        })(Common.Models.ActionableCollection);
+        Models.GameCollection = GameCollection;
+    })(Models = Season.Models || (Season.Models = {}));
+})(Season || (Season = {}));
+/// <reference path='../season.ts' />
+/// <reference path='./SeasonModel.ts' />
+/// <reference path='./SeasonModelCollection.ts' />
+/// <reference path='./Week.ts' />
+/// <reference path='./WeekCollection.ts' />
+/// <reference path='./Game.ts' />
+/// <reference path='./GameCollection.ts' />
 /// <reference path='../modules.ts' />
+/// <reference path='./models/models.ts' />
 /// <reference path='./models.ts' />
 var League;
 (function (League) {
@@ -10725,7 +11165,6 @@ var League;
             __extends(LeagueModel, _super);
             function LeagueModel() {
                 _super.call(this, Common.Enums.ImpaktDataTypes.League);
-                _super.prototype.setContext.call(this, this);
                 this.associable = [
                     'conferences',
                     'divisions',
@@ -11089,10 +11528,6 @@ impakt.app = angular.module('impakt.app', [
             .state('home', {
             url: '/home',
             templateUrl: 'modules/home/home.tpl.html'
-        })
-            .state('season', {
-            url: '/season',
-            templateUrl: 'modules/season/season.tpl.html'
         })
             .state('team', {
             url: '/team',
@@ -11565,6 +12000,8 @@ impakt.common.associations.service('_associations', [
          *                                                of the given type if associations are found
          */
         this.getAssociated = function (entity) {
+            if (Common.Utilities.isNullOrUndefined(entity.associationKey))
+                return;
             // 
             // Gets the associations for the given entity by its associationKey
             // 
@@ -11654,6 +12091,21 @@ impakt.common.associations.service('_associations', [
                         if (team)
                             results.teams.add(team);
                         break;
+                    case Common.Enums.ImpaktDataTypes.Location:
+                        var location_1 = impakt.context.League.locations.get(guid);
+                        if (location_1)
+                            results.locations.add(location_1);
+                        break;
+                    case Common.Enums.ImpaktDataTypes.Season:
+                        var season = impakt.context.Season.seasons.get(guid);
+                        if (season)
+                            results.seasons.add(season);
+                        break;
+                    case Common.Enums.ImpaktDataTypes.Game:
+                        var game = impakt.context.Season.games.get(guid);
+                        if (game)
+                            results.games.add(game);
+                        break;
                 }
             }
             return results;
@@ -11693,8 +12145,17 @@ impakt.common.associations.service('_associations', [
                 case 'divisions':
                     collection = impakt.context.League.divisions;
                     break;
+                case 'locations':
+                    collection = impakt.context.League.locations;
+                    break;
                 case 'teams':
                     collection = impakt.context.Team.teams;
+                    break;
+                case 'seasons':
+                    collection = impakt.context.Season.seasons;
+                    break;
+                case 'games':
+                    collection = impakt.context.Season.games;
                     break;
             }
             var parsedCollection = new Common.Models.ActionableCollection();
@@ -11723,8 +12184,9 @@ impakt.common.context.factory('__context', ['$q',
     '_associations',
     '_playbook',
     '_league',
+    '_season',
     '_team',
-    function ($q, __api, __localStorage, __notifications, _associations, _playbook, _league, _team) {
+    function ($q, __api, __localStorage, __notifications, _associations, _playbook, _league, _season, _team) {
         var isReady = false;
         var readyCallbacks = [];
         var initializingCallbacks = [];
@@ -11767,6 +12229,8 @@ impakt.common.context.factory('__context', ['$q',
             impakt.context.Team = {};
         if (!impakt.context.League)
             impakt.context.League = {};
+        if (!impakt.context.Season)
+            impakt.context.Season = {};
         function initialize(context) {
             // notify listeners that context initialization
             // has begun
@@ -11838,13 +12302,13 @@ impakt.common.context.factory('__context', ['$q',
              *
              *
              */
-            impakt.context.Team.teams = new Team.Models.TeamModelCollection(Team.Enums.TeamTypes.Mixed);
+            impakt.context.Team.teams = new Team.Models.TeamModelCollection();
             impakt.context.Team.personnel = new Team.Models.PersonnelCollection(Team.Enums.UnitTypes.Mixed);
             impakt.context.Team.positionDefaults = new Team.Models.PositionDefault();
             impakt.context.Team.unitTypes = _playbook.getUnitTypes();
             impakt.context.Team.unitTypesEnum = _playbook.getUnitTypesEnum();
             impakt.context.Team.creation = {
-                teams: new Team.Models.TeamModelCollection(Team.Enums.TeamTypes.Mixed)
+                teams: new Team.Models.TeamModelCollection()
             };
             /**
              *
@@ -11856,14 +12320,32 @@ impakt.common.context.factory('__context', ['$q',
             impakt.context.League.leagues = new League.Models.LeagueModelCollection();
             impakt.context.League.conferences = new League.Models.ConferenceCollection();
             impakt.context.League.divisions = new League.Models.DivisionCollection();
+            impakt.context.League.locations = new League.Models.LocationCollection();
             /**
              * A creation context for new leagues, conferences, divisions, and teams
              */
             impakt.context.League.creation = {
                 leagues: new League.Models.LeagueModelCollection(),
                 conferences: new League.Models.ConferenceCollection(),
-                teams: new Team.Models.TeamModel(Team.Enums.TeamTypes.Other),
-                divisions: new League.Models.DivisionCollection()
+                team: new Team.Models.TeamModel(),
+                divisions: new League.Models.DivisionCollection(),
+                locations: new League.Models.LocationCollection()
+            };
+            /**
+             *
+             *
+             * Season context
+             *
+             *
+             */
+            impakt.context.Season.seasons = new Season.Models.SeasonModelCollection();
+            impakt.context.Season.games = new Season.Models.GameCollection();
+            /**
+             * A creation context for new seasons, games, and weeks
+             */
+            impakt.context.Season.creation = {
+                seasons: new Season.Models.SeasonModelCollection(),
+                games: new Season.Models.GameCollection()
             };
             async.parallel([
                 // Retrieve associations
@@ -11918,6 +12400,39 @@ impakt.common.context.factory('__context', ['$q',
                         context.Team.teams = teams;
                         __notifications.success('Teams successfully loaded');
                         callback(null, teams);
+                    }, function (err) {
+                        callback(err);
+                    });
+                },
+                // Retrieve locations
+                // Retrieve locations
+                function (callback) {
+                    _league.getLocations().then(function (locations) {
+                        context.League.locations = locations;
+                        __notifications.success('Locations successfully loaded');
+                        callback(null, locations);
+                    }, function (err) {
+                        callback(err);
+                    });
+                },
+                // Retrieve seasons
+                // Retrieve seasons
+                function (callback) {
+                    _season.getSeasons().then(function (seasons) {
+                        context.Season.seasons = seasons;
+                        __notifications.success('Seasons successfully loaded');
+                        callback(null, seasons);
+                    }, function (err) {
+                        callback(err);
+                    });
+                },
+                // Retrieve games
+                // Retrieve games
+                function (callback) {
+                    _season.getGames().then(function (games) {
+                        context.Season.games = games;
+                        __notifications.success('Games successfully loaded');
+                        callback(null, games);
                     }, function (err) {
                         callback(err);
                     });
@@ -13871,6 +14386,72 @@ impakt.common.ui.controller('typeFormatter.ctrl', [
         };
     }]);
 /// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('gameItem.ctrl', [
+    '$scope',
+    '$state',
+    '_details',
+    '_season',
+    '_associations',
+    function ($scope, $state, _details, _season, _associations) {
+        $scope.game;
+        $scope.element;
+        $scope.getSeason = function (game) {
+            return Common.Utilities.isNotNullOrUndefined(game) ?
+                (Common.Utilities.isNotNullOrUndefined(game.season) ?
+                    game.season.name : 'No season') :
+                'No season';
+        };
+        $scope.getWeek = function (game) {
+            return Common.Utilities.isNotNullOrUndefined(game) ?
+                (Common.Utilities.isNotNullOrUndefined(game.week) ?
+                    game.week.name : 'No week') :
+                'No week';
+        };
+        /**
+         *
+         *	Item selection
+         *
+         */
+        $scope.toggleSelection = function (game) {
+            if (!$state.is('season.drilldown.game')) {
+                _details.selectedElements.deselectAll();
+                _season.toGameDrilldown(game);
+            }
+            else {
+                _details.toggleSelection(game);
+            }
+        };
+    }]).directive('gameItem', [
+    '_associations',
+    function (_associations) {
+        /**
+         * game-item directive
+         */
+        return {
+            restrict: 'E',
+            controller: 'gameItem.ctrl',
+            scope: {
+                game: '='
+            },
+            templateUrl: 'common/ui/game-item/game-item.tpl.html',
+            transclude: true,
+            replace: true,
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                        var associations = _associations.getAssociated($scope.game);
+                        if (Common.Utilities.isNotNullOrUndefined(associations) &&
+                            associations.seasons.hasElements()) {
+                            $scope.game.setSeason(associations.seasons.first());
+                        }
+                    }
+                };
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
 impakt.common.ui.controller('grid.ctrl', [
     '$scope',
     '_details',
@@ -13896,6 +14477,35 @@ impakt.common.ui.controller('grid.ctrl', [
                         $scope.$element = $element;
                     }
                 };
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('impaktDatepicker.ctrl', [
+    '$scope',
+    function ($scope) {
+        $scope.datetime;
+        $scope.popup;
+        $scope.togglePopup = function (open) {
+            $scope.popup.opened = open === true ? true : !$scope.popup.opened;
+        };
+        $scope.updateMethod = function () {
+            $scope.update();
+        };
+    }]).directive('impaktDatepicker', [
+    function () {
+        return {
+            restrict: 'E',
+            controller: 'impaktDatepicker.ctrl',
+            templateUrl: 'common/ui/impakt-datepicker/impakt-datepicker.tpl.html',
+            transclude: true,
+            replace: false,
+            scope: {
+                datetime: '=',
+                update: '&?'
+            },
+            link: function ($scope, $element, attrs) {
+                $scope.popup = $scope.datetime.popup;
             }
         };
     }]);
@@ -14717,6 +15327,58 @@ impakt.common.ui.directive('search', [
         };
     }]);
 /// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('seasonItem.ctrl', [
+    '$scope',
+    '$state',
+    '_details',
+    '_season',
+    '_associations',
+    function ($scope, $state, _details, _season, _associations) {
+        $scope.season;
+        $scope.element;
+        /**
+         *
+         *	Item selection
+         *
+         */
+        $scope.toggleSelection = function (season) {
+            if (!$state.is('season.drilldown.season')) {
+                _details.selectedElements.deselectAll();
+                _season.toSeasonDrilldown(season);
+            }
+            else {
+                _details.toggleSelection(season);
+            }
+        };
+    }]).directive('seasonItem', [
+    '_associations',
+    function (_associations) {
+        /**
+         * season-item directive
+         */
+        return {
+            restrict: 'E',
+            controller: 'seasonItem.ctrl',
+            scope: {
+                season: '='
+            },
+            templateUrl: 'common/ui/season-item/season-item.tpl.html',
+            transclude: true,
+            replace: true,
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                        var associations = _associations.getAssociated($scope.season);
+                        if (Common.Utilities.isNotNullOrUndefined(associations)) {
+                        }
+                    }
+                };
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
 impakt.common.ui.controller('stepper.ctrl', [
     '$scope',
     function ($scope) {
@@ -14901,6 +15563,56 @@ impakt.common.ui.controller('teamItem.ctrl', [
             }
         };
     }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('weekItem.ctrl', [
+    '$scope',
+    '$state',
+    '_details',
+    '_season',
+    '_associations',
+    function ($scope, $state, _details, _season, _associations) {
+        $scope.week;
+        $scope.season;
+        $scope.element;
+        /**
+         *
+         *	Item selection
+         *
+         */
+        $scope.toggleSelection = function (week) {
+            if (!$state.is('season.drilldown.week')) {
+                _details.selectedElements.deselectAll();
+                _season.toWeekDrilldown(week);
+            }
+            else {
+                _details.toggleSelection(week);
+            }
+        };
+    }]).directive('weekItem', [
+    '_associations',
+    function (_associations) {
+        /**
+         * week-item directive
+         */
+        return {
+            restrict: 'E',
+            controller: 'weekItem.ctrl',
+            scope: {
+                week: '='
+            },
+            templateUrl: 'common/ui/week-item/week-item.tpl.html',
+            transclude: true,
+            replace: true,
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                    }
+                };
+            }
+        };
+    }]);
 /// <reference path='../js/impakt.ts' />
 impakt.modules = angular.module('impakt.modules', [
     'impakt.main',
@@ -14963,6 +15675,7 @@ impakt.details.controller('details.ctrl', [
             $scope.playbooks = impakt.context.Playbook.playbooks;
         });
         var createEntityListener = $rootScope.$on('create-entity', function (e, entity) {
+            modifiedListenerSet = false;
             init();
         });
         var associationsUpdateListener = $rootScope.$on('associations-updated', function (e) {
@@ -14974,8 +15687,7 @@ impakt.details.controller('details.ctrl', [
             associationsUpdateListener();
         });
         function init() {
-            $scope.selectedElements.clearListeners();
-            if (!modifiedListenerSet) {
+            if (!$scope.selectedElements.hasListeners()) {
                 $scope.selectedElements.onModified(function (selectedElements) {
                     if (Common.Utilities.isNotNullOrUndefined($scope.expandable)) {
                         $scope.selectedElements.isEmpty() ?
@@ -14984,7 +15696,6 @@ impakt.details.controller('details.ctrl', [
                     }
                     _initAssociated();
                 });
-                modifiedListenerSet = true;
             }
             // Load initial associations, don't wait for the modification handler
             // for selected elements to fire.
@@ -14997,7 +15708,9 @@ impakt.details.controller('details.ctrl', [
             $scope.selectedElement = $scope.selectedElements.first();
             if (Common.Utilities.isNotNullOrUndefined($scope.selectedElement)) {
                 $scope.associations = _associations.getAssociated($scope.selectedElement);
-                $scope.populatedAssociationKeys = $scope.associations.getPopulatedAssociationKeys();
+                if (Common.Utilities.isNotNullOrUndefined($scope.associations)) {
+                    $scope.populatedAssociationKeys = $scope.associations.getPopulatedAssociationKeys();
+                }
             }
         }
         $scope.delete = function (entity) {
@@ -15021,7 +15734,8 @@ impakt.details.service('_details', [
     '_league',
     '_playbook',
     '_team',
-    function ($q, _league, _playbook, _team) {
+    '_season',
+    function ($q, _league, _playbook, _team, _season) {
         this.selectedElements = impakt.context.Actionable.selected;
         this.state = {
             collapsed: true
@@ -15064,10 +15778,14 @@ impakt.details.service('_details', [
                 case Common.Enums.ImpaktDataTypes.Conference:
                 case Common.Enums.ImpaktDataTypes.League:
                 case Common.Enums.ImpaktDataTypes.Division:
+                case Common.Enums.ImpaktDataTypes.Location:
                     return _league.deleteEntityByType(entity);
                 case Common.Enums.ImpaktDataTypes.Team:
                 case Common.Enums.ImpaktDataTypes.PersonnelGroup:
                     return _team.deleteEntityByType(entity);
+                case Common.Enums.ImpaktDataTypes.Season:
+                case Common.Enums.ImpaktDataTypes.Game:
+                    return _season.deleteEntityByType(entity);
                 default:
                     throw new Error('_details delete(): entity ImpaktDataType not supported ' + entity.impaktDataType);
             }
@@ -15092,10 +15810,14 @@ impakt.details.service('_details', [
                 case Common.Enums.ImpaktDataTypes.Conference:
                 case Common.Enums.ImpaktDataTypes.League:
                 case Common.Enums.ImpaktDataTypes.Division:
+                case Common.Enums.ImpaktDataTypes.Location:
                     return _league.updateEntityByType(entity);
                 case Common.Enums.ImpaktDataTypes.Team:
                 case Common.Enums.ImpaktDataTypes.PersonnelGroup:
                     return _team.updateEntityByType(entity);
+                case Common.Enums.ImpaktDataTypes.Season:
+                case Common.Enums.ImpaktDataTypes.Game:
+                    return _season.updateEntityByType(entity);
                 default:
                     throw new Error('_details update(): entity ImpaktDataType not supported ' + entity.impaktDataType);
             }
@@ -15287,7 +16009,7 @@ impakt.league.drilldown.division.controller('league.drilldown.division.ctrl', [
         $scope.league = _league.drilldown.league;
         $scope.conference = _league.drilldown.conference;
         $scope.division = _league.drilldown.division;
-        $scope.teams = new Team.Models.TeamModelCollection(Team.Enums.TeamTypes.Mixed);
+        $scope.teams = new Team.Models.TeamModelCollection();
         var deleteTeamListener = $rootScope.$on('delete-team', function (e, team) {
             $scope.teams.remove(team.guid);
         });
@@ -15427,6 +16149,7 @@ impakt.league.drilldown.team.controller('league.drilldown.team.ctrl', [
  */
 impakt.league.constant('LEAGUE', {
     ENDPOINT: '/teamInfo',
+    GENERAL_ENDPOINT: '/general',
     // League
     CREATE_LEAGUE: '/createLeague',
     GET_LEAGUES: '/getLeagues',
@@ -15448,7 +16171,13 @@ impakt.league.constant('LEAGUE', {
     GET_DIVISIONS: '/getDivisions',
     GET_DIVISION: '/getDivision',
     DELETE_DIVISION: '/deleteDivision',
-    UPDATE_DIVISION: '/updateDivision'
+    UPDATE_DIVISION: '/updateDivision',
+    // League Locations
+    CREATE_LOCATION: '/createLocation',
+    GET_LOCATIONS: '/getLocations',
+    GET_LOCATION: '/getLocation',
+    DELETE_LOCATION: '/deleteLocation',
+    UPDATE_LOCATION: '/updateLocation',
 });
 /// <reference path='./league.mdl.ts' />
 impakt.league.controller('league.ctrl', ['$scope', '$state', '_league',
@@ -15919,6 +16648,153 @@ impakt.league.service('_league', [
             });
             return d.promise;
         };
+        /**
+         * Retrieves all locations
+         */
+        this.getLocations = function () {
+            var d = $q.defer();
+            var notification = __notifications.pending('Getting locations...');
+            __api.get(__api.path(LEAGUE.GENERAL_ENDPOINT, LEAGUE.GET_LOCATIONS))
+                .then(function (response) {
+                var collection = new League.Models.LocationCollection();
+                if (response && response.data && response.data.results) {
+                    var locationResults = Common.Utilities.parseData(response.data.results);
+                    for (var i = 0; i < locationResults.length; i++) {
+                        var locationResult = locationResults[i];
+                        if (locationResult && locationResult.data && locationResult.data.location) {
+                            var locationModel = new League.Models.Location();
+                            locationResult.data.location.key = locationResult.key;
+                            locationModel.fromJson(locationResult.data.location);
+                            collection.add(locationModel);
+                        }
+                    }
+                }
+                notification.success([collection.size(), ' Locations successfully retreived'].join(''));
+                d.resolve(collection);
+            }, function (error) {
+                notification.error('Failed to retieve Locations');
+                console.error(error);
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Gets a single location with the given key
+         * @param {number} key The key of the location to retrieve
+         */
+        this.getLocation = function (key) {
+            var d = $q.defer();
+            __api.get(__api.path(LEAGUE.GENERAL_ENDPOINT, LEAGUE.GET_LOCATION, '/' + key))
+                .then(function (response) {
+                var location = Common.Utilities.parseData(response.data.results);
+                d.resolve(location);
+            }, function (error) {
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Sends a location model to the server for storage
+         * @param {Common.Models.Location} newLocation The location to be created/saved
+         */
+        this.createLocation = function (newLocation) {
+            var d = $q.defer();
+            if (Common.Utilities.isNotNullOrUndefined(newLocation)) {
+                var nameExists = impakt.context.League.locations.hasElementWhich(function (locationModel, index) {
+                    return locationModel.name == newLocation.name;
+                });
+                if (nameExists) {
+                    var notification_4 = __notifications.warning('Failed to create location. Location "', newLocation.name, '" already exists.');
+                    _leagueModals.createLocationDuplicate(newLocation);
+                    return;
+                }
+            }
+            // set key to -1 to ensure a new object is created server-side
+            newLocation.key = -1;
+            var locationModelJson = newLocation.toJson();
+            var notification = __notifications.pending('Creating location "', newLocation.name, '"...');
+            __api.post(__api.path(LEAGUE.GENERAL_ENDPOINT, LEAGUE.CREATE_LOCATION), {
+                version: 1,
+                name: newLocation.name,
+                data: {
+                    version: 1,
+                    location: locationModelJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var locationModel = new League.Models.Location();
+                if (results && results.data && results.data.location) {
+                    results.data.location.key = results.key;
+                    locationModel.fromJson(results.data.location);
+                    // update the context
+                    impakt.context.League.locations.add(locationModel);
+                }
+                else {
+                    throw new Error('CreateLocation did not return a valid location');
+                }
+                notification.success('Successfully created location "', locationModel.name, '"');
+                $rootScope.$broadcast('create-entity', locationModel);
+                d.resolve(locationModel);
+            }, function (error) {
+                notification.error('Failed to create location "', newLocation.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Deletes the given location for the current user
+         * @param {League.Models.Location} location The location to be deleted
+         */
+        this.deleteLocation = function (location) {
+            var d = $q.defer();
+            var notification = __notifications.pending('Deleting location "', location.name, '"...');
+            __api.post(__api.path(LEAGUE.GENERAL_ENDPOINT, LEAGUE.DELETE_LOCATION), { key: location.key }).then(function (response) {
+                // update the context
+                impakt.context.League.locations.remove(location.guid);
+                notification.success('Deleted location "', location.name, '"');
+                d.resolve(location);
+            }, function (error) {
+                notification.error('Failed to delete location "', location.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Updates the given location for the current user
+         * @param {League.Models.Location} location The location to update
+         */
+        this.updateLocation = function (location) {
+            var d = $q.defer();
+            // update assignment collection to json object
+            var locationJson = location.toJson();
+            var notification = __notifications.pending('Updating location "', location.name, '"...');
+            __api.post(__api.path(LEAGUE.GENERAL_ENDPOINT, LEAGUE.UPDATE_LOCATION), {
+                version: 1,
+                name: locationJson.name,
+                key: locationJson.key,
+                data: {
+                    version: 1,
+                    key: locationJson.key,
+                    location: locationJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var locationModel = new League.Models.Location();
+                if (results && results.data && results.data.location) {
+                    locationModel.fromJson(results.data.location);
+                    // update the context
+                    impakt.context.League.locations.set(locationModel.guid, locationModel);
+                }
+                notification.success('Successfully updated location "', location.name, '"');
+                d.resolve(locationModel);
+            }, function (error) {
+                notification.error('Failed to update location "', location.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
         this.deleteEntityByType = function (entity) {
             if (Common.Utilities.isNullOrUndefined(entity))
                 return;
@@ -16159,6 +17035,51 @@ impakt.league.modals.controller('league.modals.createLeague.ctrl', [
         };
     }]);
 /// <reference path='../league-modals.mdl.ts' />
+impakt.league.modals.controller('league.modals.createLocationDuplicateError.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_league',
+    'location',
+    function ($scope, $uibModalInstance, _league, location) {
+        $scope.location = location;
+        $scope.ok = function () {
+            $uibModalInstance.close();
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../league-modals.mdl.ts' />
+impakt.league.modals.controller('league.modals.createLocation.ctrl', [
+    '$scope',
+    '$rootScope',
+    '$uibModalInstance',
+    '_associations',
+    '_league',
+    'associatedEntity',
+    function ($scope, $rootScope, $uibModalInstance, _associations, _league, associatedEntity) {
+        $scope.newLocation = new League.Models.Location();
+        $scope.associatedEntity = associatedEntity;
+        $scope.ok = function () {
+            _league.createLocation($scope.newLocation)
+                .then(function (createdLocation) {
+                // take in an optional associated entity, so that upon creation
+                // of this location, we're able to also construct the association
+                // between the two entities.
+                if (Common.Utilities.isNotNullOrUndefined($scope.associatedEntity)) {
+                    _associations.createAssociation(createdLocation, $scope.associatedEntity);
+                }
+                $uibModalInstance.close(createdLocation);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../league-modals.mdl.ts' />
 impakt.league.modals.controller('league.modals.deleteConference.ctrl', [
     '$scope',
     '$rootScope',
@@ -16214,6 +17135,27 @@ impakt.league.modals.controller('league.modals.deleteLeague.ctrl', [
         $scope.league = league;
         $scope.ok = function () {
             _league.deleteLeague($scope.league)
+                .then(function (results) {
+                $uibModalInstance.close(results);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../league-modals.mdl.ts' />
+impakt.league.modals.controller('league.modals.deleteLocation.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_league',
+    'location',
+    function ($scope, $uibModalInstance, _league, location) {
+        $scope.location = location;
+        $scope.ok = function () {
+            _league.deleteLocation($scope.location)
                 .then(function (results) {
                 $uibModalInstance.close(results);
             }, function (err) {
@@ -16433,6 +17375,75 @@ impakt.league.modals.service('_leagueModals', [
             });
             return d.promise;
         };
+        /**
+         *
+         * LOCATION
+         *
+         */
+        this.createLocation = function (associatedEntity) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/league/modals/create-location/create-location.tpl.html', 'league.modals.createLocation.ctrl', {
+                associatedEntity: function () {
+                    return associatedEntity;
+                }
+            });
+            modalInstance.result.then(function (createdLocation) {
+                console.log(createdLocation);
+                d.resolve(createdLocation);
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.createLocationDuplicate = function (locationModel) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/league/modals/create-location-duplicate-error/create-location-duplicate-error.tpl.html', 'league.modals.createLocationDuplicateError.ctrl', {
+                location: function () {
+                    return locationModel;
+                }
+            });
+            modalInstance.result.then(function (createdLocation) {
+                console.log(createdLocation);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.deleteLocation = function (location) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/league/modals/delete-location/delete-location.tpl.html', 'league.modals.deleteLocation.ctrl', {
+                location: function () {
+                    return location;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.saveLocation = function (location) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/league/modals/save-location/save-location.tpl.html', 'league.modals.saveLocation.ctrl', {
+                location: function () {
+                    return location;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
     }]);
 /// <reference path='../league-modals.mdl.ts' />
 impakt.league.modals.controller('league.modals.saveConference.ctrl', ['$scope',
@@ -16491,6 +17502,96 @@ impakt.league.modals.controller('league.modals.saveLeague.ctrl', ['$scope',
             $uibModalInstance.dismiss();
         };
     }]);
+/// <reference path='../league-modals.mdl.ts' />
+impakt.league.modals.controller('league.modals.saveLocation.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_league',
+    'location',
+    function ($scope, $uibModalInstance, _league, location) {
+        $scope.location = location;
+        $scope.ok = function () {
+            _league.updateLocation($scope.location)
+                .then(function (savedLocation) {
+                $uibModalInstance.close(savedLocation);
+            }, function (err) {
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='./models.ts' />
+var League;
+(function (League) {
+    var Models;
+    (function (Models) {
+        var Location = (function (_super) {
+            __extends(Location, _super);
+            function Location() {
+                _super.call(this, Common.Enums.ImpaktDataTypes.Location);
+                this.associable = [
+                    'games',
+                    'teams'
+                ];
+            }
+            Location.prototype.copy = function (newLocation) {
+                var copyLocation = newLocation || new League.Models.Location();
+                return _super.prototype.copy.call(this, copyLocation, this);
+            };
+            Location.prototype.toJson = function () {
+                return $.extend({
+                    name: this.name,
+                }, _super.prototype.toJson.call(this));
+            };
+            Location.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.name = json.name;
+                _super.prototype.fromJson.call(this, json);
+            };
+            return Location;
+        })(Common.Models.AssociableEntity);
+        Models.Location = Location;
+    })(Models = League.Models || (League.Models = {}));
+})(League || (League = {}));
+/// <reference path='./models.ts' />
+var League;
+(function (League) {
+    var Models;
+    (function (Models) {
+        var LocationCollection = (function (_super) {
+            __extends(LocationCollection, _super);
+            function LocationCollection() {
+                _super.call(this);
+            }
+            LocationCollection.prototype.toJson = function () {
+                return {
+                    guid: this.guid,
+                    locations: _super.prototype.toJson.call(this)
+                };
+            };
+            LocationCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.guid = json.guid;
+                var locationArray = json.locations || [];
+                for (var i = 0; i < locationArray.length; i++) {
+                    var rawLocationModel = locationArray[i];
+                    if (Common.Utilities.isNullOrUndefined(rawLocationModel)) {
+                        continue;
+                    }
+                    var locationModel = new League.Models.Location();
+                    locationModel.fromJson(rawLocationModel);
+                    this.add(locationModel);
+                }
+            };
+            return LocationCollection;
+        })(Common.Models.ActionableCollection);
+        Models.LocationCollection = LocationCollection;
+    })(Models = League.Models || (League.Models = {}));
+})(League || (League = {}));
 /// <reference path='../modules.mdl.ts' />
 impakt.main = angular.module('impakt.main', [])
     .config([function () {
@@ -18777,7 +19878,7 @@ impakt.playbook.service('_playbook', [
                     return playbookModel.name == newPlaybookModel.name;
                 });
                 if (nameExists) {
-                    var notification_4 = __notifications.warning('Failed to create playbook. Playbook "', newPlaybookModel.name, '" already exists.');
+                    var notification_5 = __notifications.warning('Failed to create playbook. Playbook "', newPlaybookModel.name, '" already exists.');
                     _playbookModals.createPlaybookDuplicate(newPlaybookModel);
                     return;
                 }
@@ -19899,13 +21000,1165 @@ impakt.search.controller('search.ctrl', [
         });
     }]);
 /// <reference path='../modules.mdl.ts' />
-impakt.season = angular.module('impakt.season', [])
-    .config([function () {
+/// <reference path='./season.ts' />
+impakt.season = angular.module('impakt.season', [
+    'impakt.season.browser',
+    'impakt.season.drilldown',
+    'impakt.season.modals'
+])
+    .config([
+    '$stateProvider',
+    '$urlRouterProvider',
+    function ($stateProvider, $urlRouterProvider) {
         console.debug('impakt.season - config');
+        // impakt module states
+        $stateProvider.state('season', {
+            url: '/season',
+            templateUrl: 'modules/season/season.tpl.html',
+            controller: 'season.ctrl'
+        });
     }])
     .run(function () {
     console.debug('impakt.season - run');
 });
+/// <reference path='../season.mdl.ts' />
+impakt.season.browser = angular.module('impakt.season.browser', [])
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.season.browser - config');
+        $stateProvider.state('season.browser', {
+            url: '/browser',
+            templateUrl: 'modules/season/browser/season-browser.tpl.html',
+            controller: 'season.browser.ctrl'
+        });
+    }])
+    .run(function () {
+    console.debug('impakt.season.browser - run');
+});
+/// <reference path='./season-browser.mdl.ts' />
+impakt.season.browser.controller('season.browser.ctrl', [
+    '$scope',
+    '_season',
+    '_seasonModals',
+    function ($scope, _season, _seasonModals) {
+        $scope.seasons = impakt.context.Season.seasons;
+        // TODO @theBull - filter by year
+        // TODO @theBull - filter by league
+        // TODO @theBull - filter by week
+        $scope.createSeason = function () {
+            _seasonModals.createSeason();
+        };
+    }]);
+/// <reference path='../season.mdl.ts' />
+impakt.season.drilldown = angular.module('impakt.season.drilldown', [
+    'impakt.season.drilldown.season',
+    'impakt.season.drilldown.week',
+    'impakt.season.drilldown.game'
+])
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.season.drilldown - config');
+        $stateProvider.state('season.drilldown', {
+            url: '/drilldown',
+            templateUrl: 'modules/season/drilldown/season-drilldown.tpl.html',
+            controller: 'season.drilldown.ctrl'
+        });
+    }])
+    .run(function () {
+    console.debug('impakt.season.drilldown - run');
+});
+/// <reference path='../season-drilldown.mdl.ts' />
+impakt.season.drilldown.game = angular.module('impakt.season.drilldown.game', [])
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.season.drilldown.game - config');
+        $stateProvider.state('season.drilldown.game', {
+            url: '/game',
+            templateUrl: 'modules/season/drilldown/game/season-drilldown-game.tpl.html',
+            controller: 'season.drilldown.game.ctrl'
+        });
+    }])
+    .run(function () {
+    console.debug('impakt.season.drilldown.game - run');
+});
+/// <reference path='./season-drilldown-game.mdl.ts' />
+impakt.season.drilldown.game.controller('season.drilldown.game.ctrl', [
+    '$scope',
+    '$rootScope',
+    '_associations',
+    '_season',
+    '_seasonModals',
+    '_teamModals',
+    function ($scope, $rootScope, _associations, _season, _seasonModals, _teamModals) {
+        $scope.season = _season.drilldown.season;
+        $scope.game = _season.drilldown.game;
+        $scope.teams = new Team.Models.TeamModelCollection();
+        $scope.homeTeam = null;
+        $scope.awayTeam = null;
+        var deleteGameListener = $rootScope.$on('delete-game', function (e, game) {
+            if (!Common.Utilities.isNullOrUndefined(_season.drilldown.week))
+                _season.toWeekDrilldown(_season.drilldown.week);
+        });
+        var associationsUpdatedListener = $rootScope.$on('associations-updated', function (e) {
+            init();
+        });
+        $scope.$on('$destroy', function () {
+            deleteGameListener();
+            associationsUpdatedListener();
+        });
+        function init() {
+            var gameAssociations = _associations.getAssociated($scope.game);
+            $scope.game.setSeason($scope.season);
+            if (Common.Utilities.isNotNullOrUndefined(gameAssociations)) {
+                $scope.teams = gameAssociations.teams;
+                $scope.teams.forEach(function (team, index) {
+                    var teamAssociations = _associations.getAssociated(team);
+                    //team.setGame($scope.game);						
+                });
+            }
+        }
+        init();
+    }]);
+/// <reference path='./season-drilldown.mdl.ts' />
+impakt.season.drilldown.controller('season.drilldown.ctrl', [
+    '$scope',
+    '_details',
+    '_season',
+    function ($scope, _details, _season) {
+        $scope.drilldown = _season.drilldown;
+        $scope.toSeasonDrilldown = function (season) {
+            _season.toSeasonDrilldown(season);
+        };
+        $scope.toWeekDrilldown = function (week) {
+            _season.toWeekDrilldown(week);
+        };
+        $scope.toBrowser = function () {
+            _details.selectedElements.deselectAll();
+            _season.toBrowser();
+        };
+    }]);
+/// <reference path='../season-drilldown.mdl.ts' />
+impakt.season.drilldown.season = angular.module('impakt.season.drilldown.season', [])
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.season.drilldown.season - config');
+        $stateProvider.state('season.drilldown.season', {
+            url: '/season',
+            templateUrl: 'modules/season/drilldown/season/season-drilldown-season.tpl.html',
+            controller: 'season.drilldown.season.ctrl'
+        });
+    }])
+    .run(function () {
+    console.debug('impakt.season.drilldown.season - run');
+});
+/// <reference path='./season-drilldown-season.mdl.ts' />
+impakt.season.drilldown.season.controller('season.drilldown.season.ctrl', [
+    '$scope',
+    '$rootScope',
+    '_associations',
+    '_season',
+    '_seasonModals',
+    function ($scope, $rootScope, _associations, _season, _seasonModals) {
+        $scope.season = _season.drilldown.season;
+        $scope.games = new Season.Models.GameCollection();
+        var deleteGameListener = $rootScope.$on('delete-game', function (e, game) {
+            $scope.games.remove(game.guid);
+        });
+        var associationsUpdatedListener = $rootScope.$on('associations-updated', function (e) {
+            init();
+        });
+        $scope.$on('$destroy', function () {
+            deleteGameListener();
+            associationsUpdatedListener();
+        });
+        function init() {
+            var seasonAssociations = _associations.getAssociated($scope.season);
+            if (Common.Utilities.isNotNullOrUndefined(seasonAssociations)) {
+                $scope.games = seasonAssociations.games;
+                $scope.games.forEach(function (game, index) {
+                    var gameAssociations = _associations.getAssociated(game);
+                    //game.setSeason($scope.season);
+                });
+            }
+            $scope.season.weeks.forEach(function (week, index) {
+            });
+        }
+        $scope.createGame = function () {
+            _seasonModals.createGame($scope.season)
+                .then(function () {
+                init();
+            });
+        };
+        init();
+    }]);
+/// <reference path='../season-drilldown.mdl.ts' />
+impakt.season.drilldown.week = angular.module('impakt.season.drilldown.week', [])
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.season.drilldown.week - config');
+        $stateProvider.state('season.drilldown.week', {
+            url: '/week',
+            templateUrl: 'modules/season/drilldown/week/season-drilldown-week.tpl.html',
+            controller: 'season.drilldown.week.ctrl'
+        });
+    }])
+    .run(function () {
+    console.debug('impakt.season.drilldown.week - run');
+});
+/// <reference path='./season-drilldown-week.mdl.ts' />
+impakt.season.drilldown.week.controller('season.drilldown.week.ctrl', [
+    '$scope',
+    '$rootScope',
+    '_associations',
+    '_season',
+    '_seasonModals',
+    function ($scope, $rootScope, _associations, _season, _seasonModals) {
+        $scope.season = _season.drilldown.season;
+        $scope.week = _season.drilldown.week;
+        $scope.allGames = impakt.context.Season.games;
+        $scope.games = new Season.Models.GameCollection();
+        $scope.teams = impakt.context.Team.teams;
+        $scope.location = impakt.context.League.locations;
+        var deleteGameListener = $rootScope.$on('delete-game', function (e, game) {
+            $scope.games.remove(game.guid);
+        });
+        var associationsUpdatedListener = $rootScope.$on('associations-updated', function (e) {
+            init();
+        });
+        $scope.$on('$destroy', function () {
+            associationsUpdatedListener();
+            deleteGameListener();
+        });
+        function init() {
+            if (Common.Utilities.isNullOrUndefined($scope.week) ||
+                Common.Utilities.isNullOrUndefined($scope.games))
+                return;
+            $scope.allGames.forEach(function (game, index) {
+                if (game.weekGuid == $scope.week.guid) {
+                    var gameAssociations = _associations.getAssociated(game);
+                    if (Common.Utilities.isNotNullOrUndefined(gameAssociations.locations)) {
+                        game.setLocation(gameAssociations.locations.first());
+                    }
+                    if (Common.Utilities.isNotNullOrUndefined(gameAssociations.teams)) {
+                        game.setAway(gameAssociations.teams.get(game.awayGuid));
+                        game.setHome(gameAssociations.teams.get(game.homeGuid));
+                    }
+                    game.setWeek($scope.week);
+                    $scope.games.add(game);
+                }
+            });
+        }
+        $scope.createGame = function () {
+            _seasonModals.createGame($scope.season, $scope.week)
+                .then(function () {
+                init();
+            });
+        };
+        init();
+    }]);
+/// <reference path='../season.mdl.ts' />
+impakt.season.modals = angular.module('impakt.season.modals', [])
+    .config(function () {
+    console.debug('impakt.season.modals - config');
+})
+    .run(function () {
+    console.debug('impakt.season.modals - run');
+});
+/// <reference path='../season-modals.mdl.ts' />
+impakt.season.modals.controller('season.modals.createGameDuplicateError.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_season',
+    'game',
+    function ($scope, $uibModalInstance, _season, game) {
+        $scope.game = game;
+        $scope.ok = function () {
+            $uibModalInstance.close();
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../season-modals.mdl.ts' />
+impakt.season.modals.controller('season.modals.createGame.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_associations',
+    '_season',
+    '_leagueModals',
+    'season',
+    'week',
+    function ($scope, $uibModalInstance, _associations, _season, _leagueModals, season, week) {
+        $scope.seasons = impakt.context.Season.seasons;
+        $scope.newGame = new Season.Models.Game();
+        $scope.selectedSeason = season || $scope.seasons.first();
+        $scope.teams = impakt.context.Team.teams;
+        $scope.locations = impakt.context.League.locations;
+        // TODO @theBull
+        $scope.selectedHomeTeam = new Team.Models.TeamModel();
+        $scope.selectedAwayTeam = new Team.Models.TeamModel();
+        $scope.selectedWeek = week || new Season.Models.Week();
+        // initalize selected location with:
+        // - home team's location, if it exists - or - first location in the list
+        $scope.selectedLocation = $scope.selectedHomeTeam && $scope.selectedHomeTeam.location ?
+            $scope.selectedHomeTeam.location : $scope.locations.first();
+        function init() {
+            if (Common.Utilities.isNotNullOrUndefined(week)) {
+                $scope.newGame.weekGuid = week.guid;
+            }
+        }
+        $scope.teamChange = function () {
+            $scope.newGame.setHome($scope.selectedHomeTeam);
+            $scope.newGame.setAway($scope.selectedAwayTeam);
+        };
+        $scope.selectLocation = function () {
+            if (Common.Utilities.isNotNullOrUndefined($scope.selectedLocation)) {
+                $scope.newGame.setLocation($scope.selectedLocation);
+            }
+        };
+        $scope.selectWeek = function () {
+            $scope.newGame.weekGuid = $scope.selectedWeek.guid;
+        };
+        $scope.createLocation = function () {
+            _leagueModals.createLocation().then(function (createdLocation) {
+                $scope.locations = impakt.context.League.locations;
+                $scope.selectedLocation = createdLocation;
+                $scope.selectLocation();
+            });
+        };
+        $scope.updateDatetime = function () {
+            // TODO @theBull
+        };
+        $scope.ok = function () {
+            _season.createGame($scope.newGame)
+                .then(function (createdGame) {
+                var associationsToAdd = [
+                    $scope.selectedHomeTeam,
+                    $scope.selectedAwayTeam,
+                    $scope.selectedSeason,
+                    $scope.selectedLocation
+                ];
+                _associations.createAssociations(createdGame, associationsToAdd);
+                $uibModalInstance.close(createdGame);
+            }, function (err) {
+                $uibModalInstance.close(err);
+            });
+            $uibModalInstance.close();
+        };
+        $scope.cancel = function () {
+            removeGameFromCreationContext();
+            $uibModalInstance.dismiss();
+        };
+        function removeGameFromCreationContext() {
+            // Remove the play from the creation context
+            // after creating the new play or cancelling
+            if (Common.Utilities.isNotNullOrUndefined($scope.newGame))
+                impakt.context.Season.creation.games.remove($scope.newGame.guid);
+        }
+        init();
+    }]);
+/// <reference path='../season-modals.mdl.ts' />
+impakt.season.modals.controller('season.modals.createSeasonDuplicateError.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_season',
+    'season',
+    function ($scope, $uibModalInstance, _season, season) {
+        $scope.season = season;
+        $scope.ok = function () {
+            $uibModalInstance.close();
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../season-modals.mdl.ts' />
+impakt.season.modals.controller('season.modals.createSeason.ctrl', [
+    '$scope',
+    '$timeout',
+    '$uibModalInstance',
+    '_season',
+    function ($scope, $timeout, $uibModalInstance, _season) {
+        $scope.newSeasonModel = new Season.Models.SeasonModel();
+        $scope.numberOfWeeks = 32;
+        $scope.maxWeeks = 64;
+        $scope.minWeeks = 1;
+        $scope.debounce = null;
+        var DEBOUNCE_DELAY = 500;
+        function init() {
+            for (var i = 0; i < $scope.numberOfWeeks; i++) {
+                $scope.newSeasonModel.weeks.add(createWeek(i + 1), false);
+            }
+        }
+        function createWeek(weekNumber) {
+            var week = new Season.Models.Week();
+            week.name = 'Week';
+            week.number = weekNumber;
+            week.incrementWeek($scope.newSeasonModel.start, $scope.newSeasonModel.weeks.size());
+            return week;
+        }
+        $scope.setWeeks = function () {
+            if (Common.Utilities.isNotNullOrUndefined($scope.debounce)) {
+                // clear an existing timeout if exists, to debounce
+                $timeout.cancel($scope.debounce);
+            }
+            $scope.debounce = $timeout(function () {
+                if (Common.Utilities.isNullOrUndefined($scope.numberOfWeeks) ||
+                    $scope.numberOfWeeks == '' ||
+                    isNaN($scope.numberOfWeeks) ||
+                    $scope.numberOfWeeks == 0)
+                    return;
+                var sizeDiff = $scope.numberOfWeeks - $scope.newSeasonModel.weeks.size();
+                if (sizeDiff == 0) {
+                    return;
+                }
+                else {
+                    if ($scope.numberOfWeeks > $scope.maxWeeks)
+                        $scope.numberOfWeeks = $scope.maxWeeks;
+                    if ($scope.numberOfWeeks < $scope.minWeeks)
+                        $scope.numberOfWeeks = $scope.minWeeks;
+                    $scope.newSeasonModel.weeks.listen(false);
+                    if (sizeDiff < 0) {
+                        while ($scope.newSeasonModel.weeks.size() > $scope.numberOfWeeks) {
+                            $scope.newSeasonModel.weeks.pop();
+                        }
+                    }
+                    else {
+                        while ($scope.newSeasonModel.weeks.size() < $scope.numberOfWeeks) {
+                            $scope.newSeasonModel.weeks.add(createWeek($scope.newSeasonModel.weeks.size() + 1));
+                        }
+                    }
+                    $scope.newSeasonModel.weeks.listen(true);
+                }
+            }, DEBOUNCE_DELAY);
+        };
+        $scope.weekBlur = function () {
+            $scope.numberOfWeeks = $scope.newSeasonModel.weeks.size();
+        };
+        $scope.updateDatetime = function () {
+            var seasonStartDate = $scope.newSeasonModel.start.date;
+            $scope.newSeasonModel.weeks.forEach(function (week, index) {
+                // update weeks with the start date, +7 days
+                week.incrementWeek($scope.newSeasonModel.start, index);
+            });
+        };
+        $scope.ok = function () {
+            _season.createSeason($scope.newSeasonModel)
+                .then(function (createdSeason) {
+                $uibModalInstance.close(createdSeason);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+        init();
+    }]);
+/// <reference path='../season-modals.mdl.ts' />
+impakt.season.modals.controller('season.modals.deleteGame.ctrl', [
+    '$scope',
+    '$rootScope',
+    '$uibModalInstance',
+    '_season',
+    'game',
+    function ($scope, $rootScope, $uibModalInstance, _season, game) {
+        $scope.game = game;
+        $scope.ok = function () {
+            _season.deleteGame($scope.game)
+                .then(function (results) {
+                $rootScope.$broadcast('delete-game', $scope.game);
+                $uibModalInstance.close(results);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../season-modals.mdl.ts' />
+impakt.season.modals.controller('season.modals.deleteSeason.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_season',
+    'season',
+    function ($scope, $uibModalInstance, _season, season) {
+        $scope.season = season;
+        $scope.ok = function () {
+            _season.deleteSeason($scope.season)
+                .then(function (results) {
+                $uibModalInstance.close(results);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../season-modals.mdl.ts' />
+impakt.season.modals.controller('season.modals.saveGame.ctrl', ['$scope',
+    '$uibModalInstance',
+    '_season',
+    'game',
+    function ($scope, $uibModalInstance, _season, game) {
+        $scope.game = game;
+        $scope.ok = function () {
+            _season.updateGame($scope.game)
+                .then(function (savedGame) {
+                $uibModalInstance.close(savedGame);
+            }, function (err) {
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../season-modals.mdl.ts' />
+impakt.season.modals.controller('season.modals.saveSeason.ctrl', ['$scope',
+    '$uibModalInstance',
+    '_season',
+    'season',
+    function ($scope, $uibModalInstance, _season, season) {
+        $scope.season = season;
+        $scope.ok = function () {
+            _season.updateSeason($scope.season)
+                .then(function (savedSeason) {
+                $uibModalInstance.close(savedSeason);
+            }, function (err) {
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='./season-modals.mdl.ts' />
+impakt.season.modals.service('_seasonModals', [
+    '$q',
+    '__modals',
+    function ($q, __modals) {
+        /**
+         *
+         * SEASON
+         *
+         */
+        this.createSeason = function () {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/season/modals/create-season/create-season.tpl.html', 'season.modals.createSeason.ctrl', {});
+            modalInstance.result.then(function (createdSeason) {
+                console.log(createdSeason);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.createSeasonDuplicate = function (seasonModel) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/season/modals/create-season-duplicate-error/create-season-duplicate-error.tpl.html', 'season.modals.createSeasonDuplicateError.ctrl', {
+                season: function () {
+                    return seasonModel;
+                }
+            });
+            modalInstance.result.then(function (createdSeason) {
+                console.log(createdSeason);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.deleteSeason = function (season) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/season/modals/delete-season/delete-season.tpl.html', 'season.modals.deleteSeason.ctrl', {
+                season: function () {
+                    return season;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.saveSeason = function (season) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/season/modals/save-season/save-season.tpl.html', 'season.modals.saveSeason.ctrl', {
+                season: function () {
+                    return season;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        /**
+         *
+         * GAME
+         *
+         */
+        this.createGame = function (season, week) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/season/modals/create-game/create-game.tpl.html', 'season.modals.createGame.ctrl', {
+                season: function () {
+                    return season;
+                },
+                week: function () {
+                    return week;
+                }
+            });
+            modalInstance.result.then(function (createdGame) {
+                console.log(createdGame);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.createGameDuplicate = function (game) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/season/modals/create-game-duplicate-error/create-game-duplicate-error.tpl.html', 'season.modals.createGameDuplicateError.ctrl', {
+                game: function () {
+                    return game;
+                }
+            });
+            modalInstance.result.then(function (createdGame) {
+                console.log(createdGame);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.deleteGame = function (game) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/season/modals/delete-game/delete-game.tpl.html', 'season.modals.deleteGame.ctrl', {
+                game: function () {
+                    return game;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.saveGame = function (game) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/season/modals/save-game/save-game.tpl.html', 'season.modals.saveGame.ctrl', {
+                game: function () {
+                    return game;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        /**
+         *
+         * WEEK
+         *
+         */
+        this.createWeek = function (game) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/season/modals/create-week/create-week.tpl.html', 'season.modals.createWeek.ctrl', {
+                game: function () {
+                    return game;
+                }
+            });
+            modalInstance.result.then(function (createdWeek) {
+                console.log(createdWeek);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.createWeekDuplicate = function (week) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/season/modals/create-week-duplicate-error/create-week-duplicate-error.tpl.html', 'season.modals.createWeekDuplicateError.ctrl', {
+                week: function () {
+                    return week;
+                }
+            });
+            modalInstance.result.then(function (createdWeek) {
+                console.log(createdWeek);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.deleteWeek = function (week) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/season/modals/delete-week/delete-week.tpl.html', 'season.modals.deleteWeek.ctrl', {
+                week: function () {
+                    return week;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.saveWeek = function (week) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/season/modals/save-week/save-week.tpl.html', 'season.modals.saveWeek.ctrl', {
+                week: function () {
+                    return week;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+    }]);
+/// <reference path='./season.mdl.ts' />
+/**
+ * Season constants defined here
+ */
+impakt.season.constant('SEASON', {
+    ENDPOINT: '/teamInfo',
+    // Season
+    CREATE_SEASON: '/createSeason',
+    GET_SEASONS: '/getSeasons',
+    GET_SEASON: '/getSeason',
+    DELETE_SEASON: '/deleteSeason',
+    UPDATE_SEASON: '/updateSeason',
+    // Season Games
+    CREATE_GAME: '/createGame',
+    GET_GAMES: '/getGames',
+    GET_GAME: '/getGame',
+    DELETE_GAME: '/deleteGame',
+    UPDATE_GAME: '/updateGame'
+});
+/// <reference path='./season.mdl.ts' />
+impakt.season.controller('season.ctrl', ['$scope', '$state', '_season',
+    function ($scope, $state, _season) {
+        // load up the browser by default
+        $state.go('season.browser');
+    }]);
+/// <reference path='./models/models.ts' />
+/// <reference path='./season.ts' />
+// Season service
+impakt.season.service('_season', [
+    'SEASON',
+    '$rootScope',
+    '$q',
+    '$state',
+    '__api',
+    '__localStorage',
+    '__notifications',
+    '_seasonModals',
+    function (SEASON, $rootScope, $q, $state, __api, __localStorage, __notifications, _seasonModals) {
+        var self = this;
+        this.drilldown = {
+            season: null,
+            week: null,
+            game: null,
+        };
+        /**
+         * Retrieves all seasons
+         */
+        this.getSeasons = function () {
+            var d = $q.defer();
+            var notification = __notifications.pending('Getting seasons...');
+            __api.get(__api.path(SEASON.ENDPOINT, SEASON.GET_SEASONS))
+                .then(function (response) {
+                var collection = new Season.Models.SeasonModelCollection();
+                if (response && response.data && response.data.results) {
+                    var seasonResults = Common.Utilities.parseData(response.data.results);
+                    for (var i = 0; i < seasonResults.length; i++) {
+                        var seasonResult = seasonResults[i];
+                        if (seasonResult && seasonResult.data && seasonResult.data.model) {
+                            var seasonModel = new Season.Models.SeasonModel();
+                            seasonResult.data.model.key = seasonResult.key;
+                            seasonModel.fromJson(seasonResult.data.model);
+                            collection.add(seasonModel);
+                        }
+                    }
+                }
+                notification.success([collection.size(), ' Seasons successfully retreived'].join(''));
+                d.resolve(collection);
+            }, function (error) {
+                notification.error('Failed to retieve Seasons');
+                console.error(error);
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Gets a single season with the given key
+         * @param {number} key The key of the season to retrieve
+         */
+        this.getSeason = function (key) {
+            var d = $q.defer();
+            __api.get(__api.path(SEASON.ENDPOINT, SEASON.GET_SEASON, '/' + key))
+                .then(function (response) {
+                var season = Common.Utilities.parseData(response.data.results);
+                d.resolve(season);
+            }, function (error) {
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Sends a season model to the server for storage
+         * @param {Common.Models.SeasonModel} seasonModel The model to be created/saved
+         */
+        this.createSeason = function (newSeasonModel) {
+            var d = $q.defer();
+            if (Common.Utilities.isNotNullOrUndefined(newSeasonModel)) {
+                var nameExists = impakt.context.Season.seasons.hasElementWhich(function (seasonModel, index) {
+                    return seasonModel.name == newSeasonModel.name;
+                });
+                if (nameExists) {
+                    var notification_6 = __notifications.warning('Failed to create season. Season "', newSeasonModel.name, '" already exists.');
+                    _seasonModals.createSeasonDuplicate(newSeasonModel);
+                    return;
+                }
+            }
+            // set key to -1 to ensure a new object is created server-side
+            newSeasonModel.key = -1;
+            var seasonModelJson = newSeasonModel.toJson();
+            var notification = __notifications.pending('Creating season "', newSeasonModel.name, '"...');
+            __api.post(__api.path(SEASON.ENDPOINT, SEASON.CREATE_SEASON), {
+                version: 1,
+                name: newSeasonModel.name,
+                data: {
+                    version: 1,
+                    model: seasonModelJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var seasonModel = new Season.Models.SeasonModel();
+                if (results && results.data && results.data.model) {
+                    results.data.model.key = results.key;
+                    seasonModel.fromJson(results.data.model);
+                    // update the context
+                    impakt.context.Season.seasons.add(seasonModel);
+                }
+                else {
+                    throw new Error('CreateSeason did not return a valid season model');
+                }
+                notification.success('Successfully created season "', seasonModel.name, '"');
+                $rootScope.$broadcast('create-entity', seasonModel);
+                d.resolve(seasonModel);
+            }, function (error) {
+                notification.error('Failed to create season "', newSeasonModel.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Deletes the given season for the current user
+         * @param {Season.Models.SeasonModel} season The season to be deleted
+         */
+        this.deleteSeason = function (season) {
+            var d = $q.defer();
+            var notification = __notifications.pending('Deleting season "', season.name, '"...');
+            __api.post(__api.path(SEASON.ENDPOINT, SEASON.DELETE_SEASON), { key: season.key }).then(function (response) {
+                // update the context
+                impakt.context.Season.seasons.remove(season.guid);
+                notification.success('Deleted season "', season.name, '"');
+                if ($state.is('season.drilldown.season'))
+                    self.toBrowser();
+                d.resolve(season);
+            }, function (error) {
+                notification.error('Failed to delete season "', season.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Updates the given season for the current user
+         * @param {Season.Models.SeasonModel} season The season to update
+         */
+        this.updateSeason = function (season) {
+            var d = $q.defer();
+            // update assignment collection to json object
+            var seasonJson = season.toJson();
+            var notification = __notifications.pending('Updating season "', season.name, '"...');
+            __api.post(__api.path(SEASON.ENDPOINT, SEASON.UPDATE_SEASON), {
+                version: 1,
+                name: seasonJson.name,
+                key: seasonJson.key,
+                data: {
+                    version: 1,
+                    key: seasonJson.key,
+                    model: seasonJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var seasonModel = new Season.Models.SeasonModel();
+                if (results && results.data && results.data.model) {
+                    seasonModel.fromJson(results.data.model);
+                    // update the context
+                    impakt.context.Season.seasons.set(seasonModel.guid, seasonModel);
+                }
+                notification.success('Successfully updated season "', season.name, '"');
+                d.resolve(seasonModel);
+            }, function (error) {
+                notification.error('Failed to update season "', season.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Retrieves all games
+         */
+        this.getGames = function () {
+            var d = $q.defer();
+            var notification = __notifications.pending('Getting games...');
+            __api.get(__api.path(SEASON.ENDPOINT, SEASON.GET_GAMES))
+                .then(function (response) {
+                var collection = new Season.Models.GameCollection();
+                if (response && response.data && response.data.results) {
+                    var gameResults = Common.Utilities.parseData(response.data.results);
+                    for (var i = 0; i < gameResults.length; i++) {
+                        var gameResult = gameResults[i];
+                        if (gameResult && gameResult.data && gameResult.data.game) {
+                            var gameModel = new Season.Models.Game();
+                            gameResult.data.game.key = gameResult.key;
+                            gameModel.fromJson(gameResult.data.game);
+                            collection.add(gameModel);
+                        }
+                    }
+                }
+                notification.success([collection.size(), ' Games successfully retreived'].join(''));
+                d.resolve(collection);
+            }, function (error) {
+                notification.error('Failed to retieve Games');
+                console.error(error);
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Gets a single game with the given key
+         * @param {number} key The key of the game to retrieve
+         */
+        this.getGame = function (key) {
+            var d = $q.defer();
+            __api.get(__api.path(SEASON.ENDPOINT, SEASON.GET_GAME, '/' + key))
+                .then(function (response) {
+                var game = Common.Utilities.parseData(response.data.results);
+                d.resolve(game);
+            }, function (error) {
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Sends a game model to the server for storage
+         * @param {Common.Models.Game} newGame The game to be created/saved
+         */
+        this.createGame = function (newGame) {
+            var d = $q.defer();
+            if (Common.Utilities.isNotNullOrUndefined(newGame)) {
+                var nameExists = impakt.context.Season.games.hasElementWhich(function (gameModel, index) {
+                    return gameModel.name == newGame.name;
+                });
+                if (nameExists) {
+                    var notification_7 = __notifications.warning('Failed to create game. Game "', newGame.name, '" already exists.');
+                    _seasonModals.createGameDuplicate(newGame);
+                    return;
+                }
+            }
+            // set key to -1 to ensure a new object is created server-side
+            newGame.key = -1;
+            var gameModelJson = newGame.toJson();
+            var notification = __notifications.pending('Creating game "', newGame.name, '"...');
+            __api.post(__api.path(SEASON.ENDPOINT, SEASON.CREATE_GAME), {
+                version: 1,
+                name: newGame.name,
+                data: {
+                    version: 1,
+                    game: gameModelJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var gameModel = new Season.Models.Game();
+                if (results && results.data && results.data.game) {
+                    results.data.game.key = results.key;
+                    gameModel.fromJson(results.data.game);
+                    // update the context
+                    impakt.context.Season.games.add(gameModel);
+                }
+                else {
+                    throw new Error('CreateGame did not return a valid game');
+                }
+                notification.success('Successfully created game "', gameModel.name, '"');
+                $rootScope.$broadcast('create-entity', gameModel);
+                d.resolve(gameModel);
+            }, function (error) {
+                notification.error('Failed to create game "', newGame.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Deletes the given game for the current user
+         * @param {Season.Models.Game} game The game to be deleted
+         */
+        this.deleteGame = function (game) {
+            var d = $q.defer();
+            var notification = __notifications.pending('Deleting game "', game.name, '"...');
+            __api.post(__api.path(SEASON.ENDPOINT, SEASON.DELETE_GAME), { key: game.key }).then(function (response) {
+                // update the context
+                impakt.context.Season.games.remove(game.guid);
+                notification.success('Deleted game "', game.name, '"');
+                d.resolve(game);
+            }, function (error) {
+                notification.error('Failed to delete game "', game.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Updates the given game for the current user
+         * @param {Season.Models.Game} game The game to update
+         */
+        this.updateGame = function (game) {
+            var d = $q.defer();
+            // update assignment collection to json object
+            var gameJson = game.toJson();
+            var notification = __notifications.pending('Updating game "', game.name, '"...');
+            __api.post(__api.path(SEASON.ENDPOINT, SEASON.UPDATE_GAME), {
+                version: 1,
+                name: gameJson.name,
+                key: gameJson.key,
+                data: {
+                    version: 1,
+                    key: gameJson.key,
+                    game: gameJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var gameModel = new Season.Models.Game();
+                if (results && results.data && results.data.game) {
+                    gameModel.fromJson(results.data.game);
+                    // update the context
+                    impakt.context.Season.games.set(gameModel.guid, gameModel);
+                }
+                notification.success('Successfully updated game "', game.name, '"');
+                d.resolve(gameModel);
+            }, function (error) {
+                notification.error('Failed to update game "', game.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        this.deleteEntityByType = function (entity) {
+            if (Common.Utilities.isNullOrUndefined(entity))
+                return;
+            var d = $q.defer();
+            switch (entity.impaktDataType) {
+                case Common.Enums.ImpaktDataTypes.Season:
+                    return _seasonModals.deleteSeason(entity);
+                case Common.Enums.ImpaktDataTypes.Game:
+                    return _seasonModals.deleteGame(entity);
+                default:
+                    d.reject(new Error('_season deleteEntityByType: impaktDataType not supported'));
+                    break;
+            }
+            return d.promise;
+        };
+        this.updateEntityByType = function (entity) {
+            if (Common.Utilities.isNullOrUndefined(entity))
+                return;
+            var d = $q.defer();
+            switch (entity.impaktDataType) {
+                case Common.Enums.ImpaktDataTypes.Season:
+                    return _seasonModals.saveSeason(entity);
+                case Common.Enums.ImpaktDataTypes.Game:
+                    return _seasonModals.saveGame(entity);
+                default:
+                    d.reject(new Error('_season saveEntityByType: impaktDataType not supported'));
+                    break;
+            }
+            return d.promise;
+        };
+        this.toBrowser = function () {
+            this.drilldown.season = null;
+            this.drilldown.game = null;
+            $state.transitionTo('season.browser');
+        };
+        this.toSeasonDrilldown = function (season) {
+            this.drilldown.season = season;
+            this.drilldown.week = null;
+            this.drilldown.game = null;
+            impakt.context.Season.seasons.select(season);
+            _deselectEntities(false, true);
+            impakt.context.Actionable.selected.only(season);
+            $state.transitionTo('season.drilldown.season');
+        };
+        this.toWeekDrilldown = function (week) {
+            this.drilldown.week = week;
+            this.drilldown.game = null;
+            this.drilldown.season.weeks.select(week);
+            _deselectEntities(true, true);
+            impakt.context.Actionable.selected.only(week);
+            $state.transitionTo('season.drilldown.week');
+        };
+        this.toGameDrilldown = function (game) {
+            this.drilldown.game = game;
+            impakt.context.Season.games.select(game);
+            _deselectEntities(true, false);
+            impakt.context.Actionable.selected.only(game);
+            $state.transitionTo('season.drilldown.game');
+        };
+        function _deselectEntities(deselectSeasons, deselectGames) {
+            deselectSeasons && impakt.context.Season.seasons.deselectAll();
+            deselectGames && impakt.context.Season.games.deselectAll();
+        }
+    }]);
 /// <reference path='../modules.mdl.ts' />
 impakt.sidebar = angular.module('impakt.sidebar', [
     'impakt.playbook.sidebar'
@@ -19982,28 +22235,42 @@ impakt.team.modals.controller('team.modals.createTeam.ctrl', [
     '$uibModalInstance',
     '_associations',
     '_team',
+    '_leagueModals',
     'division',
-    function ($scope, $uibModalInstance, _associations, _team, division) {
-        $scope.newTeamModel = new Team.Models.TeamModel(Team.Enums.TeamTypes.Primary);
+    function ($scope, $uibModalInstance, _associations, _team, _leagueModals, division) {
+        $scope.newTeamModel = new Team.Models.TeamModel();
         $scope.teamTypes = Common.Utilities.convertEnumToList(Team.Enums.TeamTypes);
         $scope.divisions = impakt.context.League.divisions;
+        $scope.locations = impakt.context.League.locations;
         $scope.selectedDivision = division ? division : $scope.divisions.first();
-        // TODO @theBull - implement locations
-        $scope.locations = new Common.Models.Collection();
-        $scope.selectedLocation = null;
+        $scope.selectedLocation = $scope.locations.first();
         function init() {
+            $scope.selectDivision();
+            $scope.selectLocation();
+        }
+        $scope.selectDivision = function () {
             if (Common.Utilities.isNotNullOrUndefined($scope.selectedDivision)) {
                 $scope.newTeamModel.setDivision($scope.selectedDivision);
             }
-        }
-        $scope.selectDivision = function () {
-            init();
+        };
+        $scope.selectLocation = function () {
+            if (Common.Utilities.isNotNullOrUndefined($scope.selectedLocation)) {
+                $scope.newTeamModel.setLocation($scope.selectedLocation);
+            }
+        };
+        $scope.createLocation = function () {
+            _leagueModals.createLocation().then(function (createdLocation) {
+                $scope.locations = impakt.context.League.locations;
+                $scope.selectedLocation = createdLocation;
+                $scope.setLocation();
+            });
         };
         $scope.ok = function () {
             _team.createTeam($scope.newTeamModel)
                 .then(function (createdTeam) {
                 var associationsToAdd = [
-                    $scope.selectedDivision
+                    $scope.selectedDivision,
+                    $scope.selectedLocation
                 ];
                 if (Common.Utilities.isNotNullOrUndefined($scope.selectedDivision.conference)) {
                     associationsToAdd.push($scope.selectedDivision.conference);
@@ -20280,13 +22547,13 @@ impakt.team.service('_team', [
             var notification = __notifications.pending('Getting all league teams...');
             __api.get(__api.path(LEAGUE.ENDPOINT, LEAGUE.GET_TEAMS))
                 .then(function (response) {
-                var collection = new Team.Models.TeamModelCollection(Team.Enums.TeamTypes.Mixed);
+                var collection = new Team.Models.TeamModelCollection();
                 if (response && response.data && response.data.results) {
                     var teamResults = Common.Utilities.parseData(response.data.results);
                     for (var i = 0; i < teamResults.length; i++) {
                         var teamResult = teamResults[i];
                         if (teamResult && teamResult.data && teamResult.data.model) {
-                            var teamModel = new Team.Models.TeamModel(teamResult.data.model.teamType);
+                            var teamModel = new Team.Models.TeamModel();
                             teamResult.data.model.key = teamResult.key;
                             teamModel.fromJson(teamResult.data.model);
                             collection.add(teamModel);
@@ -20328,7 +22595,7 @@ impakt.team.service('_team', [
                     return teamModel.name == newTeamModel.name;
                 });
                 if (nameExists) {
-                    var notification_5 = __notifications.warning('Failed to create team. Team "', newTeamModel.name, '" already exists.');
+                    var notification_8 = __notifications.warning('Failed to create team. Team "', newTeamModel.name, '" already exists.');
                     _teamModals.createTeamDuplicate(newTeamModel);
                     return;
                 }
@@ -20347,7 +22614,7 @@ impakt.team.service('_team', [
             })
                 .then(function (response) {
                 var results = Common.Utilities.parseData(response.data.results);
-                var teamModel = new Team.Models.TeamModel(Team.Enums.TeamTypes.Other);
+                var teamModel = new Team.Models.TeamModel();
                 if (results && results.data && results.data.model) {
                     results.data.model.key = results.key;
                     teamModel.fromJson(results.data.model);
@@ -20405,7 +22672,7 @@ impakt.team.service('_team', [
             })
                 .then(function (response) {
                 var results = Common.Utilities.parseData(response.data.results);
-                var teamModel = new Team.Models.TeamModel(Team.Enums.TeamTypes.Other);
+                var teamModel = new Team.Models.TeamModel();
                 if (results && results.data && results.data.model) {
                     teamModel.fromJson(results.data.model);
                     // update the context

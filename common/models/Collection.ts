@@ -258,6 +258,10 @@ module Common.Models {
 			this.setModified(true);
 			return obj;
 		}
+		public pop(): T {
+			let key = this._keys[this._count - 1];
+			return this.remove(key);
+		}
 		public empty(): void {
 			this.removeAll();
 		}

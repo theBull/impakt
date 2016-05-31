@@ -1,0 +1,21 @@
+<div 
+	class='col black-bg-hover height3 marginRight1 marginBottom1 pointer overflowVisible'
+	ng-click='toggleSelection(week)'
+	ng-class='{"selected-border": week.selected}'>
+	
+	<div class='col pad'>
+		<div class='row'>
+			<div class='marginRight1'>
+				<p class='capitalize'>
+					{{week.getFormattedName()}}
+				</p>
+			</div>
+			<div>
+				<span class='font-gray'>
+					{{week.getFormattedDate()}}
+				</span>
+			</div>
+		</div>
+	</div>
+		
+</div>

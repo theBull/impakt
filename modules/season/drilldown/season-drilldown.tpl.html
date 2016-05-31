@@ -1,0 +1,43 @@
+<div class='col scrollY'>
+
+	<div class='col'>
+		<div class='light-border-bottom row height3'>
+			<button class='gray-bg-2-hover pointer pad'
+				ng-click='toBrowser()'>
+				<span class='glyphicon glyphicon-folder-open'></span>
+				Browser
+			</button>
+			<button class='gray-bg-1-hover pointer pad'
+				ng-click='toSeasonDrilldown(drilldown.season)'
+				ng-show='drilldown.season'>
+				<span class='glyphicon glyphicon-chevron-right'></span>
+				{{drilldown.season.name}}
+			</button>
+			<button class='gray-bg-1-hover pointer pad'
+				ng-click='toWeekDrilldown(drilldown.week)'
+				ng-show='drilldown.week'>
+				<span class='glyphicon glyphicon-chevron-right'></span>
+				{{drilldown.week.getFormattedName()}}
+			</button>
+			<button class='gray-bg-1-hover pointer pad'
+				ng-click='toGameDrilldown(drilldown.game)'
+				ng-show='drilldown.game'>
+				<span class='glyphicon glyphicon-chevron-right'></span>
+				{{drilldown.game.name}}
+			</button>
+
+		</div>
+
+		<!-- Main -->
+		<div class='col' ui-view></div>
+	</div>
+
+</div>
+
+<!-- Details -->
+<expandable 	
+	direction='left'
+	collapsed='false'
+	url='modules/details/details.tpl.html'>
+	
+</expandable>

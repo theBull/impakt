@@ -22,6 +22,16 @@ module Common.Models {
 			this.playOpponentGuid = this.playOpponent.guid;
 			this.unitType = this.playPrimary.unitType;
 			this.editorType = Playbook.Enums.EditorTypes.Play;
+
+			this.associable = [
+                'playbooks',
+                'scenarios',
+                'plays',
+                'formations',
+                'personnel',
+                'assignmentGroups',
+                'teams'
+            ];
 		}
 
 		public copy(newScenario?: Common.Models.Scenario): Common.Models.Scenario {

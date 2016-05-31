@@ -1,0 +1,14 @@
+<div class='col scrollY pad'>
+
+	<!-- Season -->
+	<div class='marginBottom1'>
+		<season-item season='season' class='fontSize15'></season-item>
+	</div>
+ 
+	<div class='marginBottom1'>
+		<h5>Weeks ({{season.weeks.size()}})</h5>
+	</div>
+
+	<week-item week='week' ng-repeat='week in season.weeks.toArray()'></week-item>
+
+</div>

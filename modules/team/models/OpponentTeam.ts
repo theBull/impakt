@@ -5,9 +5,8 @@ module Team.Models {
     extends Team.Models.TeamModel {
 
         constructor() {
-            super(Team.Enums.TeamTypes.Opponent);
-            super.setContext(this);            
-            
+            super();       
+            this.teamType = Team.Enums.TeamTypes.Opponent;
             this.onModified(function(data) {});
         }
 

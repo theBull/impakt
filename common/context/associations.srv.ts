@@ -260,6 +260,8 @@ function(
 	 *                                                of the given type if associations are found
 	 */
 	this.getAssociated = function(entity: Common.Interfaces.IAssociable): Common.Models.AssociationResults {
+		if (Common.Utilities.isNullOrUndefined(entity.associationKey))
+			return;
 
 		// 
 		// Gets the associations for the given entity by its associationKey
@@ -313,50 +315,77 @@ function(
 					if (playbook)
 						results.playbooks.add(playbook);
 					break;
+
 				case Common.Enums.ImpaktDataTypes.Scenario:
 					let scenario = impakt.context.Playbook.scenarios.get(guid);
 					if (scenario)
 						results.scenarios.add(scenario);
 					break;
+
 				case Common.Enums.ImpaktDataTypes.Play:
 					let play = impakt.context.Playbook.plays.get(guid);
 					if (play)
 						results.plays.add(play);
 					break;
+
 				case Common.Enums.ImpaktDataTypes.Formation:
 					let formation = impakt.context.Playbook.formations.get(guid);
 					if (formation)
 						results.formations.add(formation);
 					break;
+
 				case Common.Enums.ImpaktDataTypes.PersonnelGroup:
 					let personnel = impakt.context.Team.personnel.get(guid);
 					if (personnel)
 						results.personnel.add(personnel);
 					break;
+
 				case Common.Enums.ImpaktDataTypes.AssignmentGroup:
 					let assignmentGroup = impakt.context.Playbook.assignmentGroups.get(guid);
 					if (assignmentGroup)
 						results.assignmentGroups.add(assignmentGroup);
 					break;
+
 				case Common.Enums.ImpaktDataTypes.League:
 					let league = impakt.context.League.leagues.get(guid);
 					if (league)
 						results.leagues.add(league);
 					break;
+
 				case Common.Enums.ImpaktDataTypes.Conference:
 					let conference = impakt.context.League.conferences.get(guid);
 					if (conference)
 						results.conferences.add(conference);
 					break;
+
 				case Common.Enums.ImpaktDataTypes.Division:
 					let division = impakt.context.League.divisions.get(guid);
 					if (division)
 						results.divisions.add(division);
 					break;
+
 				case Common.Enums.ImpaktDataTypes.Team:
 					let team = impakt.context.Team.teams.get(guid);
 					if (team)
 						results.teams.add(team);
+					break;
+
+				case Common.Enums.ImpaktDataTypes.Location:
+					let location = impakt.context.League.locations.get(guid);
+					if (location)
+						results.locations.add(location);
+					break;
+
+				case Common.Enums.ImpaktDataTypes.Season:
+					let season = impakt.context.Season.seasons.get(guid);
+					if (season)
+						results.seasons.add(season);
+					break;
+
+				case Common.Enums.ImpaktDataTypes.Game:
+					let game = impakt.context.Season.games.get(guid);
+					if (game)
+						results.games.add(game);
 					break;
 			}		
 		}
@@ -411,8 +440,20 @@ function(
 				collection = impakt.context.League.divisions;
 				break;
 
+			case 'locations':
+				collection = impakt.context.League.locations;
+				break;
+
 			case 'teams':
 				collection = impakt.context.Team.teams;
+				break;
+
+			case 'seasons':
+				collection = impakt.context.Season.seasons;
+				break;
+
+			case 'games':
+				collection = impakt.context.Season.games;
 				break;
 		}
 
