@@ -43,7 +43,8 @@ module Season.Models {
 			this.associable = [
 				'seasons',
 				'teams',
-				'locations'
+				'locations',
+				'playbooks'
 			];
 		}
         
@@ -62,7 +63,7 @@ module Season.Models {
 				weekGuid: this.weekGuid
 			}, super.toJson());
 		}
-
+ 
 		public fromJson(json: any): void {
 			if (!json)
 				return;

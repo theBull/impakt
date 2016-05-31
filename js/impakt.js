@@ -11053,7 +11053,8 @@ var Season;
                 this.associable = [
                     'seasons',
                     'teams',
-                    'locations'
+                    'locations',
+                    'playbooks'
                 ];
             }
             Game.prototype.copy = function (newGame) {
