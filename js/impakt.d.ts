@@ -6,12 +6,17 @@ declare module Common.Interfaces {
         get(key: string | number): T;
         exists(key: string | number): boolean;
         first(): T;
+        indexOf(key: string | number): number;
+        isFirst(key: string | number): boolean;
+        isLast(key: string | number): boolean;
         getOne(): T;
         getIndex(index: number): T;
         getAll(): {
             any?: T;
         };
         getLast(): T;
+        getNext(key: string | number): T;
+        getPrevious(key: string | number): T;
         set(key: string | number, data: T): void;
         replace(replaceKey: string | number, data: T): void;
         setAtIndex(index: number, data: T): void;
@@ -91,6 +96,7 @@ declare module Common.Interfaces {
         dragging: boolean;
         flipped: boolean;
         flippable: boolean;
+        visible: boolean;
         contextmenuTemplateUrl: string;
         actions: Common.Models.ActionRegistry;
         hasGraphics(): boolean;
@@ -101,6 +107,9 @@ declare module Common.Interfaces {
         toggleSelect(metaKey?: boolean): void;
         disable(): void;
         enable(): void;
+        show(): void;
+        hide(): void;
+        toggleVisibility(): void;
         getContextmenuUrl(): string;
         drop(): void;
         onhover(hoverIn: any, hoverOut: any, context: Common.Interfaces.IActionable): void;
@@ -563,9 +572,14 @@ declare module Common.Models {
         size(): number;
         isEmpty(): boolean;
         hasElements(): boolean;
-        get(key: string | number): T;
         exists(key: string | number): boolean;
         first(): T;
+        indexOf(key: string | number): number;
+        isLast(key: string | number): boolean;
+        isFirst(key: string | number): boolean;
+        get(key: string | number): T;
+        getNext(key: string | number): T;
+        getPrevious(key: string | number): T;
         getOne(): T;
         getIndex(index: number): T;
         getAll(): {
@@ -743,6 +757,12 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
+    class NotImplementedClass extends Common.Models.Storable {
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Common.Models {
     class Expandable extends Common.Models.Modifiable {
         direction: string;
         min: number;
@@ -816,6 +836,7 @@ declare module Common.Models {
         draggable: boolean;
         flipped: boolean;
         flippable: boolean;
+        visible: boolean;
         contextmenuTemplateUrl: string;
         actions: Common.Models.ActionRegistry;
         constructor(impaktDataType: Common.Enums.ImpaktDataTypes);
@@ -847,6 +868,18 @@ declare module Common.Models {
          * Generic enable method
          */
         enable(): void;
+        /**
+         * Generic show method
+         */
+        show(): void;
+        /**
+         * Generic hide method
+         */
+        hide(): void;
+        /**
+         * Toggle show/hide
+         */
+        toggleVisibility(): void;
         getContextmenuUrl(): string;
         drop(): void;
         onhover(hoverIn: any, hoverOut: any, context: Common.Interfaces.IActionable): void;
@@ -1042,6 +1075,12 @@ declare module Common.Models {
         teams: Team.Models.TeamModelCollection;
         seasons: Season.Models.SeasonModelCollection;
         games: Season.Models.GameCollection;
+        plans: Planning.Models.PlanCollection;
+        practicePlans: Planning.Models.PracticePlanCollection;
+        practiceSchedules: Planning.Models.PracticeScheduleCollection;
+        gamePlans: Planning.Models.GamePlanCollection;
+        scoutCards: Planning.Models.ScoutCardCollection;
+        QBWristbands: Planning.Models.QBWristbandCollection;
         constructor();
         count(): number;
         hasAssociations(): boolean;
@@ -2591,6 +2630,7 @@ declare module Common.Enums {
         ScoutCard = 1033,
         Drill = 1034,
         QBWristband = 1035,
+        Plan = 1039,
         GameAnalysis = 1050,
         PlayByPlayAnalysis = 1051,
         Location = 1101,
@@ -3305,6 +3345,11 @@ declare module Playbook.Enums {
         SquarePreview = 4,
         TrianglePreview = 5,
     }
+    enum Hashmark {
+        Left = 0,
+        Center = 1,
+        Right = 2,
+    }
 }
 declare module Playbook.Constants {
     const FIELD_COLS_FULL: number;
@@ -3516,6 +3561,334 @@ declare module Team {
 declare module Analysis {
 }
 declare module Home {
+}
+declare module Planning.Interfaces {
+    interface IPlanningEditorToggleItem {
+        label: string;
+        type: Planning.Enums.PlanningEditorToggleTypes;
+    }
+}
+declare module Planning.Interfaces {
+}
+declare module Planning.Models {
+    abstract class PlanningEditorToggleItem extends Common.Models.Actionable implements Planning.Interfaces.IPlanningEditorToggleItem {
+        label: string;
+        type: Planning.Enums.PlanningEditorToggleTypes;
+        constructor(label: string);
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Planning.Models {
+    class PlanningEditorToggleItemCollection extends Common.Models.ActionableCollection<Planning.Models.PlanningEditorToggleItem> {
+        constructor();
+        fromJson(json: any): void;
+    }
+}
+declare module Planning.Models {
+    class Plan extends Common.Models.AssociableEntity {
+        game: Season.Models.Game;
+        gameGuid: string;
+        start: Common.Models.Datetime;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        setGame(game: Season.Models.Game): void;
+    }
+}
+declare module Planning.Models {
+    class PlanCollection extends Common.Models.ActionableCollection<Planning.Models.Plan> {
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Planning.Models {
+    class PracticePlan extends Common.Models.AssociableEntity {
+        plan: Planning.Models.Plan;
+        planGuid: string;
+        start: Common.Models.Datetime;
+        titleData: Planning.Models.PracticePlanTitleData;
+        situationData: Planning.Models.PracticePlanSituationData;
+        items: Planning.Models.PracticePlanItemCollection;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        private _populateItems();
+        setPlan(plan: Planning.Models.Plan): void;
+    }
+}
+declare module Planning.Models {
+    class PracticePlanCollection extends Common.Models.ActionableCollection<Planning.Models.PracticePlan> {
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Planning.Models {
+    class PracticePlanItem extends Common.Models.Modifiable {
+        index: number;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        getNumber(): number;
+    }
+}
+declare module Planning.Models {
+    class PracticePlanItemCollection extends Common.Models.Collection<Planning.Models.PracticePlanItem> {
+        constructor(count?: number);
+        fromJson(json: any): void;
+    }
+}
+declare module Planning.Models {
+    class PracticePlanTitleData extends Common.Models.Storable {
+        periodName: Planning.Models.PracticePlanPeriodName;
+        periodNumber: Planning.Models.PracticePlanPeriodNumber;
+        periodReps: Planning.Models.PracticePlanPeriodReps;
+        periodStart: Planning.Models.PracticePlanPeriodStart;
+        periodFinish: Planning.Models.PracticePlanPeriodFinish;
+        date: Planning.Models.PracticePlanDate;
+        location: Planning.Models.PracticePlanLocation;
+        opponent: Planning.Models.PracticePlanOpponent;
+        duration: Planning.Models.PracticePlanDuration;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        toCollection(): Planning.Models.PlanningEditorToggleItemCollection;
+    }
+    class PracticePlanPeriodName extends Planning.Models.PlanningEditorToggleItem {
+        name: string;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+    class PracticePlanPeriodNumber extends Planning.Models.PlanningEditorToggleItem {
+        number: number;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+    class PracticePlanPeriodReps extends Planning.Models.PlanningEditorToggleItem {
+        reps: number;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+    class PracticePlanPeriodStart extends Planning.Models.PlanningEditorToggleItem {
+        start: number;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+    class PracticePlanPeriodFinish extends Planning.Models.PlanningEditorToggleItem {
+        finish: number;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+    class PracticePlanDate extends Planning.Models.PlanningEditorToggleItem {
+        date: Common.Models.Datetime;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+    class PracticePlanLocation extends Planning.Models.PlanningEditorToggleItem {
+        location: League.Models.Location;
+        locationGuid: string;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        setLocation(location: League.Models.Location): void;
+    }
+    class PracticePlanOpponent extends Planning.Models.PlanningEditorToggleItem {
+        opponent: Team.Models.TeamModel;
+        opponentGuid: string;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        setOpponent(opponent: Team.Models.TeamModel): void;
+    }
+    class PracticePlanDuration extends Planning.Models.PlanningEditorToggleItem {
+        minutes: number;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Planning.Models {
+    class PracticePlanSituationData extends Common.Models.Storable {
+        playCount: Planning.Models.PracticePlanPlayCount;
+        hashmark: Planning.Models.PracticePlanHashmark;
+        down: Planning.Models.PracticePlanDown;
+        distance: Planning.Models.PracticePlanDistance;
+        yardline: Planning.Models.PracticePlanYardline;
+        fieldZone: Planning.Models.PracticePlanFieldZone;
+        time: Planning.Models.PracticePlanTime;
+        tempo: Planning.Models.PracticePlanTempo;
+        scoreDifference: Planning.Models.PracticePlanScoreDifference;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        toCollection(): Planning.Models.PlanningEditorToggleItemCollection;
+    }
+    class PracticePlanPlayCount extends Planning.Models.PlanningEditorToggleItem {
+        count: number;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+    class PracticePlanHashmark extends Planning.Models.PlanningEditorToggleItem {
+        hashmark: Playbook.Enums.Hashmark;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+    class PracticePlanDown extends Planning.Models.PlanningEditorToggleItem {
+        down: number;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+    class PracticePlanDistance extends Planning.Models.PlanningEditorToggleItem {
+        distance: number;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+    class PracticePlanYardline extends Planning.Models.PlanningEditorToggleItem {
+        yardline: number;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+    class PracticePlanFieldZone extends Planning.Models.PlanningEditorToggleItem {
+        fieldZone: Common.Models.NotImplementedClass;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+    class PracticePlanTime extends Planning.Models.PlanningEditorToggleItem {
+        time: number;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+    class PracticePlanTempo extends Planning.Models.PlanningEditorToggleItem {
+        tempo: Common.Models.NotImplementedClass;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+    class PracticePlanScoreDifference extends Planning.Models.PlanningEditorToggleItem {
+        difference: number;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Planning.Models {
+    class GamePlan extends Common.Models.AssociableEntity {
+        plan: Planning.Models.Plan;
+        planGuid: string;
+        start: Common.Models.Datetime;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        setPlan(plan: Planning.Models.Plan): void;
+    }
+}
+declare module Planning.Models {
+    class GamePlanCollection extends Common.Models.ActionableCollection<Planning.Models.GamePlan> {
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Planning.Models {
+    class PracticeSchedule extends Common.Models.AssociableEntity {
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Planning.Models {
+    class PracticeScheduleCollection extends Common.Models.ActionableCollection<Planning.Models.PracticeSchedule> {
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Planning.Models {
+    class ScoutCard extends Common.Models.AssociableEntity {
+        plan: Planning.Models.Plan;
+        planGuid: string;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        setPlan(plan: Planning.Models.Plan): void;
+    }
+}
+declare module Planning.Models {
+    class ScoutCardCollection extends Common.Models.ActionableCollection<Planning.Models.ScoutCard> {
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Planning.Models {
+    class QBWristband extends Common.Models.AssociableEntity {
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Planning.Models {
+    class QBWristbandCollection extends Common.Models.ActionableCollection<Planning.Models.QBWristband> {
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+    }
+}
+declare module Planning.Models {
+    class PlanningEditorTab extends Common.Models.Actionable implements Common.Interfaces.ICollectionItem {
+        data: Common.Interfaces.IActionable;
+        private _closeCallbacks;
+        constructor(data: Common.Interfaces.IActionable);
+    }
+}
+declare module Planning.Models {
+    class PlanningEditorTabCollection extends Common.Models.ActionableCollection<Planning.Models.PlanningEditorTab> {
+        constructor();
+        close(tab: Common.Models.Tab): void;
+    }
+}
+declare module Planning.Models {
+}
+declare module Planning.Enums {
+    enum PlanningEditorToggleTypes {
+        Unknown = 0,
+        PeriodName = 1,
+        PeriodNumber = 2,
+        PeriodReps = 3,
+        PeriodStart = 4,
+        PeriodFinish = 5,
+        Date = 6,
+        Location = 7,
+        Opponent = 8,
+        Duration = 9,
+        PlayCount = 10,
+        Hashmark = 11,
+        Down = 12,
+        Distance = 13,
+        Yardline = 14,
+        FieldZone = 15,
+        Time = 16,
+        Tempo = 17,
+        ScoreDifference = 18,
+    }
+}
+declare module Planning.Constants {
+    const DEFAULT_PRACTICE_PLAN_ITEMS_LENGTH: number;
 }
 declare module Planning {
 }

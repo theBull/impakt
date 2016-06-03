@@ -1,0 +1,36 @@
+<div class='row scrollY'>
+
+	<div class='col'>
+		<div class='light-border-bottom row height3'>
+			<button class='gray-bg-2-hover pointer pad'
+				ng-click='toBrowser()'>
+				<span class='glyphicon glyphicon-folder-open'></span>
+				Browser
+			</button>
+			<button class='gray-bg-1-hover pointer pad'
+				ng-click='toPlanDrilldown(drilldown.plan)'
+				ng-show='drilldown.plan'>
+				<span class='glyphicon glyphicon-chevron-right'></span>
+				{{drilldown.plan.name}}
+			</button>
+			<!-- <div 
+				class='pad' 
+				ng-show='drilldown.team'>
+				{{drilldown.team.name}}
+			</div> -->
+
+		</div>
+
+		<!-- Main -->
+		<div class='row scrollY' ui-view></div>
+	</div>
+
+</div>
+
+<!-- Details -->
+<expandable 	
+	direction='left'
+	collapsed='false'
+	url='modules/details/details.tpl.html'>
+	
+</expandable>

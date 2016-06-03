@@ -1,0 +1,25 @@
+<div class='col'>
+
+	<div class='light-border-bottom row height3'>
+		<button class='gray-bg-2-hover pointer pad height3'
+			ng-click='toPlanDrilldown()'>
+			<span class='glyphicon glyphicon-folder-open'></span>
+			Browser
+		</button>
+
+		<!-- tabs -->
+		<planning-editor-tab
+			tab-object='tab'
+			ng-repeat='tab in tabs.toArray()'>
+		</planning-editor-tab>
+
+		<div class='height3 width3 pad gray-bg-4-hover pointer'
+			ng-click='newTab()'>
+			<span class='glyphicon glyphicon-plus font-green'></span>
+		</div>
+	</div>
+
+	<!-- Main -->
+	<div class='col' ui-view></div>
+
+</div>

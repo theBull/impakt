@@ -6,12 +6,14 @@ impakt.details.service('_details', [
 '_playbook',
 '_team',
 '_season',
+'_planning',
 function(
 	$q: any,
 	_league: any,
 	_playbook: any,
 	_team: any,
-	_season: any
+	_season: any,
+	_planning: any
 ) {
 	
 	this.selectedElements = impakt.context.Actionable.selected;
@@ -72,6 +74,14 @@ function(
 			case Common.Enums.ImpaktDataTypes.Game:
 				return _season.deleteEntityByType(entity);
 
+			case Common.Enums.ImpaktDataTypes.Plan:
+			case Common.Enums.ImpaktDataTypes.PracticePlan:
+			case Common.Enums.ImpaktDataTypes.PracticeSchedule:
+			case Common.Enums.ImpaktDataTypes.GamePlan:
+			case Common.Enums.ImpaktDataTypes.ScoutCard:
+			case Common.Enums.ImpaktDataTypes.QBWristband:
+				return _planning.deleteEntityByType(entity);
+
 			default:
 				throw new Error('_details delete(): entity ImpaktDataType not supported ' + entity.impaktDataType);
 		}
@@ -108,6 +118,14 @@ function(
 			case Common.Enums.ImpaktDataTypes.Season:
 			case Common.Enums.ImpaktDataTypes.Game:
 				return _season.updateEntityByType(entity);
+
+			case Common.Enums.ImpaktDataTypes.Plan:
+			case Common.Enums.ImpaktDataTypes.PracticePlan:
+			case Common.Enums.ImpaktDataTypes.PracticeSchedule:
+			case Common.Enums.ImpaktDataTypes.GamePlan:
+			case Common.Enums.ImpaktDataTypes.ScoutCard:
+			case Common.Enums.ImpaktDataTypes.QBWristband:
+				return _planning.updateEntityByType(entity);
 
 			default:
 				throw new Error('_details update(): entity ImpaktDataType not supported ' + entity.impaktDataType);

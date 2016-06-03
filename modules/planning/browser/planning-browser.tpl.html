@@ -1,0 +1,34 @@
+<div class='col scrollY positionRelative'>
+	
+	<div class='pad'>
+
+		<div class='marginBottom1'>
+			
+			<h5>Plans ({{plans.size()}})</h5>
+			<button class='pad green-bg-hover pointer marginBottom1'
+				ng-click='createPlan()'>
+				<span class='glyphicon glyphicon-plus'></span>
+				plan
+			</button>
+
+			<div class='col overflowVisible'>
+				
+				<plan-item 
+					plan='plan'
+					ng-repeat='plan in plans.toArray()'>
+				</plan-item>
+
+			</div>
+
+		</div>
+	</div>
+	
+</div>
+
+<!-- Details -->
+<expandable 	
+	direction='left'
+	collapsed='true'
+	url='modules/details/details.tpl.html'>
+	
+</expandable>

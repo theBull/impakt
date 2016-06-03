@@ -1,0 +1,8 @@
+<div class='pad05 pointer minWidth3 marginRight05 marginBottom05'
+	ng-click='toggle()'
+	ng-class='{"black-bg-hover": !item.selected, "red-bg-hover": item.selected}'>
+	<div>
+		<span class='glyphicon'
+			ng-class='{"glyphicon-eye-open": item.selected, "glyphicon-eye-close": !item.selected}'></span> {{item.label}}
+	</div>
+</div>

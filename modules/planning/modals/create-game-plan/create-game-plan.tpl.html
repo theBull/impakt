@@ -1,0 +1,38 @@
+<div class="modal-header">
+	<h3 class="modal-title">Create Game Plan</h3>
+</div>
+<div class="modal-body">
+
+	<div class='marginBottom2'>
+	
+		<p>Name</p>
+
+		<input 
+			type='text' 
+			ng-model='newGamePlan.name' 
+			ng-placeholder='GamePlan name?' />
+	</div> 
+
+	<div class='marginBottom2'>		
+		<p>Plan</p>
+		<select 
+			ng-options='plan as plan.name for plan in plans.toArray()'
+			ng-model='selectedPlan'
+			ng-change='selectPlan()'>
+			<option value=''></option>
+		</select>
+	</div>
+
+	<div class='marginBottom2'>
+		<p>Date</p>
+		<impakt-datepicker 
+            datetime='newGamePlan.start'
+            update='updateDatetime()'>
+        </impakt-datepicker>	
+    </div>
+
+</div>
+<div class="modal-footer">
+	<button class="btn btn-primary" type="button" ng-click="ok()">OK</button>
+	<button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+</div>

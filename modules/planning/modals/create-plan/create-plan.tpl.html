@@ -1,0 +1,95 @@
+<div class="modal-header">
+	<h3 class="modal-title">Create Plan</h3>
+</div>
+<div class="modal-body">
+
+	<div class='marginBottom2'>
+	
+		<p>Name</p>
+
+		<input 
+			type='text' 
+			ng-model='newPlan.name' 
+			ng-placeholder='Plan name?' />
+	</div>
+
+	<div class='marginBottom2 col'>
+		<p>Date/time</p>
+				
+        <impakt-datepicker 
+            datetime='newPlan.start'
+            update='updateDatetime()'>
+        </impakt-datepicker>
+		
+		<!-- <div class='marginBottom1'>
+			<uib-timepicker 
+				ng-model='game.datetime.time' 
+				ng-change='changed()' 
+				hour-step='hstep' 
+				minute-step='mstep' 
+				show-meridian='ismeridian'>
+			</uib-timepicker>
+		</div>
+
+		<input
+			type='text'
+			ng-model='game.timezone'
+			ng-placeholder='Time' /> -->
+
+	</div>
+
+	<div class='marginBottom2'>		
+		<p>Season</p>
+		<select 
+			ng-options='season as season.name for season in seasons.toArray()'
+			ng-model='selectedSeason'
+			ng-change='selectSeason()'>
+			<option value=''></option>
+		</select>
+	</div>
+
+	<div ng-show='selectedSeason'>
+		<div class='marginBottom2'>
+			<div ng-show='weeks.hasElements()'>
+				<p>Week</p>
+				<select 
+					ng-options='week as week.getFormattedName() for week in weeks.toArray()'
+					ng-model='selectedWeek'
+					ng-change='selectWeek()'>
+					<option value=''></option>
+				</select>
+			</div>
+			<div ng-show='weeks.isEmpty()'>
+				<p>
+					<span class='glyphicon glyphicon-exclamation-sign'></span>
+					No weeks exist for the selected season.
+				</p>
+			</div>
+		</div>
+
+		<div ng-show='selectedWeek'>
+			<div class='marginBottom2'>
+				<div ng-show='games.hasElements()'>
+					<p>Game</p>
+					<select 
+						ng-options='game as game.name for game in games.toArray()'
+						ng-model='selectedGame'
+						ng-change='selectGame()'>
+						<option value=''></option>
+					</select>
+				</div>
+				<div ng-show='games.isEmpty()'>
+					<p>
+						<span class='glyphicon glyphicon-exclamation-sign'></span>
+						No games exist for the selected week.
+					</p>
+				</div>
+			</div>
+		</div>
+	</div>	
+
+</div>
+<div class="modal-footer">
+	<button class="btn btn-primary" type="button" ng-click="ok()">OK</button>
+	<button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+</div>

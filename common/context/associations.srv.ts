@@ -387,6 +387,42 @@ function(
 					if (game)
 						results.games.add(game);
 					break;
+
+				case Common.Enums.ImpaktDataTypes.Plan:
+					let plan = impakt.context.Planning.plans.get(guid);
+					if (plan)
+						results.plans.add(plan);
+					break;
+
+				case Common.Enums.ImpaktDataTypes.PracticePlan:
+					let practicePlan = impakt.context.Planning.practicePlans.get(guid);
+					if (practicePlan)
+						results.practicePlans.add(practicePlan);
+					break;
+
+				case Common.Enums.ImpaktDataTypes.PracticeSchedule:
+					let practiceSchedule = impakt.context.Planning.practiceSchedules.get(guid);
+					if (practiceSchedule)
+						results.practiceSchedules.add(practiceSchedule);
+					break;
+
+				case Common.Enums.ImpaktDataTypes.GamePlan:
+					let gamePlan = impakt.context.Planning.gamePlans.get(guid);
+					if (gamePlan)
+						results.gamePlans.add(gamePlan);
+					break;
+
+				case Common.Enums.ImpaktDataTypes.ScoutCard:
+					let scoutCard = impakt.context.Planning.scoutCards.get(guid);
+					if (scoutCard)
+						results.scoutCards.add(scoutCard);
+					break;
+
+				case Common.Enums.ImpaktDataTypes.QBWristband:
+					let QBWristband = impakt.context.Planning.QBWristbands.get(guid);
+					if (QBWristband)
+						results.QBWristbands.add(QBWristband);
+					break;
 			}		
 		}
 
@@ -454,6 +490,30 @@ function(
 
 			case 'games':
 				collection = impakt.context.Season.games;
+				break;
+
+			case 'plans':
+				collection = impakt.context.Planning.plans;
+				break;
+
+			case 'practicePlans':
+				collection = impakt.context.Planning.practicePlans;
+				break;
+
+			case 'practiceSchedules':
+				collection = impakt.context.Planning.practiceSchedules;
+				break;
+
+			case 'gamePlans':
+				collection = impakt.context.Planning.gamePlans;
+				break;
+
+			case 'scoutCards':
+				collection = impakt.context.Planning.scoutCards;
+				break;
+
+			case 'QBWristbands':
+				collection = impakt.context.Planning.QBWristbands;
 				break;
 		}
 

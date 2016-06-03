@@ -1,0 +1,14 @@
+<div class='positionRelative height3 minWidth3 pad pointer dark-border-right'
+	ng-click='toggleSelection()'
+	ng-class='{"gray-bg-6-hover": tab.selected, "gray-bg-4-hover": !tab.selected}'>
+
+	<div class='marginRight2'>
+		<span>{{tab.data.name}}</span>
+	</div>
+
+	<div class='right0 top0 height3 width3 pad font-gray-hover'
+		ng-click='close()'>
+		<span class='glyphicon glyphicon-remove'></span>
+	</div>
+
+</div>

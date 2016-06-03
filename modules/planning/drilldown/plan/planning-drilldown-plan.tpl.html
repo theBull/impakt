@@ -1,0 +1,75 @@
+<div class='col pad scrollY'>
+	<!-- plan -->
+	<div class='marginBottom1'>
+		<plan-item plan='plan' class='fontSize15'></plan-item>
+	</div>
+
+
+	<!-- Practice Plans -->
+	<div class='marginBottom2 light-border-bottom'>
+		<div class='marginBottom1'>
+			<h5>Practice Plans ({{practicePlans.size()}})</h5>
+		</div>
+		<div class='marginBottom1'>
+			<button 
+				class='height3 pad green-bg-hover pointer'
+				ng-click='createPracticePlan()'>
+				<span class='glyphicon glyphicon-plus'></span> practice plan
+			</button>
+		</div>
+		
+		<div class='grid'>
+			<practice-plan-item 
+				practice-plan='practicePlan' 
+				ng-repeat='practicePlan in practicePlans.toArray()'>
+			</practice-plan-item>
+		</div>
+	</div> 
+
+	<!-- Practice Schedules -->
+
+	<!-- Game Plans -->
+	<div class='marginBottom2 light-border-bottom'>
+		<div class='marginBottom1'>
+			<h5>Game Plans ({{gamePlans.size()}})</h5>
+		</div>
+		<div class='marginBottom1'>
+			<button 
+				class='height3 pad green-bg-hover pointer'
+				ng-click='createGamePlan()'>
+				<span class='glyphicon glyphicon-plus'></span> game plan
+			</button>
+		</div>
+		
+		<div class='grid'>
+			<game-plan-item 
+				game-plan='gamePlan' 
+				ng-repeat='gamePlan in gamePlans.toArray()'>
+			</game-plan-item>
+		</div>
+	</div> 
+
+	<!-- Scout Cards -->
+	<div class='marginBottom2 light-border-bottom'>
+		<div class='marginBottom1'>
+			<h5>Scout Cards ({{scoutCards.size()}})</h5>
+		</div>
+		<div class='marginBottom1'>
+			<button 
+				class='height3 pad green-bg-hover pointer'
+				ng-click='createScoutCard()'>
+				<span class='glyphicon glyphicon-plus'></span> scout card
+			</button>
+		</div>
+		
+		<div class='grid'>
+			<scout-card-item 
+				scout-card='scoutCard' 
+				ng-repeat='scoutCard in scoutCards.toArray()'>
+			</scout-card-item>
+		</div>
+	</div>
+
+	<!-- QB Wristbands -->
+	
+</div>

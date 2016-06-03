@@ -51,4 +51,10 @@ module Playbook.Enums {
         SquarePreview,
         TrianglePreview
     }
+
+    export enum Hashmark {
+    	Left,
+    	Center,
+    	Right
+    }
 }

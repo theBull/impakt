@@ -8,10 +8,15 @@ module Common.Interfaces {
 		get(key: string | number): T;
 		exists(key: string | number): boolean;
 		first(): T;
+		indexOf(key: string | number): number;
+		isFirst(key: string | number): boolean;
+		isLast(key: string | number): boolean;
 		getOne(): T;
 		getIndex(index: number): T;
 		getAll(): { any ?: T };
 		getLast(): T;
+		getNext(key: string | number): T;
+		getPrevious(key: string | number): T;
 		set(key: string | number, data: T): void;
 		replace(replaceKey: string | number, data: T): void;
 		setAtIndex(index: number, data: T): void;

@@ -1,0 +1,20 @@
+<div class='col gray-bg-2-hover marginBottom1 marginRight1 pointer pad' 
+	ng-click='toggleSelection(plan)' 
+	ng-class='{"selected-border": plan.selected}'>
+
+	<div>
+		<h4 class='capitalize'>{{plan.name}}</h4>
+	</div>
+
+	<div class='marginBottom1'>
+		<p class='font-gray'>
+			{{plan.game.name}}
+		</p>
+	</div>
+
+	<div class='marginBottom1'>
+		<p class='font-gray'>
+			{{plan.start.getFormatted()}}
+		</p>
+	</div>
+</div>

@@ -1,0 +1,40 @@
+<div class="modal-header">
+    <h3 class="modal-title">Open</h3>
+</div>
+<div class="modal-body">
+	
+	<div class='marginBottom1'>
+		<div class='marginBottom1'>
+			What do you want to work on?
+		</div>
+		<div class='row'>
+			<div class='shrink height3 pad gray-bg-3-hover pointer marginRight1'
+				ng-click='editPracticePlan()'>
+				Edit a Practice Plan
+			</div>
+		</div>
+	</div>
+
+	<div>
+		<div class='marginBottom1' ng-show='editPracticePlansVisible'>
+	        Practice Plans
+	        <div ng-show='practicePlans.hasElements()'>
+	            <select ng-options='practicePlan as practicePlan.name for practicePlan in practicePlans.toArray()'
+	                ng-model='selectedPracticePlan'
+	                ng-change='selectPracticePlan()'>
+	            </select>
+	        </div>
+	        <div ng-show='practicePlans.isEmpty()'>
+	            <span class='marginRight1'>
+	                <span class='glyphicon glyphicon-exclamation-sign'></span>
+	            </span>
+	            <em>No practice plans available.</em>
+	        </div>
+	    </div>
+    </div>
+
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary" type="button" ng-click="ok()">OK</button>
+    <button class="btn btn-warning" type="button" ng-click="cancel()">Cancel</button>
+</div>

@@ -20,6 +20,7 @@ module Common.Models {
         public draggable: boolean;
         public flipped: boolean;
         public flippable: boolean;
+        public visible: boolean;
         public contextmenuTemplateUrl: string;
         public actions: Common.Models.ActionRegistry;
 
@@ -38,20 +39,44 @@ module Common.Models {
             this.selectable = true;
             this.flipped = false;
             this.flippable = false;
+            this.visible = true;
 		}
 
 		public toJson(): any {
             return $.extend({
-                graphics: this.hasGraphics() ? this.graphics.toJson() : null
+                graphics: this.hasGraphics() ? this.graphics.toJson() : null,
+                disabled: this.disabled,
+                selected: this.selected,
+                clickable: this.clickable,
+                hoverable: this.hoverable,
+                hovered: this.hovered,
+                dragging: this.dragging,
+                draggable: this.draggable,
+                selectable: this.selectable,
+                flipped: this.flipped,
+                flippable: this.flippable,
+                visible: this.visible
             }, super.toJson());
         }
 
-		public fromJson(json: any): void {
-            if(!json)
+        public fromJson(json: any): void {
+            if (!json)
 			    return;
 
             // if(json.graphics)
             //     this.graphics.fromJson(json.graphics);
+
+            this.disabled = Common.Utilities.isNullOrUndefined(json.disabled) ? false : json.disabled;
+            this.selected = Common.Utilities.isNullOrUndefined(json.selected) ? false : json.selected;
+            this.clickable = Common.Utilities.isNullOrUndefined(json.clickable) ? true : json.clickable;
+            this.hoverable = Common.Utilities.isNullOrUndefined(json.hoverable) ? true : json.hoverable;
+            this.hovered = Common.Utilities.isNullOrUndefined(json.hovered) ? false : json.hovered;
+            this.dragging = Common.Utilities.isNullOrUndefined(json.dragging) ? false : json.dragging;
+            this.draggable = Common.Utilities.isNullOrUndefined(json.draggable) ? true : json.draggable;
+            this.selectable = Common.Utilities.isNullOrUndefined(json.selectable) ? true : json.selectable;
+            this.flipped = Common.Utilities.isNullOrUndefined(json.flipped) ? false : json.flipped;
+            this.flippable = Common.Utilities.isNullOrUndefined(json.flippable) ? false : json.flippable;
+            this.visible = Common.Utilities.isNullOrUndefined(json.visible) ? true : json.visible;
 
             super.fromJson(json);
 		}
@@ -134,6 +159,34 @@ module Common.Models {
             if (this.hasGraphics()) {
                 this.graphics.enable();
             }
+        }
+
+        /**
+         * Generic show method
+         */
+        public show(): void {
+            this.visible = true;
+            if(this.hasGraphics()) {
+                this.graphics.show();
+            }
+        }
+
+        /**
+         * Generic hide method
+         */
+        public hide(): void {
+            this.visible = false;
+            if(this.hasGraphics()) {
+                this.graphics.hide();
+            }
+        }
+
+        /**
+         * Toggle show/hide
+         */
+        public toggleVisibility(): void {
+            this.visible ? this.hide() : this.show();
+
         }
 
         public getContextmenuUrl(): string {

@@ -3,16 +3,16 @@
 module Common.Models {
 
 	export class Collection<T extends Common.Interfaces.IModifiable>
-	extends Common.Models.Modifiable
-	implements Common.Interfaces.ICollection<T> {
-		
+		extends Common.Models.Modifiable
+		implements Common.Interfaces.ICollection<T> {
+
 		private _count: number;
 		private _keys: Array<string | number>;
 
 		constructor(size?: number) {
 			if (Common.Utilities.isNotNullOrUndefined(size) && size < 0)
 				throw new Error('Collection constructor(): Cannot create a collection with size < 0');
-			
+
 			super();
 			super.setContext(this);
 			this._count = 0;
@@ -51,15 +51,44 @@ module Common.Models {
 		public hasElements(): boolean {
 			return this.size() > 0;
 		}
-		public get(key: string | number): T {
-			key = this._ensureKeyType(key);
-			return this[key];
-		}
 		public exists(key: string | number): boolean {
 			return this.contains(key);
 		}
 		public first(): T {
 			return this.getOne();
+		}
+		public indexOf(key: string | number): number {
+			return this._keys.indexOf(key);
+		}
+		public isLast(key: string | number): boolean {
+			return this.indexOf(key) == this.size() - 1;
+		}
+		public isFirst(key: string | number): boolean {
+			return this.indexOf(key) == 0;
+		}
+		public get(key: string | number): T {
+			key = this._ensureKeyType(key);
+			return this[key];
+		}
+		public getNext(key: string | number): T {
+			let next = null;
+			if (this.hasElements()) {
+				if (this.isLast(key)) {
+					next = this.getLast();
+				} else {
+					next = this.getIndex(this.indexOf(key) + 1);
+				}
+			}
+
+			return next;
+		}
+		public getPrevious(key: string | number): T {
+			let prev = null;
+			if(this.hasElements()) {
+				if (!this.isFirst(key))
+					prev = this.getIndex(this.indexOf(key) - 1);
+			}
+			return prev;
 		}
 		public getOne(): T {
 			return this[this._keys[0]];

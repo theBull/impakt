@@ -93,6 +93,7 @@ module Common.Models {
                 new Common.Models.Placement(0, -6, ball, 10)
             ]);
         }
+
         public isValid() {
             // TODO add validation for 7 players on LOS
             return this.placements.size() == 11;

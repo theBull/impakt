@@ -38,6 +38,7 @@ module Common.Enums {
 		ScoutCard = 1033,
 		Drill = 1034,
 		QBWristband = 1035,
+		Plan = 1039,
 		GameAnalysis = 1050,
 		PlayByPlayAnalysis = 1051,
 

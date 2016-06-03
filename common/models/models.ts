@@ -1,5 +1,4 @@
 /// <reference path='../common.ts' />
-
 /// <reference path='../interfaces/interfaces.ts' />
 
 /// <reference path='./Storable.ts' />
@@ -8,6 +7,7 @@
 /// <reference path='./LinkedList.ts' />
 /// <reference path='./ModifiableCollection.ts' />
 /// <reference path='./Datetime.ts' />
+/// <reference path='./NotImplementedClass.ts' />
 
 /// <reference path='./Expandable.ts' />
 /// <reference path='./ContextmenuData.ts' />

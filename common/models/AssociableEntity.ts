@@ -59,7 +59,13 @@ module Common.Models {
 				'locations',
 				'teams',
 				'seasons',
-				'games'
+				'games',
+				'plans',
+				'practicePlans',
+				'practiceSchedules',
+				'gamePlans',
+				'scoutCards',
+				'QBWristbands'
 			];
 		}
 

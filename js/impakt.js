@@ -297,15 +297,44 @@ var Common;
             Collection.prototype.hasElements = function () {
                 return this.size() > 0;
             };
-            Collection.prototype.get = function (key) {
-                key = this._ensureKeyType(key);
-                return this[key];
-            };
             Collection.prototype.exists = function (key) {
                 return this.contains(key);
             };
             Collection.prototype.first = function () {
                 return this.getOne();
+            };
+            Collection.prototype.indexOf = function (key) {
+                return this._keys.indexOf(key);
+            };
+            Collection.prototype.isLast = function (key) {
+                return this.indexOf(key) == this.size() - 1;
+            };
+            Collection.prototype.isFirst = function (key) {
+                return this.indexOf(key) == 0;
+            };
+            Collection.prototype.get = function (key) {
+                key = this._ensureKeyType(key);
+                return this[key];
+            };
+            Collection.prototype.getNext = function (key) {
+                var next = null;
+                if (this.hasElements()) {
+                    if (this.isLast(key)) {
+                        next = this.getLast();
+                    }
+                    else {
+                        next = this.getIndex(this.indexOf(key) + 1);
+                    }
+                }
+                return next;
+            };
+            Collection.prototype.getPrevious = function (key) {
+                var prev = null;
+                if (this.hasElements()) {
+                    if (!this.isFirst(key))
+                        prev = this.getIndex(this.indexOf(key) - 1);
+                }
+                return prev;
             };
             Collection.prototype.getOne = function () {
                 return this[this._keys[0]];
@@ -996,6 +1025,30 @@ var Common;
 (function (Common) {
     var Models;
     (function (Models) {
+        var NotImplementedClass = (function (_super) {
+            __extends(NotImplementedClass, _super);
+            function NotImplementedClass() {
+                _super.apply(this, arguments);
+            }
+            NotImplementedClass.prototype.toJson = function () {
+                return $.extend({
+                    data: 'Data not yet supported.'
+                }, _super.prototype.toJson.call(this));
+            };
+            NotImplementedClass.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+            };
+            return NotImplementedClass;
+        })(Common.Models.Storable);
+        Models.NotImplementedClass = NotImplementedClass;
+    })(Models = Common.Models || (Common.Models = {}));
+})(Common || (Common = {}));
+/// <reference path='./models.ts' />
+var Common;
+(function (Common) {
+    var Models;
+    (function (Models) {
         var Expandable = (function (_super) {
             __extends(Expandable, _super);
             function Expandable($element) {
@@ -1154,10 +1207,22 @@ var Common;
                 this.selectable = true;
                 this.flipped = false;
                 this.flippable = false;
+                this.visible = true;
             }
             Actionable.prototype.toJson = function () {
                 return $.extend({
-                    graphics: this.hasGraphics() ? this.graphics.toJson() : null
+                    graphics: this.hasGraphics() ? this.graphics.toJson() : null,
+                    disabled: this.disabled,
+                    selected: this.selected,
+                    clickable: this.clickable,
+                    hoverable: this.hoverable,
+                    hovered: this.hovered,
+                    dragging: this.dragging,
+                    draggable: this.draggable,
+                    selectable: this.selectable,
+                    flipped: this.flipped,
+                    flippable: this.flippable,
+                    visible: this.visible
                 }, _super.prototype.toJson.call(this));
             };
             Actionable.prototype.fromJson = function (json) {
@@ -1165,6 +1230,17 @@ var Common;
                     return;
                 // if(json.graphics)
                 //     this.graphics.fromJson(json.graphics);
+                this.disabled = Common.Utilities.isNullOrUndefined(json.disabled) ? false : json.disabled;
+                this.selected = Common.Utilities.isNullOrUndefined(json.selected) ? false : json.selected;
+                this.clickable = Common.Utilities.isNullOrUndefined(json.clickable) ? true : json.clickable;
+                this.hoverable = Common.Utilities.isNullOrUndefined(json.hoverable) ? true : json.hoverable;
+                this.hovered = Common.Utilities.isNullOrUndefined(json.hovered) ? false : json.hovered;
+                this.dragging = Common.Utilities.isNullOrUndefined(json.dragging) ? false : json.dragging;
+                this.draggable = Common.Utilities.isNullOrUndefined(json.draggable) ? true : json.draggable;
+                this.selectable = Common.Utilities.isNullOrUndefined(json.selectable) ? true : json.selectable;
+                this.flipped = Common.Utilities.isNullOrUndefined(json.flipped) ? false : json.flipped;
+                this.flippable = Common.Utilities.isNullOrUndefined(json.flippable) ? false : json.flippable;
+                this.visible = Common.Utilities.isNullOrUndefined(json.visible) ? true : json.visible;
                 _super.prototype.fromJson.call(this, json);
             };
             Actionable.prototype.hasGraphics = function () {
@@ -1234,6 +1310,30 @@ var Common;
                 if (this.hasGraphics()) {
                     this.graphics.enable();
                 }
+            };
+            /**
+             * Generic show method
+             */
+            Actionable.prototype.show = function () {
+                this.visible = true;
+                if (this.hasGraphics()) {
+                    this.graphics.show();
+                }
+            };
+            /**
+             * Generic hide method
+             */
+            Actionable.prototype.hide = function () {
+                this.visible = false;
+                if (this.hasGraphics()) {
+                    this.graphics.hide();
+                }
+            };
+            /**
+             * Toggle show/hide
+             */
+            Actionable.prototype.toggleVisibility = function () {
+                this.visible ? this.hide() : this.show();
             };
             Actionable.prototype.getContextmenuUrl = function () {
                 return this.contextmenuTemplateUrl;
@@ -1422,7 +1522,13 @@ var Common;
                     'locations',
                     'teams',
                     'seasons',
-                    'games'
+                    'games',
+                    'plans',
+                    'practicePlans',
+                    'practiceSchedules',
+                    'gamePlans',
+                    'scoutCards',
+                    'QBWristbands'
                 ];
             }
             AssociableEntity.prototype.generateAssociationKey = function () {
@@ -1944,6 +2050,12 @@ var Common;
                 this.teams = new Team.Models.TeamModelCollection();
                 this.seasons = new Season.Models.SeasonModelCollection();
                 this.games = new Season.Models.GameCollection();
+                this.plans = new Planning.Models.PlanCollection();
+                this.practicePlans = new Planning.Models.PracticePlanCollection();
+                this.practiceSchedules = new Planning.Models.PracticeScheduleCollection();
+                this.gamePlans = new Planning.Models.GamePlanCollection();
+                this.scoutCards = new Planning.Models.ScoutCardCollection();
+                this.QBWristbands = new Planning.Models.QBWristbandCollection();
             }
             AssociationResults.prototype.count = function () {
                 var count = 0;
@@ -1960,6 +2072,12 @@ var Common;
                 count += this.teams.size();
                 count += this.seasons.size();
                 count += this.games.size();
+                count += this.plans.size();
+                count += this.practicePlans.size();
+                count += this.practiceSchedules.size();
+                count += this.gamePlans.size();
+                count += this.scoutCards.size();
+                count += this.QBWristbands.size();
                 return count;
             };
             AssociationResults.prototype.hasAssociations = function () {
@@ -1996,6 +2114,18 @@ var Common;
                     populated.push('seasons');
                 if (this.games.hasElements())
                     populated.push('games');
+                if (this.plans.hasElements())
+                    populated.push('plans');
+                if (this.practicePlans.hasElements())
+                    populated.push('practicePlans');
+                if (this.practiceSchedules.hasElements())
+                    populated.push('practiceSchedules');
+                if (this.gamePlans.hasElements())
+                    populated.push('gamePlans');
+                if (this.scoutCards.hasElements())
+                    populated.push('scoutCards');
+                if (this.QBWristbands.hasElements())
+                    populated.push('QBWristbands');
                 return populated;
             };
             return AssociationResults;
@@ -2630,13 +2760,12 @@ var Common;
                 this.setModified(true);
             };
             Play.prototype.setFormation = function (formation) {
-                if (Common.Utilities.isNotNullOrUndefined(formation)) {
-                    if (formation.unitType != this.unitType) {
-                    }
-                }
-                else {
+                if (Common.Utilities.isNullOrUndefined(formation)) {
                     this.setAssignmentGroup(null);
                     this.setPersonnel(null);
+                    return;
+                }
+                if (formation.unitType != this.unitType) {
                 }
                 this.formation = formation;
                 this.unitType = formation.unitType;
@@ -2644,8 +2773,8 @@ var Common;
             };
             Play.prototype.setAssignmentGroup = function (assignmentGroup) {
                 if (Common.Utilities.isNotNullOrUndefined(assignmentGroup)) {
-                    if (assignmentGroup.unitType != this.unitType)
-                        throw new Error('Play setAssignmentGroup(): Assignments unit type does not match play unit type');
+                    if (assignmentGroup.unitType != this.unitType) {
+                    }
                 }
                 else {
                 }
@@ -2654,8 +2783,8 @@ var Common;
             };
             Play.prototype.setPersonnel = function (personnel) {
                 if (Common.Utilities.isNotNullOrUndefined(personnel)) {
-                    if (personnel.unitType != this.unitType)
-                        throw new Error('Play setPersonnel(): Cannot apply personnel with different unit type.');
+                    if (personnel.unitType != this.unitType) {
+                    }
                 }
                 else {
                 }
@@ -7224,6 +7353,7 @@ var Common;
 /// <reference path='./LinkedList.ts' />
 /// <reference path='./ModifiableCollection.ts' />
 /// <reference path='./Datetime.ts' />
+/// <reference path='./NotImplementedClass.ts' />
 /// <reference path='./Expandable.ts' />
 /// <reference path='./ContextmenuData.ts' />
 /// <reference path='./ActionRegistry.ts' />
@@ -7336,6 +7466,7 @@ var Common;
             ImpaktDataTypes[ImpaktDataTypes["ScoutCard"] = 1033] = "ScoutCard";
             ImpaktDataTypes[ImpaktDataTypes["Drill"] = 1034] = "Drill";
             ImpaktDataTypes[ImpaktDataTypes["QBWristband"] = 1035] = "QBWristband";
+            ImpaktDataTypes[ImpaktDataTypes["Plan"] = 1039] = "Plan";
             ImpaktDataTypes[ImpaktDataTypes["GameAnalysis"] = 1050] = "GameAnalysis";
             ImpaktDataTypes[ImpaktDataTypes["PlayByPlayAnalysis"] = 1051] = "PlayByPlayAnalysis";
             ImpaktDataTypes[ImpaktDataTypes["Location"] = 1101] = "Location";
@@ -9836,6 +9967,12 @@ var Playbook;
             PlayerIconTypes[PlayerIconTypes["TrianglePreview"] = 5] = "TrianglePreview";
         })(Enums.PlayerIconTypes || (Enums.PlayerIconTypes = {}));
         var PlayerIconTypes = Enums.PlayerIconTypes;
+        (function (Hashmark) {
+            Hashmark[Hashmark["Left"] = 0] = "Left";
+            Hashmark[Hashmark["Center"] = 1] = "Center";
+            Hashmark[Hashmark["Right"] = 2] = "Right";
+        })(Enums.Hashmark || (Enums.Hashmark = {}));
+        var Hashmark = Enums.Hashmark;
     })(Enums = Playbook.Enums || (Playbook.Enums = {}));
 })(Playbook || (Playbook = {}));
 /// <reference path='../playbook.ts' />
@@ -10784,7 +10921,1160 @@ var Team;
 /// <reference path='./enums/enums.ts' />
 /// <reference path='../modules.ts' />
 /// <reference path='../modules.ts' />
+/// <reference path='./interfaces.ts' />
+/// <reference path='../planning.ts' />
+/// <reference path='./IPlanningEditorToggleItem.ts' />
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var PlanningEditorToggleItem = (function (_super) {
+            __extends(PlanningEditorToggleItem, _super);
+            function PlanningEditorToggleItem(label) {
+                _super.call(this, Common.Enums.ImpaktDataTypes.Unknown);
+                if (Common.Utilities.isNullOrUndefined(label) ||
+                    Common.Utilities.isEmptyString(label))
+                    throw new Error('PlanningEditorToggleItem constructor(): label is null or undefined');
+                this.label = label;
+                this.type = Planning.Enums.PlanningEditorToggleTypes.Unknown;
+            }
+            PlanningEditorToggleItem.prototype.toJson = function () {
+                return $.extend({
+                    label: this.label
+                }, _super.prototype.toJson.call(this));
+            };
+            PlanningEditorToggleItem.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.label = json.label;
+                _super.prototype.fromJson.call(this, json);
+            };
+            return PlanningEditorToggleItem;
+        })(Common.Models.Actionable);
+        Models.PlanningEditorToggleItem = PlanningEditorToggleItem;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var PlanningEditorToggleItemCollection = (function (_super) {
+            __extends(PlanningEditorToggleItemCollection, _super);
+            function PlanningEditorToggleItemCollection() {
+                _super.call(this);
+            }
+            PlanningEditorToggleItemCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                var toggleItems = json || [];
+                for (var i = 0; i < toggleItems.length; i++) {
+                }
+            };
+            return PlanningEditorToggleItemCollection;
+        })(Common.Models.ActionableCollection);
+        Models.PlanningEditorToggleItemCollection = PlanningEditorToggleItemCollection;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var Plan = (function (_super) {
+            __extends(Plan, _super);
+            function Plan() {
+                _super.call(this, Common.Enums.ImpaktDataTypes.Plan);
+                this.game = null;
+                this.gameGuid = '';
+                this.start = new Common.Models.Datetime();
+                this.associable = [
+                    'games',
+                    'practicePlans',
+                    'practiceSchedules',
+                    'gamePlans',
+                    'scoutCards',
+                    'QBWristbands',
+                    'teams',
+                    'playbooks'
+                ];
+            }
+            Plan.prototype.toJson = function () {
+                return $.extend({
+                    gameGuid: this.gameGuid,
+                    start: this.start
+                }, _super.prototype.toJson.call(this));
+            };
+            Plan.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.gameGuid = json.gameGuid;
+                this.start.fromJson(json.start);
+                _super.prototype.fromJson.call(this, json);
+            };
+            Plan.prototype.setGame = function (game) {
+                this.game = game;
+                this.gameGuid = this.game ? this.game.guid : '';
+            };
+            return Plan;
+        })(Common.Models.AssociableEntity);
+        Models.Plan = Plan;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var PlanCollection = (function (_super) {
+            __extends(PlanCollection, _super);
+            function PlanCollection() {
+                _super.call(this);
+            }
+            PlanCollection.prototype.toJson = function () {
+                return {
+                    guid: this.guid,
+                    Plans: _super.prototype.toJson.call(this)
+                };
+            };
+            PlanCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.guid = json.guid;
+                var planArray = json.plans || [];
+                for (var i = 0; i < planArray.length; i++) {
+                    var rawPlanModel = planArray[i];
+                    if (Common.Utilities.isNullOrUndefined(rawPlanModel)) {
+                        continue;
+                    }
+                    var planModel = new Planning.Models.Plan();
+                    planModel.fromJson(rawPlanModel);
+                    this.add(planModel);
+                }
+            };
+            return PlanCollection;
+        })(Common.Models.ActionableCollection);
+        Models.PlanCollection = PlanCollection;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var PracticePlan = (function (_super) {
+            __extends(PracticePlan, _super);
+            function PracticePlan() {
+                _super.call(this, Common.Enums.ImpaktDataTypes.PracticePlan);
+                this.plan = null;
+                this.planGuid = '';
+                this.start = new Common.Models.Datetime();
+                this.titleData = new Planning.Models.PracticePlanTitleData();
+                this.situationData = new Planning.Models.PracticePlanSituationData();
+                this.items = new Planning.Models.PracticePlanItemCollection();
+                this._populateItems();
+                this.associable = [
+                    'plans'
+                ];
+            }
+            PracticePlan.prototype.toJson = function () {
+                return $.extend({
+                    planGuid: this.planGuid,
+                    start: this.start.toJson(),
+                    titleData: this.titleData.toJson(),
+                    situationData: this.situationData.toJson(),
+                    items: this.items.toJson()
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlan.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.planGuid = json.planGuid;
+                this.start.fromJson(json.start);
+                this.titleData.fromJson(json.titleData);
+                this.situationData.fromJson(json.situationData);
+                this.items.fromJson(json.items);
+                _super.prototype.fromJson.call(this, json);
+            };
+            PracticePlan.prototype._populateItems = function () {
+                for (var i = 0; i < Planning.Constants.DEFAULT_PRACTICE_PLAN_ITEMS_LENGTH; i++) {
+                    var newItem = new Planning.Models.PracticePlanItem();
+                    newItem.index = i;
+                    this.items.add(newItem);
+                }
+            };
+            PracticePlan.prototype.setPlan = function (plan) {
+                this.plan = plan;
+                this.planGuid = this.plan ? this.plan.guid : '';
+            };
+            return PracticePlan;
+        })(Common.Models.AssociableEntity);
+        Models.PracticePlan = PracticePlan;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var PracticePlanCollection = (function (_super) {
+            __extends(PracticePlanCollection, _super);
+            function PracticePlanCollection() {
+                _super.call(this);
+            }
+            PracticePlanCollection.prototype.toJson = function () {
+                return {
+                    guid: this.guid,
+                    practicePlans: _super.prototype.toJson.call(this)
+                };
+            };
+            PracticePlanCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.guid = json.guid;
+                var practicePlanArray = json.practicePlans || [];
+                for (var i = 0; i < practicePlanArray.length; i++) {
+                    var rawPracticePlanModel = practicePlanArray[i];
+                    if (Common.Utilities.isNullOrUndefined(rawPracticePlanModel)) {
+                        continue;
+                    }
+                    var practicePlanModel = new Planning.Models.PracticePlan();
+                    practicePlanModel.fromJson(rawPracticePlanModel);
+                    this.add(practicePlanModel);
+                }
+            };
+            return PracticePlanCollection;
+        })(Common.Models.ActionableCollection);
+        Models.PracticePlanCollection = PracticePlanCollection;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var PracticePlanItem = (function (_super) {
+            __extends(PracticePlanItem, _super);
+            function PracticePlanItem() {
+                _super.call(this);
+                this.index = -1;
+            }
+            PracticePlanItem.prototype.toJson = function () {
+                return $.extend({
+                    index: this.index
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanItem.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.index = json.index;
+                _super.prototype.fromJson.call(this, json);
+            };
+            PracticePlanItem.prototype.getNumber = function () {
+                return this.index + 1;
+            };
+            return PracticePlanItem;
+        })(Common.Models.Modifiable);
+        Models.PracticePlanItem = PracticePlanItem;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var PracticePlanItemCollection = (function (_super) {
+            __extends(PracticePlanItemCollection, _super);
+            function PracticePlanItemCollection(count) {
+                _super.call(this, count);
+            }
+            PracticePlanItemCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                _super.prototype.fromJson.call(this, json);
+            };
+            return PracticePlanItemCollection;
+        })(Common.Models.Collection);
+        Models.PracticePlanItemCollection = PracticePlanItemCollection;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var PracticePlanTitleData = (function (_super) {
+            __extends(PracticePlanTitleData, _super);
+            function PracticePlanTitleData() {
+                _super.call(this);
+                this.periodName = new Planning.Models.PracticePlanPeriodName();
+                this.periodNumber = new Planning.Models.PracticePlanPeriodNumber();
+                this.periodReps = new Planning.Models.PracticePlanPeriodReps();
+                this.periodStart = new Planning.Models.PracticePlanPeriodStart();
+                this.periodFinish = new Planning.Models.PracticePlanPeriodFinish();
+                this.date = new Planning.Models.PracticePlanDate();
+                this.location = new Planning.Models.PracticePlanLocation();
+                this.opponent = new Planning.Models.PracticePlanOpponent();
+                this.duration = new Planning.Models.PracticePlanDuration();
+            }
+            PracticePlanTitleData.prototype.toJson = function () {
+                return $.extend({
+                    periodName: this.periodName.toJson(),
+                    periodNumber: this.periodNumber.toJson(),
+                    periodReps: this.periodReps.toJson(),
+                    periodStart: this.periodStart.toJson(),
+                    periodFinish: this.periodFinish.toJson(),
+                    date: this.date.toJson(),
+                    location: this.location.toJson(),
+                    opponent: this.opponent.toJson(),
+                    duration: this.duration.toJson()
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanTitleData.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.periodName.fromJson(json.periodName);
+                this.periodNumber.fromJson(json.periodNumber);
+                this.periodReps.fromJson(json.periodReps);
+                this.periodStart.fromJson(json.periodStart);
+                this.periodFinish.fromJson(json.periodFinish);
+                this.date.fromJson(json.date);
+                this.location.fromJson(json.locationGuid);
+                this.opponent.fromJson(json.opponentGuid);
+                this.duration.fromJson(json.duration);
+                _super.prototype.fromJson.call(this, json);
+            };
+            PracticePlanTitleData.prototype.toCollection = function () {
+                var collection = new Planning.Models.PlanningEditorToggleItemCollection();
+                collection.add(this.periodName, false);
+                collection.add(this.periodNumber, false);
+                collection.add(this.periodReps, false);
+                collection.add(this.periodStart, false);
+                collection.add(this.periodFinish, false);
+                collection.add(this.date, false);
+                collection.add(this.location, false);
+                collection.add(this.opponent, false);
+                collection.add(this.duration, false);
+                return collection;
+            };
+            return PracticePlanTitleData;
+        })(Common.Models.Storable);
+        Models.PracticePlanTitleData = PracticePlanTitleData;
+        var PracticePlanPeriodName = (function (_super) {
+            __extends(PracticePlanPeriodName, _super);
+            function PracticePlanPeriodName() {
+                _super.call(this, 'Period name');
+                this.name = '';
+                this.type = Planning.Enums.PlanningEditorToggleTypes.PeriodName;
+            }
+            PracticePlanPeriodName.prototype.toJson = function () {
+                return $.extend({
+                    name: this.name
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanPeriodName.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.name = json.name;
+                _super.prototype.fromJson.call(this, json);
+            };
+            return PracticePlanPeriodName;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanPeriodName = PracticePlanPeriodName;
+        var PracticePlanPeriodNumber = (function (_super) {
+            __extends(PracticePlanPeriodNumber, _super);
+            function PracticePlanPeriodNumber() {
+                _super.call(this, 'Period number');
+                this.number = 0;
+                this.type = Planning.Enums.PlanningEditorToggleTypes.PeriodName;
+            }
+            PracticePlanPeriodNumber.prototype.toJson = function () {
+                return $.extend({
+                    number: this.number
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanPeriodNumber.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.number = json.number;
+                _super.prototype.fromJson.call(this, json);
+            };
+            return PracticePlanPeriodNumber;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanPeriodNumber = PracticePlanPeriodNumber;
+        var PracticePlanPeriodReps = (function (_super) {
+            __extends(PracticePlanPeriodReps, _super);
+            function PracticePlanPeriodReps() {
+                _super.call(this, 'Period Reps');
+                this.reps = 0;
+                this.type = Planning.Enums.PlanningEditorToggleTypes.PeriodReps;
+            }
+            PracticePlanPeriodReps.prototype.toJson = function () {
+                return $.extend({
+                    reps: this.reps
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanPeriodReps.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.reps = json.reps;
+                _super.prototype.fromJson.call(this, json);
+            };
+            return PracticePlanPeriodReps;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanPeriodReps = PracticePlanPeriodReps;
+        var PracticePlanPeriodStart = (function (_super) {
+            __extends(PracticePlanPeriodStart, _super);
+            function PracticePlanPeriodStart() {
+                _super.call(this, 'Period start');
+                this.start = 0;
+                this.type = Planning.Enums.PlanningEditorToggleTypes.PeriodStart;
+            }
+            PracticePlanPeriodStart.prototype.toJson = function () {
+                return $.extend({
+                    start: this.start
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanPeriodStart.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.start = json.start;
+                _super.prototype.fromJson.call(this, json);
+            };
+            return PracticePlanPeriodStart;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanPeriodStart = PracticePlanPeriodStart;
+        var PracticePlanPeriodFinish = (function (_super) {
+            __extends(PracticePlanPeriodFinish, _super);
+            function PracticePlanPeriodFinish() {
+                _super.call(this, 'Period finish');
+                this.finish = 0;
+                this.type = Planning.Enums.PlanningEditorToggleTypes.PeriodFinish;
+            }
+            PracticePlanPeriodFinish.prototype.toJson = function () {
+                return $.extend({
+                    finish: this.finish
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanPeriodFinish.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.finish = json.finish;
+                _super.prototype.fromJson.call(this, json);
+            };
+            return PracticePlanPeriodFinish;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanPeriodFinish = PracticePlanPeriodFinish;
+        var PracticePlanDate = (function (_super) {
+            __extends(PracticePlanDate, _super);
+            function PracticePlanDate() {
+                _super.call(this, 'Date');
+                this.date = new Common.Models.Datetime();
+                this.type = Planning.Enums.PlanningEditorToggleTypes.Date;
+            }
+            PracticePlanDate.prototype.toJson = function () {
+                return $.extend({
+                    date: this.date.toJson()
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanDate.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.date.fromJson(json.date);
+                _super.prototype.fromJson.call(this, json);
+            };
+            return PracticePlanDate;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanDate = PracticePlanDate;
+        var PracticePlanLocation = (function (_super) {
+            __extends(PracticePlanLocation, _super);
+            function PracticePlanLocation() {
+                _super.call(this, 'Location');
+                this.location = null;
+                this.locationGuid = '';
+                this.type = Planning.Enums.PlanningEditorToggleTypes.Location;
+            }
+            PracticePlanLocation.prototype.toJson = function () {
+                return $.extend({
+                    locationGuid: this.locationGuid
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanLocation.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.locationGuid = json.locationGuid;
+                _super.prototype.fromJson.call(this, json);
+            };
+            PracticePlanLocation.prototype.setLocation = function (location) {
+                this.location = location;
+                this.locationGuid = this.location ? this.location.guid : '';
+            };
+            return PracticePlanLocation;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanLocation = PracticePlanLocation;
+        var PracticePlanOpponent = (function (_super) {
+            __extends(PracticePlanOpponent, _super);
+            function PracticePlanOpponent() {
+                _super.call(this, 'Opponent');
+                this.opponent = null;
+                this.opponentGuid = '';
+                this.type = Planning.Enums.PlanningEditorToggleTypes.Opponent;
+            }
+            PracticePlanOpponent.prototype.toJson = function () {
+                return $.extend({
+                    opponentGuid: this.opponentGuid
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanOpponent.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.opponentGuid = json.opponentGuid;
+                _super.prototype.fromJson.call(this, json);
+            };
+            PracticePlanOpponent.prototype.setOpponent = function (opponent) {
+                this.opponent = opponent;
+                this.opponentGuid = this.opponent ? this.opponent.guid : '';
+            };
+            return PracticePlanOpponent;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanOpponent = PracticePlanOpponent;
+        var PracticePlanDuration = (function (_super) {
+            __extends(PracticePlanDuration, _super);
+            function PracticePlanDuration() {
+                _super.call(this, 'Duration');
+                this.minutes = 0;
+                this.type = Planning.Enums.PlanningEditorToggleTypes.Duration;
+            }
+            PracticePlanDuration.prototype.toJson = function () {
+                return $.extend({
+                    minutes: this.minutes
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanDuration.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.minutes = json;
+                _super.prototype.fromJson.call(this, json);
+            };
+            return PracticePlanDuration;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanDuration = PracticePlanDuration;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var PracticePlanSituationData = (function (_super) {
+            __extends(PracticePlanSituationData, _super);
+            function PracticePlanSituationData() {
+                _super.call(this);
+                this.playCount = new Planning.Models.PracticePlanPlayCount();
+                this.hashmark = new Planning.Models.PracticePlanHashmark();
+                this.down = new Planning.Models.PracticePlanDown();
+                this.distance = new Planning.Models.PracticePlanDistance();
+                this.yardline = new Planning.Models.PracticePlanYardline();
+                this.fieldZone = new Planning.Models.PracticePlanFieldZone();
+                this.time = new Planning.Models.PracticePlanTime();
+                this.tempo = new Planning.Models.PracticePlanTempo();
+                this.scoreDifference = new Planning.Models.PracticePlanScoreDifference();
+            }
+            PracticePlanSituationData.prototype.toJson = function () {
+                return $.extend({
+                    playCount: this.playCount.toJson(),
+                    hashmark: this.hashmark.toJson(),
+                    down: this.down.toJson(),
+                    distance: this.distance.toJson(),
+                    yardline: this.yardline.toJson(),
+                    fieldZone: this.fieldZone.toJson(),
+                    time: this.time.toJson(),
+                    tempo: this.tempo.toJson(),
+                    scoreDifference: this.scoreDifference.toJson()
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanSituationData.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.playCount.fromJson(json.playCount);
+                this.hashmark.fromJson(json.hashmark);
+                this.down.fromJson(json.down);
+                this.distance.fromJson(json.distance);
+                this.yardline.fromJson(json.yardline);
+                this.fieldZone.fromJson(json.fieldZone);
+                this.time.fromJson(json.time);
+                this.tempo.fromJson(json.tempo);
+                this.scoreDifference.fromJson(json.scoreDifference);
+                _super.prototype.fromJson.call(this, json);
+            };
+            PracticePlanSituationData.prototype.toCollection = function () {
+                var collection = new Planning.Models.PlanningEditorToggleItemCollection();
+                collection.add(this.playCount, false);
+                collection.add(this.hashmark, false);
+                collection.add(this.down, false);
+                collection.add(this.distance, false);
+                collection.add(this.yardline, false);
+                collection.add(this.fieldZone, false);
+                collection.add(this.time, false);
+                collection.add(this.tempo, false);
+                collection.add(this.scoreDifference, false);
+                return collection;
+            };
+            return PracticePlanSituationData;
+        })(Common.Models.Storable);
+        Models.PracticePlanSituationData = PracticePlanSituationData;
+        var PracticePlanPlayCount = (function (_super) {
+            __extends(PracticePlanPlayCount, _super);
+            function PracticePlanPlayCount() {
+                _super.call(this, 'Play count');
+                this.type = Planning.Enums.PlanningEditorToggleTypes.PlayCount;
+                this.count = 30;
+            }
+            PracticePlanPlayCount.prototype.toJson = function () {
+                return $.extend({
+                    count: this.count
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanPlayCount.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.count = json.count;
+                _super.prototype.fromJson.call(this, json);
+            };
+            return PracticePlanPlayCount;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanPlayCount = PracticePlanPlayCount;
+        var PracticePlanHashmark = (function (_super) {
+            __extends(PracticePlanHashmark, _super);
+            function PracticePlanHashmark() {
+                _super.call(this, 'Hashmark');
+                this.type = Planning.Enums.PlanningEditorToggleTypes.Hashmark;
+                this.hashmark = Playbook.Enums.Hashmark.Center;
+            }
+            PracticePlanHashmark.prototype.toJson = function () {
+                return $.extend({
+                    hashmark: this.hashmark
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanHashmark.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.hashmark = json.hashmark;
+                _super.prototype.fromJson.call(this, json);
+            };
+            return PracticePlanHashmark;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanHashmark = PracticePlanHashmark;
+        var PracticePlanDown = (function (_super) {
+            __extends(PracticePlanDown, _super);
+            function PracticePlanDown() {
+                _super.call(this, 'Down');
+                this.type = Planning.Enums.PlanningEditorToggleTypes.Down;
+                this.down = 1;
+            }
+            PracticePlanDown.prototype.toJson = function () {
+                return $.extend({
+                    down: this.down
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanDown.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.down = json.down;
+                _super.prototype.fromJson.call(this, json);
+            };
+            return PracticePlanDown;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanDown = PracticePlanDown;
+        var PracticePlanDistance = (function (_super) {
+            __extends(PracticePlanDistance, _super);
+            function PracticePlanDistance() {
+                _super.call(this, 'Distance');
+                this.type = Planning.Enums.PlanningEditorToggleTypes.Distance;
+                this.distance = 10;
+            }
+            PracticePlanDistance.prototype.toJson = function () {
+                return $.extend({
+                    distance: this.distance
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanDistance.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.distance = json.distance;
+                _super.prototype.fromJson.call(this, json);
+            };
+            return PracticePlanDistance;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanDistance = PracticePlanDistance;
+        var PracticePlanYardline = (function (_super) {
+            __extends(PracticePlanYardline, _super);
+            function PracticePlanYardline() {
+                _super.call(this, 'Yardline');
+                this.type = Planning.Enums.PlanningEditorToggleTypes.Yardline;
+                this.yardline = 50;
+            }
+            PracticePlanYardline.prototype.toJson = function () {
+                return $.extend({
+                    yardline: this.yardline
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanYardline.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.yardline = json.yardline;
+                _super.prototype.fromJson.call(this, json);
+            };
+            return PracticePlanYardline;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanYardline = PracticePlanYardline;
+        var PracticePlanFieldZone = (function (_super) {
+            __extends(PracticePlanFieldZone, _super);
+            function PracticePlanFieldZone() {
+                _super.call(this, 'Field zone');
+                this.type = Planning.Enums.PlanningEditorToggleTypes.FieldZone;
+                this.fieldZone = new Common.Models.NotImplementedClass();
+            }
+            PracticePlanFieldZone.prototype.toJson = function () {
+                return $.extend({
+                    fieldZone: this.fieldZone
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanFieldZone.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.fieldZone.fromJson(json.fieldZone);
+                _super.prototype.fromJson.call(this, json);
+            };
+            return PracticePlanFieldZone;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanFieldZone = PracticePlanFieldZone;
+        var PracticePlanTime = (function (_super) {
+            __extends(PracticePlanTime, _super);
+            function PracticePlanTime() {
+                _super.call(this, 'Time');
+                this.type = Planning.Enums.PlanningEditorToggleTypes.Time;
+                this.time = 0;
+            }
+            PracticePlanTime.prototype.toJson = function () {
+                return $.extend({
+                    time: this.time
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanTime.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.time = json.time;
+                _super.prototype.fromJson.call(this, json);
+            };
+            return PracticePlanTime;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanTime = PracticePlanTime;
+        var PracticePlanTempo = (function (_super) {
+            __extends(PracticePlanTempo, _super);
+            function PracticePlanTempo() {
+                _super.call(this, 'Tempo');
+                this.type = Planning.Enums.PlanningEditorToggleTypes.Tempo;
+                this.tempo = new Common.Models.NotImplementedClass();
+            }
+            PracticePlanTempo.prototype.toJson = function () {
+                return $.extend({
+                    tempo: this.tempo
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanTempo.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.tempo.fromJson(json);
+                _super.prototype.fromJson.call(this, json);
+            };
+            return PracticePlanTempo;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanTempo = PracticePlanTempo;
+        var PracticePlanScoreDifference = (function (_super) {
+            __extends(PracticePlanScoreDifference, _super);
+            function PracticePlanScoreDifference() {
+                _super.call(this, 'Score difference');
+                this.type = Planning.Enums.PlanningEditorToggleTypes.ScoreDifference;
+            }
+            PracticePlanScoreDifference.prototype.toJson = function () {
+                return $.extend({
+                    difference: this.difference
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanScoreDifference.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.difference = json.difference;
+                _super.prototype.fromJson.call(this, json);
+            };
+            return PracticePlanScoreDifference;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanScoreDifference = PracticePlanScoreDifference;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var GamePlan = (function (_super) {
+            __extends(GamePlan, _super);
+            function GamePlan() {
+                _super.call(this, Common.Enums.ImpaktDataTypes.GamePlan);
+                this.plan = null;
+                this.planGuid = '';
+                this.start = new Common.Models.Datetime();
+            }
+            GamePlan.prototype.toJson = function () {
+                return $.extend({
+                    planGuid: this.planGuid,
+                    start: this.start.toJson()
+                }, _super.prototype.toJson.call(this));
+            };
+            GamePlan.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.planGuid = json.planGuid;
+                this.start.fromJson(json.start);
+                _super.prototype.fromJson.call(this, json);
+            };
+            GamePlan.prototype.setPlan = function (plan) {
+                this.plan = plan;
+                this.planGuid = this.plan ? this.plan.guid : '';
+            };
+            return GamePlan;
+        })(Common.Models.AssociableEntity);
+        Models.GamePlan = GamePlan;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var GamePlanCollection = (function (_super) {
+            __extends(GamePlanCollection, _super);
+            function GamePlanCollection() {
+                _super.call(this);
+            }
+            GamePlanCollection.prototype.toJson = function () {
+                return {
+                    guid: this.guid,
+                    gamePlans: _super.prototype.toJson.call(this)
+                };
+            };
+            GamePlanCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.guid = json.guid;
+                var gamePlanArray = json.gamePlans || [];
+                for (var i = 0; i < gamePlanArray.length; i++) {
+                    var rawGamePlanModel = gamePlanArray[i];
+                    if (Common.Utilities.isNullOrUndefined(rawGamePlanModel)) {
+                        continue;
+                    }
+                    var gamePlanModel = new Planning.Models.GamePlan();
+                    gamePlanModel.fromJson(rawGamePlanModel);
+                    this.add(gamePlanModel);
+                }
+            };
+            return GamePlanCollection;
+        })(Common.Models.ActionableCollection);
+        Models.GamePlanCollection = GamePlanCollection;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var PracticeSchedule = (function (_super) {
+            __extends(PracticeSchedule, _super);
+            function PracticeSchedule() {
+                _super.call(this, Common.Enums.ImpaktDataTypes.PracticePlan);
+            }
+            PracticeSchedule.prototype.toJson = function () {
+                return $.extend({}, _super.prototype.toJson.call(this));
+            };
+            PracticeSchedule.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                // TODO
+                _super.prototype.fromJson.call(this, json);
+            };
+            return PracticeSchedule;
+        })(Common.Models.AssociableEntity);
+        Models.PracticeSchedule = PracticeSchedule;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var PracticeScheduleCollection = (function (_super) {
+            __extends(PracticeScheduleCollection, _super);
+            function PracticeScheduleCollection() {
+                _super.call(this);
+            }
+            PracticeScheduleCollection.prototype.toJson = function () {
+                return {
+                    guid: this.guid,
+                    practiceSchedules: _super.prototype.toJson.call(this)
+                };
+            };
+            PracticeScheduleCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.guid = json.guid;
+                var practiceScheduleArray = json.practiceSchedules || [];
+                for (var i = 0; i < practiceScheduleArray.length; i++) {
+                    var rawpracticeScheduleModel = practiceScheduleArray[i];
+                    if (Common.Utilities.isNullOrUndefined(rawpracticeScheduleModel)) {
+                        continue;
+                    }
+                    var practiceScheduleModel = new Planning.Models.PracticeSchedule();
+                    practiceScheduleModel.fromJson(rawpracticeScheduleModel);
+                    this.add(practiceScheduleModel);
+                }
+            };
+            return PracticeScheduleCollection;
+        })(Common.Models.ActionableCollection);
+        Models.PracticeScheduleCollection = PracticeScheduleCollection;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var ScoutCard = (function (_super) {
+            __extends(ScoutCard, _super);
+            function ScoutCard() {
+                _super.call(this, Common.Enums.ImpaktDataTypes.ScoutCard);
+                this.plan = null;
+                this.planGuid = '';
+            }
+            ScoutCard.prototype.toJson = function () {
+                return $.extend({
+                    planGuid: this.planGuid
+                }, _super.prototype.toJson.call(this));
+            };
+            ScoutCard.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.planGuid = json.planGuid;
+                _super.prototype.fromJson.call(this, json);
+            };
+            ScoutCard.prototype.setPlan = function (plan) {
+                this.plan = plan;
+                this.planGuid = this.plan ? this.plan.guid : '';
+            };
+            return ScoutCard;
+        })(Common.Models.AssociableEntity);
+        Models.ScoutCard = ScoutCard;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var ScoutCardCollection = (function (_super) {
+            __extends(ScoutCardCollection, _super);
+            function ScoutCardCollection() {
+                _super.call(this);
+            }
+            ScoutCardCollection.prototype.toJson = function () {
+                return {
+                    guid: this.guid,
+                    scoutCards: _super.prototype.toJson.call(this)
+                };
+            };
+            ScoutCardCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.guid = json.guid;
+                var scoutCardArray = json.scoutCards || [];
+                for (var i = 0; i < scoutCardArray.length; i++) {
+                    var rawscoutCardModel = scoutCardArray[i];
+                    if (Common.Utilities.isNullOrUndefined(rawscoutCardModel)) {
+                        continue;
+                    }
+                    var scoutCardModel = new Planning.Models.ScoutCard();
+                    scoutCardModel.fromJson(rawscoutCardModel);
+                    this.add(scoutCardModel);
+                }
+            };
+            return ScoutCardCollection;
+        })(Common.Models.ActionableCollection);
+        Models.ScoutCardCollection = ScoutCardCollection;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var QBWristband = (function (_super) {
+            __extends(QBWristband, _super);
+            function QBWristband() {
+                _super.call(this, Common.Enums.ImpaktDataTypes.PracticePlan);
+            }
+            QBWristband.prototype.toJson = function () {
+                return $.extend({}, _super.prototype.toJson.call(this));
+            };
+            QBWristband.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                // TODO
+                _super.prototype.fromJson.call(this, json);
+            };
+            return QBWristband;
+        })(Common.Models.AssociableEntity);
+        Models.QBWristband = QBWristband;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var QBWristbandCollection = (function (_super) {
+            __extends(QBWristbandCollection, _super);
+            function QBWristbandCollection() {
+                _super.call(this);
+            }
+            QBWristbandCollection.prototype.toJson = function () {
+                return {
+                    guid: this.guid,
+                    QBWristbands: _super.prototype.toJson.call(this)
+                };
+            };
+            QBWristbandCollection.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.guid = json.guid;
+                var QBWristbandArray = json.QBWristbands || [];
+                for (var i = 0; i < QBWristbandArray.length; i++) {
+                    var rawQBWristbandModel = QBWristbandArray[i];
+                    if (Common.Utilities.isNullOrUndefined(rawQBWristbandModel)) {
+                        continue;
+                    }
+                    var QBWristbandModel = new Planning.Models.QBWristband();
+                    QBWristbandModel.fromJson(rawQBWristbandModel);
+                    this.add(QBWristbandModel);
+                }
+            };
+            return QBWristbandCollection;
+        })(Common.Models.ActionableCollection);
+        Models.QBWristbandCollection = QBWristbandCollection;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var PlanningEditorTab = (function (_super) {
+            __extends(PlanningEditorTab, _super);
+            function PlanningEditorTab(data) {
+                _super.call(this, Common.Enums.ImpaktDataTypes.Unknown);
+                if (Common.Utilities.isNullOrUndefined(data))
+                    throw new Error('PlanningEditorTab constructor(): data is null or undefined');
+                this.data = data;
+            }
+            return PlanningEditorTab;
+        })(Common.Models.Actionable);
+        Models.PlanningEditorTab = PlanningEditorTab;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var PlanningEditorTabCollection = (function (_super) {
+            __extends(PlanningEditorTabCollection, _super);
+            function PlanningEditorTabCollection() {
+                _super.call(this);
+            }
+            PlanningEditorTabCollection.prototype.close = function (tab) {
+                this.remove(tab.guid);
+                tab.close();
+            };
+            return PlanningEditorTabCollection;
+        })(Common.Models.ActionableCollection);
+        Models.PlanningEditorTabCollection = PlanningEditorTabCollection;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='../planning.ts' />
+/// <reference path='../interfaces/interfaces.ts' />
+/// 
+/// <reference path='./PlanningEditorToggleItem.ts' />
+/// <reference path='./PlanningEditorToggleItemCollection.ts' />
+/// <reference path='./Plan.ts' />
+/// <reference path='./PlanCollection.ts' />
+/// <reference path='./PracticePlan.ts' />
+/// <reference path='./PracticePlanCollection.ts' />
+/// <reference path='./PracticePlanItem.ts' />
+/// <reference path='./PracticePlanItemCollection.ts' />
+/// <reference path='./PracticePlanTitleData.ts' />
+/// <reference path='./PracticePlanSituationData.ts' />
+/// <reference path='./GamePlan.ts' />
+/// <reference path='./GamePlanCollection.ts' />
+/// <reference path='./PracticeSchedule.ts' />
+/// <reference path='./PracticeScheduleCollection.ts' />
+/// <reference path='./ScoutCard.ts' />
+/// <reference path='./ScoutCardCollection.ts' />
+/// <reference path='./QBWristband.ts' />
+/// <reference path='./QBWristbandCollection.ts' />
+/// <reference path='./PlanningEditorTab.ts' />
+/// <reference path='./PlanningEditorTabCollection.ts' />
+/// <reference path='../planning.ts' />
+var Planning;
+(function (Planning) {
+    var Enums;
+    (function (Enums) {
+        (function (PlanningEditorToggleTypes) {
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["Unknown"] = 0] = "Unknown";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["PeriodName"] = 1] = "PeriodName";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["PeriodNumber"] = 2] = "PeriodNumber";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["PeriodReps"] = 3] = "PeriodReps";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["PeriodStart"] = 4] = "PeriodStart";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["PeriodFinish"] = 5] = "PeriodFinish";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["Date"] = 6] = "Date";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["Location"] = 7] = "Location";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["Opponent"] = 8] = "Opponent";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["Duration"] = 9] = "Duration";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["PlayCount"] = 10] = "PlayCount";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["Hashmark"] = 11] = "Hashmark";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["Down"] = 12] = "Down";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["Distance"] = 13] = "Distance";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["Yardline"] = 14] = "Yardline";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["FieldZone"] = 15] = "FieldZone";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["Time"] = 16] = "Time";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["Tempo"] = 17] = "Tempo";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["ScoreDifference"] = 18] = "ScoreDifference";
+        })(Enums.PlanningEditorToggleTypes || (Enums.PlanningEditorToggleTypes = {}));
+        var PlanningEditorToggleTypes = Enums.PlanningEditorToggleTypes;
+    })(Enums = Planning.Enums || (Planning.Enums = {}));
+})(Planning || (Planning = {}));
+/// <reference path='../planning.ts' />
+var Planning;
+(function (Planning) {
+    var Constants;
+    (function (Constants) {
+        Constants.DEFAULT_PRACTICE_PLAN_ITEMS_LENGTH = 10;
+    })(Constants = Planning.Constants || (Planning.Constants = {}));
+})(Planning || (Planning = {}));
 /// <reference path='../modules.ts' />
+/// <reference path='./models/models.ts' />
+/// <reference path='./enums/enums.ts' />
+/// <reference path='./interfaces/interfaces.ts' />
+/// <reference path='./constants/constants.ts' />
 /// <reference path='./models.ts' />
 var Navigation;
 (function (Navigation) {
@@ -11054,6 +12344,7 @@ var Season;
                     'seasons',
                     'teams',
                     'locations',
+                    'plans',
                     'playbooks'
                 ];
             }
@@ -11534,10 +12825,6 @@ impakt.app = angular.module('impakt.app', [
             url: '/team',
             templateUrl: 'modules/team/team.tpl.html'
         })
-            .state('planning', {
-            url: '/planning',
-            templateUrl: 'modules/planning/planning.tpl.html'
-        })
             .state('analysis', {
             url: '/analysis',
             templateUrl: 'modules/analysis/analysis.tpl.html'
@@ -11546,15 +12833,6 @@ impakt.app = angular.module('impakt.app', [
             url: '/profile',
             templateUrl: 'modules/user/user.tpl.html'
         });
-        // TODO @theBull - implement
-        // .state('film', {
-        // 	url: '/film',
-        // 	templateUrl: 'modules/film/film.tpl.html'
-        // })
-        // .state('stats', {
-        // 	url: '/stats',
-        // 	templateUrl: 'modules/stats/stats.tpl.html'
-        // });
         console.debug('impakt.app - config');
     }])
     .run([
@@ -12107,6 +13385,36 @@ impakt.common.associations.service('_associations', [
                         if (game)
                             results.games.add(game);
                         break;
+                    case Common.Enums.ImpaktDataTypes.Plan:
+                        var plan = impakt.context.Planning.plans.get(guid);
+                        if (plan)
+                            results.plans.add(plan);
+                        break;
+                    case Common.Enums.ImpaktDataTypes.PracticePlan:
+                        var practicePlan = impakt.context.Planning.practicePlans.get(guid);
+                        if (practicePlan)
+                            results.practicePlans.add(practicePlan);
+                        break;
+                    case Common.Enums.ImpaktDataTypes.PracticeSchedule:
+                        var practiceSchedule = impakt.context.Planning.practiceSchedules.get(guid);
+                        if (practiceSchedule)
+                            results.practiceSchedules.add(practiceSchedule);
+                        break;
+                    case Common.Enums.ImpaktDataTypes.GamePlan:
+                        var gamePlan = impakt.context.Planning.gamePlans.get(guid);
+                        if (gamePlan)
+                            results.gamePlans.add(gamePlan);
+                        break;
+                    case Common.Enums.ImpaktDataTypes.ScoutCard:
+                        var scoutCard = impakt.context.Planning.scoutCards.get(guid);
+                        if (scoutCard)
+                            results.scoutCards.add(scoutCard);
+                        break;
+                    case Common.Enums.ImpaktDataTypes.QBWristband:
+                        var QBWristband = impakt.context.Planning.QBWristbands.get(guid);
+                        if (QBWristband)
+                            results.QBWristbands.add(QBWristband);
+                        break;
                 }
             }
             return results;
@@ -12158,6 +13466,24 @@ impakt.common.associations.service('_associations', [
                 case 'games':
                     collection = impakt.context.Season.games;
                     break;
+                case 'plans':
+                    collection = impakt.context.Planning.plans;
+                    break;
+                case 'practicePlans':
+                    collection = impakt.context.Planning.practicePlans;
+                    break;
+                case 'practiceSchedules':
+                    collection = impakt.context.Planning.practiceSchedules;
+                    break;
+                case 'gamePlans':
+                    collection = impakt.context.Planning.gamePlans;
+                    break;
+                case 'scoutCards':
+                    collection = impakt.context.Planning.scoutCards;
+                    break;
+                case 'QBWristbands':
+                    collection = impakt.context.Planning.QBWristbands;
+                    break;
             }
             var parsedCollection = new Common.Models.ActionableCollection();
             if (Common.Utilities.isNotNullOrUndefined(collection)) {
@@ -12187,7 +13513,8 @@ impakt.common.context.factory('__context', ['$q',
     '_league',
     '_season',
     '_team',
-    function ($q, __api, __localStorage, __notifications, _associations, _playbook, _league, _season, _team) {
+    '_planning',
+    function ($q, __api, __localStorage, __notifications, _associations, _playbook, _league, _season, _team, _planning) {
         var isReady = false;
         var readyCallbacks = [];
         var initializingCallbacks = [];
@@ -12232,6 +13559,8 @@ impakt.common.context.factory('__context', ['$q',
             impakt.context.League = {};
         if (!impakt.context.Season)
             impakt.context.Season = {};
+        if (!impakt.context.Planning)
+            impakt.context.Planning = {};
         function initialize(context) {
             // notify listeners that context initialization
             // has begun
@@ -12348,6 +13677,37 @@ impakt.common.context.factory('__context', ['$q',
                 seasons: new Season.Models.SeasonModelCollection(),
                 games: new Season.Models.GameCollection()
             };
+            /**
+             *
+             *
+             * Planning context
+             *
+             *
+             */
+            impakt.context.Planning.plans = new Planning.Models.PlanCollection();
+            impakt.context.Planning.practicePlans = new Planning.Models.PracticePlanCollection();
+            impakt.context.Planning.gamePlans = new Planning.Models.GamePlanCollection();
+            impakt.context.Planning.practiceSchedules = new Planning.Models.PracticeScheduleCollection();
+            impakt.context.Planning.scoutCards = new Planning.Models.ScoutCardCollection();
+            impakt.context.Planning.QBWristbands = new Planning.Models.QBWristbandCollection();
+            /**
+             * A creation context for planning
+             */
+            impakt.context.Planning.creation = {
+                plans: new Planning.Models.PlanCollection(),
+                practicePlans: new Planning.Models.PracticePlanCollection(),
+                gamePlans: new Planning.Models.GamePlanCollection(),
+                practiceSchedules: new Planning.Models.PracticeScheduleCollection(),
+                scoutCards: new Planning.Models.ScoutCardCollection(),
+                QBWristbands: new Planning.Models.QBWristbandCollection()
+            };
+            impakt.context.Planning.editor = {
+                practicePlans: new Planning.Models.PracticePlanCollection(),
+                practiceSchedules: new Planning.Models.PracticeScheduleCollection(),
+                gamePlans: new Planning.Models.GamePlanCollection(),
+                scoutCards: new Planning.Models.ScoutCardCollection(),
+                QBWristbands: new Planning.Models.QBWristbandCollection()
+            };
             async.parallel([
                 // Retrieve associations
                 // Retrieve associations
@@ -12434,6 +13794,72 @@ impakt.common.context.factory('__context', ['$q',
                         context.Season.games = games;
                         __notifications.success('Games successfully loaded');
                         callback(null, games);
+                    }, function (err) {
+                        callback(err);
+                    });
+                },
+                // Retrieve plans
+                // Retrieve plans
+                function (callback) {
+                    _planning.getPlans().then(function (plans) {
+                        context.Planning.plans = plans;
+                        __notifications.success(' plans successfully loaded');
+                        callback(null, plans);
+                    }, function (err) {
+                        callback(err);
+                    });
+                },
+                // Retrieve practice plans
+                // Retrieve practice plans
+                function (callback) {
+                    _planning.getPracticePlans().then(function (practicePlans) {
+                        context.Planning.practicePlans = practicePlans;
+                        __notifications.success('Practice plans successfully loaded');
+                        callback(null, practicePlans);
+                    }, function (err) {
+                        callback(err);
+                    });
+                },
+                // Retrieve game plans
+                // Retrieve game plans
+                function (callback) {
+                    _planning.getGamePlans().then(function (gamePlans) {
+                        context.Planning.gamePlans = gamePlans;
+                        __notifications.success('Game plans successfully loaded');
+                        callback(null, gamePlans);
+                    }, function (err) {
+                        callback(err);
+                    });
+                },
+                // Retrieve practice schedules
+                // Retrieve practice schedules
+                function (callback) {
+                    _planning.getPracticeSchedules().then(function (practiceSchedules) {
+                        context.Planning.practiceSchedules = practiceSchedules;
+                        __notifications.success('Practice schedules successfully loaded');
+                        callback(null, practiceSchedules);
+                    }, function (err) {
+                        callback(err);
+                    });
+                },
+                // Retrieve scout cards
+                // Retrieve scout cards
+                function (callback) {
+                    _planning.getScoutCards().then(function (scoutCards) {
+                        context.Planning.scoutCards = scoutCards;
+                        __notifications.success('Scout cards successfully loaded');
+                        callback(null, scoutCards);
+                    }, function (err) {
+                        callback(err);
+                    });
+                },
+                // Retrieve QB wristbands
+                // Retrieve QB wristbands
+                function (callback) {
+                    _planning.getQBWristbands().then(function (QBWristbands) {
+                        context.Planning.QBWristbands = QBWristbands;
+                        __notifications.success('QB wristbands successfully loaded');
+                        callback(null, QBWristbands);
                     }, function (err) {
                         callback(err);
                     });
@@ -14453,6 +15879,73 @@ impakt.common.ui.controller('gameItem.ctrl', [
         };
     }]);
 /// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('gamePlanItem.ctrl', [
+    '$scope',
+    '$state',
+    '_details',
+    '_planning',
+    '_associations',
+    function ($scope, $state, _details, _planning, _associations) {
+        $scope.gamePlan;
+        $scope.element;
+        /**
+         *
+         *	Item selection
+         *
+         */
+        $scope.toggleSelection = function (gamePlan) {
+            _details.toggleSelection(gamePlan);
+        };
+        /**
+         * Hover
+         */
+        $scope.hoverIn = function () {
+            if (Common.Utilities.isNullOrUndefined($scope.gamePlan))
+                return;
+            $scope.gamePlan.hoverIn();
+        };
+        $scope.hoverOut = function () {
+            if (Common.Utilities.isNullOrUndefined($scope.gamePlan))
+                return;
+            $scope.gamePlan.hoverOut();
+        };
+        /**
+         *
+         *	Edit item
+         *
+         */
+        $scope.edit = function () {
+            _planning.toGamePlanEditor($scope.gamePlan);
+        };
+    }]).directive('gamePlanItem', [
+    '_associations',
+    function (_associations) {
+        /**
+         * game-plan-item directive
+         */
+        return {
+            restrict: 'E',
+            controller: 'gamePlanItem.ctrl',
+            scope: {
+                gamePlan: '='
+            },
+            templateUrl: 'common/ui/game-plan-item/game-plan-item.tpl.html',
+            transclude: true,
+            replace: true,
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                        var associations = _associations.getAssociated($scope.gamePlan);
+                        if (Common.Utilities.isNotNullOrUndefined(associations)) {
+                        }
+                    }
+                };
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
 impakt.common.ui.controller('grid.ctrl', [
     '$scope',
     '_details',
@@ -14634,6 +16127,135 @@ impakt.common.ui.controller('leagueItem.ctrl', [
                         }
                     }
                 };
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('planItem.ctrl', [
+    '$scope',
+    '$state',
+    '_details',
+    '_planning',
+    '_associations',
+    function ($scope, $state, _details, _planning, _associations) {
+        $scope.plan;
+        $scope.element;
+        /**
+         *
+         *	Item selection
+         *
+         */
+        $scope.toggleSelection = function (plan) {
+            if (!$state.is('planning.drilldown.plan')) {
+                _details.selectedElements.deselectAll();
+                _planning.toPlanDrilldown(plan);
+            }
+            else {
+                _details.toggleSelection(plan);
+            }
+        };
+    }]).directive('planItem', [
+    '_associations',
+    function (_associations) {
+        /**
+         * plan-item directive
+         */
+        return {
+            restrict: 'E',
+            controller: 'planItem.ctrl',
+            scope: {
+                plan: '='
+            },
+            templateUrl: 'common/ui/plan-item/plan-item.tpl.html',
+            transclude: true,
+            replace: true,
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                        var associations = _associations.getAssociated($scope.plan);
+                        if (Common.Utilities.isNotNullOrUndefined(associations)) {
+                        }
+                        if (Common.Utilities.isNotNullOrUndefined($scope.plan) &&
+                            Common.Utilities.isNotEmptyString($scope.plan.gameGuid)) {
+                            var game = impakt.context.Season.games.get($scope.plan.gameGuid);
+                            $scope.plan.setGame(game);
+                        }
+                    }
+                };
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('planningEditorTab.ctrl', [
+    '$scope',
+    '$state',
+    '_planningEditor',
+    function ($scope, $state, _planningEditor) {
+        $scope.tab;
+        $scope.element;
+        /**
+         *
+         *	Item selection
+         *
+         */
+        $scope.toggleSelection = function () {
+            if (!$scope.tab.selected) {
+                _planningEditor.activateTab($scope.tab);
+            }
+        };
+        /**
+         * Close
+         */
+        $scope.close = function () {
+            _planningEditor.close($scope.tab);
+        };
+    }]).directive('planningEditorTab', [
+    '_associations',
+    function (_associations) {
+        /**
+         * planning-editor-tab directive
+         */
+        return {
+            restrict: 'E',
+            controller: 'planningEditorTab.ctrl',
+            scope: {
+                tab: '=tabObject'
+            },
+            templateUrl: 'common/ui/planning-editor-tab/planning-editor-tab.tpl.html',
+            transclude: true,
+            replace: true,
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                    }
+                };
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('planningEditorToggle.ctrl', [
+    '$scope',
+    function ($scope) {
+        $scope.item;
+        $scope.toggle = function () {
+            $scope.item.toggleSelect();
+        };
+    }]).directive('planningEditorToggle', [
+    function () {
+        return {
+            restrict: 'E',
+            controller: 'planningEditorToggle.ctrl',
+            templateUrl: 'common/ui/planning-editor-toggle/planning-editor-toggle.tpl.html',
+            transclude: true,
+            replace: true,
+            scope: {
+                item: '='
+            },
+            link: function ($scope, $element, attrs) {
             }
         };
     }]);
@@ -14988,6 +16610,73 @@ impakt.common.ui.directive('popout', [
         };
     }]);
 /// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('practicePlanItem.ctrl', [
+    '$scope',
+    '$state',
+    '_details',
+    '_planning',
+    '_associations',
+    function ($scope, $state, _details, _planning, _associations) {
+        $scope.practicePlan;
+        $scope.element;
+        /**
+         *
+         *	Item selection
+         *
+         */
+        $scope.toggleSelection = function (practicePlan) {
+            _details.toggleSelection(practicePlan);
+        };
+        /**
+         * Hover
+         */
+        $scope.hoverIn = function () {
+            if (Common.Utilities.isNullOrUndefined($scope.practicePlan))
+                return;
+            $scope.practicePlan.hoverIn();
+        };
+        $scope.hoverOut = function () {
+            if (Common.Utilities.isNullOrUndefined($scope.practicePlan))
+                return;
+            $scope.practicePlan.hoverOut();
+        };
+        /**
+         *
+         *	Edit item
+         *
+         */
+        $scope.edit = function () {
+            _planning.toPracticePlanEditor($scope.practicePlan);
+        };
+    }]).directive('practicePlanItem', [
+    '_associations',
+    function (_associations) {
+        /**
+         * practice-plan-item directive
+         */
+        return {
+            restrict: 'E',
+            controller: 'practicePlanItem.ctrl',
+            scope: {
+                practicePlan: '='
+            },
+            templateUrl: 'common/ui/practice-plan-item/practice-plan-item.tpl.html',
+            transclude: true,
+            replace: true,
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                        var associations = _associations.getAssociated($scope.practicePlan);
+                        if (Common.Utilities.isNotNullOrUndefined(associations)) {
+                        }
+                    }
+                };
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
 impakt.common.ui.controller('quotes.ctrl', [
     '$scope',
     '$interval',
@@ -15310,6 +16999,73 @@ impakt.common.ui.controller('scenarioThumbnail.ctrl', [
                             var imgOffsetTop = (-(imgHeight * 0.5) + (elementHeight / 2)) + 'px';
                             $img.css({ 'top': imgOffsetTop });
                         }, false);
+                    }
+                };
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('scoutCardItem.ctrl', [
+    '$scope',
+    '$state',
+    '_details',
+    '_planning',
+    '_associations',
+    function ($scope, $state, _details, _planning, _associations) {
+        $scope.scoutCard;
+        $scope.element;
+        /**
+         *
+         *	Item selection
+         *
+         */
+        $scope.toggleSelection = function (scoutCard) {
+            _details.toggleSelection(scoutCard);
+        };
+        /**
+         * Hover
+         */
+        $scope.hoverIn = function () {
+            if (Common.Utilities.isNullOrUndefined($scope.scoutCard))
+                return;
+            $scope.scoutCard.hoverIn();
+        };
+        $scope.hoverOut = function () {
+            if (Common.Utilities.isNullOrUndefined($scope.scoutCard))
+                return;
+            $scope.scoutCard.hoverOut();
+        };
+        /**
+         *
+         *	Edit item
+         *
+         */
+        $scope.edit = function () {
+            _planning.toScoutCardEditor($scope.scoutCard);
+        };
+    }]).directive('scoutCardItem', [
+    '_associations',
+    function (_associations) {
+        /**
+         * scout-card-item directive
+         */
+        return {
+            restrict: 'E',
+            controller: 'scoutCardItem.ctrl',
+            scope: {
+                scoutCard: '='
+            },
+            templateUrl: 'common/ui/scout-card-item/scout-card-item.tpl.html',
+            transclude: true,
+            replace: true,
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                        var associations = _associations.getAssociated($scope.scoutCard);
+                        if (Common.Utilities.isNotNullOrUndefined(associations)) {
+                        }
                     }
                 };
             }
@@ -15736,7 +17492,8 @@ impakt.details.service('_details', [
     '_playbook',
     '_team',
     '_season',
-    function ($q, _league, _playbook, _team, _season) {
+    '_planning',
+    function ($q, _league, _playbook, _team, _season, _planning) {
         this.selectedElements = impakt.context.Actionable.selected;
         this.state = {
             collapsed: true
@@ -15787,6 +17544,13 @@ impakt.details.service('_details', [
                 case Common.Enums.ImpaktDataTypes.Season:
                 case Common.Enums.ImpaktDataTypes.Game:
                     return _season.deleteEntityByType(entity);
+                case Common.Enums.ImpaktDataTypes.Plan:
+                case Common.Enums.ImpaktDataTypes.PracticePlan:
+                case Common.Enums.ImpaktDataTypes.PracticeSchedule:
+                case Common.Enums.ImpaktDataTypes.GamePlan:
+                case Common.Enums.ImpaktDataTypes.ScoutCard:
+                case Common.Enums.ImpaktDataTypes.QBWristband:
+                    return _planning.deleteEntityByType(entity);
                 default:
                     throw new Error('_details delete(): entity ImpaktDataType not supported ' + entity.impaktDataType);
             }
@@ -15819,6 +17583,13 @@ impakt.details.service('_details', [
                 case Common.Enums.ImpaktDataTypes.Season:
                 case Common.Enums.ImpaktDataTypes.Game:
                     return _season.updateEntityByType(entity);
+                case Common.Enums.ImpaktDataTypes.Plan:
+                case Common.Enums.ImpaktDataTypes.PracticePlan:
+                case Common.Enums.ImpaktDataTypes.PracticeSchedule:
+                case Common.Enums.ImpaktDataTypes.GamePlan:
+                case Common.Enums.ImpaktDataTypes.ScoutCard:
+                case Common.Enums.ImpaktDataTypes.QBWristband:
+                    return _planning.updateEntityByType(entity);
                 default:
                     throw new Error('_details update(): entity ImpaktDataType not supported ' + entity.impaktDataType);
             }
@@ -17727,13 +19498,2249 @@ impakt.nav.factory('__nav', [
         };
     }]);
 /// <reference path='../modules.mdl.ts' />
-impakt.modules = angular.module('impakt.planning', [])
-    .config([function () {
+/// <reference path='./planning.ts' />
+impakt.planning = angular.module('impakt.planning', [
+    'impakt.planning.browser',
+    'impakt.planning.editor',
+    'impakt.planning.drilldown',
+    'impakt.planning.modals'
+])
+    .config([
+    '$stateProvider',
+    '$urlRouterProvider',
+    function ($stateProvider, $urlRouterProvider) {
         console.debug('impakt.planning - config');
+        // impakt module states
+        $stateProvider.state('planning', {
+            url: '/planning',
+            templateUrl: 'modules/planning/planning.tpl.html',
+            controller: 'planning.ctrl'
+        });
     }])
     .run(function () {
     console.debug('impakt.planning - run');
 });
+/// <reference path='../planning.mdl.ts' />
+impakt.planning.browser = angular.module('impakt.planning.browser', [])
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.planning.browser - config');
+        $stateProvider.state('planning.browser', {
+            url: '/browser',
+            templateUrl: 'modules/planning/browser/planning-browser.tpl.html',
+            controller: 'planning.browser.ctrl'
+        });
+    }])
+    .run(function () {
+    console.debug('impakt.planning.browser - run');
+});
+/// <reference path='./planning-browser.mdl.ts' />
+impakt.planning.browser.controller('planning.browser.ctrl', [
+    '$scope',
+    '_planning',
+    '_planningModals',
+    function ($scope, _planning, _planningModals, _teamModals) {
+        $scope.plans = impakt.context.Planning.plans;
+        $scope.createPlan = function () {
+            _planningModals.createPlan();
+        };
+        $scope.planDrilldown = function (plan) {
+            _planning.toPlanDrilldown(plan);
+        };
+    }]);
+/// <reference path='../planning.mdl.ts' />
+impakt.planning.drilldown = angular.module('impakt.planning.drilldown', [
+    'impakt.planning.drilldown.plan'
+])
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.planning.drilldown - config');
+        $stateProvider.state('planning.drilldown', {
+            url: '/drilldown',
+            templateUrl: 'modules/planning/drilldown/planning-drilldown.tpl.html',
+            controller: 'planning.drilldown.ctrl'
+        });
+    }])
+    .run(function () {
+    console.debug('impakt.planning.drilldown - run');
+});
+/// <reference path='../planning-drilldown.mdl.ts' />
+impakt.planning.drilldown.plan = angular.module('impakt.planning.drilldown.plan', [])
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.debug('impakt.planning.drilldown.plan - config');
+        $stateProvider.state('planning.drilldown.plan', {
+            url: '/plan',
+            templateUrl: 'modules/planning/drilldown/plan/planning-drilldown-plan.tpl.html',
+            controller: 'planning.drilldown.plan.ctrl'
+        });
+    }])
+    .run(function () {
+    console.debug('impakt.planning.drilldown.plan - run');
+});
+/// <reference path='./planning-drilldown-plan.mdl.ts' />
+impakt.planning.drilldown.plan.controller('planning.drilldown.plan.ctrl', [
+    '$scope',
+    '$rootScope',
+    '_associations',
+    '_planning',
+    '_planningModals',
+    function ($scope, $rootScope, _associations, _planning, _planningModals) {
+        $scope.plan = _planning.drilldown.plan;
+        $scope.practicePlans = new Planning.Models.PracticePlanCollection();
+        $scope.gamePlans = new Planning.Models.GamePlanCollection();
+        $scope.scoutCards = new Planning.Models.ScoutCardCollection();
+        var deletePracticePlanListener = $rootScope.$on('delete-practicePlan', function (e, practicePlan) {
+            $scope.practicePlans.remove(practicePlan.guid);
+        });
+        var deleteGamePlanListener = $rootScope.$on('delete-gamePlan', function (e, gamePlan) {
+            $scope.gamePlans.remove(gamePlan.guid);
+        });
+        var deleteScoutCardListener = $rootScope.$on('delete-scoutCard', function (e, scoutCard) {
+            $scope.scoutCard.remove(scoutCard.guid);
+        });
+        var associationsUpdatedListener = $rootScope.$on('associations-updated', function (e) {
+            init();
+        });
+        $scope.$on('$destroy', function () {
+            deletePracticePlanListener();
+            deleteGamePlanListener();
+            deleteScoutCardListener();
+            associationsUpdatedListener();
+        });
+        function init() {
+            var planAssociations = _associations.getAssociated($scope.plan);
+            if (Common.Utilities.isNotNullOrUndefined(planAssociations)) {
+                $scope.practicePlans = planAssociations.practicePlans;
+                $scope.practicePlans.forEach(function (practicePlan, index) {
+                    practicePlan.setPlan($scope.plan);
+                });
+                $scope.gamePlans = planAssociations.gamePlans;
+                $scope.gamePlans.forEach(function (gamePlan, index) {
+                    gamePlan.setPlan($scope.plan);
+                });
+                $scope.scoutCards = planAssociations.scoutCards;
+                $scope.scoutCards.forEach(function (scoutCard, index) {
+                    scoutCard.setPlan($scope.plan);
+                });
+            }
+        }
+        $scope.createPracticePlan = function () {
+            _planningModals.createPracticePlan($scope.plan)
+                .then(function () {
+                init();
+            });
+        };
+        $scope.createGamePlan = function () {
+            _planningModals.createGamePlan($scope.plan)
+                .then(function () {
+                init();
+            });
+        };
+        $scope.createScoutCard = function () {
+            _planningModals.createScoutCard($scope.plan)
+                .then(function () {
+                init();
+            });
+        };
+        init();
+    }]);
+/// <reference path='./planning-drilldown.mdl.ts' />
+impakt.planning.drilldown.controller('planning.drilldown.ctrl', [
+    '$scope',
+    '_details',
+    '_planning',
+    function ($scope, _details, _planning) {
+        $scope.drilldown = _planning.drilldown;
+        $scope.toPlanDrilldown = function (plan) {
+            _planning.toPlanDrilldown(plan);
+        };
+        $scope.toBrowser = function () {
+            _details.selectedElements.deselectAll();
+            _planning.toBrowser();
+        };
+    }]);
+/// <reference path='../planning.mdl.ts' />
+impakt.planning.editor = angular.module('impakt.planning.editor', [
+    'impakt.planning.editor.practicePlan'
+]).config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.info('impakt.planning.editor – config');
+        $stateProvider.state('planning.editor', {
+            url: '/editor',
+            templateUrl: 'modules/planning/editor/planning-editor.tpl.html',
+            controller: 'planning.editor.ctrl'
+        });
+    }])
+    .run(function () {
+    console.info('impakt.planning.editor – run');
+});
+/// <reference path='./planning-editor.mdl.ts' />
+impakt.planning.editor.controller('planning.editor.ctrl', [
+    '$scope',
+    '_planning',
+    '_planningEditor',
+    '_planningModals',
+    function ($scope, _planning, _planningEditor, _planningModals) {
+        $scope.tabs = _planningEditor.tabs;
+        function init() {
+            _planningEditor.init();
+        }
+        $scope.toPlanDrilldown = function () {
+            _planning.toPlanDrilldown(_planning.drilldown.plan);
+        };
+        $scope.newTab = function () {
+            _planningModals.newPlanningEditorTab();
+        };
+        init();
+    }]);
+/// <reference path='./planning-editor.mdl.ts' />
+impakt.planning.editor.service('_planningEditor', [
+    '_planning',
+    function (_planning) {
+        var self = this;
+        this.practicePlans = impakt.context.Planning.editor.practicePlans;
+        this.tabs = new Planning.Models.PlanningEditorTabCollection();
+        this.currentTab = null;
+        this.init = function () {
+            if (Common.Utilities.isNotNullOrUndefined(this.practicePlans) &&
+                Common.Utilities.isNotNullOrUndefined(this.tabs)) {
+                this.practicePlans.forEach(function (practicePlan, index) {
+                    var matchingTab = self.tabs.filterFirst(function (tab, index) {
+                        return tab.data.guid == practicePlan.guid;
+                    });
+                    if (Common.Utilities.isNullOrUndefined(matchingTab)) {
+                        // Tab doesn't exist, create one
+                        self.addTab(practicePlan);
+                    }
+                });
+                this.activateTab(this.tabs.first());
+            }
+        };
+        this.addTab = function (data) {
+            if (Common.Utilities.isNullOrUndefined(data))
+                return;
+            // determine whether the given data already exists within a tab,
+            // if so, simply focus the tab
+            var existingTab = this.tabs.filterFirst(function (tab, index) {
+                return tab.data.guid == data.guid;
+            });
+            if (Common.Utilities.isNotNullOrUndefined(existingTab)) {
+                return;
+            }
+            this.tabs.add(new Planning.Models.PlanningEditorTab(data));
+        };
+        this.close = function (planningEditorTab) {
+            var dataType = planningEditorTab.data.impaktDataType;
+            switch (dataType) {
+                case Common.Enums.ImpaktDataTypes.PracticePlan:
+                    this.practicePlans.remove(planningEditorTab.data.guid);
+                    break;
+            }
+            var tabToActivate = this.tabs.getNext(planningEditorTab.guid) ||
+                this.tabs.getPrevious(planningEditorTab.guid);
+            var removedTab = this.tabs.remove(planningEditorTab.guid);
+            if (removedTab.selected && Common.Utilities.isNotNullOrUndefined(tabToActivate)) {
+                this.activateTab(tabToActivate);
+            }
+        };
+        this.activateTab = function (tab) {
+            if (Common.Utilities.isNullOrUndefined(tab))
+                return;
+            this.tabs.select(tab);
+            this.currentTab = tab;
+        };
+    }]);
+/// <reference path='../planning-editor.mdl.ts' />
+impakt.planning.editor.practicePlan = angular.module('impakt.planning.editor.practicePlan', [])
+    .config([
+    '$stateProvider',
+    function ($stateProvider) {
+        console.info('impakt.planning.editor.practicePlan – config');
+        $stateProvider.state('planning.editor.practicePlan', {
+            url: '/practicePlan',
+            templateUrl: 'modules/planning/editor/practice-plan/planning-editor-practice-plan.tpl.html',
+            controller: 'planning.editor.practicePlan.ctrl'
+        });
+    }])
+    .run(function () {
+    console.info('impakt.planning.editor.practicePlan – run');
+});
+/// <reference path='./planning-editor-practice-plan.mdl.ts' />
+impakt.planning.editor.practicePlan.controller('planning.editor.practicePlan.details.ctrl', [
+    '$scope',
+    '_planningModals',
+    '_planningEditor',
+    function ($scope, _planningModals, _planningEditor) {
+        $scope.practicePlan = null;
+        $scope.titleData = null;
+        $scope.titleDataToggles = new Planning.Models.PlanningEditorToggleItemCollection();
+        $scope.situationData = null;
+        $scope.situationDataToggles = new Planning.Models.PlanningEditorToggleItemCollection();
+        function init() {
+            if (Common.Utilities.isNotNullOrUndefined(_planningEditor.currentTab)) {
+                $scope.practicePlan = _planningEditor.currentTab.data;
+                if (Common.Utilities.isNotNullOrUndefined($scope.practicePlan)) {
+                    $scope.titleData = $scope.practicePlan.titleData;
+                    $scope.situationData = $scope.practicePlan.situationData;
+                }
+                if (Common.Utilities.isNotNullOrUndefined($scope.titleData))
+                    $scope.titleDataToggles = $scope.titleData.toCollection();
+                if (Common.Utilities.isNotNullOrUndefined($scope.situationData))
+                    $scope.situationDataToggles = $scope.situationData.toCollection();
+            }
+        }
+        $scope.save = function () {
+            _planningModals.savePracticePlan($scope.practicePlan);
+        };
+        init();
+    }]);
+/// <reference path='./planning-editor-practice-plan.mdl.ts' />
+impakt.planning.editor.practicePlan.controller('planning.editor.practicePlan.ctrl', [
+    '$scope',
+    '_planningEditor',
+    function ($scope, _planningEditor) {
+        $scope.practicePlan = null;
+        function init() {
+            if (Common.Utilities.isNotNullOrUndefined(_planningEditor.currentTab)) {
+                $scope.practicePlan = _planningEditor.currentTab.data;
+            }
+        }
+        init();
+    }]);
+/// <reference path='../planning.mdl.ts' />
+impakt.planning.modals = angular.module('impakt.planning.modals', [])
+    .config(function () {
+    console.debug('impakt.planning.modals - config');
+})
+    .run(function () {
+    console.debug('impakt.planning.modals - run');
+});
+/// <reference path='../planning-modals.mdl.ts' />
+impakt.planning.modals.controller('planning.modals.createGamePlanDuplicateError.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_planning',
+    'gamePlan',
+    function ($scope, $uibModalInstance, _planning, gamePlan) {
+        $scope.gamePlan = gamePlan;
+        $scope.ok = function () {
+            $uibModalInstance.close();
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../planning-modals.mdl.ts' />
+impakt.planning.modals.controller('planning.modals.createGamePlan.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_associations',
+    '_planning',
+    'plan',
+    function ($scope, $uibModalInstance, _associations, _planning, plan) {
+        $scope.plans = impakt.context.Planning.plans;
+        $scope.newGamePlan = new Planning.Models.GamePlan();
+        $scope.selectedPlan = plan || null;
+        $scope.selectPlan = function () {
+            if (Common.Utilities.isNullOrUndefined($scope.selectedPlan))
+                return;
+            $scope.newGamePlan.setPlan($scope.selectedPlan);
+        };
+        $scope.updateDatetime = function () {
+            // TODO @theBull
+        };
+        $scope.ok = function () {
+            _planning.createGamePlan($scope.newGamePlan)
+                .then(function (createdGamePlan) {
+                var gamePlanAssociations = [];
+                if (Common.Utilities.isNotNullOrUndefined($scope.selectedPlan))
+                    gamePlanAssociations.push($scope.selectedPlan);
+                _associations.createAssociations(createdGamePlan, gamePlanAssociations);
+                removeGamePlanFromCreationContext();
+                $uibModalInstance.close(createdGamePlan);
+            }, function (err) {
+                removeGamePlanFromCreationContext();
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            removeGamePlanFromCreationContext();
+            $uibModalInstance.dismiss();
+        };
+        function removeGamePlanFromCreationContext() {
+            // Remove the game plan from the creation context
+            // after creating the new game plan or cancelling
+            if (Common.Utilities.isNotNullOrUndefined($scope.newGamePlan))
+                impakt.context.Planning.creation.gamePlans.remove($scope.newGamePlan.guid);
+        }
+    }]);
+/// <reference path='../planning-modals.mdl.ts' />
+impakt.planning.modals.controller('planning.modals.createPlanDuplicateError.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_planning',
+    'plan',
+    function ($scope, $uibModalInstance, _planning, plan) {
+        $scope.plan = plan;
+        $scope.ok = function () {
+            $uibModalInstance.close();
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../planning-modals.mdl.ts' />
+impakt.planning.modals.controller('planning.modals.createPlan.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_associations',
+    '_planning',
+    'plan',
+    function ($scope, $uibModalInstance, _associations, _planning, plan) {
+        $scope.plans = impakt.context.Planning.plans;
+        $scope.allGames = impakt.context.Season.games;
+        $scope.games = new Season.Models.GameCollection();
+        $scope.weeks = new Season.Models.WeekCollection();
+        $scope.newPlan = new Planning.Models.Plan();
+        $scope.seasons = impakt.context.Season.seasons;
+        $scope.selectedSeason = null;
+        $scope.selectedWeek = null;
+        $scope.selectedGame = null;
+        $scope.selectSeason = function () {
+            if (Common.Utilities.isNullOrUndefined($scope.selectedSeason)) {
+                $scope.selectedWeek = null;
+                $scope.selectedGame = null;
+                return;
+            }
+            $scope.weeks = $scope.selectedSeason.weeks;
+            $scope.selectedWeek = $scope.weeks.first();
+            $scope.selectWeek();
+        };
+        $scope.selectWeek = function () {
+            if (Common.Utilities.isNullOrUndefined($scope.selectedWeek)) {
+                $scope.selectedGame = null;
+                return;
+            }
+            $scope.games.listen(false);
+            $scope.games.empty();
+            $scope.allGames.forEach(function (game, index) {
+                if ($scope.selectedWeek.guid == game.weekGuid)
+                    $scope.games.add(game);
+            });
+            $scope.games.listen(true);
+        };
+        $scope.selectGame = function () {
+            $scope.newPlan.setGame($scope.selectedGame);
+        };
+        $scope.updateDatetime = function () {
+            // TODO @theBull
+        };
+        $scope.ok = function () {
+            _planning.createPlan($scope.newPlan)
+                .then(function (createdPlan) {
+                var planAssociations = [];
+                if (Common.Utilities.isNotNullOrUndefined($scope.selectedGame))
+                    planAssociations.push($scope.selectedGame);
+                _associations.createAssociations(createdPlan, planAssociations);
+                removePlanFromCreationContext();
+                $uibModalInstance.close(createdPlan);
+            }, function (err) {
+                removePlanFromCreationContext();
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            removePlanFromCreationContext();
+            $uibModalInstance.dismiss();
+        };
+        function removePlanFromCreationContext() {
+            // Remove the plan from the creation context
+            // after creating the new plan or cancelling
+            if (Common.Utilities.isNotNullOrUndefined($scope.newPlan))
+                impakt.context.Planning.creation.plans.remove($scope.newPlan.guid);
+        }
+    }]);
+/// <reference path='../planning-modals.mdl.ts' />
+impakt.planning.modals.controller('planning.modals.createPracticePlanDuplicateError.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_planning',
+    'practicePlan',
+    function ($scope, $uibModalInstance, _planning, practicePlan) {
+        $scope.practicePlan = practicePlan;
+        $scope.ok = function () {
+            $uibModalInstance.close();
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../planning-modals.mdl.ts' />
+impakt.planning.modals.controller('planning.modals.createPracticePlan.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_associations',
+    '_planning',
+    'plan',
+    function ($scope, $uibModalInstance, _associations, _planning, plan) {
+        $scope.plans = impakt.context.Planning.plans;
+        $scope.newPracticePlan = new Planning.Models.PracticePlan();
+        $scope.selectedPlan = plan || null;
+        $scope.selectPlan = function () {
+            if (Common.Utilities.isNullOrUndefined($scope.selectedPlan))
+                return;
+            $scope.newPracticePlan.setPlan($scope.selectedPlan);
+        };
+        $scope.updateDatetime = function () {
+            // TODO @theBull
+        };
+        $scope.ok = function () {
+            _planning.createPracticePlan($scope.newPracticePlan)
+                .then(function (createdPracticePlan) {
+                var practicePlanAssociations = [];
+                if (Common.Utilities.isNotNullOrUndefined($scope.selectedPlan))
+                    practicePlanAssociations.push($scope.selectedPlan);
+                _associations.createAssociations(createdPracticePlan, practicePlanAssociations);
+                removePracticePlanFromCreationContext();
+                $uibModalInstance.close(createdPracticePlan);
+            }, function (err) {
+                removePracticePlanFromCreationContext();
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            removePracticePlanFromCreationContext();
+            $uibModalInstance.dismiss();
+        };
+        function removePracticePlanFromCreationContext() {
+            // Remove the practice plan from the creation context
+            // after creating the new practice plan or cancelling
+            if (Common.Utilities.isNotNullOrUndefined($scope.newPracticePlan))
+                impakt.context.Planning.creation.practicePlans.remove($scope.newPracticePlan.guid);
+        }
+    }]);
+/// <reference path='../planning-modals.mdl.ts' />
+impakt.planning.modals.controller('planning.modals.createScoutCardDuplicateError.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_planning',
+    'scoutCard',
+    function ($scope, $uibModalInstance, _planning, scoutCard) {
+        $scope.scoutCard = scoutCard;
+        $scope.ok = function () {
+            $uibModalInstance.close();
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../planning-modals.mdl.ts' />
+impakt.planning.modals.controller('planning.modals.createScoutCard.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_associations',
+    '_planning',
+    'plan',
+    function ($scope, $uibModalInstance, _associations, _planning, plan) {
+        $scope.plans = impakt.context.Planning.plans;
+        $scope.newScoutCard = new Planning.Models.ScoutCard();
+        $scope.selectedPlan = plan || null;
+        $scope.selectPlan = function () {
+            if (Common.Utilities.isNullOrUndefined($scope.selectedPlan))
+                return;
+            $scope.newScoutCard.setPlan($scope.selectedPlan);
+        };
+        $scope.updateDatetime = function () {
+            // TODO @theBull
+        };
+        $scope.ok = function () {
+            _planning.createScoutCard($scope.newScoutCard)
+                .then(function (createdScoutCard) {
+                var scoutCardAssociations = [];
+                if (Common.Utilities.isNotNullOrUndefined($scope.selectedPlan))
+                    scoutCardAssociations.push($scope.selectedPlan);
+                _associations.createAssociations(createdScoutCard, scoutCardAssociations);
+                removeScoutCardFromCreationContext();
+                $uibModalInstance.close(createdScoutCard);
+            }, function (err) {
+                removeScoutCardFromCreationContext();
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            removeScoutCardFromCreationContext();
+            $uibModalInstance.dismiss();
+        };
+        function removeScoutCardFromCreationContext() {
+            // Remove the scout card from the creation context
+            // after creating the new scout card or cancelling
+            if (Common.Utilities.isNotNullOrUndefined($scope.newScoutCard))
+                impakt.context.Planning.creation.scoutCards.remove($scope.newScoutCard.guid);
+        }
+    }]);
+/// <reference path='../planning-modals.mdl.ts' />
+impakt.planning.modals.controller('planning.modals.deleteGamePlan.ctrl', [
+    '$scope',
+    '$rootScope',
+    '$uibModalInstance',
+    '_planning',
+    'gamePlan',
+    function ($scope, $rootScope, $uibModalInstance, _planning, gamePlan) {
+        $scope.gamePlan = gamePlan;
+        $scope.ok = function () {
+            _planning.deleteGamePlan($scope.gamePlan)
+                .then(function (results) {
+                $rootScope.$broadcast('delete-gamePlan', $scope.gamePlan);
+                $uibModalInstance.close(results);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../planning-modals.mdl.ts' />
+impakt.planning.modals.controller('planning.modals.deletePlan.ctrl', [
+    '$scope',
+    '$rootScope',
+    '$uibModalInstance',
+    '_planning',
+    'plan',
+    function ($scope, $rootScope, $uibModalInstance, _planning, plan) {
+        $scope.plan = plan;
+        $scope.ok = function () {
+            _planning.deletePlan($scope.plan)
+                .then(function (results) {
+                $rootScope.$broadcast('delete-plan', $scope.plan);
+                $uibModalInstance.close(results);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../planning-modals.mdl.ts' />
+impakt.planning.modals.controller('planning.modals.deletePracticePlan.ctrl', [
+    '$scope',
+    '$rootScope',
+    '$uibModalInstance',
+    '_planning',
+    'practicePlan',
+    function ($scope, $rootScope, $uibModalInstance, _planning, practicePlan) {
+        $scope.practicePlan = practicePlan;
+        $scope.ok = function () {
+            _planning.deletePracticePlan($scope.practicePlan)
+                .then(function (results) {
+                $rootScope.$broadcast('delete-practicePlan', $scope.practicePlan);
+                $uibModalInstance.close(results);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../planning-modals.mdl.ts' />
+impakt.planning.modals.controller('planning.modals.deleteScoutCard.ctrl', [
+    '$scope',
+    '$rootScope',
+    '$uibModalInstance',
+    '_planning',
+    'scoutCard',
+    function ($scope, $rootScope, $uibModalInstance, _planning, scoutCard) {
+        $scope.scoutCard = scoutCard;
+        $scope.ok = function () {
+            _planning.deleteScoutCard($scope.scoutCard)
+                .then(function (results) {
+                $rootScope.$broadcast('delete-scoutCard', $scope.scoutCard);
+                $uibModalInstance.close(results);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../planning-modals.mdl.ts' />
+impakt.planning.modals.controller('planning.modals.newPlanningEditorTab.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_planningEditor',
+    function ($scope, $uibModalInstance, _planningEditor) {
+        $scope.practicePlans = impakt.context.Planning.practicePlans;
+        $scope.selectedPracticePlan = null;
+        $scope.editPracticePlansVisible = true;
+        $scope.editPracticePlan = function () {
+            $scope.editPracticePlansVisible = true;
+        };
+        $scope.selectPracticePlan = function () {
+            // TODO @theBull
+        };
+        $scope.ok = function () {
+            _planningEditor.addTab($scope.selectedPracticePlan);
+            $uibModalInstance.close();
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='./planning-modals.mdl.ts' />
+impakt.planning.modals.service('_planningModals', [
+    '$q',
+    '__modals',
+    function ($q, __modals) {
+        /**
+         *
+         * PLAN
+         *
+         */
+        this.createPlan = function (plan) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/create-plan/create-plan.tpl.html', 'planning.modals.createPlan.ctrl', {
+                plan: function () {
+                    return plan;
+                }
+            });
+            modalInstance.result.then(function (createdPlan) {
+                console.log(createdPlan);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.createPlanDuplicate = function (plan) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/create-plan-duplicate-error/create-plan-duplicate-error.tpl.html', 'planning.modals.createPlanDuplicateError.ctrl', {
+                plan: function () {
+                    return plan;
+                }
+            });
+            modalInstance.result.then(function (createdPlan) {
+                console.log(createdPlan);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.deletePlan = function (plan) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/delete-plan/delete-plan.tpl.html', 'planning.modals.deletePlan.ctrl', {
+                plan: function () {
+                    return plan;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.savePlan = function (plan) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/save-plan/save-plan.tpl.html', 'planning.modals.savePlan.ctrl', {
+                plan: function () {
+                    return plan;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        /**
+         *
+         * practicePlan
+         *
+         */
+        this.createPracticePlan = function (plan) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/create-practice-plan/create-practice-plan.tpl.html', 'planning.modals.createPracticePlan.ctrl', {
+                plan: function () {
+                    return plan;
+                }
+            });
+            modalInstance.result.then(function (createdPracticePlan) {
+                console.log(createdPracticePlan);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.createPracticePlanDuplicate = function (practicePlan) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/create-practice-plan-duplicate-error/create-practice-plan-duplicate-error.tpl.html', 'planning.modals.createPracticePlanDuplicateError.ctrl', {
+                practicePlan: function () {
+                    return practicePlan;
+                }
+            });
+            modalInstance.result.then(function (createdPracticePlan) {
+                console.log(createdPracticePlan);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.deletePracticePlan = function (practicePlan) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/delete-practice-plan/delete-practice-plan.tpl.html', 'planning.modals.deletePracticePlan.ctrl', {
+                practicePlan: function () {
+                    return practicePlan;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.savePracticePlan = function (practicePlan) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/save-practice-plan/save-practice-plan.tpl.html', 'planning.modals.savePracticePlan.ctrl', {
+                practicePlan: function () {
+                    return practicePlan;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        /**
+         *
+         * gamePlan
+         *
+         */
+        this.createGamePlan = function (plan) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/create-game-plan/create-game-plan.tpl.html', 'planning.modals.createGamePlan.ctrl', {
+                plan: function () {
+                    return plan;
+                }
+            });
+            modalInstance.result.then(function (createdGamePlan) {
+                console.log(createdGamePlan);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.createGamePlanDuplicate = function (gamePlan) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/create-game-plan-duplicate-error/create-game-plan-duplicate-error.tpl.html', 'planning.modals.createGamePlanDuplicateError.ctrl', {
+                gamePlan: function () {
+                    return gamePlan;
+                }
+            });
+            modalInstance.result.then(function (createdGamePlan) {
+                console.log(createdGamePlan);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.deleteGamePlan = function (gamePlan) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/delete-game-plan/delete-game-plan.tpl.html', 'planning.modals.deleteGamePlan.ctrl', {
+                gamePlan: function () {
+                    return gamePlan;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.saveGamePlan = function (gamePlan) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/save-game-plan/save-game-plan.tpl.html', 'planning.modals.saveGamePlan.ctrl', {
+                gamePlan: function () {
+                    return gamePlan;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        /**
+         *
+         * practiceschedule
+         *
+         */
+        this.createPracticeSchedule = function (plan) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/create-practice-schedule/create-practice-schedule.tpl.html', 'planning.modals.createPracticeSchedule.ctrl', {
+                plan: function () {
+                    return plan;
+                }
+            });
+            modalInstance.result.then(function (createdPracticeSchedule) {
+                console.log(createdPracticeSchedule);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.createPracticeScheduleDuplicate = function (practiceSchedule) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/create-practice-schedule-duplicate-error/create-practice-schedule-duplicate-error.tpl.html', 'planning.modals.createPracticeScheduleDuplicateError.ctrl', {
+                practiceSchedule: function () {
+                    return practiceSchedule;
+                }
+            });
+            modalInstance.result.then(function (createdPracticeSchedule) {
+                console.log(createdPracticeSchedule);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.deletePracticeSchedule = function (practiceSchedule) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/delete-practice-schedule/delete-practice-schedule.tpl.html', 'planning.modals.deletePracticeSchedule.ctrl', {
+                practiceSchedule: function () {
+                    return practiceSchedule;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.savePracticeSchedule = function (practiceSchedule) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/save-practice-schedule/save-practice-schedule.tpl.html', 'planning.modals.savePracticeSchedule.ctrl', {
+                practiceSchedule: function () {
+                    return practiceSchedule;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        /**
+         *
+         * scout card
+         *
+         */
+        this.createScoutCard = function (plan) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/create-scout-card/create-scout-card.tpl.html', 'planning.modals.createScoutCard.ctrl', {
+                plan: function () {
+                    return plan;
+                }
+            });
+            modalInstance.result.then(function (createdScoutCard) {
+                console.log(createdScoutCard);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.createScoutCardDuplicate = function (scoutCard) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/create-scout-card-duplicate-error/create-scout-card-duplicate-error.tpl.html', 'planning.modals.createScoutCardDuplicateError.ctrl', {
+                scoutCard: function () {
+                    return scoutCard;
+                }
+            });
+            modalInstance.result.then(function (createdScoutCard) {
+                console.log(createdScoutCard);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.deleteScoutCard = function (scoutCard) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/delete-scout-card/delete-scout-card.tpl.html', 'planning.modals.deleteScoutCard.ctrl', {
+                scoutCard: function () {
+                    return scoutCard;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.saveScoutCard = function (scoutCard) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/save-scout-card/save-scout-card.tpl.html', 'planning.modals.saveScoutCard.ctrl', {
+                scoutCard: function () {
+                    return scoutCard;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        /**
+         *
+         * QBWristband
+         *
+         */
+        this.createQBWristband = function (plan) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/create-QBWristband/create-QBWristband.tpl.html', 'planning.modals.createQBWristband.ctrl', {
+                plan: function () {
+                    return plan;
+                }
+            });
+            modalInstance.result.then(function (createdQBWristband) {
+                console.log(createdQBWristband);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.createQBWristbandDuplicate = function (QBWristband) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/create-QBWristband-duplicate-error/create-QBWristband-duplicate-error.tpl.html', 'planning.modals.createQBWristbandDuplicateError.ctrl', {
+                QBWristband: function () {
+                    return QBWristband;
+                }
+            });
+            modalInstance.result.then(function (createdQBWristband) {
+                console.log(createdQBWristband);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.deleteQBWristband = function (QBWristband) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/delete-QBWristband/delete-QBWristband.tpl.html', 'planning.modals.deleteQBWristband.ctrl', {
+                QBWristband: function () {
+                    return QBWristband;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.saveQBWristband = function (QBWristband) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/save-QBWristband/save-QBWristband.tpl.html', 'planning.modals.saveQBWristband.ctrl', {
+                QBWristband: function () {
+                    return QBWristband;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        /**
+         *
+         * NEW PLANNING EDITOR TAB
+         *
+         */
+        this.newPlanningEditorTab = function () {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/planning/modals/new-planning-editor-tab/new-planning-editor-tab.tpl.html', 'planning.modals.newPlanningEditorTab.ctrl', {});
+            modalInstance.result.then(function () {
+                d.resolve();
+            }, function (results) {
+                d.reject();
+            });
+            return d.promise;
+        };
+    }]);
+/// <reference path='../planning-modals.mdl.ts' />
+impakt.planning.modals.controller('planning.modals.saveGamePlan.ctrl', ['$scope',
+    '$uibModalInstance',
+    '_planning',
+    'gamePlan',
+    function ($scope, $uibModalInstance, _planning, gamePlan) {
+        $scope.gamePlan = gamePlan;
+        $scope.ok = function () {
+            _planning.updateGamePlan($scope.gamePlan)
+                .then(function (savedGamePlan) {
+                $uibModalInstance.close(savedGamePlan);
+            }, function (err) {
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../planning-modals.mdl.ts' />
+impakt.planning.modals.controller('planning.modals.savePlan.ctrl', ['$scope',
+    '$uibModalInstance',
+    '_planning',
+    'plan',
+    function ($scope, $uibModalInstance, _planning, plan) {
+        $scope.plan = plan;
+        $scope.ok = function () {
+            _planning.updatePlan($scope.plan)
+                .then(function (savedPlan) {
+                $uibModalInstance.close(savedPlan);
+            }, function (err) {
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../planning-modals.mdl.ts' />
+impakt.planning.modals.controller('planning.modals.savePracticePlan.ctrl', ['$scope',
+    '$uibModalInstance',
+    '_planning',
+    'practicePlan',
+    function ($scope, $uibModalInstance, _planning, practicePlan) {
+        $scope.practicePlan = practicePlan;
+        $scope.ok = function () {
+            _planning.updatePracticePlan($scope.practicePlan)
+                .then(function (savedPracticePlan) {
+                $uibModalInstance.close(savedPracticePlan);
+            }, function (err) {
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../planning-modals.mdl.ts' />
+impakt.planning.modals.controller('planning.modals.saveScoutCard.ctrl', ['$scope',
+    '$uibModalInstance',
+    '_planning',
+    'scoutCard',
+    function ($scope, $uibModalInstance, _planning, scoutCard) {
+        $scope.scoutCard = scoutCard;
+        $scope.ok = function () {
+            _planning.updateScoutCard($scope.scoutCard)
+                .then(function (savedScoutCard) {
+                $uibModalInstance.close(savedScoutCard);
+            }, function (err) {
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='./planning.mdl.ts' />
+/**
+ * Planning constants defined here
+ */
+impakt.planning.constant('PLANNING', {
+    ENDPOINT: '/planning',
+    // Plans
+    CREATE_PLAN: '/createPlan',
+    GET_PLANS: '/getPlans',
+    GET_PLAN: '/getPlan',
+    DELETE_PLAN: '/deletePlan',
+    UPDATE_PLAN: '/updatePlan',
+    // Practice Plans
+    CREATE_PRACTICEPLAN: '/createPracticePlan',
+    GET_PRACTICEPLANS: '/getPracticePlans',
+    GET_PRACTICEPLAN: '/getPracticePlan',
+    DELETE_PRACTICEPLAN: '/deletePracticePlan',
+    UPDATE_PRACTICEPLAN: '/updatePracticePlan',
+    // Practice Schedules
+    CREATE_PRACTICESCHEDULE: '/createPracticeSchedule',
+    GET_PRACTICESCHEDULES: '/getPracticeSchedules',
+    GET_PRACTICESCHEDULE: '/getPracticeSchedule',
+    DELETE_PRACTICESCHEDULE: '/deletePracticeSchedule',
+    UPDATE_PRACTICESCHEDULE: '/updatePracticeSchedule',
+    // Game Plans
+    CREATE_GAMEPLAN: '/createGamePlan',
+    GET_GAMEPLANS: '/getGamePlans',
+    GET_GAMEPLAN: '/getGamePlan',
+    DELETE_GAMEPLAN: '/deleteGamePlan',
+    UPDATE_GAMEPLAN: '/updatePracticePlan',
+    // Scout Cards
+    CREATE_SCOUTCARD: '/createScoutCard',
+    GET_SCOUTCARDS: '/getScoutCards',
+    GET_SCOUTCARD: '/getScoutCard',
+    DELETE_SCOUTCARD: '/deleteScoutCard',
+    UPDATE_SCOUTCARD: '/updateScoutCard',
+    // QB Wristband
+    CREATE_QBWRISTBAND: '/createQBWristband',
+    GET_QBWRISTBANDS: '/getQBWristbands',
+    GET_QBWRISTBAND: '/getQBWristband',
+    DELETE_QBWRISTBAND: '/deleteQBWristband',
+    UPDATE_QBWRISTBAND: '/updateQBWristband'
+});
+/// <reference path='./planning.mdl.ts' />
+impakt.planning.controller('planning.ctrl', ['$scope', '$state', '_planning',
+    function ($scope, $state, _planning) {
+        // load up the browser by default
+        $state.go('planning.browser');
+    }]);
+/// <reference path='./planning.ts' />
+// Planning service
+impakt.planning.service('_planning', [
+    'PLANNING',
+    '$rootScope',
+    '$q',
+    '$state',
+    '__api',
+    '__localStorage',
+    '__notifications',
+    '_planningModals',
+    function (PLANNING, $rootScope, $q, $state, __api, __localStorage, __notifications, _planningModals) {
+        var self = this;
+        this.drilldown = {
+            plan: null
+        };
+        /**
+         * Retrieves all Plans
+         */
+        this.getPlans = function () {
+            var d = $q.defer();
+            var notification = __notifications.pending('Getting  plans...');
+            __api.get(__api.path(PLANNING.ENDPOINT, PLANNING.GET_PLANS))
+                .then(function (response) {
+                var collection = new Planning.Models.PlanCollection();
+                if (response && response.data && response.data.results) {
+                    var planResults = Common.Utilities.parseData(response.data.results);
+                    for (var i = 0; i < planResults.length; i++) {
+                        var planResult = planResults[i];
+                        if (planResult && planResult.data && planResult.data.plan) {
+                            var planModel = new Planning.Models.Plan();
+                            planResult.data.plan.key = planResult.key;
+                            planModel.fromJson(planResult.data.plan);
+                            collection.add(planModel);
+                        }
+                    }
+                }
+                notification.success([collection.size(), ' plans successfully retreived'].join(''));
+                d.resolve(collection);
+            }, function (error) {
+                notification.error('Failed to retieve plans');
+                console.error(error);
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Gets a single Plan with the given key
+         * @param {number} key The key of the Plan to retrieve
+         */
+        this.getPlan = function (key) {
+            var d = $q.defer();
+            __api.get(__api.path(PLANNING.ENDPOINT, PLANNING.GET_PLAN, '/' + key))
+                .then(function (response) {
+                var plan = Common.Utilities.parseData(response.data.results);
+                d.resolve(plan);
+            }, function (error) {
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Sends a Plan model to the server for storage
+         * @param {Common.Models.Plan} newPlan The Plan to be created/saved
+         */
+        this.createPlan = function (newPlan) {
+            var d = $q.defer();
+            if (Common.Utilities.isNotNullOrUndefined(newPlan)) {
+                var nameExists = impakt.context.Planning.plans.hasElementWhich(function (planModel, index) {
+                    return planModel.name == newPlan.name;
+                });
+                if (nameExists) {
+                    var notification_5 = __notifications.warning('Failed to create plan. Plan "', newPlan.name, '" already exists.');
+                    _planningModals.createPlanDuplicate(newPlan);
+                    return;
+                }
+            }
+            // set key to -1 to ensure a new object is created server-side
+            newPlan.key = -1;
+            var planModelJson = newPlan.toJson();
+            var notification = __notifications.pending('Creating plan "', newPlan.name, '"...');
+            __api.post(__api.path(PLANNING.ENDPOINT, PLANNING.CREATE_PLAN), {
+                version: 1,
+                name: newPlan.name,
+                data: {
+                    version: 1,
+                    plan: planModelJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var planModel = new Planning.Models.Plan();
+                if (results && results.data && results.data.plan) {
+                    results.data.plan.key = results.key;
+                    planModel.fromJson(results.data.plan);
+                    // update the context
+                    impakt.context.Planning.plans.add(planModel);
+                }
+                else {
+                    throw new Error('createPlan did not return a valid Plan');
+                }
+                notification.success('Successfully created plan "', planModel.name, '"');
+                $rootScope.$broadcast('create-entity', planModel);
+                d.resolve(planModel);
+            }, function (error) {
+                notification.error('Failed to create plan "', newPlan.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Deletes the given Plan for the current user
+         * @param {Planning.Models.Plan} Plan The Plan to be deleted
+         */
+        this.deletePlan = function (plan) {
+            var d = $q.defer();
+            var notification = __notifications.pending('Deleting plan "', plan.name, '"...');
+            __api.post(__api.path(PLANNING.ENDPOINT, PLANNING.DELETE_PLAN), { key: plan.key }).then(function (response) {
+                // update the context
+                impakt.context.Planning.plans.remove(plan.guid);
+                notification.success('Deleted plan "', plan.name, '"');
+                self.toBrowser();
+                d.resolve(plan);
+            }, function (error) {
+                notification.error('Failed to delete plan "', plan.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Updates the given Plan for the current user
+         * @param {Planning.Models.Plan} Plan The Plan to update
+         */
+        this.updatePlan = function (plan) {
+            var d = $q.defer();
+            // update assignment collection to json object
+            var planJson = plan.toJson();
+            var notification = __notifications.pending('Updating plan "', plan.name, '"...');
+            __api.post(__api.path(PLANNING.ENDPOINT, PLANNING.UPDATE_PLAN), {
+                version: 1,
+                name: planJson.name,
+                key: planJson.key,
+                data: {
+                    version: 1,
+                    key: planJson.key,
+                    plan: planJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var planModel = new Planning.Models.Plan();
+                if (results && results.data && results.data.plan) {
+                    planModel.fromJson(results.data.plan);
+                    // update the context
+                    impakt.context.Planning.plans.set(planModel.guid, planModel);
+                }
+                notification.success('Successfully updated plan "', plan.name, '"');
+                d.resolve(planModel);
+            }, function (error) {
+                notification.error('Failed to update plan "', plan.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Retrieves all practicePlans
+         */
+        this.getPracticePlans = function () {
+            var d = $q.defer();
+            var notification = __notifications.pending('Getting practice plans...');
+            __api.get(__api.path(PLANNING.ENDPOINT, PLANNING.GET_PRACTICEPLANS))
+                .then(function (response) {
+                var collection = new Planning.Models.PracticePlanCollection();
+                if (response && response.data && response.data.results) {
+                    var practicePlanResults = Common.Utilities.parseData(response.data.results);
+                    for (var i = 0; i < practicePlanResults.length; i++) {
+                        var practicePlanResult = practicePlanResults[i];
+                        if (practicePlanResult && practicePlanResult.data && practicePlanResult.data.practicePlan) {
+                            var practicePlanModel = new Planning.Models.PracticePlan();
+                            practicePlanResult.data.practicePlan.key = practicePlanResult.key;
+                            practicePlanModel.fromJson(practicePlanResult.data.practicePlan);
+                            collection.add(practicePlanModel);
+                        }
+                    }
+                }
+                notification.success([collection.size(), ' practice plans successfully retreived'].join(''));
+                d.resolve(collection);
+            }, function (error) {
+                notification.error('Failed to retieve practice plans');
+                console.error(error);
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Gets a single practicePlan with the given key
+         * @param {number} key The key of the practicePlan to retrieve
+         */
+        this.getPracticePlan = function (key) {
+            var d = $q.defer();
+            __api.get(__api.path(PLANNING.ENDPOINT, PLANNING.GET_PRACTICEPLAN, '/' + key))
+                .then(function (response) {
+                var practicePlan = Common.Utilities.parseData(response.data.results);
+                d.resolve(practicePlan);
+            }, function (error) {
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Sends a PracticePlan model to the server for storage
+         * @param {Common.Models.PracticePlan} newPracticePlan The PracticePlan to be created/saved
+         */
+        this.createPracticePlan = function (newPracticePlan) {
+            var d = $q.defer();
+            if (Common.Utilities.isNotNullOrUndefined(newPracticePlan)) {
+                var nameExists = impakt.context.Planning.practicePlans.hasElementWhich(function (PracticePlanModel, index) {
+                    return PracticePlanModel.name == newPracticePlan.name;
+                });
+                if (nameExists) {
+                    var notification_6 = __notifications.warning('Failed to create practice plan. Practice plan "', newPracticePlan.name, '" already exists.');
+                    _planningModals.createPracticePlanDuplicate(newPracticePlan);
+                    return;
+                }
+            }
+            // set key to -1 to ensure a new object is created server-side
+            newPracticePlan.key = -1;
+            var practicePlanModelJson = newPracticePlan.toJson();
+            var notification = __notifications.pending('Creating practice plan "', newPracticePlan.name, '"...');
+            __api.post(__api.path(PLANNING.ENDPOINT, PLANNING.CREATE_PRACTICEPLAN), {
+                version: 1,
+                name: newPracticePlan.name,
+                data: {
+                    version: 1,
+                    practicePlan: practicePlanModelJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var practicePlanModel = new Planning.Models.PracticePlan();
+                if (results && results.data && results.data.practicePlan) {
+                    results.data.practicePlan.key = results.key;
+                    practicePlanModel.fromJson(results.data.practicePlan);
+                    // update the context
+                    impakt.context.Planning.practicePlans.add(practicePlanModel);
+                }
+                else {
+                    throw new Error('createPracticePlan did not return a valid PracticePlan');
+                }
+                notification.success('Successfully created practice plan "', practicePlanModel.name, '"');
+                $rootScope.$broadcast('create-entity', practicePlanModel);
+                d.resolve(practicePlanModel);
+            }, function (error) {
+                notification.error('Failed to create practice plan "', newPracticePlan.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Deletes the given PracticePlan for the current user
+         * @param {Planning.Models.PracticePlan} PracticePlan The PracticePlan to be deleted
+         */
+        this.deletePracticePlan = function (practicePlan) {
+            var d = $q.defer();
+            var notification = __notifications.pending('Deleting practice plan "', practicePlan.name, '"...');
+            __api.post(__api.path(PLANNING.ENDPOINT, PLANNING.DELETE_PRACTICEPLAN), { key: practicePlan.key }).then(function (response) {
+                // update the context
+                impakt.context.Planning.practicePlans.remove(practicePlan.guid);
+                notification.success('Deleted practice plan "', practicePlan.name, '"');
+                d.resolve(practicePlan);
+            }, function (error) {
+                notification.error('Failed to delete practice plan "', practicePlan.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Updates the given PracticePlan for the current user
+         * @param {Planning.Models.PracticePlan} PracticePlan The PracticePlan to update
+         */
+        this.updatePracticePlan = function (practicePlan) {
+            var d = $q.defer();
+            // update assignment collection to json object
+            var practicePlanJson = practicePlan.toJson();
+            var notification = __notifications.pending('Updating practice plan "', practicePlan.name, '"...');
+            __api.post(__api.path(PLANNING.ENDPOINT, PLANNING.UPDATE_PRACTICEPLAN), {
+                version: 1,
+                name: practicePlanJson.name,
+                key: practicePlanJson.key,
+                data: {
+                    version: 1,
+                    key: practicePlanJson.key,
+                    practicePlan: practicePlanJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var practicePlanModel = new Planning.Models.PracticePlan();
+                if (results && results.data && results.data.practicePlan) {
+                    practicePlanModel.fromJson(results.data.practicePlan);
+                    // update the context
+                    impakt.context.Planning.practicePlans.set(practicePlanModel.guid, practicePlanModel);
+                }
+                notification.success('Successfully updated practice plan "', practicePlan.name, '"');
+                d.resolve(practicePlanModel);
+            }, function (error) {
+                notification.error('Failed to update practice plan "', practicePlan.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Retrieves all gamePlans
+         */
+        this.getGamePlans = function () {
+            var d = $q.defer();
+            var notification = __notifications.pending('Getting game plans...');
+            __api.get(__api.path(PLANNING.ENDPOINT, PLANNING.GET_GAMEPLANS))
+                .then(function (response) {
+                var collection = new Planning.Models.GamePlanCollection();
+                if (response && response.data && response.data.results) {
+                    var gamePlanResults = Common.Utilities.parseData(response.data.results);
+                    for (var i = 0; i < gamePlanResults.length; i++) {
+                        var gamePlanResult = gamePlanResults[i];
+                        if (gamePlanResult && gamePlanResult.data && gamePlanResult.data.gamePlan) {
+                            var gamePlanModel = new Planning.Models.GamePlan();
+                            gamePlanResult.data.gamePlan.key = gamePlanResult.key;
+                            gamePlanModel.fromJson(gamePlanResult.data.gamePlan);
+                            collection.add(gamePlanModel);
+                        }
+                    }
+                }
+                notification.success([collection.size(), ' game plans successfully retreived'].join(''));
+                d.resolve(collection);
+            }, function (error) {
+                notification.error('Failed to retieve game plans');
+                console.error(error);
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Gets a single gamePlan with the given key
+         * @param {number} key The key of the gamePlan to retrieve
+         */
+        this.getGamePlan = function (key) {
+            var d = $q.defer();
+            __api.get(__api.path(PLANNING.ENDPOINT, PLANNING.GET_GAMEPLAN, '/' + key))
+                .then(function (response) {
+                var gamePlan = Common.Utilities.parseData(response.data.results);
+                d.resolve(gamePlan);
+            }, function (error) {
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Sends a gamePlan model to the server for storage
+         * @param {Common.Models.GamePlan} newgamePlan The gamePlan to be created/saved
+         */
+        this.createGamePlan = function (newGamePlan) {
+            var d = $q.defer();
+            if (Common.Utilities.isNotNullOrUndefined(newGamePlan)) {
+                var nameExists = impakt.context.Planning.gamePlans.hasElementWhich(function (gamePlanModel, index) {
+                    return gamePlanModel.name == newGamePlan.name;
+                });
+                if (nameExists) {
+                    var notification_7 = __notifications.warning('Failed to create game plan. Game plan "', newGamePlan.name, '" already exists.');
+                    _planningModals.createGamePlanDuplicate(newGamePlan);
+                    return;
+                }
+            }
+            // set key to -1 to ensure a new object is created server-side
+            newGamePlan.key = -1;
+            var gamePlanModelJson = newGamePlan.toJson();
+            var notification = __notifications.pending('Creating game plan "', newGamePlan.name, '"...');
+            __api.post(__api.path(PLANNING.ENDPOINT, PLANNING.CREATE_GAMEPLAN), {
+                version: 1,
+                name: newGamePlan.name,
+                data: {
+                    version: 1,
+                    gamePlan: gamePlanModelJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var gamePlanModel = new Planning.Models.GamePlan();
+                if (results && results.data && results.data.gamePlan) {
+                    results.data.gamePlan.key = results.key;
+                    gamePlanModel.fromJson(results.data.gamePlan);
+                    // update the context
+                    impakt.context.Planning.gamePlans.add(gamePlanModel);
+                }
+                else {
+                    throw new Error('CreateGamePlan did not return a valid game plan');
+                }
+                notification.success('Successfully created game plan "', gamePlanModel.name, '"');
+                $rootScope.$broadcast('create-entity', gamePlanModel);
+                d.resolve(gamePlanModel);
+            }, function (error) {
+                notification.error('Failed to create game pl an "', newGamePlan.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Deletes the given gamePlan for the current user
+         * @param {Planning.Models.GamePlan} gamePlan The gamePlan to be deleted
+         */
+        this.deleteGamePlan = function (gamePlan) {
+            var d = $q.defer();
+            var notification = __notifications.pending('Deleting game plan "', gamePlan.name, '"...');
+            __api.post(__api.path(PLANNING.ENDPOINT, PLANNING.DELETE_GAMEPLAN), { key: gamePlan.key }).then(function (response) {
+                // update the context
+                impakt.context.Planning.gamePlans.remove(gamePlan.guid);
+                notification.success('Deleted game plan "', gamePlan.name, '"');
+                d.resolve(gamePlan);
+            }, function (error) {
+                notification.error('Failed to delete game plan "', gamePlan.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Updates the given gamePlan for the current user
+         * @param {Planning.Models.GamePlan} gamePlan The gamePlan to update
+         */
+        this.updateGamePlan = function (gamePlan) {
+            var d = $q.defer();
+            // update assignment collection to json object
+            var gamePlanJson = gamePlan.toJson();
+            var notification = __notifications.pending('Updating gamePlan "', gamePlan.name, '"...');
+            __api.post(__api.path(PLANNING.ENDPOINT, PLANNING.UPDATE_GAMEPLAN), {
+                version: 1,
+                name: gamePlanJson.name,
+                key: gamePlanJson.key,
+                data: {
+                    version: 1,
+                    key: gamePlanJson.key,
+                    gamePlan: gamePlanJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var gamePlanModel = new Planning.Models.GamePlan();
+                if (results && results.data && results.data.gamePlan) {
+                    gamePlanModel.fromJson(results.data.gamePlan);
+                    // update the context
+                    impakt.context.Planning.gamePlans.set(gamePlanModel.guid, gamePlanModel);
+                }
+                notification.success('Successfully updated game plan "', gamePlan.name, '"');
+                d.resolve(gamePlanModel);
+            }, function (error) {
+                notification.error('Failed to update game plan "', gamePlan.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Retrieves all practice schedules
+         */
+        this.getPracticeSchedules = function () {
+            var d = $q.defer();
+            var notification = __notifications.pending('Getting practice schedules...');
+            __api.get(__api.path(PLANNING.ENDPOINT, PLANNING.GET_PRACTICESCHEDULES))
+                .then(function (response) {
+                var collection = new Planning.Models.PracticeScheduleCollection();
+                if (response && response.data && response.data.results) {
+                    var practiceScheduleResults = Common.Utilities.parseData(response.data.results);
+                    for (var i = 0; i < practiceScheduleResults.length; i++) {
+                        var practiceScheduleResult = practiceScheduleResults[i];
+                        if (practiceScheduleResult && practiceScheduleResult.data && practiceScheduleResult.data.practiceSchedule) {
+                            var practiceScheduleModel = new Planning.Models.PracticeSchedule();
+                            practiceScheduleResult.data.practiceSchedule.key = practiceScheduleResult.key;
+                            practiceScheduleModel.fromJson(practiceScheduleResult.data.practiceSchedule);
+                            collection.add(practiceScheduleModel);
+                        }
+                    }
+                }
+                notification.success([collection.size(), ' practice schedules successfully retreived'].join(''));
+                d.resolve(collection);
+            }, function (error) {
+                notification.error('Failed to retieve practice schedules');
+                console.error(error);
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Gets a single practiceSchedule with the given key
+         * @param {number} key The key of the practiceSchedule to retrieve
+         */
+        this.getPracticeSchedule = function (key) {
+            var d = $q.defer();
+            __api.get(__api.path(PLANNING.ENDPOINT, PLANNING.GET_PRACTICESCHEDULE, '/' + key))
+                .then(function (response) {
+                var practiceSchedule = Common.Utilities.parseData(response.data.results);
+                d.resolve(practiceSchedule);
+            }, function (error) {
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Sends a practiceSchedule model to the server for storage
+         * @param {Common.Models.PracticeSchedule} newPracticeSchedule The practiceSchedule to be created/saved
+         */
+        this.createPracticeSchedule = function (newPracticeSchedule) {
+            var d = $q.defer();
+            if (Common.Utilities.isNotNullOrUndefined(newPracticeSchedule)) {
+                var nameExists = impakt.context.Planning.practiceSchedules.hasElementWhich(function (practiceModel, index) {
+                    return practiceModel.name == newPracticeSchedule.name;
+                });
+                if (nameExists) {
+                    var notification_8 = __notifications.warning('Failed to create practice schedule. Practice schedule "', newPracticeSchedule.name, '" already exists.');
+                    _planningModals.createPracticeScheduleDuplicate(newPracticeSchedule);
+                    return;
+                }
+            }
+            // set key to -1 to ensure a new object is created server-side
+            newPracticeSchedule.key = -1;
+            var practiceModelJson = newPracticeSchedule.toJson();
+            var notification = __notifications.pending('Creating practiceSchedule "', newPracticeSchedule.name, '"...');
+            __api.post(__api.path(PLANNING.ENDPOINT, PLANNING.CREATE_PRACTICESCHEDULE), {
+                version: 1,
+                name: newPracticeSchedule.name,
+                data: {
+                    version: 1,
+                    practiceSchedule: practiceModelJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var practiceScheduleModel = new Planning.Models.PracticeSchedule();
+                if (results && results.data && results.data.practiceSchedule) {
+                    results.data.practiceSchedule.key = results.key;
+                    practiceScheduleModel.fromJson(results.data.practiceSchedule);
+                    // update the context
+                    impakt.context.Planning.practiceSchedules.add(practiceScheduleModel);
+                }
+                else {
+                    throw new Error('CreatePracticeSchedule did not return a valid practiceSchedule');
+                }
+                notification.success('Successfully created practice schedule "', practiceScheduleModel.name, '"');
+                $rootScope.$broadcast('create-entity', practiceScheduleModel);
+                d.resolve(practiceScheduleModel);
+            }, function (error) {
+                notification.error('Failed to create practice schedule "', newPracticeSchedule.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Deletes the given practiceSchedule for the current user
+         * @param {Planning.Models.PracticeSchedule} practiceSchedule The practiceSchedule to be deleted
+         */
+        this.deletePracticeSchedule = function (practiceSchedule) {
+            var d = $q.defer();
+            var notification = __notifications.pending('Deleting practice schedule "', practiceSchedule.name, '"...');
+            __api.post(__api.path(PLANNING.ENDPOINT, PLANNING.DELETE_PRACTICESCHEDULE), { key: practiceSchedule.key }).then(function (response) {
+                // update the context
+                impakt.context.Planning.practiceSchedules.remove(practiceSchedule.guid);
+                notification.success('Deleted practice schedule "', practiceSchedule.name, '"');
+                d.resolve(practiceSchedule);
+            }, function (error) {
+                notification.error('Failed to delete practice schedule "', practiceSchedule.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Updates the given practiceSchedule for the current user
+         * @param {Planning.Models.PracticeSchedule} practiceSchedule The practiceSchedule to update
+         */
+        this.updatePracticeSchedule = function (practiceSchedule) {
+            var d = $q.defer();
+            // update assignment collection to json object
+            var practiceScheduleJson = practiceSchedule.toJson();
+            var notification = __notifications.pending('Updating practice schedule "', practiceSchedule.name, '"...');
+            __api.post(__api.path(PLANNING.ENDPOINT, PLANNING.UPDATE_PRACTICESCHEDULE), {
+                version: 1,
+                name: practiceScheduleJson.name,
+                key: practiceScheduleJson.key,
+                data: {
+                    version: 1,
+                    key: practiceScheduleJson.key,
+                    practiceSchedule: practiceScheduleJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var practiceScheduleModel = new Planning.Models.PracticeSchedule();
+                if (results && results.data && results.data.practiceSchedule) {
+                    practiceScheduleModel.fromJson(results.data.practiceSchedule);
+                    // update the context
+                    impakt.context.Planning.practiceSchedules.set(practiceScheduleModel.guid, practiceScheduleModel);
+                }
+                notification.success('Successfully updated practice schedule "', practiceSchedule.name, '"');
+                d.resolve(practiceScheduleModel);
+            }, function (error) {
+                notification.error('Failed to update practice schedule "', practiceSchedule.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Retrieves all scout cards
+         */
+        this.getScoutCards = function () {
+            var d = $q.defer();
+            var notification = __notifications.pending('Getting scout cards...');
+            __api.get(__api.path(PLANNING.ENDPOINT, PLANNING.GET_SCOUTCARDS))
+                .then(function (response) {
+                var collection = new Planning.Models.ScoutCardCollection();
+                if (response && response.data && response.data.results) {
+                    var scoutCardResults = Common.Utilities.parseData(response.data.results);
+                    for (var i = 0; i < scoutCardResults.length; i++) {
+                        var scoutCardResult = scoutCardResults[i];
+                        if (scoutCardResult && scoutCardResult.data && scoutCardResult.data.scoutCard) {
+                            var scoutCardModel = new Planning.Models.ScoutCard();
+                            scoutCardResult.data.scoutCard.key = scoutCardResult.key;
+                            scoutCardModel.fromJson(scoutCardResult.data.scoutCard);
+                            collection.add(scoutCardModel);
+                        }
+                    }
+                }
+                notification.success([collection.size(), ' scout cards successfully retreived'].join(''));
+                d.resolve(collection);
+            }, function (error) {
+                notification.error('Failed to retieve scout cards');
+                console.error(error);
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Gets a single scoutCard with the given key
+         * @param {number} key The key of the scoutCard to retrieve
+         */
+        this.getScoutCard = function (key) {
+            var d = $q.defer();
+            __api.get(__api.path(PLANNING.ENDPOINT, PLANNING.GET_SCOUTCARD, '/' + key))
+                .then(function (response) {
+                var scoutCard = Common.Utilities.parseData(response.data.results);
+                d.resolve(scoutCard);
+            }, function (error) {
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Sends a scoutCard model to the server for storage
+         * @param {Common.Models.ScoutCard} newScoutCard The scoutCard to be created/saved
+         */
+        this.createScoutCard = function (newScoutCard) {
+            var d = $q.defer();
+            if (Common.Utilities.isNotNullOrUndefined(newScoutCard)) {
+                var nameExists = impakt.context.Planning.scoutCards.hasElementWhich(function (scoutModel, index) {
+                    return scoutModel.name == newScoutCard.name;
+                });
+                if (nameExists) {
+                    var notification_9 = __notifications.warning('Failed to create scout card. Scout card "', newScoutCard.name, '" already exists.');
+                    _planningModals.createScoutCardDuplicate(newScoutCard);
+                    return;
+                }
+            }
+            // set key to -1 to ensure a new object is created server-side
+            newScoutCard.key = -1;
+            var scoutModelJson = newScoutCard.toJson();
+            var notification = __notifications.pending('Creating scoutCard "', newScoutCard.name, '"...');
+            __api.post(__api.path(PLANNING.ENDPOINT, PLANNING.CREATE_SCOUTCARD), {
+                version: 1,
+                name: newScoutCard.name,
+                data: {
+                    version: 1,
+                    scoutCard: scoutModelJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var scoutCardModel = new Planning.Models.ScoutCard();
+                if (results && results.data && results.data.scoutCard) {
+                    results.data.scoutCard.key = results.key;
+                    scoutCardModel.fromJson(results.data.scoutCard);
+                    // update the context
+                    impakt.context.Planning.scoutCards.add(scoutCardModel);
+                }
+                else {
+                    throw new Error('CreateScoutCard did not return a valid scoutCard');
+                }
+                notification.success('Successfully created scout card "', scoutCardModel.name, '"');
+                $rootScope.$broadcast('create-entity', scoutCardModel);
+                d.resolve(scoutCardModel);
+            }, function (error) {
+                notification.error('Failed to create scout card "', newScoutCard.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Deletes the given scoutCard for the current user
+         * @param {Planning.Models.ScoutCard} scoutCard The scoutCard to be deleted
+         */
+        this.deleteScoutCard = function (scoutCard) {
+            var d = $q.defer();
+            var notification = __notifications.pending('Deleting scout card "', scoutCard.name, '"...');
+            __api.post(__api.path(PLANNING.ENDPOINT, PLANNING.DELETE_SCOUTCARD), { key: scoutCard.key }).then(function (response) {
+                // update the context
+                impakt.context.Planning.scoutCards.remove(scoutCard.guid);
+                notification.success('Deleted scout card "', scoutCard.name, '"');
+                d.resolve(scoutCard);
+            }, function (error) {
+                notification.error('Failed to delete scout card "', scoutCard.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Updates the given scoutCard for the current user
+         * @param {Planning.Models.ScoutCard} scoutCard The scoutCard to update
+         */
+        this.updateScoutCard = function (scoutCard) {
+            var d = $q.defer();
+            // update assignment collection to json object
+            var scoutCardJson = scoutCard.toJson();
+            var notification = __notifications.pending('Updating scout card "', scoutCard.name, '"...');
+            __api.post(__api.path(PLANNING.ENDPOINT, PLANNING.UPDATE_SCOUTCARD), {
+                version: 1,
+                name: scoutCardJson.name,
+                key: scoutCardJson.key,
+                data: {
+                    version: 1,
+                    key: scoutCardJson.key,
+                    scoutCard: scoutCardJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var scoutCardModel = new Planning.Models.ScoutCard();
+                if (results && results.data && results.data.scoutCard) {
+                    scoutCardModel.fromJson(results.data.scoutCard);
+                    // update the context
+                    impakt.context.Planning.scoutCards.set(scoutCardModel.guid, scoutCardModel);
+                }
+                notification.success('Successfully updated scout card "', scoutCard.name, '"');
+                d.resolve(scoutCardModel);
+            }, function (error) {
+                notification.error('Failed to update scout card "', scoutCard.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Retrieves all QB wristbands
+         */
+        this.getQBWristbands = function () {
+            var d = $q.defer();
+            var notification = __notifications.pending('Getting QB wristbands...');
+            __api.get(__api.path(PLANNING.ENDPOINT, PLANNING.GET_QBWRISTBANDS))
+                .then(function (response) {
+                var collection = new Planning.Models.QBWristbandCollection();
+                if (response && response.data && response.data.results) {
+                    var QBWristbandResults = Common.Utilities.parseData(response.data.results);
+                    for (var i = 0; i < QBWristbandResults.length; i++) {
+                        var QBWristbandResult = QBWristbandResults[i];
+                        if (QBWristbandResult && QBWristbandResult.data && QBWristbandResult.data.QBWristband) {
+                            var QBWristbandModel = new Planning.Models.QBWristband();
+                            QBWristbandResult.data.QBWristband.key = QBWristbandResult.key;
+                            QBWristbandModel.fromJson(QBWristbandResult.data.QBWristband);
+                            collection.add(QBWristbandModel);
+                        }
+                    }
+                }
+                notification.success([collection.size(), ' QB wristbands successfully retreived'].join(''));
+                d.resolve(collection);
+            }, function (error) {
+                notification.error('Failed to retieve QB wristbands');
+                console.error(error);
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Gets a single QBWristband with the given key
+         * @param {number} key The key of the QBWristband to retrieve
+         */
+        this.getQBWristband = function (key) {
+            var d = $q.defer();
+            __api.get(__api.path(PLANNING.ENDPOINT, PLANNING.GET_QBWRISTBAND, '/' + key))
+                .then(function (response) {
+                var QBWristband = Common.Utilities.parseData(response.data.results);
+                d.resolve(QBWristband);
+            }, function (error) {
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Sends a QBWristband model to the server for storage
+         * @param {Common.Models.QBWristband} newQBWristband The QBWristband to be created/saved
+         */
+        this.createQBWristband = function (newQBWristband) {
+            var d = $q.defer();
+            if (Common.Utilities.isNotNullOrUndefined(newQBWristband)) {
+                var nameExists = impakt.context.Planning.QBWristbands.hasElementWhich(function (QBModel, index) {
+                    return QBModel.name == newQBWristband.name;
+                });
+                if (nameExists) {
+                    var notification_10 = __notifications.warning('Failed to create QB wristband. QB wristband "', newQBWristband.name, '" already exists.');
+                    _planningModals.createQBWristbandDuplicate(newQBWristband);
+                    return;
+                }
+            }
+            // set key to -1 to ensure a new object is created server-side
+            newQBWristband.key = -1;
+            var QBModelJson = newQBWristband.toJson();
+            var notification = __notifications.pending('Creating QBWristband "', newQBWristband.name, '"...');
+            __api.post(__api.path(PLANNING.ENDPOINT, PLANNING.CREATE_QBWRISTBAND), {
+                version: 1,
+                name: newQBWristband.name,
+                data: {
+                    version: 1,
+                    QBWristband: QBModelJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var QBWristbandModel = new Planning.Models.QBWristband();
+                if (results && results.data && results.data.QBWristband) {
+                    results.data.QBWristband.key = results.key;
+                    QBWristbandModel.fromJson(results.data.QBWristband);
+                    // update the context
+                    impakt.context.Planning.QBWristbands.add(QBWristbandModel);
+                }
+                else {
+                    throw new Error('CreateQBWristband did not return a valid QBWristband');
+                }
+                notification.success('Successfully created QB wristband "', QBWristbandModel.name, '"');
+                $rootScope.$broadcast('create-entity', QBWristbandModel);
+                d.resolve(QBWristbandModel);
+            }, function (error) {
+                notification.error('Failed to create QB wristband "', newQBWristband.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Deletes the given QBWristband for the current user
+         * @param {Planning.Models.QBWristband} QBWristband The QBWristband to be deleted
+         */
+        this.deleteQBWristband = function (QBWristband) {
+            var d = $q.defer();
+            var notification = __notifications.pending('Deleting QB wristband "', QBWristband.name, '"...');
+            __api.post(__api.path(PLANNING.ENDPOINT, PLANNING.DELETE_QBWRISTBAND), { key: QBWristband.key }).then(function (response) {
+                // update the context
+                impakt.context.Planning.QBWristbands.remove(QBWristband.guid);
+                notification.success('Deleted QB wristband "', QBWristband.name, '"');
+                d.resolve(QBWristband);
+            }, function (error) {
+                notification.error('Failed to delete QB wristband "', QBWristband.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
+         * Updates the given QBWristband for the current user
+         * @param {Planning.Models.QBWristband} QBWristband The QBWristband to update
+         */
+        this.updateQBWristband = function (QBWristband) {
+            var d = $q.defer();
+            // update assignment collection to json object
+            var QBWristbandJson = QBWristband.toJson();
+            var notification = __notifications.pending('Updating QB wristband "', QBWristband.name, '"...');
+            __api.post(__api.path(PLANNING.ENDPOINT, PLANNING.UPDATE_QBWRISTBAND), {
+                version: 1,
+                name: QBWristbandJson.name,
+                key: QBWristbandJson.key,
+                data: {
+                    version: 1,
+                    key: QBWristbandJson.key,
+                    QBWristband: QBWristbandJson
+                }
+            })
+                .then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var QBWristbandModel = new Planning.Models.QBWristband();
+                if (results && results.data && results.data.QBWristband) {
+                    QBWristbandModel.fromJson(results.data.QBWristband);
+                    // update the context
+                    impakt.context.Planning.QBWristbands.set(QBWristbandModel.guid, QBWristbandModel);
+                }
+                notification.success('Successfully updated QB wristband "', QBWristband.name, '"');
+                d.resolve(QBWristbandModel);
+            }, function (error) {
+                notification.error('Failed to update QB wristband "', QBWristband.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        this.deleteEntityByType = function (entity) {
+            if (Common.Utilities.isNullOrUndefined(entity))
+                return;
+            var d = $q.defer();
+            switch (entity.impaktDataType) {
+                case Common.Enums.ImpaktDataTypes.Plan:
+                    return _planningModals.deletePlan(entity);
+                case Common.Enums.ImpaktDataTypes.PracticePlan:
+                    return _planningModals.deletePracticePlan(entity);
+                case Common.Enums.ImpaktDataTypes.GamePlan:
+                    return _planningModals.deleteGamePlan(entity);
+                case Common.Enums.ImpaktDataTypes.PracticeSchedule:
+                    return _planningModals.deletePracticeSchedule(entity);
+                case Common.Enums.ImpaktDataTypes.ScoutCard:
+                    return _planningModals.deleteScoutCard(entity);
+                case Common.Enums.ImpaktDataTypes.QBWristband:
+                    return _planningModals.deleteQBWristband(entity);
+                default:
+                    d.reject(new Error('_planning deleteEntityByType: impaktDataType not supported'));
+                    break;
+            }
+            return d.promise;
+        };
+        this.updateEntityByType = function (entity) {
+            if (Common.Utilities.isNullOrUndefined(entity))
+                return;
+            var d = $q.defer();
+            switch (entity.impaktDataType) {
+                case Common.Enums.ImpaktDataTypes.Plan:
+                    return _planningModals.savePlan(entity);
+                case Common.Enums.ImpaktDataTypes.PracticePlan:
+                    return _planningModals.savePracticePlan(entity);
+                case Common.Enums.ImpaktDataTypes.GamePlan:
+                    return _planningModals.saveGamePlan(entity);
+                case Common.Enums.ImpaktDataTypes.PracticeSchedule:
+                    return _planningModals.savePracticeSchedule(entity);
+                case Common.Enums.ImpaktDataTypes.ScoutCard:
+                    return _planningModals.saveScoutCard(entity);
+                case Common.Enums.ImpaktDataTypes.QBWristband:
+                    return _planningModals.saveQBWristband(entity);
+                default:
+                    d.reject(new Error('_planning saveEntityByType: impaktDataType not supported'));
+                    break;
+            }
+            return d.promise;
+        };
+        this.toBrowser = function () {
+            $state.transitionTo('planning.browser');
+        };
+        this.toPracticePlanEditor = function (practicePlan) {
+            impakt.context.Planning.editor.practicePlans.add(practicePlan);
+            $state.transitionTo('planning.editor.practicePlan');
+        };
+        this.toGamePlanEditor = function (gamePlan) {
+            impakt.context.Planning.editor.gamePlans.add(gamePlan);
+            $state.transitionTo('planning.editor');
+        };
+        this.toPracticeScheduleEditor = function (practiceSchedule) {
+            impakt.context.Planning.editor.practiceSchedules.add(practiceSchedule);
+            $state.transitionTo('planning.editor');
+        };
+        this.toScoutCardEditor = function (scoutCard) {
+            impakt.context.Planning.editor.scoutCards.add(scoutCard);
+            $state.transitionTo('planning.editor');
+        };
+        this.toQBWristbandEditor = function (QBWristband) {
+            impakt.context.Planning.editor.QBWristbands.add(QBWristband);
+            $state.transitionTo('planning.editor');
+        };
+        this.toPlanDrilldown = function (plan) {
+            this.drilldown.plan = plan;
+            impakt.context.Planning.plans.select(plan);
+            //_deselectEntities(false); // TODO @theBull
+            impakt.context.Actionable.selected.only(plan);
+            $state.transitionTo('planning.drilldown.plan');
+        };
+        function _deselectEntities() {
+            // TODO @theBull
+        }
+    }]);
 /// <reference path='./playbook.ts' />
 /// <reference path='../modules.mdl.ts' />
 impakt.playbook = angular.module('impakt.playbook', [
@@ -19009,9 +23016,6 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl', [
     '_playbook',
     function ($scope, $uibModalInstance, _associations, _playbook) {
         $scope.unitTypeCollection = impakt.context.Team.unitTypes;
-        $scope.selectedUnitType =
-            $scope.unitTypeCollection.getByUnitType(Team.Enums.UnitTypes.Offense).toJson();
-        $scope.newPlay = new Common.Models.PlayPrimary($scope.selectedUnitType.unitType);
         $scope.playbooks = impakt.context.Playbook.playbooks;
         $scope.formations = impakt.context.Playbook.formations;
         $scope.assignmentGroups = impakt.context.Playbook.assignmentGroups;
@@ -19020,6 +23024,9 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl', [
         $scope.selectedAssignmentGroup = null;
         $scope.personnelCollection = impakt.context.Team.personnel;
         $scope.selectedPersonnel = $scope.personnelCollection.first();
+        $scope.selectedUnitType =
+            $scope.unitTypeCollection.getByUnitType($scope.selectedPersonnel.unitType).toJson();
+        $scope.newPlay = new Common.Models.PlayPrimary($scope.selectedUnitType.unitType);
         // Intialize new Play with data
         $scope.newPlay.setFormation($scope.selectedFormation);
         $scope.newPlay.setAssignmentGroup($scope.selectedAssignmentGroup);
@@ -19879,7 +23886,7 @@ impakt.playbook.service('_playbook', [
                     return playbookModel.name == newPlaybookModel.name;
                 });
                 if (nameExists) {
-                    var notification_5 = __notifications.warning('Failed to create playbook. Playbook "', newPlaybookModel.name, '" already exists.');
+                    var notification_11 = __notifications.warning('Failed to create playbook. Playbook "', newPlaybookModel.name, '" already exists.');
                     _playbookModals.createPlaybookDuplicate(newPlaybookModel);
                     return;
                 }
@@ -21856,7 +25863,7 @@ impakt.season.service('_season', [
                     return seasonModel.name == newSeasonModel.name;
                 });
                 if (nameExists) {
-                    var notification_6 = __notifications.warning('Failed to create season. Season "', newSeasonModel.name, '" already exists.');
+                    var notification_12 = __notifications.warning('Failed to create season. Season "', newSeasonModel.name, '" already exists.');
                     _seasonModals.createSeasonDuplicate(newSeasonModel);
                     return;
                 }
@@ -22005,7 +26012,7 @@ impakt.season.service('_season', [
                     return gameModel.name == newGame.name;
                 });
                 if (nameExists) {
-                    var notification_7 = __notifications.warning('Failed to create game. Game "', newGame.name, '" already exists.');
+                    var notification_13 = __notifications.warning('Failed to create game. Game "', newGame.name, '" already exists.');
                     _seasonModals.createGameDuplicate(newGame);
                     return;
                 }
@@ -22596,7 +26603,7 @@ impakt.team.service('_team', [
                     return teamModel.name == newTeamModel.name;
                 });
                 if (nameExists) {
-                    var notification_8 = __notifications.warning('Failed to create team. Team "', newTeamModel.name, '" already exists.');
+                    var notification_14 = __notifications.warning('Failed to create team. Team "', newTeamModel.name, '" already exists.');
                     _teamModals.createTeamDuplicate(newTeamModel);
                     return;
                 }

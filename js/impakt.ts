@@ -61,10 +61,6 @@ impakt.app = angular.module('impakt.app', [
 				url: '/team',
 				templateUrl: 'modules/team/team.tpl.html'
 			})
-			.state('planning', {
-				url: '/planning',
-				templateUrl: 'modules/planning/planning.tpl.html'
-			})
 			.state('analysis', {
 				url: '/analysis',
 				templateUrl: 'modules/analysis/analysis.tpl.html'
@@ -72,18 +68,7 @@ impakt.app = angular.module('impakt.app', [
 			.state('profile', {
 				url: '/profile',
 				templateUrl: 'modules/user/user.tpl.html'
-			});
-			// TODO @theBull - implement
-			// .state('film', {
-			// 	url: '/film',
-			// 	templateUrl: 'modules/film/film.tpl.html'
-			// })
-			// .state('stats', {
-			// 	url: '/stats',
-			// 	templateUrl: 'modules/stats/stats.tpl.html'
-			// });
-
-		
+			});		
 
 		console.debug('impakt.app - config');
 

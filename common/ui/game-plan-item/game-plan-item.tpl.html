@@ -1,0 +1,22 @@
+<div class='col gray-bg-2-hover height12 width15 marginBottom1 marginRight1 pointer pad positionRelative' 
+	ng-class='{"selected-border": gamePlan.selected}'
+	ng-mouseover='hoverIn()' 
+	ng-mouseout='hoverOut()'>
+
+	<div class='col' ng-click='toggleSelection(gamePlan)'>
+		<div class='marginBottom1'>
+			<p class='capitalize'>{{gamePlan.name}}</p>
+		</div>
+
+		<div class='marginBottom1'>
+			<p class='font-gray'>{{gamePlan.start.getFormatted()}}</p>
+		</div>
+	</div>
+
+	<div class='top0 right0 gray-bg-1-hover pointer pad' 
+		ng-show='gamePlan.hovered'
+		ng-click='edit()'>
+		<span class='glyphicon glyphicon-pencil'></span>
+		edit
+	</div>
+</div>

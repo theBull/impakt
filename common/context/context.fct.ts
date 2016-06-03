@@ -10,6 +10,7 @@ impakt.common.context.factory('__context',
 '_league',
 '_season',
 '_team',
+'_planning',
 function(
 	$q: any, 
 	__api: any, 
@@ -19,7 +20,8 @@ function(
 	_playbook: any,
 	_league: any,
 	_season: any,
-	_team: any
+	_team: any,
+	_planning: any
 ) {
 
 	var isReady = false;
@@ -74,6 +76,9 @@ function(
 
 	if (!impakt.context.Season)
 		impakt.context.Season = {};
+
+	if (!impakt.context.Planning)
+		impakt.context.Planning = {};
 
 	function initialize(context) {
 		// notify listeners that context initialization
@@ -203,6 +208,40 @@ function(
 			games: new Season.Models.GameCollection()
 		}
 
+		
+		/**
+		 *
+		 * 
+		 * Planning context
+		 *
+		 * 
+		 */
+		impakt.context.Planning.plans = new Planning.Models.PlanCollection();
+		impakt.context.Planning.practicePlans = new Planning.Models.PracticePlanCollection();
+		impakt.context.Planning.gamePlans = new Planning.Models.GamePlanCollection();
+		impakt.context.Planning.practiceSchedules = new Planning.Models.PracticeScheduleCollection();
+		impakt.context.Planning.scoutCards = new Planning.Models.ScoutCardCollection();
+		impakt.context.Planning.QBWristbands = new Planning.Models.QBWristbandCollection();
+	
+		/**
+		 * A creation context for planning
+		 */
+		impakt.context.Planning.creation = {
+			plans: new Planning.Models.PlanCollection(),
+			practicePlans: new Planning.Models.PracticePlanCollection(),
+			gamePlans: new Planning.Models.GamePlanCollection(),
+			practiceSchedules: new Planning.Models.PracticeScheduleCollection(),
+			scoutCards: new Planning.Models.ScoutCardCollection(),
+			QBWristbands: new Planning.Models.QBWristbandCollection()
+		}
+		impakt.context.Planning.editor = {
+			practicePlans: new Planning.Models.PracticePlanCollection(),
+			practiceSchedules: new Planning.Models.PracticeScheduleCollection(),
+			gamePlans: new Planning.Models.GamePlanCollection(),
+			scoutCards: new Planning.Models.ScoutCardCollection(),
+			QBWristbands: new Planning.Models.QBWristbandCollection()
+		}
+
 
 		async.parallel([
 			
@@ -290,6 +329,72 @@ function(
 					context.Season.games = games;
 					__notifications.success('Games successfully loaded');
 					callback(null, games);
+				}, function(err) {
+					callback(err);
+				});
+			},
+
+			// Retrieve plans
+			function(callback) {
+				_planning.getPlans().then(function(plans) {
+					context.Planning.plans = plans;
+					__notifications.success(' plans successfully loaded');
+					callback(null, plans);
+				}, function(err) {
+					callback(err);
+				});
+			},
+
+			// Retrieve practice plans
+			function(callback) {
+				_planning.getPracticePlans().then(function(practicePlans) {
+					context.Planning.practicePlans = practicePlans;
+					__notifications.success('Practice plans successfully loaded');
+					callback(null, practicePlans);
+				}, function(err) {
+					callback(err);
+				});
+			},
+
+			// Retrieve game plans
+			function(callback) {
+				_planning.getGamePlans().then(function(gamePlans) {
+					context.Planning.gamePlans = gamePlans;
+					__notifications.success('Game plans successfully loaded');
+					callback(null, gamePlans);
+				}, function(err) {
+					callback(err);
+				});
+			},
+
+			// Retrieve practice schedules
+			function(callback) {
+				_planning.getPracticeSchedules().then(function(practiceSchedules) {
+					context.Planning.practiceSchedules = practiceSchedules;
+					__notifications.success('Practice schedules successfully loaded');
+					callback(null, practiceSchedules);
+				}, function(err) {
+					callback(err);
+				});
+			},
+
+			// Retrieve scout cards
+			function(callback) {
+				_planning.getScoutCards().then(function(scoutCards) {
+					context.Planning.scoutCards = scoutCards;
+					__notifications.success('Scout cards successfully loaded');
+					callback(null, scoutCards);
+				}, function(err) {
+					callback(err);
+				});
+			},
+
+			// Retrieve QB wristbands
+			function(callback) {
+				_planning.getQBWristbands().then(function(QBWristbands) {
+					context.Planning.QBWristbands = QBWristbands;
+					__notifications.success('QB wristbands successfully loaded');
+					callback(null, QBWristbands);
 				}, function(err) {
 					callback(err);
 				});

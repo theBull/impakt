@@ -44,6 +44,7 @@ module Season.Models {
 				'seasons',
 				'teams',
 				'locations',
+				'plans',
 				'playbooks'
 			];
 		}

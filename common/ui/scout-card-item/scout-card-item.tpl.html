@@ -1,0 +1,20 @@
+<div class='col gray-bg-2-hover height12 width15 marginBottom1 marginRight1 pointer pad positionRelative' 
+	ng-class='{"selected-border": scoutCard.selected}'
+	ng-mouseover='hoverIn()' 
+	ng-mouseout='hoverOut()'>
+
+	<div class='col' ng-click='toggleSelection(scoutCard)'>
+		<div class='marginBottom1'>
+			<p class='capitalize'>{{scoutCard.name}}</p>
+		</div>
+	</div>
+
+	<!-- TODO @theBull render scout card preview -->
+
+	<div class='top0 right0 gray-bg-1-hover pointer pad' 
+		ng-show='scoutCard.hovered'
+		ng-click='edit()'>
+		<span class='glyphicon glyphicon-pencil'></span>
+		edit
+	</div>
+</div>

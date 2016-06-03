@@ -17,6 +17,7 @@ module Common.Interfaces {
 		dragging: boolean;
 		flipped: boolean;
 		flippable: boolean;
+		visible: boolean;
 		contextmenuTemplateUrl: string;
 		actions: Common.Models.ActionRegistry;
 
@@ -28,6 +29,9 @@ module Common.Interfaces {
 		toggleSelect(metaKey?: boolean): void;
 		disable(): void;
 		enable(): void;
+		show(): void;
+		hide(): void;
+		toggleVisibility(): void;
 		getContextmenuUrl(): string;
 		drop(): void;
 		onhover(hoverIn: any, hoverOut: any, context: Common.Interfaces.IActionable): void;

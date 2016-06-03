@@ -19,10 +19,14 @@ $blueGlow: #22CFA7;
 $white: rgba(255, 255, 255, 0.9);
 $fontWhite: rgba(255, 255, 255, 0.9);
 $fontWhiteHover: rgba(255, 255, 255, 0.5);
+$fontLight: rgba(230, 230, 230, 0.9);
+$fontLightHover: rgba(255, 255, 255, 0.9);
 $fontGray: rgba(180, 182, 184, 0.9);
 $fontGray1: #111;
 $fontRed: rgb(192, 35, 40);
 $fontGreen: #86BE75;
+$fontBlack: rgba(0, 0, 0, 0.9);
+$fontBlackHover: rgba(40, 40, 40, 0.9);
 
 $lightBackground: rgba(222, 225, 227, 0.9);
 $lightBorderColor: rgba(150, 150, 150, 0.3);
@@ -58,6 +62,8 @@ $gray-bg-4: #444444;
 $gray-bg-4-hover: #4c4c4c;
 $gray-bg-5: #555555;
 $gray-bg-5-hover: #5d5d5d;
+$gray-bg-6: #676767;
+$gray-bg-6-hover: #6f6f6f;
 $gray-bg-a: #aaaaaa;
 $gray-bg-a-hover: #b1b1b1;
 $gray-bg-7: #777777;
@@ -310,6 +316,12 @@ details summary {
 .gray-bg-5-hover:hover {
 	background-color: $gray-bg-5-hover;
 }
+.gray-bg-6, .gray-bg-6-hover {
+	background-color: $gray-bg-6;
+}
+.gray-bg-6-hover:hover {
+	background-color: $gray-bg-6-hover;
+}
 .gray-bg-7, .gray-bg-7-hover {
 	background-color: $gray-bg-7;
 }
@@ -483,6 +495,18 @@ details summary {
 }
 .font-white-hover:hover {
 	color: $fontWhiteHover;
+}
+.font-black, .font-black-hover {
+	color: $fontBlack;
+}
+.font-black-hover:hover {
+	color: $fontBlackHover;
+}
+.font-light, .font-light-hover {
+	color: $fontLight;
+}
+.font-light-hover:hover {
+	color: $fontLightHover;
 }
 .font-gray {
 	color: $fontGray;

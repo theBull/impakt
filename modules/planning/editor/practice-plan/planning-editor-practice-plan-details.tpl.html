@@ -1,0 +1,50 @@
+<div ng-controller='planning.editor.practicePlan.details.ctrl'>
+	<div class='marginLeft3 pad padBottom0'>
+		<h4>
+			<span class='glyphicon glyphicon-info-sign'></span>
+			Details
+		</h4>
+	</div>
+
+	<div class='pad'>
+		<div class='marginBottom1'>
+			<h4><strong>Practice plan:</strong><br />
+				<input type='text'
+					ng-model='practicePlan.name'
+					ng-placeholder='Practice plan name' />
+			</h4>
+			<impakt-datepicker 
+	            datetime='practicePlan.start'
+	            update='updateDatetime()'>
+	        </impakt-datepicker>	
+	        <button class='blue-bg-hover pointer pad'
+	        	ng-click='save()'>
+	        	<span class='glyphicon glyphicon-ok'></span> save
+	        </button>
+		</div>
+
+		<div class='marginBottom1'>
+			<div class='marginBottom1'>
+				<p><strong>Title data</strong></p>
+			</div>
+			<div class='grid'>
+				<planning-editor-toggle
+					item='item'
+					ng-repeat='item in titleDataToggles.toArray()'>
+				</planning-editor-toggle>
+			</div>
+		</div>
+
+		<div class='marginBottom1'>
+			<div class='marginBottom1'>
+				<p><strong>Situational data</strong></p>
+			</div>
+			<div class='grid'>
+				<planning-editor-toggle
+					item='item'
+					ng-repeat='item in situationDataToggles.toArray()'>
+				</planning-editor-toggle>
+			</div>
+		</div>
+	</div>
+</div>

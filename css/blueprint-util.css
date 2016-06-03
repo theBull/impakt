@@ -540,6 +540,31 @@ a {
 	min-width: 50%;
 	overflow: hidden;
 }
+.ratio6 {
+	max-width: 60%;
+	min-width: 60%;
+	overflow: hidden;
+}
+.ratio7 {
+	max-width: 70%;
+	min-width: 70%;
+	overflow: hidden;
+}
+.ratio8 {
+	max-width: 80%;
+	min-width: 80%;
+	overflow: hidden;
+}
+.ratio9 {
+	max-width: 90%;
+	min-width: 90%;
+	overflow: hidden;
+}
+.ratio10 {
+	max-width: 100%;
+	min-width: 100%;
+	overflow: hidden;
+}
 .hide {
 	display: none !important;
 }

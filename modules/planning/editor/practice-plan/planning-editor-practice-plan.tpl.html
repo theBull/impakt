@@ -1,0 +1,125 @@
+<div class='row'>
+ 
+	<div class='col pad white-bg font-black'>
+		<div class='row shrinkY marginBottom1'>
+			<div class='marginRight1 height10 width10 dark-border'>
+				<img src='images/placeholder50x50.png' class='height10 width10' />
+			</div>
+			<div class='col'>
+				<h4>{{practicePlan.name}}</h4>
+				<p>{{practicePlan.start.getFormatted()}}</p>
+			</div>
+		</div>
+
+		<div class='col shrinkY marginBottom1 textCenter dark-border minHeight3 fontWeight200'>
+			<div class='row maxHeight3'>
+				<div class='col dark-border pad maxWidth8'
+					ng-show='practicePlan.titleData.date.selected'>
+					{{practicePlan.start.getFormatted()}}
+				</div>
+				<div ng-show='practicePlan.titleData.periodName.selected'
+					class='col dark-border pad'>
+					<strong>{{practicePlan.name}}</strong>
+				</div>
+				<div ng-show='practicePlan.titleData.location.selected'
+					class='col dark-border pad'>
+					(location)
+				</div>
+				<div ng-show='practicePlan.titleData.opponent.selected'
+					class='col dark-border pad'>
+					(opponent)
+				</div>
+			</div>
+			<div class='row maxHeight3'>
+				<div class='col dark-border pad'
+					ng-show='practicePlan.titleData.periodStart.selected'>
+					(start)
+				</div>
+				<div class='col dark-border pad'
+					ng-show='practicePlan.titleData.periodFinish.selected'>
+					(finish)
+				</div>
+				<div class='col dark-border pad'
+					ng-show='practicePlan.titleData.periodReps.selected'>
+					(reps)
+				</div>
+				<div class='col dark-border pad'
+					ng-show='practicePlan.titleData.duration.selected'>
+					(duration)
+				</div>
+				<div class='col dark-border pad'
+					ng-show='practicePlan.titleData.periodNumber.selected'>
+					(period #)
+				</div>
+			</div>
+		</div>
+
+		<!-- 
+			
+			public playCount: Planning.Models.PracticePlanPlayCount;
+			public hashmark: Planning.Models.PracticePlanHashmark;
+			public down: Planning.Models.PracticePlanDown;
+			public distance: Planning.Models.PracticePlanDistance;
+			public yardline: Planning.Models.PracticePlanYardline;
+			public fieldZone: Planning.Models.PracticePlanFieldZone;
+			public time: Planning.Models.PracticePlanTime;
+			public tempo: Planning.Models.PracticePlanTempo;
+			public scoreDifference: Planning.Models.PracticePlanScoreDifference;
+
+		-->
+
+		<div class='col textCenter minHeight3 dark-border'>
+			<div class='row dark-border height3 fontWeight500' ng-repeat='item in items.toArray()'>
+
+				<!-- Situational Data -->
+				<div class='pad col dark-border'
+					ng-show='practicePlan.situationData.playCount.selected'>
+					{{item.getNumber()}}
+				</div>
+				<div class='pad col dark-border'
+					ng-show='practicePlan.situationData.hashmark.selected'>
+					Hsh
+				</div>
+				<div class='pad col dark-border'
+					ng-show='practicePlan.situationData.down.selected'>
+					Dwn
+				</div>
+				<div class='pad col dark-border'
+					ng-show='practicePlan.situationData.distance.selected'>
+					Dst
+				</div>
+				<div class='pad col dark-border'
+					ng-show='practicePlan.situationData.yardline.selected'>
+					Yln
+				</div>
+				<div class='pad col dark-border'
+					ng-show='practicePlan.situationData.fieldZone.selected'>
+					Zn
+				</div>
+				<div class='pad col dark-border'
+					ng-show='practicePlan.situationData.time.selected'>
+					Time
+				</div>
+				<div class='pad col dark-border'
+					ng-show='practicePlan.situationData.tempo.selected'>
+					Tmp
+				</div>
+				<div class='pad col dark-border'
+					ng-show='practicePlan.situationData.scoreDifference.selected'>
+					ScoreDiff
+				</div>
+
+
+			</div>
+		</div>
+
+	</div>
+
+	<!-- Details -->
+	<expandable 	
+		direction='left'
+		collapsed='false'
+		url='modules/planning/editor/practice-plan/planning-editor-practice-plan-details.tpl.html'>
+	</expandable>
+
+</div>

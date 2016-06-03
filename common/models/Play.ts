@@ -70,25 +70,25 @@ module Common.Models {
             this.setModified(true);
         }
         public setFormation(formation: Common.Models.Formation): void {
-            if (Common.Utilities.isNotNullOrUndefined(formation)) {
-                if(formation.unitType != this.unitType) {
-                    //throw new Error('Play setFormation(): Formation unit type does not match play unit type');
-                }
-
-            }
-            else {
+            if (Common.Utilities.isNullOrUndefined(formation)) {
                 this.setAssignmentGroup(null);
                 this.setPersonnel(null);
+                return;
             }
+
+            if (formation.unitType != this.unitType) {
+                //throw new Error('Play setFormation(): Formation unit type does not match play unit type');
+            }
+
             this.formation = formation;
             this.unitType = formation.unitType;
             this.setModified(true);
         }
         public setAssignmentGroup(assignmentGroup: Common.Models.AssignmentGroup): void {
             if (Common.Utilities.isNotNullOrUndefined(assignmentGroup)) {
-                if(assignmentGroup.unitType != this.unitType)
-                    throw new Error('Play setAssignmentGroup(): Assignments unit type does not match play unit type');
-                
+                if(assignmentGroup.unitType != this.unitType) {
+                    //throw new Error('Play setAssignmentGroup(): Assignments unit type does not match play unit type');
+                }                
             }
             else {
             }
@@ -97,10 +97,12 @@ module Common.Models {
         }
         public setPersonnel(personnel: Team.Models.Personnel): void {
             if (Common.Utilities.isNotNullOrUndefined(personnel)) {
-                if (personnel.unitType != this.unitType)
-                    throw new Error('Play setPersonnel(): Cannot apply personnel with different unit type.');
+                if (personnel.unitType != this.unitType) {
+                    //throw new Error('Play setPersonnel(): Cannot apply personnel with different unit type.');
+                }
 
             } else {
+
             }
             this.personnel = personnel;
             this.setModified(true);
