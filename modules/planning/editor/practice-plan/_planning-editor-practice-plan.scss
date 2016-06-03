@@ -1,23 +1,24 @@
-.planning-editor-practice-plan-table select,
-.planning-editor-practice-plan-table option  {
-	background-color:  rgba(0, 0, 0, 0);
-	color: #000;
-	font-weight: normal;
-	border: none;
-	margin: 0;
-	padding: 0;
-	height: 1.75em;
+.planning-editor-practice-plan-table {
+	width: 100%;
+	text-align: left;
 }
+
 .planning-editor-practice-plan-table input[type='text'],
 .planning-editor-practice-plan-table input[type='number'] {
-	width: 100%;
-	height: 1.75em;
-	margin: 0;
-	background-color: rgba(0, 0, 0, 0);
-	color: #000;
-	font-weight: normal;
-	border: none;
 	-webkit-text-fill-color: #000;
 	-webkit-box-shadow: 0 0 0px 1000px rgba(0, 0, 0, 0) inset;
-	padding: 0;
 }
+.planning-editor-practice-plan-table select,
+.planning-editor-practice-plan-table option,
+.planning-editor-practice-plan-table input[type='text'],
+.planning-editor-practice-plan-table input[type='number'] {
+	background-color:  rgba(0, 0, 0, 0);
+	color: #000;	
+	margin: 0;
+	padding: 0;
+	border: none;
+	font-weight: normal;
+	height: 1.75em;
+	text-align: center;
+	width: 100%;
+}	

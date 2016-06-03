@@ -11,185 +11,196 @@
 			</div>
 		</div>
 
-		<div class='col shrinkY marginBottom1 textCenter dark-border minHeight3 fontWeight200'>
-			<div class='row maxHeight3'>
-				<div class='col dark-border maxWidth8 pad'
-					ng-show='practicePlan.titleData.date.selected'>
-					{{practicePlan.start.getFormatted()}}
-				</div>
-				<div ng-show='practicePlan.titleData.periodName.selected'
-					class='col dark-border'>
-					<input type='text'
-						ng-model='practicePlan.name'
-						ng-placeholder='Practice plan title?' />
-				</div>
-				<div ng-show='practicePlan.titleData.location.selected'
-					class='col dark-border'>
-					<select ng-model='selectedLocation'
-						ng-change='locationSelected(practicePlan)'
-						ng-options='location as location.name for location in locations.toArray()'>
-					</select>
-				</div>
-				<div ng-show='practicePlan.titleData.opponent.selected'
-					class='col dark-border'>
-					<select ng-model='selectedOpponent'
-						ng-change='opponentSelected(practicePlan)'
-						ng-options='opponent as opponent.name for opponent in opponents.toArray()'>
-					</select>
-				</div>
-			</div>
-			<div class='row maxHeight3'>
-				<div class='col dark-border'
-					ng-show='practicePlan.titleData.periodStart.selected'>
-					<input type='number'
-						min='0'
-						ng-model='practicePlan.titleData.periodStart.start'
-						ng-placeholder='Perio start?' />
-				</div>
-				<div class='col dark-border'
-					ng-show='practicePlan.titleData.periodFinish.selected'>
-					<input type='number'
-						min='0'
-						ng-model='practicePlan.titleData.periodFinish.finish'
-						ng-placeholder='Period finish?' />
-				</div>
-				<div class='col dark-border'
-					ng-show='practicePlan.titleData.periodReps.selected'>
-					<input type='number'
-						min='0'
-						ng-model='practicePlan.titleData.periodReps.reps'
-						ng-placeholder='Reps?' />
-				</div>
-				<div class='col dark-border'
-					ng-show='practicePlan.titleData.duration.selected'>
-					<input type='number'
-						min='0'
-						ng-model='practicePlan.titleData.duration.duration'
-						ng-placeholder='Duration?' />
-				</div>
-				<div class='col dark-border'
-					ng-show='practicePlan.titleData.periodNumber.selected'>
-					<input type='number'
-						min='0'
-						ng-model='practicePlan.titleData.periodNumber.number'
-						ng-placeholder='Period number?' />
-				</div>
-			</div>
+		<div class='marginBottom1 minHeight3 dark-border textCenter fontWeight200'>
+			<table class='planning-editor-practice-plan-table'>
+				<tbody class='fontSize14'>
+					<tr>
+						<td class='dark-border'
+							ng-show='practicePlan.titleData.date.selected'>
+							{{practicePlan.start.getFormatted()}}
+						</td>
+						<td ng-show='practicePlan.titleData.periodName.selected'
+							class='dark-border'>
+							<strong>Title: </strong>
+							<input type='text'
+								ng-model='practicePlan.name'
+								ng-placeholder='Practice plan title?' />
+						</td>
+						<td ng-show='practicePlan.titleData.location.selected'
+							class='dark-border'>
+							<strong>Location: </strong>
+							<select ng-model='selectedLocation'
+								ng-change='locationSelected(practicePlan)'
+								ng-options='location as location.name for location in locations.toArray()'>
+							</select>
+						</td>
+						<td ng-show='practicePlan.titleData.opponent.selected'
+							class='dark-border'>
+							<strong>Opponent: </strong>
+							<select ng-model='selectedOpponent'
+								ng-change='opponentSelected(practicePlan)'
+								ng-options='opponent as opponent.name for opponent in opponents.toArray()'>
+							</select>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<table class='dark-border fontWeight200 planning-editor-practice-plan-table'>
+				<tbody>
+					<tr>
+						<td class='dark-border'
+							ng-show='practicePlan.titleData.periodStart.selected'>
+							<strong>Period Start: </strong>
+							<input type='number'
+								min='0'
+								ng-model='practicePlan.titleData.periodStart.start' />
+						</td>
+						<td class='dark-border'
+							ng-show='practicePlan.titleData.periodFinish.selected'>
+							<strong>Period Finish: </strong>
+							<input type='number'
+								min='0'
+								ng-model='practicePlan.titleData.periodFinish.finish' />
+						</td>
+						<td class='dark-border'
+							ng-show='practicePlan.titleData.periodReps.selected'>
+							<strong>Period Reps: </strong>
+							<input type='number'
+								min='0'
+								ng-model='practicePlan.titleData.periodReps.reps' />
+						</td>
+						<td class='dark-border'
+							ng-show='practicePlan.titleData.duration.selected'>
+							<strong>Period Duration: </strong>
+							<input type='number'
+								min='0'
+								ng-model='practicePlan.titleData.duration.duration' />
+						</td>
+						<td class='dark-border'
+							ng-show='practicePlan.titleData.periodNumber.selected'>
+							<strong>Period Number: </strong>
+							<input type='number'
+								min='0'
+								ng-model='practicePlan.titleData.periodNumber.number' />
+						</td>
+					</tr>
+				</tbody>
+			</table>
 		</div>
 
 		<table class='textCenter minHeight3 width100Percent
 			planning-editor-practice-plan-table'>
 			<thead class='dark-border fontWeight500'>
-				<tr class='height3'>
+				<tr>
 					<!-- Situational Data -->
 					<th class='dark-border'
 					 	title='Play number'
 						ng-show='practicePlan.situationData.playCount.selected'>
-						<p class='ellipsis'>#</p>
+						<p class='ellipsis textCenter'>#</p>
 					</th>
 					<th class='dark-border'
 						title='Hashmark'
 						ng-show='practicePlan.situationData.hashmark.selected'>
-						<p class='ellipsis'>H</p>
+						<p class='ellipsis textCenter'>H</p>
 					</th>
 					<th class='dark-border'
 						title='Down'
 						ng-show='practicePlan.situationData.down.selected'>
-						<p class='ellipsis'>Dn</p>
+						<p class='ellipsis textCenter'>Dn</p>
 					</th>
 					<th class='dark-border'
 						title='Distance'
 						ng-show='practicePlan.situationData.distance.selected'>
-						<p class='ellipsis'>Dst</p>
+						<p class='ellipsis textCenter'>Dst</p>
 					</th>
 					<th class='dark-border'
 						title='Yardline'
 						ng-show='practicePlan.situationData.yardline.selected'>
-						<p class='ellipsis'>Yd</p>
+						<p class='ellipsis textCenter'>Yd</p>
 					</th>
 					<th class='dark-border'
 						title='Field Zone'
 						ng-show='practicePlan.situationData.fieldZone.selected'>
-						<p class='ellipsis'>Zn</p>
+						<p class='ellipsis textCenter'>Zn</p>
 					</th>
 					<th class='dark-border'
 						title='Time (in minutes)'
 						ng-show='practicePlan.situationData.time.selected'>
-						<p class='ellipsis'>Ti</p>
+						<p class='ellipsis textCenter'>Ti</p>
 					</th>
 					<th class='dark-border'
 						title='Tempo'
 						ng-show='practicePlan.situationData.tempo.selected'>
-						<p class='ellipsis'>Tmp</p>
+						<p class='ellipsis textCenter'>Tmp</p>
 					</th>
 					<th class='dark-border'
 						title='Score difference'
 						ng-show='practicePlan.situationData.scoreDifference.selected'>
-						<p class='ellipsis'>Scr</p>
+						<p class='ellipsis textCenter'>Scr</p>
 					</th>
 
 					<!-- Offensive data -->
 					<th class='dark-border'
 						title='Personnel'
 						ng-show='practicePlan.offensiveData.personnel.selected'>
-						<p class='ellipsis'>O Prs</p>
+						<p class='ellipsis textCenter'>O Prs</p>
 					</th>
 					<th class='dark-border'
 						title='Formation'
 						ng-show='practicePlan.offensiveData.formation.selected'>
-						<p class='ellipsis'>O Frm</p>
+						<p class='ellipsis textCenter'>O Frm</p>
 					</th>
 					<th class='dark-border'
 						title='Play'
 						ng-show='practicePlan.offensiveData.play.selected'>
-						<p class='ellipsis'>O Pl</p>
+						<p class='ellipsis textCenter'>O Pl</p>
 					</th>
 					<th class='dark-border'
 						title='Wristband'
 						ng-show='practicePlan.offensiveData.wristband.selected'>
-						<p class='ellipsis'>O Wb</p>
+						<p class='ellipsis textCenter'>O Wb</p>
 					</th>
 					<th class='dark-border'
 						title='Depth'
 						ng-show='practicePlan.offensiveData.depth.selected'>
-						<p class='ellipsis'>O Dp</p>
+						<p class='ellipsis textCenter'>O Dp</p>
 					</th>
 					<th class='dark-border'
 						title='Read'
 						ng-show='practicePlan.offensiveData.read.selected'>
-						<p class='ellipsis'>O Rd</p>
+						<p class='ellipsis textCenter'>O Rd</p>
 					</th>
 
 					<!-- Defensive data -->
 					<th class='dark-border'
 						title='Personnel'
 						ng-show='practicePlan.defensiveData.personnel.selected'>
-						<p class='ellipsis'>D Prs</p>
+						<p class='ellipsis textCenter'>D Prs</p>
 					</th>
 					<th class='dark-border'
 						title='Formation'
 						ng-show='practicePlan.defensiveData.formation.selected'>
-						<p class='ellipsis'>D Frm</p>
+						<p class='ellipsis textCenter'>D Frm</p>
 					</th>
 					<th class='dark-border'
 						title='Play'
 						ng-show='practicePlan.defensiveData.play.selected'>
-						<p class='ellipsis'>D Pl</p>
+						<p class='ellipsis textCenter'>D Pl</p>
 					</th>
 					<th class='dark-border'
 						title='Pressure'
 						ng-show='practicePlan.defensiveData.pressure.selected'>
-						<p class='ellipsis'>D Psr</p>
+						<p class='ellipsis textCenter'>D Psr</p>
 					</th>
 					<th class='dark-border'
 						title='Coverage'
 						ng-show='practicePlan.defensiveData.coverage.selected'>
-						<p class='ellipsis'>D Cvg</p>
+						<p class='ellipsis textCenter'>D Cvg</p>
 					</th>
 					<th class='dark-border'
 						title='Read'
 						ng-show='practicePlan.defensiveData.read.selected'>
-						<p class='ellipsis'>D Rd</p>
+						<p class='ellipsis textCenter'>D Rd</p>
 					</th>
 				</tr>
 
@@ -282,24 +293,24 @@
 						title='Personnel'
 						ng-show='practicePlan.offensiveData.personnel.selected'>
 						<select 
-							ng-model='practicePlan.offensiveData.personnel.personnel'
-							ng-options='personnel as personnel.name for personnel in personnelCollection.toArray'>
+							ng-model='item.offensiveData.personnel.personnel'
+							ng-options='personnel as personnel.name for personnel in personnelCollection.toArray()'>
 						</select>
 					</td>
 					<td class='dark-border'
 						title='Formation'
 						ng-show='practicePlan.offensiveData.formation.selected'>
 						<select 
-							ng-model='practicePlan.offensiveData.formation.formation'
-							ng-options='formation as formation.name for formation in formations.toArray'>
+							ng-model='item.offensiveData.formation.formation'
+							ng-options='formation as formation.name for formation in formations.toArray()'>
 						</select>
 					</td>
 					<td class='dark-border'
 						title='Play'
 						ng-show='practicePlan.offensiveData.play.selected'>
 						<select 
-							ng-model='practicePlan.offensiveData.play.play'
-							ng-options='play as play.name for play in plays.toArray'>
+							ng-model='item.offensiveData.play.play'
+							ng-options='play as play.name for play in plays.toArray()'>
 						</select>
 					</td>
 					<td class='dark-border'
@@ -323,24 +334,24 @@
 						title='Personnel'
 						ng-show='practicePlan.defensiveData.personnel.selected'>
 						<select 
-							ng-model='practicePlan.defensiveData.personnel.personnel'
-							ng-options='personnel as personnel.name for personnel in personnelCollection.toArray'>
+							ng-model='item.defensiveData.personnel.personnel'
+							ng-options='personnel as personnel.name for personnel in personnelCollection.toArray()'>
 						</select>
 					</td>
 					<td class='dark-border'
 						title='Formation'
 						ng-show='practicePlan.defensiveData.formation.selected'>
 						<select 
-							ng-model='practicePlan.defensiveData.formation.formation'
-							ng-options='formation as formation.name for formation in formations.toArray'>
+							ng-model='item.defensiveData.formation.formation'
+							ng-options='formation as formation.name for formation in formations.toArray()'>
 						</select>
 					</td>
 					<td class='dark-border'
 						title='Play'
 						ng-show='practicePlan.defensiveData.play.selected'>						
 						<select 
-							ng-model='practicePlan.defensiveData.play.play'
-							ng-options='play as play.name for play in plays.toArray'>
+							ng-model='item.defensiveData.play.play'
+							ng-options='play as play.name for play in plays.toArray()'>
 						</select>
 					</td>
 					<td class='dark-border'

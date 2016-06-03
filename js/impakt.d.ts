@@ -3638,6 +3638,8 @@ declare module Planning.Models {
     class PracticePlanItem extends Common.Models.Modifiable {
         index: number;
         situationData: Planning.Models.PracticePlanSituationData;
+        offensiveData: Planning.Models.PracticePlanOffensiveData;
+        defensiveData: Planning.Models.PracticePlanDefensiveData;
         constructor();
         toJson(): any;
         fromJson(json: any): void;
@@ -3719,7 +3721,7 @@ declare module Planning.Models {
         setOpponent(opponent: Team.Models.TeamModel): void;
     }
     class PracticePlanDuration extends Planning.Models.PlanningEditorToggleItem {
-        minutes: number;
+        duration: number;
         constructor();
         toJson(): any;
         fromJson(json: any): void;

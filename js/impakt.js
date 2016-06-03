@@ -11175,11 +11175,15 @@ var Planning;
                 _super.call(this);
                 this.index = -1;
                 this.situationData = new Planning.Models.PracticePlanSituationData();
+                this.offensiveData = new Planning.Models.PracticePlanOffensiveData();
+                this.defensiveData = new Planning.Models.PracticePlanDefensiveData();
             }
             PracticePlanItem.prototype.toJson = function () {
                 return $.extend({
                     index: this.index,
-                    situationData: this.situationData.toJson()
+                    situationData: this.situationData.toJson(),
+                    offensiveData: this.offensiveData.toJson(),
+                    defensiveData: this.defensiveData.toJson()
                 }, _super.prototype.toJson.call(this));
             };
             PracticePlanItem.prototype.fromJson = function (json) {
@@ -11187,6 +11191,8 @@ var Planning;
                     return;
                 this.index = json.index;
                 this.situationData.fromJson(json.situationData);
+                this.offensiveData.fromJson(json.offensiveData);
+                this.defensiveData.fromJson(json.defensiveData);
                 _super.prototype.fromJson.call(this, json);
             };
             PracticePlanItem.prototype.getNumber = function () {
@@ -11468,18 +11474,18 @@ var Planning;
             __extends(PracticePlanDuration, _super);
             function PracticePlanDuration() {
                 _super.call(this, 'Duration');
-                this.minutes = 0;
+                this.duration = 0;
                 this.type = Planning.Enums.PlanningEditorToggleTypes.Duration;
             }
             PracticePlanDuration.prototype.toJson = function () {
                 return $.extend({
-                    minutes: this.minutes
+                    duration: this.duration
                 }, _super.prototype.toJson.call(this));
             };
             PracticePlanDuration.prototype.fromJson = function (json) {
                 if (!json)
                     return;
-                this.minutes = json;
+                this.duration = json;
                 _super.prototype.fromJson.call(this, json);
             };
             return PracticePlanDuration;
@@ -20186,12 +20192,14 @@ impakt.planning.editor.practicePlan.controller('planning.editor.practicePlan.ctr
                 if (Common.Utilities.isNotNullOrUndefined($scope.practicePlan) &&
                     Common.Utilities.isNotNullOrUndefined($scope.practicePlan.titleData) &&
                     Common.Utilities.isNotNullOrUndefined($scope.practicePlan.titleData.location)) {
-                    $scope.selectedLocation = $scope.practicePlan.titleData.location.location;
+                    $scope.selectedLocation = $scope.practicePlan.titleData.location.location ||
+                        $scope.locations.first();
                 }
                 if (Common.Utilities.isNotNullOrUndefined($scope.practicePlan) &&
                     Common.Utilities.isNotNullOrUndefined($scope.practicePlan.titleData) &&
                     Common.Utilities.isNotNullOrUndefined($scope.practicePlan.titleData.opponent)) {
-                    $scope.selectedOpponent = $scope.practicePlan.titleData.opponent.opponent;
+                    $scope.selectedOpponent = $scope.practicePlan.titleData.opponent.opponent ||
+                        $scope.opponents.first();
                 }
             }
         }

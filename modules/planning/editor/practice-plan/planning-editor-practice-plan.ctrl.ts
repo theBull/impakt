@@ -27,12 +27,14 @@ function(
 			if (Common.Utilities.isNotNullOrUndefined($scope.practicePlan) &&
 				Common.Utilities.isNotNullOrUndefined($scope.practicePlan.titleData) &&
 				Common.Utilities.isNotNullOrUndefined($scope.practicePlan.titleData.location)) {
-				$scope.selectedLocation = $scope.practicePlan.titleData.location.location;
+				$scope.selectedLocation = $scope.practicePlan.titleData.location.location ||
+					$scope.locations.first();
 			}	
 			if (Common.Utilities.isNotNullOrUndefined($scope.practicePlan) &&
 				Common.Utilities.isNotNullOrUndefined($scope.practicePlan.titleData) &&
 				Common.Utilities.isNotNullOrUndefined($scope.practicePlan.titleData.opponent)) {
-				$scope.selectedOpponent = $scope.practicePlan.titleData.opponent.opponent;
+				$scope.selectedOpponent = $scope.practicePlan.titleData.opponent.opponent ||
+					$scope.opponents.first();
 			}	
 		}
 	}

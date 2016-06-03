@@ -317,17 +317,17 @@ module Planning.Models {
 	export class PracticePlanDuration
 	extends Planning.Models.PlanningEditorToggleItem {
 
-		public minutes: number;
+		public duration: number;
 
 		constructor() {
 			super('Duration');
-			this.minutes = 0;
+			this.duration = 0;
 			this.type = Planning.Enums.PlanningEditorToggleTypes.Duration;
 		}
 
 		public toJson(): any {
 			return $.extend({
-				minutes: this.minutes
+				duration: this.duration
 			}, super.toJson());
 		}
 
@@ -335,7 +335,7 @@ module Planning.Models {
 			if (!json)
 				return;
 
-			this.minutes = json;
+			this.duration = json;
 
 			super.fromJson(json);
 		}
