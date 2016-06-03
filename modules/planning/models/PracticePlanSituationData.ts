@@ -204,12 +204,12 @@ module Planning.Models {
 	export class PracticePlanFieldZone
 	extends Planning.Models.PlanningEditorToggleItem {
 
-		public fieldZone: Common.Models.NotImplementedClass;
+		public fieldZone: Playbook.Enums.FieldZones;
 
 		constructor() {
 			super('Field zone');
 			this.type = Planning.Enums.PlanningEditorToggleTypes.FieldZone;
-			this.fieldZone = new Common.Models.NotImplementedClass();
+			this.fieldZone = Playbook.Enums.FieldZones.Midfield;
 		}
 
 		public toJson(): any {
@@ -221,7 +221,7 @@ module Planning.Models {
 		public fromJson(json: any): void {
 			if (!json)
 				return;
-			this.fieldZone.fromJson(json.fieldZone);
+			this.fieldZone = json.fieldZone;
 			super.fromJson(json);
 		}
 	}
@@ -254,12 +254,12 @@ module Planning.Models {
 	export class PracticePlanTempo
 	extends Planning.Models.PlanningEditorToggleItem {
 
-		public tempo: Common.Models.NotImplementedClass;
+		public tempo: Planning.Enums.Tempo;
 
 		constructor() {
 			super('Tempo');
 			this.type = Planning.Enums.PlanningEditorToggleTypes.Tempo;
-			this.tempo = new Common.Models.NotImplementedClass();
+			this.tempo = Planning.Enums.Tempo.Normal;
 		}
 
 		public toJson(): any {
@@ -271,7 +271,7 @@ module Planning.Models {
 		public fromJson(json: any): void {
 			if (!json)
 				return;
-			this.tempo.fromJson(json);
+			this.tempo = json.tempo;
 			super.fromJson(json);
 		}
 	}
@@ -284,6 +284,7 @@ module Planning.Models {
 		constructor() {
 			super('Score difference');
 			this.type = Planning.Enums.PlanningEditorToggleTypes.ScoreDifference;
+			this.difference = 0;
 		}
 
 		public toJson(): any {

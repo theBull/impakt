@@ -21,7 +21,21 @@ module Planning.Enums {
 		FieldZone,
 		Time,
 		Tempo,
-		ScoreDifference
+		ScoreDifference,
+		Personnel,
+		Formation,
+		Play,
+		Wristband,
+		Depth,
+		Read,
+		Pressure,
+		Coverage
+	}
+
+	export enum Tempo {
+		Normal,
+		HurryUp,
+		NoHuddle
 	}
 
 }

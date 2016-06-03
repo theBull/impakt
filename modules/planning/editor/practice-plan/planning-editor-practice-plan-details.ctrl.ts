@@ -15,6 +15,10 @@ function(
 	$scope.titleDataToggles = new Planning.Models.PlanningEditorToggleItemCollection();
 	$scope.situationData = null;
 	$scope.situationDataToggles = new Planning.Models.PlanningEditorToggleItemCollection();
+	$scope.offensiveData = null;
+	$scope.offensiveDataToggles = new Planning.Models.PlanningEditorToggleItemCollection();
+	$scope.defensiveData = null;
+	$scope.defensiveDataToggles = new Planning.Models.PlanningEditorToggleItemCollection();
 
 	function init() {
 		if(Common.Utilities.isNotNullOrUndefined(_planningEditor.currentTab)) {
@@ -23,6 +27,8 @@ function(
 			if(Common.Utilities.isNotNullOrUndefined($scope.practicePlan)) {
 				$scope.titleData = $scope.practicePlan.titleData;
 				$scope.situationData = $scope.practicePlan.situationData;
+				$scope.offensiveData = $scope.practicePlan.offensiveData;
+				$scope.defensiveData = $scope.practicePlan.defensiveData;
 			}
 
 			if(Common.Utilities.isNotNullOrUndefined($scope.titleData))
@@ -30,6 +36,12 @@ function(
 
 			if (Common.Utilities.isNotNullOrUndefined($scope.situationData))
 				$scope.situationDataToggles = $scope.situationData.toCollection();
+
+			if (Common.Utilities.isNotNullOrUndefined($scope.offensiveData))
+				$scope.offensiveDataToggles = $scope.offensiveData.toCollection();
+
+			if (Common.Utilities.isNotNullOrUndefined($scope.defensiveData))
+				$scope.defensiveDataToggles = $scope.defensiveData.toCollection();
 		}
 	}
 

@@ -3350,6 +3350,13 @@ declare module Playbook.Enums {
         Center = 1,
         Right = 2,
     }
+    enum FieldZones {
+        Goalline = 0,
+        Redzone = 1,
+        Midfield = 2,
+        Endzone = 3,
+        LineOfScrimmage = 4,
+    }
 }
 declare module Playbook.Constants {
     const FIELD_COLS_FULL: number;
@@ -3610,6 +3617,8 @@ declare module Planning.Models {
         start: Common.Models.Datetime;
         titleData: Planning.Models.PracticePlanTitleData;
         situationData: Planning.Models.PracticePlanSituationData;
+        offensiveData: Planning.Models.PracticePlanOffensiveData;
+        defensiveData: Planning.Models.PracticePlanDefensiveData;
         items: Planning.Models.PracticePlanItemCollection;
         constructor();
         toJson(): any;
@@ -3628,6 +3637,7 @@ declare module Planning.Models {
 declare module Planning.Models {
     class PracticePlanItem extends Common.Models.Modifiable {
         index: number;
+        situationData: Planning.Models.PracticePlanSituationData;
         constructor();
         toJson(): any;
         fromJson(json: any): void;
@@ -3762,7 +3772,7 @@ declare module Planning.Models {
         fromJson(json: any): void;
     }
     class PracticePlanFieldZone extends Planning.Models.PlanningEditorToggleItem {
-        fieldZone: Common.Models.NotImplementedClass;
+        fieldZone: Playbook.Enums.FieldZones;
         constructor();
         toJson(): any;
         fromJson(json: any): void;
@@ -3774,7 +3784,7 @@ declare module Planning.Models {
         fromJson(json: any): void;
     }
     class PracticePlanTempo extends Planning.Models.PlanningEditorToggleItem {
-        tempo: Common.Models.NotImplementedClass;
+        tempo: Planning.Enums.Tempo;
         constructor();
         toJson(): any;
         fromJson(json: any): void;
@@ -3784,6 +3794,98 @@ declare module Planning.Models {
         constructor();
         toJson(): any;
         fromJson(json: any): void;
+    }
+}
+declare module Planning.Models {
+    class PracticePlanOffensiveData extends Common.Models.Storable {
+        personnel: Planning.Models.PracticePlanPersonnel;
+        formation: Planning.Models.PracticePlanFormation;
+        play: Planning.Models.PracticePlanPlay;
+        wristband: Planning.Models.PracticePlanWristband;
+        depth: Planning.Models.PracticePlanDepth;
+        read: Planning.Models.PracticePlanRead;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        toCollection(): Planning.Models.PlanningEditorToggleItemCollection;
+    }
+    class PracticePlanWristband extends Planning.Models.PlanningEditorToggleItem {
+        wristband: Common.Models.NotImplementedClass;
+        wristbandGuid: string;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        setWristband(wristband: Common.Models.NotImplementedClass): void;
+    }
+    class PracticePlanRead extends Planning.Models.PlanningEditorToggleItem {
+        read: Common.Models.NotImplementedClass;
+        readGuid: string;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        setRead(read: Common.Models.NotImplementedClass): void;
+    }
+    class PracticePlanDepth extends Planning.Models.PlanningEditorToggleItem {
+        depth: Common.Models.NotImplementedClass;
+        depthGuid: string;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        setDepth(depth: Common.Models.NotImplementedClass): void;
+    }
+    class PracticePlanPlay extends Planning.Models.PlanningEditorToggleItem {
+        play: Common.Interfaces.IPlay;
+        playGuid: string;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        setPlay(play: Common.Models.Play): void;
+    }
+    class PracticePlanFormation extends Planning.Models.PlanningEditorToggleItem {
+        formation: Common.Models.Formation;
+        formationGuid: string;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        setFormation(formation: Common.Models.Formation): void;
+    }
+    class PracticePlanPersonnel extends Planning.Models.PlanningEditorToggleItem {
+        personnel: Team.Models.Personnel;
+        personnelGuid: string;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        setPersonnel(personnel: Team.Models.Personnel): void;
+    }
+}
+declare module Planning.Models {
+    class PracticePlanDefensiveData extends Common.Models.Storable {
+        personnel: Planning.Models.PracticePlanPersonnel;
+        formation: Planning.Models.PracticePlanFormation;
+        play: Planning.Models.PracticePlanPlay;
+        pressure: Planning.Models.PracticePlanPressure;
+        coverage: Planning.Models.PracticePlanCoverage;
+        read: Planning.Models.PracticePlanRead;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        toCollection(): Planning.Models.PlanningEditorToggleItemCollection;
+    }
+    class PracticePlanPressure extends Planning.Models.PlanningEditorToggleItem {
+        pressure: Common.Models.NotImplementedClass;
+        pressureGuid: string;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        setPressure(pressure: Common.Models.NotImplementedClass): void;
+    }
+    class PracticePlanCoverage extends Planning.Models.PlanningEditorToggleItem {
+        coverage: Common.Models.NotImplementedClass;
+        coverageGuid: string;
+        constructor();
+        toJson(): any;
+        fromJson(json: any): void;
+        setCoverage(coverage: Common.Models.NotImplementedClass): void;
     }
 }
 declare module Planning.Models {
@@ -3885,6 +3987,19 @@ declare module Planning.Enums {
         Time = 16,
         Tempo = 17,
         ScoreDifference = 18,
+        Personnel = 19,
+        Formation = 20,
+        Play = 21,
+        Wristband = 22,
+        Depth = 23,
+        Read = 24,
+        Pressure = 25,
+        Coverage = 26,
+    }
+    enum Tempo {
+        Normal = 0,
+        HurryUp = 1,
+        NoHuddle = 2,
     }
 }
 declare module Planning.Constants {

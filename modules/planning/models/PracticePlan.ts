@@ -10,6 +10,8 @@ module Planning.Models {
 		public start: Common.Models.Datetime;
 		public titleData: Planning.Models.PracticePlanTitleData;
 		public situationData: Planning.Models.PracticePlanSituationData;
+		public offensiveData: Planning.Models.PracticePlanOffensiveData;
+		public defensiveData: Planning.Models.PracticePlanDefensiveData;
 		public items: Planning.Models.PracticePlanItemCollection;
 
 		constructor() {
@@ -20,6 +22,8 @@ module Planning.Models {
 			this.start = new Common.Models.Datetime();
 			this.titleData = new Planning.Models.PracticePlanTitleData();
 			this.situationData = new Planning.Models.PracticePlanSituationData();
+			this.offensiveData = new Planning.Models.PracticePlanOffensiveData();
+			this.defensiveData = new Planning.Models.PracticePlanDefensiveData();
 			this.items = new Planning.Models.PracticePlanItemCollection();
 
 			this._populateItems();
@@ -35,6 +39,8 @@ module Planning.Models {
 				start: this.start.toJson(),
 				titleData: this.titleData.toJson(),
 				situationData: this.situationData.toJson(),
+				offensiveData: this.offensiveData.toJson(),
+				defensiveData: this.defensiveData.toJson(),
 				items: this.items.toJson()
 			}, super.toJson());
 		}
@@ -47,6 +53,10 @@ module Planning.Models {
 			this.start.fromJson(json.start);
 			this.titleData.fromJson(json.titleData);
 			this.situationData.fromJson(json.situationData);
+			this.offensiveData.fromJson(json.offensiveData);
+			this.defensiveData.fromJson(json.defensiveData);
+
+			this.items.empty();
 			this.items.fromJson(json.items);
 
 			super.fromJson(json);

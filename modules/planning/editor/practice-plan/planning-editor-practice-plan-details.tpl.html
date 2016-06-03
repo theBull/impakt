@@ -46,5 +46,29 @@
 				</planning-editor-toggle>
 			</div>
 		</div>
+
+		<div class='marginBottom1'>
+			<div class='marginBottom1'>
+				<p><strong>Offensive data</strong></p>
+			</div>
+			<div class='grid'>
+				<planning-editor-toggle
+					item='item'
+					ng-repeat='item in offensiveDataToggles.toArray()'>
+				</planning-editor-toggle>
+			</div>
+		</div>
+
+		<div class='marginBottom1'>
+			<div class='marginBottom1'>
+				<p><strong>Defensive data</strong></p>
+			</div>
+			<div class='grid'>
+				<planning-editor-toggle
+					item='item'
+					ng-repeat='item in defensiveDataToggles.toArray()'>
+				</planning-editor-toggle>
+			</div>
+		</div>
 	</div>
 </div>

@@ -57,4 +57,12 @@ module Playbook.Enums {
     	Center,
     	Right
     }
+
+    export enum FieldZones {
+    	Goalline,
+    	Redzone,
+    	Midfield,
+    	Endzone,
+    	LineOfScrimmage
+    }
 }

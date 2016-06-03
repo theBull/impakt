@@ -9973,6 +9973,14 @@ var Playbook;
             Hashmark[Hashmark["Right"] = 2] = "Right";
         })(Enums.Hashmark || (Enums.Hashmark = {}));
         var Hashmark = Enums.Hashmark;
+        (function (FieldZones) {
+            FieldZones[FieldZones["Goalline"] = 0] = "Goalline";
+            FieldZones[FieldZones["Redzone"] = 1] = "Redzone";
+            FieldZones[FieldZones["Midfield"] = 2] = "Midfield";
+            FieldZones[FieldZones["Endzone"] = 3] = "Endzone";
+            FieldZones[FieldZones["LineOfScrimmage"] = 4] = "LineOfScrimmage";
+        })(Enums.FieldZones || (Enums.FieldZones = {}));
+        var FieldZones = Enums.FieldZones;
     })(Enums = Playbook.Enums || (Playbook.Enums = {}));
 })(Playbook || (Playbook = {}));
 /// <reference path='../playbook.ts' />
@@ -11072,6 +11080,8 @@ var Planning;
                 this.start = new Common.Models.Datetime();
                 this.titleData = new Planning.Models.PracticePlanTitleData();
                 this.situationData = new Planning.Models.PracticePlanSituationData();
+                this.offensiveData = new Planning.Models.PracticePlanOffensiveData();
+                this.defensiveData = new Planning.Models.PracticePlanDefensiveData();
                 this.items = new Planning.Models.PracticePlanItemCollection();
                 this._populateItems();
                 this.associable = [
@@ -11084,6 +11094,8 @@ var Planning;
                     start: this.start.toJson(),
                     titleData: this.titleData.toJson(),
                     situationData: this.situationData.toJson(),
+                    offensiveData: this.offensiveData.toJson(),
+                    defensiveData: this.defensiveData.toJson(),
                     items: this.items.toJson()
                 }, _super.prototype.toJson.call(this));
             };
@@ -11094,6 +11106,9 @@ var Planning;
                 this.start.fromJson(json.start);
                 this.titleData.fromJson(json.titleData);
                 this.situationData.fromJson(json.situationData);
+                this.offensiveData.fromJson(json.offensiveData);
+                this.defensiveData.fromJson(json.defensiveData);
+                this.items.empty();
                 this.items.fromJson(json.items);
                 _super.prototype.fromJson.call(this, json);
             };
@@ -11159,16 +11174,19 @@ var Planning;
             function PracticePlanItem() {
                 _super.call(this);
                 this.index = -1;
+                this.situationData = new Planning.Models.PracticePlanSituationData();
             }
             PracticePlanItem.prototype.toJson = function () {
                 return $.extend({
-                    index: this.index
+                    index: this.index,
+                    situationData: this.situationData.toJson()
                 }, _super.prototype.toJson.call(this));
             };
             PracticePlanItem.prototype.fromJson = function (json) {
                 if (!json)
                     return;
                 this.index = json.index;
+                this.situationData.fromJson(json.situationData);
                 _super.prototype.fromJson.call(this, json);
             };
             PracticePlanItem.prototype.getNumber = function () {
@@ -11192,6 +11210,13 @@ var Planning;
             PracticePlanItemCollection.prototype.fromJson = function (json) {
                 if (!json)
                     return;
+                var items = json || [];
+                for (var i = 0; i < items.length; i++) {
+                    var rawItem = items[i];
+                    var itemModel = new Planning.Models.PracticePlanItem();
+                    itemModel.fromJson(rawItem);
+                    this.add(itemModel, false);
+                }
                 _super.prototype.fromJson.call(this, json);
             };
             return PracticePlanItemCollection;
@@ -11634,7 +11659,7 @@ var Planning;
             function PracticePlanFieldZone() {
                 _super.call(this, 'Field zone');
                 this.type = Planning.Enums.PlanningEditorToggleTypes.FieldZone;
-                this.fieldZone = new Common.Models.NotImplementedClass();
+                this.fieldZone = Playbook.Enums.FieldZones.Midfield;
             }
             PracticePlanFieldZone.prototype.toJson = function () {
                 return $.extend({
@@ -11644,7 +11669,7 @@ var Planning;
             PracticePlanFieldZone.prototype.fromJson = function (json) {
                 if (!json)
                     return;
-                this.fieldZone.fromJson(json.fieldZone);
+                this.fieldZone = json.fieldZone;
                 _super.prototype.fromJson.call(this, json);
             };
             return PracticePlanFieldZone;
@@ -11676,7 +11701,7 @@ var Planning;
             function PracticePlanTempo() {
                 _super.call(this, 'Tempo');
                 this.type = Planning.Enums.PlanningEditorToggleTypes.Tempo;
-                this.tempo = new Common.Models.NotImplementedClass();
+                this.tempo = Planning.Enums.Tempo.Normal;
             }
             PracticePlanTempo.prototype.toJson = function () {
                 return $.extend({
@@ -11686,7 +11711,7 @@ var Planning;
             PracticePlanTempo.prototype.fromJson = function (json) {
                 if (!json)
                     return;
-                this.tempo.fromJson(json);
+                this.tempo = json.tempo;
                 _super.prototype.fromJson.call(this, json);
             };
             return PracticePlanTempo;
@@ -11697,6 +11722,7 @@ var Planning;
             function PracticePlanScoreDifference() {
                 _super.call(this, 'Score difference');
                 this.type = Planning.Enums.PlanningEditorToggleTypes.ScoreDifference;
+                this.difference = 0;
             }
             PracticePlanScoreDifference.prototype.toJson = function () {
                 return $.extend({
@@ -11712,6 +11738,318 @@ var Planning;
             return PracticePlanScoreDifference;
         })(Planning.Models.PlanningEditorToggleItem);
         Models.PracticePlanScoreDifference = PracticePlanScoreDifference;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var PracticePlanOffensiveData = (function (_super) {
+            __extends(PracticePlanOffensiveData, _super);
+            function PracticePlanOffensiveData() {
+                _super.call(this);
+                this.personnel = new Planning.Models.PracticePlanPersonnel();
+                this.formation = new Planning.Models.PracticePlanFormation();
+                this.play = new Planning.Models.PracticePlanPlay();
+                this.wristband = new Planning.Models.PracticePlanWristband();
+                this.depth = new Planning.Models.PracticePlanDepth();
+                this.read = new Planning.Models.PracticePlanRead();
+            }
+            PracticePlanOffensiveData.prototype.toJson = function () {
+                return $.extend({
+                    personnel: this.personnel.toJson(),
+                    formation: this.formation.toJson(),
+                    play: this.play.toJson(),
+                    wristband: this.wristband.toJson(),
+                    depth: this.depth.toJson(),
+                    read: this.read.toJson()
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanOffensiveData.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.personnel.fromJson(json.personnel);
+                this.formation.fromJson(json.formation);
+                this.play.fromJson(json.play);
+                this.wristband.fromJson(json.wristband);
+                this.depth.fromJson(json.depth);
+                this.read.fromJson(json.read);
+                _super.prototype.fromJson.call(this, json);
+            };
+            PracticePlanOffensiveData.prototype.toCollection = function () {
+                var collection = new Planning.Models.PlanningEditorToggleItemCollection();
+                collection.add(this.personnel, false);
+                collection.add(this.formation, false);
+                collection.add(this.play, false);
+                collection.add(this.wristband, false);
+                collection.add(this.depth, false);
+                collection.add(this.read, false);
+                return collection;
+            };
+            return PracticePlanOffensiveData;
+        })(Common.Models.Storable);
+        Models.PracticePlanOffensiveData = PracticePlanOffensiveData;
+        var PracticePlanWristband = (function (_super) {
+            __extends(PracticePlanWristband, _super);
+            function PracticePlanWristband() {
+                _super.call(this, 'Wristband');
+                this.type = Planning.Enums.PlanningEditorToggleTypes.Wristband;
+                this.wristband = null;
+                this.wristbandGuid = '';
+            }
+            PracticePlanWristband.prototype.toJson = function () {
+                return $.extend({
+                    wristbandGuid: this.wristbandGuid
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanWristband.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.wristbandGuid = json.wristbandGuid;
+                _super.prototype.fromJson.call(this, json);
+            };
+            PracticePlanWristband.prototype.setWristband = function (wristband) {
+                // this.wristband = wristband;
+                // this.wristbandGuid = this.wristband ? this.wristband.guid : '';
+            };
+            return PracticePlanWristband;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanWristband = PracticePlanWristband;
+        var PracticePlanRead = (function (_super) {
+            __extends(PracticePlanRead, _super);
+            function PracticePlanRead() {
+                _super.call(this, 'Read');
+                this.type = Planning.Enums.PlanningEditorToggleTypes.Read;
+                this.read = null;
+                this.readGuid = '';
+            }
+            PracticePlanRead.prototype.toJson = function () {
+                return $.extend({
+                    readGuid: this.readGuid
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanRead.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.readGuid = json.readGuid;
+                _super.prototype.fromJson.call(this, json);
+            };
+            PracticePlanRead.prototype.setRead = function (read) {
+                // this.read = read;
+                // this.readGuid = this.read ? this.read.guid : '';
+            };
+            return PracticePlanRead;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanRead = PracticePlanRead;
+        var PracticePlanDepth = (function (_super) {
+            __extends(PracticePlanDepth, _super);
+            function PracticePlanDepth() {
+                _super.call(this, 'Depth');
+                this.type = Planning.Enums.PlanningEditorToggleTypes.Depth;
+                this.depth = null;
+                this.depthGuid = '';
+            }
+            PracticePlanDepth.prototype.toJson = function () {
+                return $.extend({
+                    depthGuid: this.depthGuid
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanDepth.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.depthGuid = json.depthGuid;
+                _super.prototype.fromJson.call(this, json);
+            };
+            PracticePlanDepth.prototype.setDepth = function (depth) {
+                // this.depth = depth;
+                // this.depthGuid = this.depth ? this.depth.guid : '';
+            };
+            return PracticePlanDepth;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanDepth = PracticePlanDepth;
+        var PracticePlanPlay = (function (_super) {
+            __extends(PracticePlanPlay, _super);
+            function PracticePlanPlay() {
+                _super.call(this, 'Play');
+                this.type = Planning.Enums.PlanningEditorToggleTypes.Play;
+                this.play = null;
+                this.playGuid = '';
+            }
+            PracticePlanPlay.prototype.toJson = function () {
+                return $.extend({
+                    playGuid: this.playGuid
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanPlay.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.playGuid = json.playGuid;
+                _super.prototype.fromJson.call(this, json);
+            };
+            PracticePlanPlay.prototype.setPlay = function (play) {
+                this.play = play;
+                this.playGuid = this.play ? this.play.guid : '';
+            };
+            return PracticePlanPlay;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanPlay = PracticePlanPlay;
+        var PracticePlanFormation = (function (_super) {
+            __extends(PracticePlanFormation, _super);
+            function PracticePlanFormation() {
+                _super.call(this, 'Formation');
+                this.type = Planning.Enums.PlanningEditorToggleTypes.Formation;
+                this.formation = null;
+                this.formationGuid = '';
+            }
+            PracticePlanFormation.prototype.toJson = function () {
+                return $.extend({
+                    formationGuid: this.formationGuid
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanFormation.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.formationGuid = json.formationGuid;
+                _super.prototype.fromJson.call(this, json);
+            };
+            PracticePlanFormation.prototype.setFormation = function (formation) {
+                this.formation = formation;
+                this.formationGuid = this.formation ? this.formation.guid : '';
+            };
+            return PracticePlanFormation;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanFormation = PracticePlanFormation;
+        var PracticePlanPersonnel = (function (_super) {
+            __extends(PracticePlanPersonnel, _super);
+            function PracticePlanPersonnel() {
+                _super.call(this, 'Personnel');
+                this.type = Planning.Enums.PlanningEditorToggleTypes.Personnel;
+                this.personnel = null;
+                this.personnelGuid = '';
+            }
+            PracticePlanPersonnel.prototype.toJson = function () {
+                return $.extend({
+                    personnelGuid: this.personnelGuid
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanPersonnel.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.personnelGuid = json.personnelGuid;
+                _super.prototype.fromJson.call(this, json);
+            };
+            PracticePlanPersonnel.prototype.setPersonnel = function (personnel) {
+                this.personnel = personnel;
+                this.personnelGuid = this.personnel ? this.personnel.guid : '';
+            };
+            return PracticePlanPersonnel;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanPersonnel = PracticePlanPersonnel;
+    })(Models = Planning.Models || (Planning.Models = {}));
+})(Planning || (Planning = {}));
+/// <reference path='./models.ts' />
+var Planning;
+(function (Planning) {
+    var Models;
+    (function (Models) {
+        var PracticePlanDefensiveData = (function (_super) {
+            __extends(PracticePlanDefensiveData, _super);
+            function PracticePlanDefensiveData() {
+                _super.call(this);
+                this.personnel = new Planning.Models.PracticePlanPersonnel();
+                this.formation = new Planning.Models.PracticePlanFormation();
+                this.play = new Planning.Models.PracticePlanPlay();
+                this.pressure = new Planning.Models.PracticePlanPressure();
+                this.coverage = new Planning.Models.PracticePlanCoverage();
+                this.read = new Planning.Models.PracticePlanRead();
+            }
+            PracticePlanDefensiveData.prototype.toJson = function () {
+                return $.extend({
+                    personnel: this.personnel.toJson(),
+                    formation: this.formation.toJson(),
+                    play: this.play.toJson(),
+                    pressure: this.pressure.toJson(),
+                    coverage: this.coverage.toJson(),
+                    read: this.read.toJson()
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanDefensiveData.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.personnel.fromJson(json.personnel);
+                this.formation.fromJson(json.formation);
+                this.play.fromJson(json.play);
+                this.pressure.fromJson(json.pressure);
+                this.coverage.fromJson(json.coverage);
+                this.read.fromJson(json.read);
+                _super.prototype.fromJson.call(this, json);
+            };
+            PracticePlanDefensiveData.prototype.toCollection = function () {
+                var collection = new Planning.Models.PlanningEditorToggleItemCollection();
+                collection.add(this.personnel, false);
+                collection.add(this.formation, false);
+                collection.add(this.play, false);
+                collection.add(this.pressure, false);
+                collection.add(this.coverage, false);
+                collection.add(this.read, false);
+                return collection;
+            };
+            return PracticePlanDefensiveData;
+        })(Common.Models.Storable);
+        Models.PracticePlanDefensiveData = PracticePlanDefensiveData;
+        var PracticePlanPressure = (function (_super) {
+            __extends(PracticePlanPressure, _super);
+            function PracticePlanPressure() {
+                _super.call(this, 'Pressure');
+                this.type = Planning.Enums.PlanningEditorToggleTypes.Pressure;
+                this.pressure = null;
+                this.pressureGuid = '';
+            }
+            PracticePlanPressure.prototype.toJson = function () {
+                return $.extend({
+                    pressureGuid: this.pressureGuid
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanPressure.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.pressureGuid = json.pressureGuid;
+                _super.prototype.fromJson.call(this, json);
+            };
+            PracticePlanPressure.prototype.setPressure = function (pressure) {
+                // this.pressure = pressure;
+                // this.pressureGuid = this.pressure ? this.pressure.guid : '';
+            };
+            return PracticePlanPressure;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanPressure = PracticePlanPressure;
+        var PracticePlanCoverage = (function (_super) {
+            __extends(PracticePlanCoverage, _super);
+            function PracticePlanCoverage() {
+                _super.call(this, 'Coverage');
+                this.type = Planning.Enums.PlanningEditorToggleTypes.Coverage;
+                this.coverage = null;
+                this.coverageGuid = '';
+            }
+            PracticePlanCoverage.prototype.toJson = function () {
+                return $.extend({
+                    coverageGuid: this.coverageGuid
+                }, _super.prototype.toJson.call(this));
+            };
+            PracticePlanCoverage.prototype.fromJson = function (json) {
+                if (!json)
+                    return;
+                this.coverageGuid = json.coverageGuid;
+                _super.prototype.fromJson.call(this, json);
+            };
+            PracticePlanCoverage.prototype.setCoverage = function (coverage) {
+                // this.coverage = coverage;
+                // this.coverageGuid = this.coverage ? this.coverage.guid : '';
+            };
+            return PracticePlanCoverage;
+        })(Planning.Models.PlanningEditorToggleItem);
+        Models.PracticePlanCoverage = PracticePlanCoverage;
     })(Models = Planning.Models || (Planning.Models = {}));
 })(Planning || (Planning = {}));
 /// <reference path='./models.ts' />
@@ -12023,6 +12361,8 @@ var Planning;
 /// <reference path='./PracticePlanItemCollection.ts' />
 /// <reference path='./PracticePlanTitleData.ts' />
 /// <reference path='./PracticePlanSituationData.ts' />
+/// <reference path='./PracticePlanOffensiveData.ts' />
+/// <reference path='./PracticePlanDefensiveData.ts' />
 /// <reference path='./GamePlan.ts' />
 /// <reference path='./GamePlanCollection.ts' />
 /// <reference path='./PracticeSchedule.ts' />
@@ -12058,8 +12398,22 @@ var Planning;
             PlanningEditorToggleTypes[PlanningEditorToggleTypes["Time"] = 16] = "Time";
             PlanningEditorToggleTypes[PlanningEditorToggleTypes["Tempo"] = 17] = "Tempo";
             PlanningEditorToggleTypes[PlanningEditorToggleTypes["ScoreDifference"] = 18] = "ScoreDifference";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["Personnel"] = 19] = "Personnel";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["Formation"] = 20] = "Formation";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["Play"] = 21] = "Play";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["Wristband"] = 22] = "Wristband";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["Depth"] = 23] = "Depth";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["Read"] = 24] = "Read";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["Pressure"] = 25] = "Pressure";
+            PlanningEditorToggleTypes[PlanningEditorToggleTypes["Coverage"] = 26] = "Coverage";
         })(Enums.PlanningEditorToggleTypes || (Enums.PlanningEditorToggleTypes = {}));
         var PlanningEditorToggleTypes = Enums.PlanningEditorToggleTypes;
+        (function (Tempo) {
+            Tempo[Tempo["Normal"] = 0] = "Normal";
+            Tempo[Tempo["HurryUp"] = 1] = "HurryUp";
+            Tempo[Tempo["NoHuddle"] = 2] = "NoHuddle";
+        })(Enums.Tempo || (Enums.Tempo = {}));
+        var Tempo = Enums.Tempo;
     })(Enums = Planning.Enums || (Planning.Enums = {}));
 })(Planning || (Planning = {}));
 /// <reference path='../planning.ts' />
@@ -19781,17 +20135,27 @@ impakt.planning.editor.practicePlan.controller('planning.editor.practicePlan.det
         $scope.titleDataToggles = new Planning.Models.PlanningEditorToggleItemCollection();
         $scope.situationData = null;
         $scope.situationDataToggles = new Planning.Models.PlanningEditorToggleItemCollection();
+        $scope.offensiveData = null;
+        $scope.offensiveDataToggles = new Planning.Models.PlanningEditorToggleItemCollection();
+        $scope.defensiveData = null;
+        $scope.defensiveDataToggles = new Planning.Models.PlanningEditorToggleItemCollection();
         function init() {
             if (Common.Utilities.isNotNullOrUndefined(_planningEditor.currentTab)) {
                 $scope.practicePlan = _planningEditor.currentTab.data;
                 if (Common.Utilities.isNotNullOrUndefined($scope.practicePlan)) {
                     $scope.titleData = $scope.practicePlan.titleData;
                     $scope.situationData = $scope.practicePlan.situationData;
+                    $scope.offensiveData = $scope.practicePlan.offensiveData;
+                    $scope.defensiveData = $scope.practicePlan.defensiveData;
                 }
                 if (Common.Utilities.isNotNullOrUndefined($scope.titleData))
                     $scope.titleDataToggles = $scope.titleData.toCollection();
                 if (Common.Utilities.isNotNullOrUndefined($scope.situationData))
                     $scope.situationDataToggles = $scope.situationData.toCollection();
+                if (Common.Utilities.isNotNullOrUndefined($scope.offensiveData))
+                    $scope.offensiveDataToggles = $scope.offensiveData.toCollection();
+                if (Common.Utilities.isNotNullOrUndefined($scope.defensiveData))
+                    $scope.defensiveDataToggles = $scope.defensiveData.toCollection();
             }
         }
         $scope.save = function () {
@@ -19805,11 +20169,46 @@ impakt.planning.editor.practicePlan.controller('planning.editor.practicePlan.ctr
     '_planningEditor',
     function ($scope, _planningEditor) {
         $scope.practicePlan = null;
+        $scope.hashmarkList = Common.Utilities.getEnumerationsOnly(Playbook.Enums.Hashmark);
+        $scope.downs = [1, 2, 3, 4];
+        $scope.fieldZones = Common.Utilities.getEnumerationsOnly(Playbook.Enums.FieldZones);
+        $scope.tempos = Common.Utilities.getEnumerationsOnly(Planning.Enums.Tempo);
+        $scope.locations = impakt.context.League.locations;
+        $scope.opponents = impakt.context.Team.teams;
+        $scope.plays = impakt.context.Playbook.plays;
+        $scope.formations = impakt.context.Playbook.formations;
+        $scope.personnelCollection = impakt.context.Team.personnel;
+        $scope.selectedLocation = null;
+        $scope.selectedOpponent = null;
         function init() {
             if (Common.Utilities.isNotNullOrUndefined(_planningEditor.currentTab)) {
                 $scope.practicePlan = _planningEditor.currentTab.data;
+                if (Common.Utilities.isNotNullOrUndefined($scope.practicePlan) &&
+                    Common.Utilities.isNotNullOrUndefined($scope.practicePlan.titleData) &&
+                    Common.Utilities.isNotNullOrUndefined($scope.practicePlan.titleData.location)) {
+                    $scope.selectedLocation = $scope.practicePlan.titleData.location.location;
+                }
+                if (Common.Utilities.isNotNullOrUndefined($scope.practicePlan) &&
+                    Common.Utilities.isNotNullOrUndefined($scope.practicePlan.titleData) &&
+                    Common.Utilities.isNotNullOrUndefined($scope.practicePlan.titleData.opponent)) {
+                    $scope.selectedOpponent = $scope.practicePlan.titleData.opponent.opponent;
+                }
             }
         }
+        $scope.opponentSelected = function (practicePlan) {
+            if (Common.Utilities.isNotNullOrUndefined(practicePlan) &&
+                Common.Utilities.isNotNullOrUndefined(practicePlan.titleData) &&
+                Common.Utilities.isNotNullOrUndefined(practicePlan.titleData.opponent)) {
+                practicePlan.titleData.opponent.setOpponent($scope.selectedOpponent);
+            }
+        };
+        $scope.locationSelected = function (practicePlan) {
+            if (Common.Utilities.isNotNullOrUndefined(practicePlan) &&
+                Common.Utilities.isNotNullOrUndefined(practicePlan.titleData) &&
+                Common.Utilities.isNotNullOrUndefined(practicePlan.titleData.location)) {
+                practicePlan.titleData.location.setLocation($scope.selectedLocation);
+            }
+        };
         init();
     }]);
 /// <reference path='../planning.mdl.ts' />
