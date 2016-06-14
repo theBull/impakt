@@ -1,7 +1,7 @@
 /// <reference path='../playbook-modals.mdl.ts' />
  
 impakt.playbook.modals.controller('playbook.modals.deleteScenario.ctrl', [
-'$scope', 
+'$scope',
 '$uibModalInstance', 
 '_playbook', 
 'scenario',

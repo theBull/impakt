@@ -1,7 +1,6 @@
 <div class='coll scrollY pad'>
 	
-	
-	<h2><strong>Playbook:</strong> {{playbook.name}}</h2>
+	<playbook-item playbook='playbook'></playbook-item>
 
 	<div class='marginBottom1'>
 		<strong>Unit: </strong>
@@ -11,41 +10,100 @@
 		</type-formatter>
 	</div>
 		
-	<!-- Plays -->
-	<div class='marginBottom1'>
-		<h4>Scenarios (0)</h4>
+	<!-- SCENARIOS -->
+	<div class='marginBottom1 light-border-bottom'>
+		<h4>Scenarios ({{scenarios.size()}})</h4>
+		<div ng-show='plays.hasElements() && plays.size() >= 2'>
+			<div class='pad green-bg-hover pointer marginBottom1 width6'
+				 ng-click='createScenario()'>
+				<span class='glyphicon glyphicon-plus'></span>
+				new
+			</div>
+		</div>
+		<div ng-show='plays.isEmpty() || plays.size() < 2'>
+			<div class='pad gray-bg-3-hover pointer marginBottom1 width6' 
+				ng-click='alertDataRequired("scenarios")'>
+				<strike>
+					<span class='glyphicon glyphicon-plus'></span>
+					new
+				</strike>
+			</div>
+			<div class='pad'>
+				<span class='glyphicon glyphicon-warning-sign'></span>
+				<span>Create two or more plays to begin creating scenarios</span>
+			</div>
+		</div>
+
 		<div class='grid'>
-				
 			<scenario-item
-				ng-repeat='scenario in scenarios.toArray()'
-				scenario='scenario'>
+				scenario='scenario'
+				ng-repeat='scenario in scenarios.toArray()'>
 			</scenario-item>
-
 		</div>
 	</div>
-		
-	<!-- Plays -->
-	<div class='marginBottom1'>
+
+	<!-- PLAYS -->
+	<div class='marginBottom1 light-border-bottom'>
 		<h4>Plays ({{plays.size()}})</h4>
-		<div class='grid'>
-				
-			<play-item
-				ng-repeat='play in plays.toArray()'
-				play='play'>
-			</play-item>
+		<div ng-show='formations.hasElements()'>
+			<div class='pad green-bg-hover pointer marginBottom1 width6'
+				 ng-click='createPlay()'>
+				<span class='glyphicon glyphicon-plus'></span>
+				new
+			</div>
+		</div>
+		<div ng-show='formations.isEmpty()'>
+			<div class='pad gray-bg-3-hover pointer marginBottom1 width6' 
+				ng-click='alertDataRequired("plays")'>
+				<strike>
+					<span class='glyphicon glyphicon-plus'></span>
+					new
+				</strike>
+			</div>
+			<div class='pad'>
+				<span class='glyphicon glyphicon-warning-sign'></span>
+				<span>Create a base formation to begin creating plays</span>
+			</div>
+		</div>
 
+		<div class='grid'>
+			<play-item 
+				play='play'
+				ng-repeat='play in plays.toArray()'>
+			</play-item>
 		</div>
 	</div>
 
-	<!-- Formations -->
-	<div class='marginBottom1'>
+	<!-- FORMATIONS -->
+	<div class='marginBottom1 light-border-bottom'>
 		<h4>Formations ({{formations.size()}})</h4>
+		
+		<div class='pad green-bg-hover pointer marginBottom1 width6'
+			ng-click='createFormation()'>
+			<span class='glyphicon glyphicon-plus'></span>
+			new
+		</div>
+
 		<div class='grid'>
-				
+			
 			<formation-item
 				ng-repeat='formation in formations.toArray()'
 				formation='formation'>
 			</formation-item>
+
+		</div>
+	</div>
+
+	<!-- ASSIGNMENTS -->
+	<div class='marginBottom1 minHeight5'>
+		<h4>Assignments ({{assignmentGroups.size()}})</h4>
+
+		<div class='grid'>
+			
+			<assignment-group-item
+				ng-repeat='assignmentGroup in assignmentGroups.toArray()'
+				assignmentgroup='assignmentGroup'>
+			</assignment-group-item>
 
 		</div>
 	</div>

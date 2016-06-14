@@ -12,6 +12,7 @@ impakt.playbook.constant('PLAYBOOK', {
     GET_PLAYBOOKS: '/getPlaybooks',
     GET_PLAYBOOK: '/getPlaybook',
     DELETE_PLAYBOOK: '/deletePlaybook',
+    UPDATE_PLAYBOOK: '/updatePlaybook',
 
     // Formations
     CREATE_FORMATION: '/createFormation',

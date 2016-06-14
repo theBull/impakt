@@ -1,5 +1,6 @@
 /// <reference path='../playbook.ts' />
 
+/// <reference path='./PlaybookAPIOptions.ts' />
 /// <reference path='./Tool.ts' />
 
 /// <reference path='./EditorEndzone.ts' />

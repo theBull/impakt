@@ -763,6 +763,10 @@ declare module Common.Models {
     }
 }
 declare module Common.Models {
+    abstract class APIOptions {
+    }
+}
+declare module Common.Models {
     class Expandable extends Common.Models.Modifiable {
         direction: string;
         min: number;
@@ -772,7 +776,9 @@ declare module Common.Models {
         collapsed: boolean;
         ready: boolean;
         url: string;
+        label: string;
         handle: Common.Models.ExpandableHandle;
+        expandable: boolean;
         constructor($element: any);
         setHandleClass(): void;
         /**
@@ -1152,6 +1158,14 @@ declare module Common.Icons {
         icon: string;
         name: string;
         constructor(icon?: string);
+    }
+}
+declare module Common.Models {
+    class Situation {
+        name: string;
+        yardline: number;
+        hashmark: Playbook.Enums.Hashmark;
+        constructor();
     }
 }
 declare module Common.Models {
@@ -2959,6 +2973,15 @@ declare module Common {
 }
 declare module Common.UI {
     const SCROLL_BAR_SIZE: number;
+}
+declare module Playbook.Models {
+    class PlaybookAPIOptions extends Common.Models.APIOptions {
+        scenario: Common.API.Actions;
+        play: Common.API.Actions;
+        formation: Common.API.Actions;
+        assignmentGroup: Common.API.Actions;
+        constructor();
+    }
 }
 declare module Playbook.Models {
     class Tool {

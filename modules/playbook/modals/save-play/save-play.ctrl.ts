@@ -14,6 +14,7 @@ function(
 ) {
 
 	$scope.play = play.copy();
+	var playbookAPIOptions = new Playbook.Models.PlaybookAPIOptions();
 	
 	$scope.copyPlay = false;
 	$scope.copyFormation = false;
@@ -45,25 +46,9 @@ function(
 	$scope.ok = function () {
 		let play = $scope.play;
 
-		// determine whether there are changes to the entity; if so,
-		// set action to overwrite, otherwise set action to nothing
-
-		// track options for how to send the data to the server
-		// TO-DO: create a better model for this
-		let options = {
-			play: {
-				action: Common.API.Actions.Overwrite // keeping it simple here - always overwrite
-			},
-			formation: {
-				action: Common.API.Actions.Overwrite // keeping it simple here - always overwrite
-			},
-			assignmentGroup: {
-				action: play.assignmentGroup.assignments.hasElements() ? 
-					(play.assignmentGroup.key == -1 ? 
-						Common.API.Actions.Create : Common.API.Actions.Overwrite) : // always create or overwrite
-					Common.API.Actions.Nothing // don't do anything if there are no assignments
-			}
-		}
+		playbookAPIOptions.play = Common.API.Actions.Overwrite;
+		playbookAPIOptions.formation = Common.API.Actions.Overwrite;
+		playbookAPIOptions.assignmentGroup = _playbook.getAssignmentGroupAPIActions($scope.play.assignmentGroup);
 
 		// If any of the following entities (play, formation, assignmentGroup)
 		// exist on the play and their corresponding copy boolean
@@ -75,23 +60,23 @@ function(
 		if($scope.play && $scope.copyPlay) {
 			originalPlayKey = $scope.play.key;
 			$scope.play.key = -1;
-			options.play.action = Common.API.Actions.Copy;
+			playbookAPIOptions.play = Common.API.Actions.Copy;
 			play = $scope.play;
 		}
 		if($scope.play.formation && $scope.copyFormation) {
 			originalFormationKey = $scope.play.formation.key;
 			$scope.play.formation.key = -1;
-			options.formation.action = Common.API.Actions.Copy;
+			playbookAPIOptions.formation = Common.API.Actions.Copy;
 			play.formation = $scope.formation;
 		}
 		if ($scope.play.assignmentGroup && $scope.copyAssignmentGroup) {
 			originalAssignmentGroupKey = $scope.play.assignmentGroup.key;
 			$scope.play.assignmentGroup.key = -1;
-			options.assignmentGroup.action = Common.API.Actions.Copy;
+			playbookAPIOptions.assignmentGroup = Common.API.Actions.Copy;
 			play.assignmentGroup = $scope.assignmentGroup;	
 		}
 		
-		_playbook.savePlay(play, options)
+		_playbook.savePlay(play, playbookAPIOptions)
 		.then(function(savedPlay) {
 			$uibModalInstance.close(savedPlay);
 		}, function(err) {

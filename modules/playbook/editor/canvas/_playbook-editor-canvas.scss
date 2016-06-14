@@ -22,3 +22,29 @@ playbook-editor-canvas {
 playbook-editor-canvas svg * {
 	pointer-events: fill;
 }
+
+/**
+ *
+ *	PLAYBOOK EDITOR INFO PANEL
+ * 
+ */
+.playbook-editor-info-container {
+	margin: 1em 0 0 3em;
+	width: calc(100% - 6em);
+}
+.playbook-editor-info-container table,
+.playbook-editor-info-container tr,
+.playbook-editor-info-container th,
+.playbook-editor-info-container td {
+	border: none;
+	font-weight: normal;
+}
+.playbook-editor-info-container td {
+	padding: 0;
+}
+.playbook-editor-info-container td {
+	border: 1px solid rgba(0, 0, 0, 0.15);
+}
+.playbook-editor-info-container th {
+	padding: 0.25em 1.25em;
+}

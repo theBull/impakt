@@ -2,11 +2,16 @@
 
 	<div class='col'>
 
-		<div class='light-border-bottom'>
+		<div class='light-border-bottom row height3'>
 			<button class='gray-bg-2-hover pointer pad'
 				ng-click='toBrowser()'>
 				<span class='glyphicon glyphicon-folder-open'></span>
 				Browser
+			</button>
+			<button class='gray-bg-2-hover pointer pad'
+				ng-click='toPlaybookDrilldown(playbook)'>
+				<span class='glyphicon glyphicon-chevron-right'></span>
+				{{playbook.name}}
 			</button>
 		</div>
 

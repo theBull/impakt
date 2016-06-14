@@ -6,7 +6,8 @@ body {
   font-size: 12px;
   font-weight: 200;
   letter-spacing: 1px;
-  background-color: #000000;
+  background-color: black;
+  color: white;
 }
 
 html, h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
@@ -33,25 +34,25 @@ span, strong {
 }
 
 input, input:-webkit-autofill, textarea {
-  border: 1px solid #333333;
+  border: 1px solid #303030;
   margin-right: 1px;
   margin-bottom: 1px;
-  background-color: #222222;
+  background-color: #202020;
   -webkit-text-fill-color: rgba(255, 255, 255, 0.9);
-  -webkit-box-shadow: 0 0 0px 1000px #222222 inset;
+  -webkit-box-shadow: 0 0 0px 1000px #202020 inset;
   color: rgba(255, 255, 255, 0.9);
 }
 
 input:focus, textarea:focus {
   outline: 0;
-  border: 1px solid #444444;
+  border: 1px solid #404040;
 }
 
 input[disabled], input[disabled]:-webkit-autofill, textarea[disabled], select[disabled] {
   color: #888 !important;
-  background-color: #111111 !important;
-  border: 1px solid #777777;
-  -webkit-box-shadow: 0 0 0px 1000px #111111 inset;
+  background-color: #101010 !important;
+  border: 1px solid gray;
+  -webkit-box-shadow: 0 0 0px 1000px #101010 inset;
   -webkit-text-fill-color: #888 !important;
   font-weight: 200;
   -webkit-touch-callout: none;
@@ -64,8 +65,8 @@ input[disabled], input[disabled]:-webkit-autofill, textarea[disabled], select[di
 }
 
 input[type="checkbox"], input[type="radio"] {
-  background-color: #444444;
-  border-color: #aaaaaa;
+  background-color: #404040;
+  border-color: #707070;
   -webkit-box-shadow: none;
 }
 
@@ -87,16 +88,16 @@ label {
 select {
   font-size: 12px;
   margin: 1px;
-  border: 1px solid #333333;
+  border: 1px solid #303030;
   outline: 0;
   height: 3em;
-  background-color: #222222;
+  background-color: #202020;
   color: rgba(255, 255, 255, 0.9);
   width: 100%;
 }
 
 select:focus {
-  outline: 1px solid #444444;
+  outline: 1px solid #404040;
   padding: 1px;
   height: 3em;
   margin: 1px;
@@ -181,11 +182,15 @@ details summary {
 
 /**
  *
- *	GLOW
+ *	GLOW & SHADOW
  * 
  */
 .glow {
   box-shadow: 0 0 10px #22CFA7;
+}
+
+.shadow {
+  box-shadow: 0 0 10px black;
 }
 
 /* UTILITY CLASSES */
@@ -237,11 +242,11 @@ details summary {
 }
 
 .black-bg, .black-bg-hover, .black-circle-bg, .black-rounded-rect-bg {
-  background-color: #000000;
+  background-color: black;
 }
 
 .black-bg-hover:hover {
-  background-color: #111111;
+  background-color: #101010;
 }
 
 .black-circle-bg, .black-rounded-rect-bg {
@@ -249,59 +254,59 @@ details summary {
 }
 
 .gray-bg-1, .gray-bg-1-hover {
-  background-color: #111111;
+  background-color: #101010;
 }
 
 .gray-bg-1-hover:hover {
-  background-color: #191919;
+  background-color: #181818;
 }
 
 .gray-bg-2, .gray-bg-2-hover {
-  background-color: #222222;
+  background-color: #202020;
 }
 
 .gray-bg-2-hover:hover {
-  background-color: #2a2a2a;
+  background-color: #282828;
 }
 
 .gray-bg-3, .gray-bg-3-hover {
-  background-color: #333333;
+  background-color: #303030;
 }
 
 .gray-bg-3-hover:hover {
-  background-color: #3b3b3b;
+  background-color: #383838;
 }
 
 .gray-bg-4, .gray-bg-4-hover {
-  background-color: #444444;
+  background-color: #404040;
 }
 
 .gray-bg-4-hover:hover {
-  background-color: #4c4c4c;
+  background-color: #484848;
 }
 
 .gray-bg-5, .gray-bg-5-hover {
-  background-color: #555555;
+  background-color: #505050;
 }
 
 .gray-bg-5-hover:hover {
-  background-color: #5d5d5d;
+  background-color: #585858;
 }
 
 .gray-bg-6, .gray-bg-6-hover {
-  background-color: #676767;
+  background-color: #606060;
 }
 
 .gray-bg-6-hover:hover {
-  background-color: #6f6f6f;
+  background-color: #686868;
 }
 
 .gray-bg-7, .gray-bg-7-hover {
-  background-color: #777777;
+  background-color: gray;
 }
 
 .gray-bg-7-hover:hover {
-  background-color: #7f7f7f;
+  background-color: #888888;
 }
 
 .black-gradient-bg {
@@ -456,7 +461,7 @@ details summary {
 }
 
 .white-circle-bg {
-  color: #000000;
+  color: black;
 }
 
 .white-border {
@@ -488,31 +493,31 @@ details summary {
 }
 
 .gray-border {
-  border: 1px solid #333333;
+  border: 1px solid #303030;
 }
 
 .gray-border-top {
-  border-top: 1px solid #333333;
+  border-top: 1px solid #303030;
 }
 
 .gray-border-bottom {
-  border-bottom: 1px solid #333333;
+  border-bottom: 1px solid #303030;
 }
 
 .gray-border-bottom-red {
-  border-bottom: 1px solid #333333;
+  border-bottom: 1px solid #303030;
 }
 
 .gray-border-left {
-  border-left: 1px solid #333333;
+  border-left: 1px solid #303030;
 }
 
 .gray-border-left-red {
-  border-left: 1px solid #333333;
+  border-left: 1px solid #303030;
 }
 
 .selected-border {
-  outline: #777777 solid 3px;
+  outline: gray solid 3px;
 }
 
 /*
@@ -626,7 +631,8 @@ path.painted-fill, rect.painted-fill, circle.painted-fill {
  */
 .dropdown {
   z-index: 1000;
-  box-shadow: 0px 0px 10px #000;
+  box-shadow: 0px 8px 20px 0px rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.2);
 }
 
 /**
@@ -809,7 +815,7 @@ expandable {
 
 .expandable-handle {
   position: absolute;
-  background-color: #333333;
+  background-color: #303030;
   border: 1px solid #222;
 }
 
@@ -829,7 +835,7 @@ expandable {
 }
 
 .expandable-handle:hover {
-  background-color: #222222;
+  background-color: #202020;
   box-shadow: 0 0 5px rgba(255, 255, 255, 0.15);
 }
 
@@ -926,20 +932,26 @@ association-input .association-input-dropdown {
   box-shadow: 0 10px 20px 0 #000000;
 }
 
-popout {
+div.popout {
   position: relative;
-  height: 3em;
+  width: 100%;
+  display: block;
+  height: 100%;
 }
 
-popout .popout-toggle {
+div.popout button.popout-toggle {
   cursor: pointer;
-  padding: 1em;
+  width: 100%;
+  display: block;
+  background: transparent;
+  padding: 0;
 }
 
-popout .popout-contents {
+div.popout popout-contents {
   z-index: 1000;
   position: absolute;
-  top: 3em;
+  top: 100%;
+  width: 100%;
   left: 0em;
   min-width: 20em;
   min-height: 3em;
@@ -952,7 +964,7 @@ body .popout-clickeater {
   width: 100%;
   top: 0;
   left: 0;
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: transparent;
 }
 
 /*
@@ -1059,7 +1071,7 @@ body .popout-clickeater {
 }
 
 .playbook-editor-tab:hover {
-  background-color: #7f7f7f;
+  background-color: #888888;
 }
 
 .playbook-editor-tab span {
@@ -1123,6 +1135,36 @@ playbook-editor-canvas {
 
 playbook-editor-canvas svg * {
   pointer-events: fill;
+}
+
+/**
+ *
+ *	PLAYBOOK EDITOR INFO PANEL
+ * 
+ */
+.playbook-editor-info-container {
+  margin: 1em 0 0 3em;
+  width: calc(100% - 6em);
+}
+
+.playbook-editor-info-container table,
+.playbook-editor-info-container tr,
+.playbook-editor-info-container th,
+.playbook-editor-info-container td {
+  border: none;
+  font-weight: normal;
+}
+
+.playbook-editor-info-container td {
+  padding: 0;
+}
+
+.playbook-editor-info-container td {
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.playbook-editor-info-container th {
+  padding: 0.25em 1.25em;
 }
 
 /*

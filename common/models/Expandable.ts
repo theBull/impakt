@@ -12,7 +12,9 @@ module Common.Models {
 		public collapsed: boolean;
 		public ready: boolean;
 		public url: string;
+		public label: string;
 		public handle: Common.Models.ExpandableHandle;
+		public expandable: boolean;
 
 		constructor($element: any) {
 			super();
@@ -33,6 +35,7 @@ module Common.Models {
 			this.ready = false;
 			this.url = null;
 			this.handle = new Common.Models.ExpandableHandle();
+			this.expandable = true;
 
 			// do a little clean up; the UI glitches due to the flex
 			// property rendering if $element does not have an explicitly
@@ -69,13 +72,19 @@ module Common.Models {
 
 		public open() {
 			this.collapsed = false;
-			this.$element.removeClass(this.getMinClass()).addClass(this.getMaxClass());
+
+			if(this.expandable)
+				this.$element.removeClass(this.getMinClass()).addClass(this.getMaxClass());
+
 			this.setHandleClass();
 		}
 
 		public close() {
 			this.collapsed = true;
-			this.$element.removeClass(this.getMaxClass()).addClass(this.getMinClass());
+			
+			if (this.expandable)
+				this.$element.removeClass(this.getMaxClass()).addClass(this.getMinClass());
+			
 			this.setHandleClass();
 		}
 
@@ -103,11 +112,13 @@ module Common.Models {
 					this.handle.collapsed = 'glyphicon-chevron-right';
 					break;
 				case 'top':
+				case 'down':
 					this.handle.position = 'top0 left0';
 					this.handle.expanded = 'glyphicon-chevron-up';
 					this.handle.collapsed = 'glyphicon-chevron-down';
 					break;
 				case 'bottom':
+				case 'up':
 					this.handle.position = 'bottom0 left0';
 					this.handle.expanded = 'glyphicon-chevron-down';
 					this.handle.collapsed = 'glyphicon-chevron-up';

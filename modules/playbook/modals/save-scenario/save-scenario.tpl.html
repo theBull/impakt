@@ -13,7 +13,32 @@
             </scenario-preview>
         </div>
 
-        <div class='col'></div>
+        <div class='col'>
+            <div class='marginBottom1 light-border-bottom' ng-if='scenario.playPrimary'>
+                <p>{{scenario.playPrimary.name}}</p>
+                <div ng-if='scenario.playPrimary.formation'>
+                    <p><strong>Formation: </strong>{{scenario.playPrimary.formation.name}}</p>
+                </div>
+                <div ng-if='scenario.playPrimary.personnel'>
+                    <p><strong>Personnel: </strong>{{scenario.playPrimary.personnel.name}}</p>
+                </div>
+                <div ng-if='scenario.playPrimary.assignmentGroup'>
+                    <p><strong>Assignment group: </strong>{{scenario.playPrimary.assignmentGroup.name}}</p>
+                </div>
+            </div>
+            <div class='marginBottom1' ng-if='scenario.playOpponent'>
+                <p>{{scenario.playOpponent.name}}</p>
+                <div ng-if='scenario.playOpponent.formation'>
+                    <p><strong>Formation: </strong>{{scenario.playOpponent.formation.name}}</p>
+                </div>
+                <div ng-if='scenario.playOpponent.personnel'>
+                    <p><strong>Personnel: </strong>{{scenario.playOpponent.personnel.name}}</p>
+                </div>
+                <div ng-if='scenario.playOpponent.assignmentGroup'>
+                    <p><strong>Assignment group: </strong>{{scenario.playOpponent.assignmentGroup.name}}</p>
+                </div>
+            </div>
+        </div>
 
     </div>
 

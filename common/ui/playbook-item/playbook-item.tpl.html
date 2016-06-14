@@ -1,0 +1,16 @@
+<div class='col pad gray-bg-2-hover marginBottom1 pointer'
+	ng-click='toggleSelection(playbook)'
+	ng-class='{"selected-border": playbook.selected}'>
+
+	<div class='col'>
+		<h5> 
+			{{playbook.name}}
+		</h5>
+		<p>
+			<type-formatter 
+				value='playbook.unitType' 
+				type='Team.Enums.UnitTypes'>
+			</type-formatter>
+		</p>
+	</div>
+</div>

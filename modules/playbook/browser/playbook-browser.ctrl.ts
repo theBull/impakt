@@ -16,24 +16,12 @@ function(
 	_playbookModals: any
 ) {
 	
-	$scope.editor;
-	$scope.playbooks;
-	$scope.formations;
-	$scope.plays;
-	$scope.assignmentGroups;
-	$scope.scenarios;
+	$scope.editor = impakt.context.Playbook.editor;
+	$scope.playbooks = impakt.context.Playbook.playbooks;
+
+	$scope.test = $scope.playbooks.first();
 	
 	_details.selectedPlay = null;
-
-	__context.onReady(function() {
-		$scope.editor = impakt.context.Playbook.editor;
-		$scope.playbooks = impakt.context.Playbook.playbooks;
-		$scope.formations = impakt.context.Playbook.formations;
-		$scope.plays = impakt.context.Playbook.plays;
-		$scope.assignmentGroups = impakt.context.Playbook.assignmentGroups;
-		$scope.scenarios = impakt.context.Playbook.scenarios;
-	});
-
 
 	$scope.getEditorTypeClass = function(editorType: Playbook.Enums.EditorTypes) {
 		return _playbook.getEditorTypeClass(editorType);
@@ -54,49 +42,10 @@ function(
 
 		});
 	}
-	$scope.createScenario = function() {
-		_playbookModals.createScenario();
-	}
-	$scope.createPlay = function() {
-		_playbookModals.createPlay();
-	}
-	$scope.alertDataRequired = function(dataType: string) {
-		if($scope.formations.isEmpty() && $scope.playbooks.hasElements()) {
-			alert("Please create a base formation in order to begin creating " + dataType + ".");
-		} else if($scope.playbooks.isEmpty()) {
-			alert("Please create a playbook in order to begin creating " + dataType + ".");
-		}
-	}
-	$scope.deletePlay = function(play: Common.Models.Play) {
-		_playbookModals.deletePlay(play);
-	}
-	$scope.createFormation = function() {
-		_playbookModals.createFormation();
-	}
-	$scope.deleteFormation = function(formation: Common.Models.Formation) {
-		_playbookModals.deleteFormation(formation);
-	}
-
-	$scope.createAssignmentGroup = function() {
-		// create default assignment group?
-		//_playbookModals.createAssignmentGroup();
-	}
-	$scope.deleteAssignmentGroup = function(assignmentGroup: Common.Models.AssignmentGroup) {
-		_playbookModals.deleteAssignmentGroup(assignmentGroup);
-	}
 
 	$scope.getAssociationsCountForPlaybook = function(playbook: Common.Models.PlaybookModel) {
 		let associations = _associations.getAssociated(playbook);
 		return associations.count();
-	}
-
-	/**
-	 *
-	 * Item Drilldown
-	 * 
-	 */
-	$scope.toPlaybookDrilldown = function(playbookModel: Common.Models.PlaybookModel) {
-		_playbook.toPlaybookDrilldown(playbookModel);
 	}
 
 }]);

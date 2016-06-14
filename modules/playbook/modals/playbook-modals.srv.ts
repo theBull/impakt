@@ -73,6 +73,30 @@ function($q: any, __modals: any) {
 		});
 		return d.promise;
 	}
+	this.savePlaybook = function(playbook: Common.Models.PlaybookModel) {
+		let d = $q.defer();
+		
+		let modalInstance = __modals.open(
+			'',
+			'modules/playbook/modals/save-playbook/save-playbook.tpl.html',
+			'playbook.modals.savePlaybook.ctrl',
+			{
+				playbook: function() {
+					return playbook;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(results) {
+			console.log(results);
+			d.resolve();
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+
+		return d.promise;
+	}
 
 	/**
 	 * 

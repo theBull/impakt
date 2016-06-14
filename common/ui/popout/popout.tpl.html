@@ -1,0 +1,15 @@
+<div class='popout positionRelative'>
+	
+	<!-- dropdown button -->
+	<popout-toggle></popout-toggle>
+	
+	<popout-contents 
+		ng-show='!expandable.collapsed' 
+		ng-include='expandable.url'
+		collection='playbooks'
+		class='minWidth20 minHeight3 dropdown heightAuto positionAbsolute black-bg'>
+	</popout-contents>
+
+	<popout-clickeater></popout-clickeater>
+
+</div>

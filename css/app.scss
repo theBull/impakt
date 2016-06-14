@@ -2,6 +2,7 @@
 * GLOBAL VARIABLES
 */
 $BASE_FONT_SIZE: 12px;
+$BG_OPACITY: 1;
 
 $actionable: rgb(160, 201, 262);
 $actionableHover: rgb(150, 201, 252);
@@ -43,32 +44,34 @@ $lightGreenBackground: #C3D49B;
 $darkGreenBackground: #7C8764;
 $darkBorderColor: rgba(0, 0, 0, 0.5);
 $darkBorder: 1px solid $darkBorderColor;
-$black: #000000;
 $red: #BB250E;
 $red-hover: #AA0000;
 $green: #39A017;
 $green-hover: #2E8212;
 $blue: #2A58D2;
 $blue-bg-hover: #336BCB;
+
+$black: rgba(0, 0, 0, $BG_OPACITY);
 $black-bg: $black;
-$black-bg-hover: #111111;
-$gray-bg-1: #111111;
-$gray-bg-1-hover: #191919;
-$gray-bg-2: #222222;
-$gray-bg-2-hover: #2a2a2a;
-$gray-bg-3: #333333;
-$gray-bg-3-hover: #3b3b3b;
-$gray-bg-4: #444444;
-$gray-bg-4-hover: #4c4c4c;
-$gray-bg-5: #555555;
-$gray-bg-5-hover: #5d5d5d;
-$gray-bg-6: #676767;
-$gray-bg-6-hover: #6f6f6f;
-$gray-bg-a: #aaaaaa;
-$gray-bg-a-hover: #b1b1b1;
-$gray-bg-7: #777777;
-$gray-bg-7-hover: #7f7f7f;
+$black-bg-hover: rgba(16, 16, 16, $BG_OPACITY);
+$gray-bg-1: rgba(16, 16, 16, $BG_OPACITY);
+$gray-bg-1-hover: rgba(24, 24, 24, $BG_OPACITY);
+$gray-bg-2: rgba(32, 32, 32, $BG_OPACITY);
+$gray-bg-2-hover: rgba(40, 40, 40, $BG_OPACITY);
+$gray-bg-3: rgba(48, 48, 48, $BG_OPACITY);
+$gray-bg-3-hover: rgba(56, 56, 56, $BG_OPACITY);
+$gray-bg-4: rgba(64, 64, 64, $BG_OPACITY);
+$gray-bg-4-hover: rgba(72, 72, 72, $BG_OPACITY);
+$gray-bg-5: rgba(80, 80, 80, $BG_OPACITY);
+$gray-bg-5-hover: rgba(88, 88, 88, $BG_OPACITY);
+$gray-bg-6: rgba(96, 96, 96, $BG_OPACITY);
+$gray-bg-6-hover: rgba(104, 104, 104, $BG_OPACITY);
+$gray-bg-a: rgba(112, 112, 112, $BG_OPACITY);
+$gray-bg-a-hover: rgba(120, 120, 120, $BG_OPACITY);
+$gray-bg-7: rgba(128, 128, 128, $BG_OPACITY);
+$gray-bg-7-hover: rgba(136, 136, 136, $BG_OPACITY);
 $gray: $gray-bg-3;
+
 $selected-border: $gray-bg-7 solid 3px;
 
 
@@ -78,6 +81,7 @@ body {
 	font-weight: 200;
 	letter-spacing: 1px;
 	background-color: $black;
+	color: rgba(255, 255, 255, 1);
 }
 html, h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 	font-family: "acumin-pro", Helvetica, "sans-serif", sans;
@@ -225,7 +229,7 @@ details summary {
 
 /**
  *
- *	GLOW
+ *	GLOW & SHADOW
  * 
  */
 .glow {
@@ -233,6 +237,9 @@ details summary {
 }
 .glow-hover {
 
+}
+.shadow {
+	box-shadow: 0 0 10px $black;
 }
 
 /* UTILITY CLASSES */
@@ -579,7 +586,8 @@ path.painted-fill, rect.painted-fill, circle.painted-fill {
  */
 .dropdown {
 	z-index: 1000;
-	box-shadow: 0px 0px 10px #000;
+	box-shadow: 0px 8px 20px 0px rgba(0, 0, 0, 0.7);
+	border: 1px solid rgba(0, 0, 0, 0.2);
 }
 
 /**

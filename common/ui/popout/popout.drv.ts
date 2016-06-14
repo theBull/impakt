@@ -1,145 +1,71 @@
 /// <reference path='../ui.mdl.ts' />
 
-impakt.common.ui.directive('popout', [
-	'$compile',
-	function($compile: any) {
+impakt.common.ui.controller('popout.ctrl', [
+'$scope',
+function(
+	$scope: any
+) {
 
-	// button to open with label
-	// open / close icon
-	// open direction (up / down / left / right)
+	$scope.expandable;
+	$scope.collection;
 
-	return {
-		restrict: 'E',
-		controller: function($scope: any) {
+}]).directive('popout', [
+function() {
 
-			console.debug('controller: popout.ctrl');
+return {
+	restrict: 'E',
+	controller: 'popout.ctrl',
+	scope: {
+		data: '=',
+		direction: '@',
+		collapsed: '@?',
+		label: '=',
+		url: '@',
+		itemSelect: '&'
+	},
+	transclude: true,
+	replace: true,
+	templateUrl: 'common/ui/popout/popout.tpl.html',
+	link: function($scope, $element, attrs) {
+		$scope.expandable = new Common.Models.Expandable($element);
+		$scope.expandable.url = $scope.url;
+		$scope.expandable.label = $scope.label;
+		$scope.expandable.direction = $scope.direction;
+		$scope.expandable.collapsed = Boolean($scope.collapsed) === false ? false : true;
+		$scope.expandable.expandable = false;
 
-			$scope.collapsed = true;
-			$scope.data = {};
-			$scope.label = 'label';
-			$scope.open = 'down';
-
-			$scope.classes = {
-				expand: '',
-				collapse: ''
-			}
-			$scope.toggleIconClass = 'glyphicon-chevron-down';
-
-			function init() {
-				$scope.toggleIconClass = $scope.setToggleIconClass();
-				$scope.collapsed = true;
-			}
-
-			$scope.getCollapsed = function() {
-				return $scope.collapsed;
-			}
-			$scope.getData = function() {
-				return $scope.data;
-			}
-			$scope.getLabel = function() {
-				return $scope.label;
-			}
-			$scope.getToggleIconClass = function() {
-				return $scope.toggleIconClass;
-			}
-
-			$scope.toggle = function(close?: boolean) {
-
-				$scope.collapsed = close === true ? true : !$scope.collapsed;
-				$scope.toggleIconClass = $scope.setToggleIconClass();
-
-				removeClickeater();
-
-				if (!$scope.collapsed) {
-					// add clikeater element when toggling
-					let $clickeater = angular.element(
-						$('<popout-clickeater></popout-clickeater>')
-					);
-					$compile($clickeater)($scope);
-					$('body').append($clickeater);
-				}
-
-				console.log($scope.collapsed ? 'close' : 'open', 'popout');
-
-			}
-
-			$scope.setToggleIconClass = function() {
-
-				switch ($scope.open) {
-					case 'down':
-						$scope.classes.expand = 'glyphicon-chevron-down';
-						$scope.classes.collapse = 'glyphicon-chevron-up';
-						break;
-					case 'up':
-						$scope.classes.expand = 'glyphicon-chevron-up';
-						$scope.classes.collapse = 'glyphicon-chevron-down';
-						break;
-					case 'left':
-						$scope.classes.expand = 'glyphicon-chevron-left';
-						$scope.classes.collapse = 'glyphicon-chevron-right';
-						break;
-					case 'right':
-						$scope.classes.expand = 'glyphicon-chevron-right';
-						$scope.classes.collapse = 'glyphicon-chevron-left';
-						break;
-				}
-
-				return $scope.collapsed ? $scope.classes.expand : $scope.classes.collapse;
-			}
-
-			$scope.close = function() {
-				$scope.toggle(true);
-			}
-
-			function removeClickeater() {
-				// remove in case it already exists
-				console.log('remove popout clickeater');
-				$('.popout-clickeater').remove();
-			}
-
-			init();
-
-		},
-		// scope: {
-		// 	data: '=',
-		// 	open: '=',
-		// 	collapsed: '=?',
-		// 	label: '=',
-		// },
-		scope: true,
-		link: function($scope, $element, attrs) {
-
-		}
+		/**
+		 * Set initial class on the element for proper sizing
+		 */
+		$scope.expandable.ready = true;
 	}
+}
 
 }]).directive('popoutToggle', [
 function() {
 	return {
 		restrict: 'E',
+		controller: 'popout.ctrl',
 		require: '^popout',
 		replace: true,
 		transclude: true,
-		scope: true,
-		template: '<div class="popout-toggle" ng-click="toggle()">\
-			<span class="marginRight1">{{label}}</span>\
-			<span class="glyphicon {{toggleIconClass}}"></span>\
-		</div>',
+		templateUrl: 'common/ui/popout/popout-toggle.tpl.html',
 		link: function($scope, $element, attrs) {
-			console.log($scope);
+			/**
+			 * Initialize the toggle handle
+			 */
+			$scope.expandable.initializeToggleHandle();
 		}
 	}
-}])
-.directive('popoutContents', [function() {
+}]).directive('popoutContents', [function() {
 	return {
 		restrict: 'E',
+		controller: 'popout.ctrl',
 		require: '^popout',
-		scope: true,
-		replace: true,
-		transclude: true,
-		template: '<div class="popout-contents" ng-show="!collapsed"></div>',
-		link: function($scope, $element, attrs) {
-
-		}
+		scope: {
+			collection: '='
+		},
+		link: function($scope, $element, attrs) {}
 	}
 }])
 .directive('popoutClickeater', [function() {
@@ -148,7 +74,7 @@ function() {
 		scope: true,
 		replace: true,
 		transclude: true,
-		template: '<div class="popout-clickeater" ng-click="close()"></div>',
+		templateUrl: 'common/ui/popout/popout-clickeater.tpl.html',
 		link: function($scope, $element, attrs) {
 
 		}

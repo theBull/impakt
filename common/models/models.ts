@@ -8,6 +8,7 @@
 /// <reference path='./ModifiableCollection.ts' />
 /// <reference path='./Datetime.ts' />
 /// <reference path='./NotImplementedClass.ts' />
+/// <reference path='./APIOptions.ts' />
 
 /// <reference path='./Expandable.ts' />
 /// <reference path='./ContextmenuData.ts' />
@@ -25,6 +26,7 @@
 
 /// <reference path='./Icon.ts' />
 
+/// <reference path='./Situation.ts' />
 /// <reference path='./Assignment.ts' />
 /// <reference path='./AssignmentGroup.ts' />
 /// <reference path='./AssignmentGroupCollection.ts' />

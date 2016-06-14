@@ -193,6 +193,54 @@ function(
     }
 
     /**
+     * Updates the given playbook for the current user
+     * @param {Common.Models.Playbook} playbook The playbook to update
+     */
+    this.updatePlaybook = function(playbook: Common.Models.PlaybookModel) {
+        var d = $q.defer();
+
+        let notification = __notifications.pending('Updating playbook "', playbook.name, '"...');
+
+        let playbookData = playbook.toJson();
+
+        __api.post(
+            __api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.UPDATE_PLAYBOOK),
+            {
+                version: 1,
+                name: playbook.name,
+                key: playbook.key,
+                data: {
+                    version: 1,
+                    name: playbook.name,
+                    key: playbook.key,
+                    model: playbookData
+                }
+            }
+        ).then(function(response: any) {
+            let results = Common.Utilities.parseData(response.data.results);
+            let playbookModel = new Common.Models.PlaybookModel(Team.Enums.UnitTypes.Other);
+            if (results && results.data && results.data.model) {
+                playbookModel.fromJson(results.data.model);
+
+                // update the context
+                impakt.context.Playbook.playbooks.set(playbookModel.guid, playbookModel);
+            }
+
+            notification.success('Successfully updated playbook "', playbookModel.name, '"');
+
+            d.resolve(playbookModel);
+        }, function(error: any) {
+            notification.error(
+                'Failed to update playbook "', playbook.name, '"'
+            );
+
+            d.reject(error);
+        });
+
+        return d.promise;
+    }
+
+    /**
      * Creates the given formation for the current user
      * @param {Common.Models.Formation} newFormation The formation to be created
      */
@@ -285,6 +333,8 @@ function(
                 notification.success(
                     'Successfully deleted formation "', formation.name, '"'
                 );
+
+                $rootScope.$broadcast('delete-formation', formation);
                 
                 d.resolve(formationKey);
             }, function(error: any) {
@@ -595,6 +645,8 @@ function(
                     'Successfully deleted assignment group "', assignmentGroup.name, '"'
                 );
 
+                $rootScope.$broadcast('delete-assignmentGroup', assignmentGroup);
+
                 d.resolve(assignmentGroupKey);
             }, function(error: any) {
                 notification.error(
@@ -797,7 +849,7 @@ function(
      * @param {Common.Models.Play} play    [description]
      * @param {any}                  options [description]
      */
-    this.savePlay = function(play: Common.Models.Play, options: any) {
+    this.savePlay = function(play: Common.Models.Play, options: Playbook.Models.PlaybookAPIOptions) {
         var d = $q.defer();
 
         let notification = __notifications.pending('Saving play "', play.name, '"...');
@@ -808,8 +860,8 @@ function(
             // 
             function(callback) {
                 // create, copy, or overwrite?
-                if(options.formation.action == Common.API.Actions.Create || 
-                    options.formation.action == Common.API.Actions.Copy) {
+                if(options.formation == Common.API.Actions.Create || 
+                    options.formation == Common.API.Actions.Copy) {
                     
                         // ensure playbook.formation has no key
                         play.formation.key = -1;
@@ -821,7 +873,7 @@ function(
                             callback(err);
                         });
 
-                } else if(options.formation.action == Common.API.Actions.Overwrite) {
+                } else if(options.formation == Common.API.Actions.Overwrite) {
                     self.updateFormation(play.formation)
                     .then(function(updatedFormation: Common.Models.Formation) {
                         callback(null, play);
@@ -842,8 +894,8 @@ function(
                 if (Common.Utilities.isNullOrUndefined(play.assignmentGroup))
                     callback(null, play);
 
-                if (options.assignmentGroup.action == Common.API.Actions.Create ||
-                    options.assignmentGroup.action == Common.API.Actions.Copy) {
+                if (options.assignmentGroup == Common.API.Actions.Create ||
+                    options.assignmentGroup == Common.API.Actions.Copy) {
 
                     // ensure play has no key
                     play.assignmentGroup.key = -1;
@@ -868,7 +920,7 @@ function(
                             callback(err);
                         });
 
-                } else if (options.assignmentGroup.action == Common.API.Actions.Overwrite) {
+                } else if (options.assignmentGroup == Common.API.Actions.Overwrite) {
                     
                     self.updateAssignmentGroup(play.assignmentGroup)
                         .then(function(updatedAssignmentGroup: Common.Models.AssignmentGroup) {
@@ -884,8 +936,8 @@ function(
             // save play
             function(callback) {
            
-                if(options.play.action == Common.API.Actions.Create || 
-                    options.play.action == Common.API.Actions.Copy) {
+                if(options.play == Common.API.Actions.Create || 
+                    options.play == Common.API.Actions.Copy) {
                     
                         // ensure play has no key
                         play.key = -1;
@@ -896,7 +948,7 @@ function(
                             callback(err);
                         });
 
-                } else if(options.play.action == Common.API.Actions.Overwrite) {
+                } else if(options.play == Common.API.Actions.Overwrite) {
 
                     self.updatePlay(play)
                     .then(function(updatedPlay: Common.Models.Play) {
@@ -1077,6 +1129,8 @@ function(
                     'Successfully deleted play "', play.name, '"'
                 );
 
+                $rootScope.$broadcast('delete-play', play);
+
                 d.resolve(play);
             }, function(error: any) {
                 notification.error('Failed to delete play "', play.name, '"');
@@ -1157,14 +1211,38 @@ function(
      * @param {Common.Models.Scenario} scenario    [description]
      * @param {any}                  options [description]
      */
-    this.saveScenario = function(scenario: Common.Models.Scenario, options: any) {
+    this.saveScenario = function(
+        scenario: Common.Models.Scenario, 
+        playPrimaryOptions: Playbook.Models.PlaybookAPIOptions,
+        playOpponentOptions: Playbook.Models.PlaybookAPIOptions
+    ) {
+    
         var d = $q.defer();
 
         let notification = __notifications.pending('Saving scenario "', scenario.name, '"...');
 
         async.parallel([
             function(callback) {
-                callback(null, null);
+                if(Common.Utilities.isNotNullOrUndefined(scenario.playPrimary)) {
+                    self.savePlay(scenario.playPrimary, playPrimaryOptions).then(function(results) {
+                        callback(null, results);
+                    }, function(err) {
+                        callback(err);
+                    });
+                } else {
+                    callback(null, null);
+                }
+            },
+            function(callback) {
+                if (Common.Utilities.isNotNullOrUndefined(scenario.playOpponent)) {
+                    self.savePlay(scenario.playOpponent, playOpponentOptions).then(function(results) {
+                        callback(null, results);
+                    }, function(err) {
+                        callback(err);
+                    });
+                } else {
+                    callback(null, null);
+                }
             }
         ], function(err, results) {
             if(err) {
@@ -1322,6 +1400,8 @@ function(
                 notification.success(
                     'Successfully deleted scenario "', scenario.name, '"'
                 );
+
+                $rootScope.$broadcast('delete-scenario', scenario);
 
                 d.resolve(scenario);
             }, function(error: any) {
@@ -1513,6 +1593,17 @@ function(
     	let associations = _associations.getAssociated(play.formation);
 		let personnel = associations.personnel.first();
         play.personnel = personnel && personnel.copy();
+    }
+
+    this.getAssignmentGroupAPIActions = function(assignmentGroup: Common.Models.AssignmentGroup): Common.API.Actions {
+        if (Common.Utilities.isNullOrUndefined(assignmentGroup) ||
+            Common.Utilities.isNullOrUndefined(assignmentGroup.assignments))
+            return Common.API.Actions.Nothing;
+
+        return assignmentGroup.assignments.hasElements() ?
+            (assignmentGroup.key == -1 ?
+                Common.API.Actions.Create : Common.API.Actions.Overwrite) : // always create or overwrite
+            Common.API.Actions.Nothing // don't do anything if there are no assignments
     }
 
 }]);

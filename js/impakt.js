@@ -1049,6 +1049,19 @@ var Common;
 (function (Common) {
     var Models;
     (function (Models) {
+        var APIOptions = (function () {
+            function APIOptions() {
+            }
+            return APIOptions;
+        })();
+        Models.APIOptions = APIOptions;
+    })(Models = Common.Models || (Common.Models = {}));
+})(Common || (Common = {}));
+/// <reference path='./models.ts' />
+var Common;
+(function (Common) {
+    var Models;
+    (function (Models) {
         var Expandable = (function (_super) {
             __extends(Expandable, _super);
             function Expandable($element) {
@@ -1068,6 +1081,7 @@ var Common;
                 this.ready = false;
                 this.url = null;
                 this.handle = new Common.Models.ExpandableHandle();
+                this.expandable = true;
                 // do a little clean up; the UI glitches due to the flex
                 // property rendering if $element does not have an explicitly
                 // set width, so we add the class 'width3' to the HTML element
@@ -1098,12 +1112,14 @@ var Common;
             };
             Expandable.prototype.open = function () {
                 this.collapsed = false;
-                this.$element.removeClass(this.getMinClass()).addClass(this.getMaxClass());
+                if (this.expandable)
+                    this.$element.removeClass(this.getMinClass()).addClass(this.getMaxClass());
                 this.setHandleClass();
             };
             Expandable.prototype.close = function () {
                 this.collapsed = true;
-                this.$element.removeClass(this.getMaxClass()).addClass(this.getMinClass());
+                if (this.expandable)
+                    this.$element.removeClass(this.getMaxClass()).addClass(this.getMinClass());
                 this.setHandleClass();
             };
             Expandable.prototype.getMinClass = function () {
@@ -1128,11 +1144,13 @@ var Common;
                         this.handle.collapsed = 'glyphicon-chevron-right';
                         break;
                     case 'top':
+                    case 'down':
                         this.handle.position = 'top0 left0';
                         this.handle.expanded = 'glyphicon-chevron-up';
                         this.handle.collapsed = 'glyphicon-chevron-down';
                         break;
                     case 'bottom':
+                    case 'up':
                         this.handle.position = 'bottom0 left0';
                         this.handle.expanded = 'glyphicon-chevron-down';
                         this.handle.collapsed = 'glyphicon-chevron-up';
@@ -2274,6 +2292,19 @@ var Common;
         })();
         Icons.Glyphicon = Glyphicon;
     })(Icons = Common.Icons || (Common.Icons = {}));
+})(Common || (Common = {}));
+/// <reference path='./models.ts' />
+var Common;
+(function (Common) {
+    var Models;
+    (function (Models) {
+        var Situation = (function () {
+            function Situation() {
+            }
+            return Situation;
+        })();
+        Models.Situation = Situation;
+    })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
 /// <reference path='./models.ts' />
 var Common;
@@ -7354,6 +7385,7 @@ var Common;
 /// <reference path='./ModifiableCollection.ts' />
 /// <reference path='./Datetime.ts' />
 /// <reference path='./NotImplementedClass.ts' />
+/// <reference path='./APIOptions.ts' />
 /// <reference path='./Expandable.ts' />
 /// <reference path='./ContextmenuData.ts' />
 /// <reference path='./ActionRegistry.ts' />
@@ -7367,6 +7399,7 @@ var Common;
 /// <reference path='./Notification.ts' />
 /// <reference path='./NotificationCollection.ts' />
 /// <reference path='./Icon.ts' />
+/// <reference path='./Situation.ts' />
 /// <reference path='./Assignment.ts' />
 /// <reference path='./AssignmentGroup.ts' />
 /// <reference path='./AssignmentGroupCollection.ts' />
@@ -8177,6 +8210,25 @@ var Common;
         UI.SCROLL_BAR_SIZE = 12;
     })(UI = Common.UI || (Common.UI = {}));
 })(Common || (Common = {}));
+/// <reference path='./models.ts' />
+var Playbook;
+(function (Playbook) {
+    var Models;
+    (function (Models) {
+        var PlaybookAPIOptions = (function (_super) {
+            __extends(PlaybookAPIOptions, _super);
+            function PlaybookAPIOptions() {
+                _super.call(this);
+                this.scenario = Common.API.Actions.Nothing;
+                this.play = Common.API.Actions.Nothing;
+                this.formation = Common.API.Actions.Nothing;
+                this.assignmentGroup = Common.API.Actions.Nothing;
+            }
+            return PlaybookAPIOptions;
+        })(Common.Models.APIOptions);
+        Models.PlaybookAPIOptions = PlaybookAPIOptions;
+    })(Models = Playbook.Models || (Playbook.Models = {}));
+})(Playbook || (Playbook = {}));
 /// <reference path='./models.ts' />
 var Playbook;
 (function (Playbook) {
@@ -9871,6 +9923,7 @@ var Playbook;
     })(Models = Playbook.Models || (Playbook.Models = {}));
 })(Playbook || (Playbook = {}));
 /// <reference path='../playbook.ts' />
+/// <reference path='./PlaybookAPIOptions.ts' />
 /// <reference path='./Tool.ts' />
 /// <reference path='./EditorEndzone.ts' />
 /// <reference path='./PreviewEndzone.ts' />
@@ -15525,6 +15578,20 @@ impakt.common.ui.controller('assignmentGroupItem.ctrl', [
         };
     }]);
 /// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('assignmentGroupSelectDropdown.ctrl', [
+    '$scope',
+    function ($scope) {
+        $scope.assignmentGroups = impakt.context.Playbook.assignmentGroups;
+    }]).directive('assignmentGroupSelectDropdown', [
+    function () {
+        return {
+            restrict: 'E',
+            controller: 'assignmentGroupSelectDropdown.ctrl',
+            link: function ($scope, $element, attrs) {
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
 impakt.common.ui.controller('associationInput.ctrl', [
     '$scope',
     '$rootScope',
@@ -15925,8 +15992,7 @@ impakt.common.ui.controller('expandable.ctrl', [
                 };
             }
         };
-    }
-]);
+    }]);
 /// <reference path='../ui.mdl.ts' />
 impakt.common.ui.service('_expandable', [
     function () {
@@ -16064,6 +16130,20 @@ impakt.common.ui.controller('formationPreview.ctrl', [
                         }, 0);
                     }
                 };
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('formationSelectDropdown.ctrl', [
+    '$scope',
+    function ($scope) {
+        $scope.formations = impakt.context.Playbook.formations;
+    }]).directive('formationSelectDropdown', [
+    function () {
+        return {
+            restrict: 'E',
+            controller: 'formationSelectDropdown.ctrl',
+            link: function ($scope, $element, attrs) {
             }
         };
     }]);
@@ -16491,6 +16571,20 @@ impakt.common.ui.controller('leagueItem.ctrl', [
         };
     }]);
 /// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('personnelSelectDropdown.ctrl', [
+    '$scope',
+    function ($scope) {
+        $scope.personnels = impakt.context.Team.personnel;
+    }]).directive('personnelSelectDropdown', [
+    function () {
+        return {
+            restrict: 'E',
+            controller: 'personnelSelectDropdown.ctrl',
+            link: function ($scope, $element, attrs) {
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
 impakt.common.ui.controller('planItem.ctrl', [
     '$scope',
     '$state',
@@ -16841,121 +16935,134 @@ impakt.common.ui.controller('playThumbnail.ctrl', [
         };
     }]);
 /// <reference path='../ui.mdl.ts' />
-impakt.common.ui.directive('popout', [
-    '$compile',
-    function ($compile) {
-        // button to open with label
-        // open / close icon
-        // open direction (up / down / left / right)
+impakt.common.ui.controller('playbookItem.ctrl', [
+    '$scope',
+    '$state',
+    '_details',
+    '_playbook',
+    function ($scope, $state, _details, _playbook) {
+        $scope.playbook;
+        $scope.element;
+        /**
+         *
+         *	Item selection
+         *
+         */
+        $scope.toggleSelection = function (playbook) {
+            if (!$state.is('playbook.drilldown.playbook')) {
+                _details.selectedElements.deselectAll();
+                _playbook.toPlaybookDrilldown(playbook);
+            }
+            else {
+                _details.toggleSelection(playbook);
+            }
+        };
+        /**
+         *
+         * Item Drilldown
+         *
+         */
+        $scope.toPlaybookDrilldown = function (playbookModel) {
+            _playbook.toPlaybookDrilldown(playbookModel);
+        };
+    }]).directive('playbookItem', [
+    function () {
+        /**
+         * playbook-item directive
+         */
         return {
             restrict: 'E',
-            controller: function ($scope) {
-                console.debug('controller: popout.ctrl');
-                $scope.collapsed = true;
-                $scope.data = {};
-                $scope.label = 'label';
-                $scope.open = 'down';
-                $scope.classes = {
-                    expand: '',
-                    collapse: ''
-                };
-                $scope.toggleIconClass = 'glyphicon-chevron-down';
-                function init() {
-                    $scope.toggleIconClass = $scope.setToggleIconClass();
-                    $scope.collapsed = true;
-                }
-                $scope.getCollapsed = function () {
-                    return $scope.collapsed;
-                };
-                $scope.getData = function () {
-                    return $scope.data;
-                };
-                $scope.getLabel = function () {
-                    return $scope.label;
-                };
-                $scope.getToggleIconClass = function () {
-                    return $scope.toggleIconClass;
-                };
-                $scope.toggle = function (close) {
-                    $scope.collapsed = close === true ? true : !$scope.collapsed;
-                    $scope.toggleIconClass = $scope.setToggleIconClass();
-                    removeClickeater();
-                    if (!$scope.collapsed) {
-                        // add clikeater element when toggling
-                        var $clickeater = angular.element($('<popout-clickeater></popout-clickeater>'));
-                        $compile($clickeater)($scope);
-                        $('body').append($clickeater);
-                    }
-                    console.log($scope.collapsed ? 'close' : 'open', 'popout');
-                };
-                $scope.setToggleIconClass = function () {
-                    switch ($scope.open) {
-                        case 'down':
-                            $scope.classes.expand = 'glyphicon-chevron-down';
-                            $scope.classes.collapse = 'glyphicon-chevron-up';
-                            break;
-                        case 'up':
-                            $scope.classes.expand = 'glyphicon-chevron-up';
-                            $scope.classes.collapse = 'glyphicon-chevron-down';
-                            break;
-                        case 'left':
-                            $scope.classes.expand = 'glyphicon-chevron-left';
-                            $scope.classes.collapse = 'glyphicon-chevron-right';
-                            break;
-                        case 'right':
-                            $scope.classes.expand = 'glyphicon-chevron-right';
-                            $scope.classes.collapse = 'glyphicon-chevron-left';
-                            break;
-                    }
-                    return $scope.collapsed ? $scope.classes.expand : $scope.classes.collapse;
-                };
-                $scope.close = function () {
-                    $scope.toggle(true);
-                };
-                function removeClickeater() {
-                    // remove in case it already exists
-                    console.log('remove popout clickeater');
-                    $('.popout-clickeater').remove();
-                }
-                init();
+            controller: 'playbookItem.ctrl',
+            scope: {
+                playbook: '='
             },
-            // scope: {
-            // 	data: '=',
-            // 	open: '=',
-            // 	collapsed: '=?',
-            // 	label: '=',
-            // },
-            scope: true,
+            templateUrl: 'common/ui/playbook-item/playbook-item.tpl.html',
+            transclude: true,
+            replace: true,
+            compile: function compile(tElement, tAttrs, transclude) {
+                return {
+                    pre: function preLink($scope, $element, attrs, controller) { },
+                    post: function postLink($scope, $element, attrs, controller) {
+                        $scope.$element = $element;
+                    }
+                };
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('playbookSelectDropdown.ctrl', [
+    '$scope',
+    function ($scope) {
+        $scope.playbooks = impakt.context.Playbook.playbooks;
+    }]).directive('playbookSelectDropdown', [
+    function () {
+        return {
+            restrict: 'E',
+            controller: 'playbookSelectDropdown.ctrl',
             link: function ($scope, $element, attrs) {
+            }
+        };
+    }]);
+/// <reference path='../ui.mdl.ts' />
+impakt.common.ui.controller('popout.ctrl', [
+    '$scope',
+    function ($scope) {
+        $scope.expandable;
+        $scope.collection;
+    }]).directive('popout', [
+    function () {
+        return {
+            restrict: 'E',
+            controller: 'popout.ctrl',
+            scope: {
+                data: '=',
+                direction: '@',
+                collapsed: '@?',
+                label: '=',
+                url: '@',
+                itemSelect: '&'
+            },
+            transclude: true,
+            replace: true,
+            templateUrl: 'common/ui/popout/popout.tpl.html',
+            link: function ($scope, $element, attrs) {
+                $scope.expandable = new Common.Models.Expandable($element);
+                $scope.expandable.url = $scope.url;
+                $scope.expandable.label = $scope.label;
+                $scope.expandable.direction = $scope.direction;
+                $scope.expandable.collapsed = Boolean($scope.collapsed) === false ? false : true;
+                $scope.expandable.expandable = false;
+                /**
+                 * Set initial class on the element for proper sizing
+                 */
+                $scope.expandable.ready = true;
             }
         };
     }]).directive('popoutToggle', [
     function () {
         return {
             restrict: 'E',
+            controller: 'popout.ctrl',
             require: '^popout',
             replace: true,
             transclude: true,
-            scope: true,
-            template: '<div class="popout-toggle" ng-click="toggle()">\
-			<span class="marginRight1">{{label}}</span>\
-			<span class="glyphicon {{toggleIconClass}}"></span>\
-		</div>',
+            templateUrl: 'common/ui/popout/popout-toggle.tpl.html',
             link: function ($scope, $element, attrs) {
-                console.log($scope);
+                /**
+                 * Initialize the toggle handle
+                 */
+                $scope.expandable.initializeToggleHandle();
             }
         };
-    }])
-    .directive('popoutContents', [function () {
+    }]).directive('popoutContents', [function () {
         return {
             restrict: 'E',
+            controller: 'popout.ctrl',
             require: '^popout',
-            scope: true,
-            replace: true,
-            transclude: true,
-            template: '<div class="popout-contents" ng-show="!collapsed"></div>',
-            link: function ($scope, $element, attrs) {
-            }
+            scope: {
+                collection: '='
+            },
+            link: function ($scope, $element, attrs) { }
         };
     }])
     .directive('popoutClickeater', [function () {
@@ -16964,7 +17071,7 @@ impakt.common.ui.directive('popout', [
             scope: true,
             replace: true,
             transclude: true,
-            template: '<div class="popout-clickeater" ng-click="close()"></div>',
+            templateUrl: 'common/ui/popout/popout-clickeater.tpl.html',
             link: function ($scope, $element, attrs) {
             }
         };
@@ -22200,21 +22307,10 @@ impakt.playbook.browser.controller('playbook.browser.ctrl', [
     '_playbook',
     '_playbookModals',
     function ($scope, __context, _details, _associations, _playbook, _playbookModals) {
-        $scope.editor;
-        $scope.playbooks;
-        $scope.formations;
-        $scope.plays;
-        $scope.assignmentGroups;
-        $scope.scenarios;
+        $scope.editor = impakt.context.Playbook.editor;
+        $scope.playbooks = impakt.context.Playbook.playbooks;
+        $scope.test = $scope.playbooks.first();
         _details.selectedPlay = null;
-        __context.onReady(function () {
-            $scope.editor = impakt.context.Playbook.editor;
-            $scope.playbooks = impakt.context.Playbook.playbooks;
-            $scope.formations = impakt.context.Playbook.formations;
-            $scope.plays = impakt.context.Playbook.plays;
-            $scope.assignmentGroups = impakt.context.Playbook.assignmentGroups;
-            $scope.scenarios = impakt.context.Playbook.scenarios;
-        });
         $scope.getEditorTypeClass = function (editorType) {
             return _playbook.getEditorTypeClass(editorType);
         };
@@ -22231,47 +22327,9 @@ impakt.playbook.browser.controller('playbook.browser.ctrl', [
             }, function (err) {
             });
         };
-        $scope.createScenario = function () {
-            _playbookModals.createScenario();
-        };
-        $scope.createPlay = function () {
-            _playbookModals.createPlay();
-        };
-        $scope.alertDataRequired = function (dataType) {
-            if ($scope.formations.isEmpty() && $scope.playbooks.hasElements()) {
-                alert("Please create a base formation in order to begin creating " + dataType + ".");
-            }
-            else if ($scope.playbooks.isEmpty()) {
-                alert("Please create a playbook in order to begin creating " + dataType + ".");
-            }
-        };
-        $scope.deletePlay = function (play) {
-            _playbookModals.deletePlay(play);
-        };
-        $scope.createFormation = function () {
-            _playbookModals.createFormation();
-        };
-        $scope.deleteFormation = function (formation) {
-            _playbookModals.deleteFormation(formation);
-        };
-        $scope.createAssignmentGroup = function () {
-            // create default assignment group?
-            //_playbookModals.createAssignmentGroup();
-        };
-        $scope.deleteAssignmentGroup = function (assignmentGroup) {
-            _playbookModals.deleteAssignmentGroup(assignmentGroup);
-        };
         $scope.getAssociationsCountForPlaybook = function (playbook) {
             var associations = _associations.getAssociated(playbook);
             return associations.count();
-        };
-        /**
-         *
-         * Item Drilldown
-         *
-         */
-        $scope.toPlaybookDrilldown = function (playbookModel) {
-            _playbook.toPlaybookDrilldown(playbookModel);
         };
     }]);
 /// <reference path='./playbook-browser.mdl.ts' />
@@ -22353,9 +22411,15 @@ impakt.playbook.drilldown.controller('playbook.drilldown.ctrl', [
     '$scope',
     '_playbook',
     function ($scope, _playbook) {
+        $scope.playbook = null;
+        function init() {
+            if (Common.Utilities.isNotNullOrUndefined(_playbook.drilldown))
+                $scope.playbook = _playbook.drilldown.playbook;
+        }
         $scope.toBrowser = function () {
             _playbook.toBrowser();
         };
+        init();
     }]);
 /// <reference path='../playbook-drilldown.mdl.ts' />
 impakt.playbook.drilldown.playbook = angular.module('impakt.playbook.drilldown.playbook', [])
@@ -22375,24 +22439,64 @@ impakt.playbook.drilldown.playbook = angular.module('impakt.playbook.drilldown.p
 /// <reference path='./playbook-drilldown-playbook.mdl.ts' />
 impakt.playbook.drilldown.playbook.controller('playbook.drilldown.playbook.ctrl', [
     '$scope',
+    '$rootScope',
     '_associations',
     '_playbook',
     '_playbookModals',
-    function ($scope, _associations, _playbook, _playbookModals) {
+    function ($scope, $rootScope, _associations, _playbook, _playbookModals) {
         $scope.playbook = _playbook.drilldown.playbook;
-        $scope.plays;
-        $scope.formations;
-        $scope.scenarios;
+        $scope.scenarios = impakt.context.Playbook.scenarios;
+        $scope.plays = impakt.context.Playbook.plays;
+        $scope.formations = impakt.context.Playbook.formations;
+        $scope.assignmentGroups = impakt.context.Playbook.assignmentGroups;
+        var deleteScenarioListener = $rootScope.$on('delete-scenario', function (e, scenario) {
+            $scope.scenarios.remove(scenario.guid);
+        });
+        var deletePlayListener = $rootScope.$on('delete-play', function (e, play) {
+            $scope.plays.remove(play.guid);
+        });
+        var deleteFormationListener = $rootScope.$on('delete-formation', function (e, formation) {
+            $scope.formations.remove(formation.guid);
+        });
+        var deleteAssignmentGroupListener = $rootScope.$on('delete-assignmentGroup', function (e, assignmentGroup) {
+            $scope.assignmentGroups.remove(assignmentGroup.guid);
+        });
+        var associationsUpdatedListener = $rootScope.$on('associations-updated', function (e) {
+            init();
+        });
+        $scope.$on('$destroy', function () {
+            deleteScenarioListener();
+            deletePlayListener();
+            deleteFormationListener();
+            deleteAssignmentGroupListener();
+            associationsUpdatedListener();
+        });
         function init() {
             var associations = _associations.getAssociated($scope.playbook);
             if (Common.Utilities.isNotNullOrUndefined(associations)) {
                 $scope.plays = associations.plays;
                 $scope.formations = associations.formations;
                 $scope.scenarios = associations.scenarios;
+                $scope.assignmentGroups = associations.assignmentGroups;
             }
         }
-        $scope.delete = function () {
-            _playbookModals.deletePlaybook($scope.playbook);
+        $scope.createScenario = function () {
+            _playbookModals.createScenario();
+        };
+        $scope.createPlay = function () {
+            _playbookModals.createPlay();
+        };
+        $scope.createFormation = function () {
+            _playbookModals.createFormation();
+        };
+        $scope.createAssignmentGroup = function () {
+            // create default assignment group?
+            //_playbookModals.createAssignmentGroup();
+        };
+        $scope.alertDataRequired = function (dataType) {
+            if ($scope.formations.isEmpty()) {
+                alert("Please create a base formation in order to begin creating " + dataType + ".");
+            }
         };
         init();
     }]);
@@ -23805,6 +23909,22 @@ impakt.playbook.modals.service('_playbookModals', [
             });
             return d.promise;
         };
+        this.savePlaybook = function (playbook) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/playbook/modals/save-playbook/save-playbook.tpl.html', 'playbook.modals.savePlaybook.ctrl', {
+                playbook: function () {
+                    return playbook;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
         /**
          *
          * SCENARIO
@@ -24056,6 +24176,7 @@ impakt.playbook.modals.controller('playbook.modals.savePlay.ctrl', [
     'play',
     function ($scope, $uibModalInstance, _playbook, play) {
         $scope.play = play.copy();
+        var playbookAPIOptions = new Playbook.Models.PlaybookAPIOptions();
         $scope.copyPlay = false;
         $scope.copyFormation = false;
         $scope.copyPersonnel = false;
@@ -24081,24 +24202,9 @@ impakt.playbook.modals.controller('playbook.modals.savePlay.ctrl', [
         };
         $scope.ok = function () {
             var play = $scope.play;
-            // determine whether there are changes to the entity; if so,
-            // set action to overwrite, otherwise set action to nothing
-            // track options for how to send the data to the server
-            // TO-DO: create a better model for this
-            var options = {
-                play: {
-                    action: Common.API.Actions.Overwrite // keeping it simple here - always overwrite
-                },
-                formation: {
-                    action: Common.API.Actions.Overwrite // keeping it simple here - always overwrite
-                },
-                assignmentGroup: {
-                    action: play.assignmentGroup.assignments.hasElements() ?
-                        (play.assignmentGroup.key == -1 ?
-                            Common.API.Actions.Create : Common.API.Actions.Overwrite) :
-                        Common.API.Actions.Nothing // don't do anything if there are no assignments
-                }
-            };
+            playbookAPIOptions.play = Common.API.Actions.Overwrite;
+            playbookAPIOptions.formation = Common.API.Actions.Overwrite;
+            playbookAPIOptions.assignmentGroup = _playbook.getAssignmentGroupAPIActions($scope.play.assignmentGroup);
             // If any of the following entities (play, formation, assignmentGroup)
             // exist on the play and their corresponding copy boolean
             // (copyPlay, copyFormation, copyPersonnel, copyAssignmentGroup) is set to true,
@@ -24109,26 +24215,46 @@ impakt.playbook.modals.controller('playbook.modals.savePlay.ctrl', [
             if ($scope.play && $scope.copyPlay) {
                 originalPlayKey = $scope.play.key;
                 $scope.play.key = -1;
-                options.play.action = Common.API.Actions.Copy;
+                playbookAPIOptions.play = Common.API.Actions.Copy;
                 play = $scope.play;
             }
             if ($scope.play.formation && $scope.copyFormation) {
                 originalFormationKey = $scope.play.formation.key;
                 $scope.play.formation.key = -1;
-                options.formation.action = Common.API.Actions.Copy;
+                playbookAPIOptions.formation = Common.API.Actions.Copy;
                 play.formation = $scope.formation;
             }
             if ($scope.play.assignmentGroup && $scope.copyAssignmentGroup) {
                 originalAssignmentGroupKey = $scope.play.assignmentGroup.key;
                 $scope.play.assignmentGroup.key = -1;
-                options.assignmentGroup.action = Common.API.Actions.Copy;
+                playbookAPIOptions.assignmentGroup = Common.API.Actions.Copy;
                 play.assignmentGroup = $scope.assignmentGroup;
             }
-            _playbook.savePlay(play, options)
+            _playbook.savePlay(play, playbookAPIOptions)
                 .then(function (savedPlay) {
                 $uibModalInstance.close(savedPlay);
             }, function (err) {
                 console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../playbook-modals.mdl.ts' />
+impakt.playbook.modals.controller('playbook.modals.savePlaybook.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_playbook',
+    'playbook',
+    function ($scope, $uibModalInstance, _playbook, playbook) {
+        $scope.playbook = playbook;
+        $scope.ok = function () {
+            _playbook.updatePlaybook($scope.playbook)
+                .then(function (savedPlaybook) {
+                $uibModalInstance.close(savedPlaybook);
+            }, function (err) {
                 $uibModalInstance.close(err);
             });
         };
@@ -24144,14 +24270,26 @@ impakt.playbook.modals.controller('playbook.modals.saveScenario.ctrl', [
     'scenario',
     function ($scope, $uibModalInstance, _playbook, scenario) {
         $scope.scenario = scenario.copy();
+        var playPrimaryAPIOptions = new Playbook.Models.PlaybookAPIOptions();
+        var playOpponentAPIOptions = new Playbook.Models.PlaybookAPIOptions();
         $scope.ok = function () {
-            // _playbook.saveScenario(scenario)
-            // .then(function(savedScenario) {
-            // 	$uibModalInstance.close(savedScenario);
-            // }, function(err) {
-            // 	console.error(err);
-            // 	$uibModalInstance.close(err);
-            // });
+            if (Common.Utilities.isNotNullOrUndefined($scope.scenario.playPrimary)) {
+                playPrimaryAPIOptions.play = Common.API.Actions.Overwrite;
+                playPrimaryAPIOptions.formation = Common.API.Actions.Overwrite;
+                playPrimaryAPIOptions.assignmentGroup = _playbook.getAssignmentGroupAPIActions($scope.scenario.playPrimary.assignmentGroup);
+            }
+            if (Common.Utilities.isNotNullOrUndefined($scope.scenario.playOpponent)) {
+                playOpponentAPIOptions.play = Common.API.Actions.Overwrite;
+                playOpponentAPIOptions.formation = Common.API.Actions.Overwrite;
+                playOpponentAPIOptions.assignmentGroup = _playbook.getAssignmentGroupAPIActions($scope.scenario.playOpponent.assignmentGroup);
+            }
+            _playbook.saveScenario(scenario, playPrimaryAPIOptions, playOpponentAPIOptions)
+                .then(function (savedScenario) {
+                $uibModalInstance.close(savedScenario);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
             $uibModalInstance.close(null);
         };
         $scope.cancel = function () {
@@ -24187,6 +24325,7 @@ impakt.playbook.constant('PLAYBOOK', {
     GET_PLAYBOOKS: '/getPlaybooks',
     GET_PLAYBOOK: '/getPlaybook',
     DELETE_PLAYBOOK: '/deletePlaybook',
+    UPDATE_PLAYBOOK: '/updatePlaybook',
     // Formations
     CREATE_FORMATION: '/createFormation',
     GET_FORMATIONS: '/getFormations',
@@ -24350,6 +24489,40 @@ impakt.playbook.service('_playbook', [
             return d.promise;
         };
         /**
+         * Updates the given playbook for the current user
+         * @param {Common.Models.Playbook} playbook The playbook to update
+         */
+        this.updatePlaybook = function (playbook) {
+            var d = $q.defer();
+            var notification = __notifications.pending('Updating playbook "', playbook.name, '"...');
+            var playbookData = playbook.toJson();
+            __api.post(__api.path(PLAYBOOK.ENDPOINT, PLAYBOOK.UPDATE_PLAYBOOK), {
+                version: 1,
+                name: playbook.name,
+                key: playbook.key,
+                data: {
+                    version: 1,
+                    name: playbook.name,
+                    key: playbook.key,
+                    model: playbookData
+                }
+            }).then(function (response) {
+                var results = Common.Utilities.parseData(response.data.results);
+                var playbookModel = new Common.Models.PlaybookModel(Team.Enums.UnitTypes.Other);
+                if (results && results.data && results.data.model) {
+                    playbookModel.fromJson(results.data.model);
+                    // update the context
+                    impakt.context.Playbook.playbooks.set(playbookModel.guid, playbookModel);
+                }
+                notification.success('Successfully updated playbook "', playbookModel.name, '"');
+                d.resolve(playbookModel);
+            }, function (error) {
+                notification.error('Failed to update playbook "', playbook.name, '"');
+                d.reject(error);
+            });
+            return d.promise;
+        };
+        /**
          * Creates the given formation for the current user
          * @param {Common.Models.Formation} newFormation The formation to be created
          */
@@ -24410,6 +24583,7 @@ impakt.playbook.service('_playbook', [
                 // update the context
                 impakt.context.Playbook.formations.remove(formation.guid);
                 notification.success('Successfully deleted formation "', formation.name, '"');
+                $rootScope.$broadcast('delete-formation', formation);
                 d.resolve(formationKey);
             }, function (error) {
                 notification.error('Failed to delete formation "', formation.name, '"');
@@ -24630,6 +24804,7 @@ impakt.playbook.service('_playbook', [
                 // update the context
                 impakt.context.Playbook.assignmentGroups.remove(assignmentGroup.guid);
                 notification.success('Successfully deleted assignment group "', assignmentGroup.name, '"');
+                $rootScope.$broadcast('delete-assignmentGroup', assignmentGroup);
                 d.resolve(assignmentGroupKey);
             }, function (error) {
                 notification.error('Failed to delete assignment group "', assignmentGroup.name, '"');
@@ -24774,8 +24949,8 @@ impakt.playbook.service('_playbook', [
                 // 
                 function (callback) {
                     // create, copy, or overwrite?
-                    if (options.formation.action == Common.API.Actions.Create ||
-                        options.formation.action == Common.API.Actions.Copy) {
+                    if (options.formation == Common.API.Actions.Create ||
+                        options.formation == Common.API.Actions.Copy) {
                         // ensure playbook.formation has no key
                         play.formation.key = -1;
                         self.createFormation(play.formation)
@@ -24786,7 +24961,7 @@ impakt.playbook.service('_playbook', [
                             callback(err);
                         });
                     }
-                    else if (options.formation.action == Common.API.Actions.Overwrite) {
+                    else if (options.formation == Common.API.Actions.Overwrite) {
                         self.updateFormation(play.formation)
                             .then(function (updatedFormation) {
                             callback(null, play);
@@ -24813,8 +24988,8 @@ impakt.playbook.service('_playbook', [
                 function (callback) {
                     if (Common.Utilities.isNullOrUndefined(play.assignmentGroup))
                         callback(null, play);
-                    if (options.assignmentGroup.action == Common.API.Actions.Create ||
-                        options.assignmentGroup.action == Common.API.Actions.Copy) {
+                    if (options.assignmentGroup == Common.API.Actions.Create ||
+                        options.assignmentGroup == Common.API.Actions.Copy) {
                         // ensure play has no key
                         play.assignmentGroup.key = -1;
                         self.createAssignmentGroup(play.assignmentGroup)
@@ -24830,7 +25005,7 @@ impakt.playbook.service('_playbook', [
                             callback(err);
                         });
                     }
-                    else if (options.assignmentGroup.action == Common.API.Actions.Overwrite) {
+                    else if (options.assignmentGroup == Common.API.Actions.Overwrite) {
                         self.updateAssignmentGroup(play.assignmentGroup)
                             .then(function (updatedAssignmentGroup) {
                             callback(null, updatedAssignmentGroup);
@@ -24845,8 +25020,8 @@ impakt.playbook.service('_playbook', [
                 // save play
                 // save play
                 function (callback) {
-                    if (options.play.action == Common.API.Actions.Create ||
-                        options.play.action == Common.API.Actions.Copy) {
+                    if (options.play == Common.API.Actions.Create ||
+                        options.play == Common.API.Actions.Copy) {
                         // ensure play has no key
                         play.key = -1;
                         self.createPlay(play)
@@ -24856,7 +25031,7 @@ impakt.playbook.service('_playbook', [
                             callback(err);
                         });
                     }
-                    else if (options.play.action == Common.API.Actions.Overwrite) {
+                    else if (options.play == Common.API.Actions.Overwrite) {
                         self.updatePlay(play)
                             .then(function (updatedPlay) {
                             callback(null, updatedPlay);
@@ -24987,6 +25162,7 @@ impakt.playbook.service('_playbook', [
                 // update the context
                 impakt.context.Playbook.plays.remove(play.guid);
                 notification.success('Successfully deleted play "', play.name, '"');
+                $rootScope.$broadcast('delete-play', play);
                 d.resolve(play);
             }, function (error) {
                 notification.error('Failed to delete play "', play.name, '"');
@@ -25040,12 +25216,33 @@ impakt.playbook.service('_playbook', [
          * @param {Common.Models.Scenario} scenario    [description]
          * @param {any}                  options [description]
          */
-        this.saveScenario = function (scenario, options) {
+        this.saveScenario = function (scenario, playPrimaryOptions, playOpponentOptions) {
             var d = $q.defer();
             var notification = __notifications.pending('Saving scenario "', scenario.name, '"...');
             async.parallel([
                 function (callback) {
-                    callback(null, null);
+                    if (Common.Utilities.isNotNullOrUndefined(scenario.playPrimary)) {
+                        self.savePlay(scenario.playPrimary, playPrimaryOptions).then(function (results) {
+                            callback(null, results);
+                        }, function (err) {
+                            callback(err);
+                        });
+                    }
+                    else {
+                        callback(null, null);
+                    }
+                },
+                function (callback) {
+                    if (Common.Utilities.isNotNullOrUndefined(scenario.playOpponent)) {
+                        self.savePlay(scenario.playOpponent, playOpponentOptions).then(function (results) {
+                            callback(null, results);
+                        }, function (err) {
+                            callback(err);
+                        });
+                    }
+                    else {
+                        callback(null, null);
+                    }
                 }
             ], function (err, results) {
                 if (err) {
@@ -25157,6 +25354,7 @@ impakt.playbook.service('_playbook', [
                 // update the context
                 impakt.context.Playbook.scenarios.remove(scenario.guid);
                 notification.success('Successfully deleted scenario "', scenario.name, '"');
+                $rootScope.$broadcast('delete-scenario', scenario);
                 d.resolve(scenario);
             }, function (error) {
                 notification.error('Failed to delete scenario "', scenario.name, '"');
@@ -25323,6 +25521,15 @@ impakt.playbook.service('_playbook', [
             var associations = _associations.getAssociated(play.formation);
             var personnel = associations.personnel.first();
             play.personnel = personnel && personnel.copy();
+        };
+        this.getAssignmentGroupAPIActions = function (assignmentGroup) {
+            if (Common.Utilities.isNullOrUndefined(assignmentGroup) ||
+                Common.Utilities.isNullOrUndefined(assignmentGroup.assignments))
+                return Common.API.Actions.Nothing;
+            return assignmentGroup.assignments.hasElements() ?
+                (assignmentGroup.key == -1 ?
+                    Common.API.Actions.Create : Common.API.Actions.Overwrite) :
+                Common.API.Actions.Nothing; // don't do anything if there are no assignments
         };
     }]);
 /// <reference path='../playbook.mdl.ts' />

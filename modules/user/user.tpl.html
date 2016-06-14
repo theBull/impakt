@@ -1,6 +1,6 @@
 
 <!-- User template -->
-<div id='main-profile-controls' class='col font-white' 
+<div id='main-profile-controls' class='col ' 
 		ng-controller='impakt.user.ctrl'>
 		
 		<!-- Profile Image -->
@@ -25,7 +25,6 @@
 				<select ng-options='organization as organization.name for organization in organizations.toArray()' 
 					ng-model='selectedOrganization'
 					ng-change='selectOrganization()'>
-
 				</select>
 			</div>
 
