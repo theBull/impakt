@@ -1,0 +1,54 @@
+IMPAKT BETA v0.1.14 RELEASE
+
+* Fixes game item title overflow
+* Applied standard browser > drill down > editor UX flow to Playbook Module
+* Added Playbook API functionality
+* Fixes bugs where multiple dropdown lists were opening simultaneously in the playbook editor
+* Dynamic Configuration changes, V2
+* functionality for popouts in playbook editor
+* Intermediate checkin for popout directive including single-popout toggling even when there are multiple popouts; click the popout toggle to open the popout, and when clicking the toggle for other popouts, the currently opened popout will close and the clicked popout will open. 
+* filters collection items with given predicate
+* re-filters items when base data changes
+* UI updates
+* displays correct label for popouts
+* Removing paper class from the Playbook editor. It causes too much unnecessary separation of code between the Canvas to the Field. 
+* I’ve folded all Paper methods and properties into Canvas, and Editor/Preview Paper into Editor/Preview Canvas accordingly.
+* Playbook editor functionality updates
+* refactor playbook-editor-canvas code to move canvas controller into directive and remove the separate controller code
+* refactored playbook editor data “applicator” logic into its own module for better handling
+* applicator updates
+* Cleaned up some code for Actionable objects
+* Updates to Field layers and general field framework improvements
+* Fixes bug where Assignment/Route layers aren’t getting added to the field
+* Fixes bug where player layers aren’t getting added to the field
+* Scenario preview updates
+* Formation preview updates
+* Play preview updates
+* Added listener logic to Modifiable objects
+* fixed bug where assignments weren’t moving when formation was getting applied
+* fixed bug where assignment/routes weren’t getting added to the field layers
+* fixed bug where layers were continually added to the field on each load, rather than being cleared first
+* fixed bug where input text was still populated in the applicator popouts
+* fixed bug where applicator popouts weren’t closing when clicking on the open text input
+* UI Updates
+* application initialization performance improvements
+* (C)R(U)D improvements for entities where modifications listener is disabled during initialization
+* deprecated playbook editor tabs service and repointed methods to official playbook editor service methods
+* UI updates for the applicator
+* functionality updates for the applicator
+* Fixes https://github.com/theBull/impakt/issues/268
+* Fixes a syntax error in play-preview
+* Adds a ‘no-personnel’ type warning, preventing user from creating play without a base personnel
+* fixes bug where canvas/field ready events were not triggering properly
+* fixes bug where changing tabs doesn’t change data in the applicator
+* fixes component loading bugs
+* fixes bug where formation name isn’t displaying in applicator
+* Handles no scenario loaded
+* Handles no data in specific popouts with message
+* UI lag (still needs to be fixed) where the data doesn’t load into the applicator some times.
+* Made UI updates for better screen visibility.
+* Increased visibility of sidelines in preview images
+* increased overall UI visibility
+* Fixed a bug where the routes aren’t added to the assignment/player layer when initially drawing, preventing the route from being cleared when navigating to a different tab.
+* Fixed a bug where applyAssignment functionality wasn’t working properly
+* Fixed a bug where opening too many tabs forces the tabs to squeeze and hide the close button; the tabs now wrap to a new row
