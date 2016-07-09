@@ -17619,7 +17619,7 @@ impakt.common.ui.controller('scenarioPreview.ctrl', [
                          */
                         $timeout(function () {
                             if ($scope.previewCanvas) {
-                                $scope.previewcanvas.setListener('onready', function () {
+                                $scope.previewCanvas.setListener('onready', function () {
                                     var scrollTop = $scope.previewCanvas.field.getLOSAbsolute()
                                         - ($scope.$element.height() / 2);
                                     $scope.$element.scrollTop(scrollTop);
@@ -23839,15 +23839,13 @@ impakt.playbook.modals.controller('playbook.modals.createScenario.ctrl', [
 impakt.playbook.modals.controller('playbook.modals.deleteAssignmentGroup.ctrl', [
     '$scope',
     '$uibModalInstance',
-    '_associations',
     '_playbook',
     'assignmentGroup',
-    function ($scope, $uibModalInstance, _associations, _playbook, assignmentGroup) {
+    function ($scope, $uibModalInstance, _playbook, assignmentGroup) {
         $scope.assignmentGroup = assignmentGroup;
         $scope.ok = function () {
             _playbook.deleteAssignmentGroup($scope.assignmentGroup)
                 .then(function (results) {
-                _associations.deleteAssociations($scope.assignmentGroup.associationKey);
                 $uibModalInstance.close(results);
             }, function (err) {
                 console.error(err);
@@ -23862,15 +23860,13 @@ impakt.playbook.modals.controller('playbook.modals.deleteAssignmentGroup.ctrl', 
 impakt.playbook.modals.controller('playbook.modals.deleteFormation.ctrl', [
     '$scope',
     '$uibModalInstance',
-    '_associations',
     '_playbook',
     'formation',
-    function ($scope, $uibModalInstance, _associations, _playbook, formation) {
+    function ($scope, $uibModalInstance, _playbook, formation) {
         $scope.formation = formation;
         $scope.ok = function () {
             _playbook.deleteFormation($scope.formation)
                 .then(function (results) {
-                _associations.deleteAssociations($scope.formation.associationKey);
                 $uibModalInstance.close(results);
             }, function (err) {
                 console.error(err);
@@ -23883,7 +23879,10 @@ impakt.playbook.modals.controller('playbook.modals.deleteFormation.ctrl', [
     }]);
 /// <reference path='../playbook-modals.mdl.ts' />
 impakt.playbook.modals.controller('playbook.modals.deletePlay.ctrl', [
-    '$scope', '$uibModalInstance', '_playbook', 'play',
+    '$scope',
+    '$uibModalInstance',
+    '_playbook',
+    'play',
     function ($scope, $uibModalInstance, _playbook, play) {
         $scope.play = play;
         $scope.ok = function () {
@@ -24049,9 +24048,9 @@ impakt.playbook.modals.service('_playbookModals', [
             });
             return d.promise;
         };
-        this.savePlaybook = function (playbook) {
+        this.updatePlaybook = function (playbook) {
             var d = $q.defer();
-            var modalInstance = __modals.open('', 'modules/playbook/modals/save-playbook/save-playbook.tpl.html', 'playbook.modals.savePlaybook.ctrl', {
+            var modalInstance = __modals.open('', 'modules/playbook/modals/update-playbook/update-playbook.tpl.html', 'playbook.modals.updatePlaybook.ctrl', {
                 playbook: function () {
                     return playbook;
                 }
@@ -24115,6 +24114,22 @@ impakt.playbook.modals.service('_playbookModals', [
             });
             return d.promise;
         };
+        this.updateScenario = function (scenario) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/playbook/modals/update-scenario/update-scenario.tpl.html', 'playbook.modals.updateScenario.ctrl', {
+                scenario: function () {
+                    return scenario;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
         /**
          *
          * PLAY
@@ -24165,6 +24180,22 @@ impakt.playbook.modals.service('_playbookModals', [
             });
             return d.promise;
         };
+        this.updatePlay = function (play) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/playbook/modals/update-play/update-play.tpl.html', 'playbook.modals.updatePlay.ctrl', {
+                play: function () {
+                    return play;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                console.log(results);
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
         /**
          *
          * FORMATION
@@ -24198,8 +24229,22 @@ impakt.playbook.modals.service('_playbookModals', [
         };
         this.deleteFormation = function (formation) {
             var d = $q.defer();
-            console.log('delete formation');
             var modalInstance = __modals.open('', 'modules/playbook/modals/delete-formation/delete-formation.tpl.html', 'playbook.modals.deleteFormation.ctrl', {
+                formation: function () {
+                    return formation;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.updateFormation = function (formation) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/playbook/modals/update-formation/update-formation.tpl.html', 'playbook.modals.updateFormation.ctrl', {
                 formation: function () {
                     return formation;
                 }
@@ -24215,6 +24260,21 @@ impakt.playbook.modals.service('_playbookModals', [
         this.deleteAssignmentGroup = function (assignmentGroup) {
             var d = $q.defer();
             var modalInstance = __modals.open('', 'modules/playbook/modals/delete-assignmentGroup/delete-assignmentGroup.tpl.html', 'playbook.modals.deleteAssignmentGroup.ctrl', {
+                assignmentGroup: function () {
+                    return assignmentGroup;
+                }
+            });
+            modalInstance.result.then(function (results) {
+                d.resolve();
+            }, function (results) {
+                console.log('dismissed');
+                d.reject();
+            });
+            return d.promise;
+        };
+        this.updateAssignmentGroup = function (assignmentGroup) {
+            var d = $q.defer();
+            var modalInstance = __modals.open('', 'modules/playbook/modals/update-assignmentGroup/update-assignmentGroup.tpl.html', 'playbook.modals.updateAssignmentGroup.ctrl', {
                 assignmentGroup: function () {
                     return assignmentGroup;
                 }
@@ -24383,26 +24443,6 @@ impakt.playbook.modals.controller('playbook.modals.savePlay.ctrl', [
         };
     }]);
 /// <reference path='../playbook-modals.mdl.ts' />
-impakt.playbook.modals.controller('playbook.modals.savePlaybook.ctrl', [
-    '$scope',
-    '$uibModalInstance',
-    '_playbook',
-    'playbook',
-    function ($scope, $uibModalInstance, _playbook, playbook) {
-        $scope.playbook = playbook;
-        $scope.ok = function () {
-            _playbook.updatePlaybook($scope.playbook)
-                .then(function (savedPlaybook) {
-                $uibModalInstance.close(savedPlaybook);
-            }, function (err) {
-                $uibModalInstance.close(err);
-            });
-        };
-        $scope.cancel = function () {
-            $uibModalInstance.dismiss();
-        };
-    }]);
-/// <reference path='../playbook-modals.mdl.ts' />
 impakt.playbook.modals.controller('playbook.modals.saveScenario.ctrl', [
     '$scope',
     '$uibModalInstance',
@@ -24431,6 +24471,110 @@ impakt.playbook.modals.controller('playbook.modals.saveScenario.ctrl', [
                 $uibModalInstance.close(err);
             });
             $uibModalInstance.close(null);
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../playbook-modals.mdl.ts' />
+impakt.playbook.modals.controller('playbook.modals.updateAssignmentGroup.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_playbook',
+    'assignmentGroup',
+    function ($scope, $uibModalInstance, _playbook, assignmentGroup) {
+        $scope.assignmentGroup = assignmentGroup;
+        $scope.ok = function () {
+            _playbook.updateAssignmentGroup($scope.assignmentGroup)
+                .then(function (results) {
+                $uibModalInstance.close(results);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../playbook-modals.mdl.ts' />
+impakt.playbook.modals.controller('playbook.modals.updateFormation.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_playbook',
+    'formation',
+    function ($scope, $uibModalInstance, _playbook, formation) {
+        $scope.formation = formation;
+        $scope.ok = function () {
+            _playbook.updateFormation($scope.formation)
+                .then(function (results) {
+                $uibModalInstance.close(results);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../playbook-modals.mdl.ts' />
+impakt.playbook.modals.controller('playbook.modals.updatePlay.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_playbook',
+    'play',
+    function ($scope, $uibModalInstance, _playbook, play) {
+        $scope.play = play;
+        $scope.ok = function () {
+            _playbook.updatePlay($scope.play)
+                .then(function (results) {
+                $uibModalInstance.close(results);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../playbook-modals.mdl.ts' />
+impakt.playbook.modals.controller('playbook.modals.updatePlaybook.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_playbook',
+    'playbook',
+    function ($scope, $uibModalInstance, _playbook, playbook) {
+        $scope.playbook = playbook;
+        $scope.ok = function () {
+            _playbook.updatePlaybook($scope.playbook)
+                .then(function (savedPlaybook) {
+                $uibModalInstance.close(savedPlaybook);
+            }, function (err) {
+                $uibModalInstance.close(err);
+            });
+        };
+        $scope.cancel = function () {
+            $uibModalInstance.dismiss();
+        };
+    }]);
+/// <reference path='../playbook-modals.mdl.ts' />
+impakt.playbook.modals.controller('playbook.modals.updateScenario.ctrl', [
+    '$scope',
+    '$uibModalInstance',
+    '_playbook',
+    'scenario',
+    function ($scope, $uibModalInstance, _playbook, scenario) {
+        $scope.scenario = scenario;
+        $scope.ok = function () {
+            _playbook.updateScenario($scope.scenario)
+                .then(function (results) {
+                $uibModalInstance.close(results);
+            }, function (err) {
+                console.error(err);
+                $uibModalInstance.close(err);
+            });
         };
         $scope.cancel = function () {
             $uibModalInstance.dismiss();
@@ -24621,6 +24765,7 @@ impakt.playbook.service('_playbook', [
                 // update the context
                 impakt.context.Playbook.playbooks.remove(playbook.guid);
                 notification.success('Deleted playbook "', playbook.name, '"');
+                _associations.deleteAssociations(playbook.associationKey);
                 d.resolve(playbook);
             }, function (error) {
                 notification.error('Failed to delete playbook "', playbook.name, '"');
@@ -24724,6 +24869,7 @@ impakt.playbook.service('_playbook', [
                 impakt.context.Playbook.formations.remove(formation.guid);
                 notification.success('Successfully deleted formation "', formation.name, '"');
                 $rootScope.$broadcast('delete-formation', formation);
+                _associations.deleteAssociations(formation.associationKey);
                 d.resolve(formationKey);
             }, function (error) {
                 notification.error('Failed to delete formation "', formation.name, '"');
@@ -24946,6 +25092,7 @@ impakt.playbook.service('_playbook', [
                 impakt.context.Playbook.assignmentGroups.remove(assignmentGroup.guid);
                 notification.success('Successfully deleted assignment group "', assignmentGroup.name, '"');
                 $rootScope.$broadcast('delete-assignmentGroup', assignmentGroup);
+                _associations.deleteAssociations(assignmentGroup.associationKey);
                 d.resolve(assignmentGroupKey);
             }, function (error) {
                 notification.error('Failed to delete assignment group "', assignmentGroup.name, '"');
@@ -25304,6 +25451,7 @@ impakt.playbook.service('_playbook', [
                 impakt.context.Playbook.plays.remove(play.guid);
                 notification.success('Successfully deleted play "', play.name, '"');
                 $rootScope.$broadcast('delete-play', play);
+                _associations.deleteAssociations(play.associationKey);
                 d.resolve(play);
             }, function (error) {
                 notification.error('Failed to delete play "', play.name, '"');
@@ -25422,7 +25570,7 @@ impakt.playbook.service('_playbook', [
                 if (results && results.data && results.data.scenario) {
                     scenarioModel.fromJson(results.data.scenario);
                     // update the context
-                    impakt.context.Playbook.scenario.set(scenarioModel.guid, scenarioModel);
+                    impakt.context.Playbook.scenarios.set(scenarioModel.guid, scenarioModel);
                 }
                 notification.success('Successfully updated scenario "', scenarioModel.name, '"');
                 d.resolve(scenarioModel);
@@ -25496,6 +25644,7 @@ impakt.playbook.service('_playbook', [
                 impakt.context.Playbook.scenarios.remove(scenario.guid);
                 notification.success('Successfully deleted scenario "', scenario.name, '"');
                 $rootScope.$broadcast('delete-scenario', scenario);
+                _associations.deleteAssociations(scenario.associationKey);
                 d.resolve(scenario);
             }, function (error) {
                 notification.error('Failed to delete scenario "', scenario.name, '"');
@@ -25614,15 +25763,15 @@ impakt.playbook.service('_playbook', [
             var d = $q.defer();
             switch (entity.impaktDataType) {
                 case Common.Enums.ImpaktDataTypes.Playbook:
-                    return _playbookModals.savePlaybook(entity);
+                    return _playbookModals.updatePlaybook(entity);
                 case Common.Enums.ImpaktDataTypes.Play:
-                    return _playbookModals.savePlay(entity);
+                    return _playbookModals.updatePlay(entity);
                 case Common.Enums.ImpaktDataTypes.Formation:
-                    return _playbookModals.saveFormation(entity);
+                    return _playbookModals.updateFormation(entity);
                 case Common.Enums.ImpaktDataTypes.AssignmentGroup:
-                    return _playbookModals.saveAssignmentGroup(entity);
+                    return _playbookModals.updateAssignmentGroup(entity);
                 case Common.Enums.ImpaktDataTypes.Scenario:
-                    return _playbookModals.saveScenario(entity);
+                    return _playbookModals.updateScenario(entity);
                 default:
                     d.reject(new Error('_playbook deleteEntityByType: impaktDataType not supported'));
                     break;

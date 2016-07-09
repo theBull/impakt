@@ -226,13 +226,14 @@ declare module Common.Interfaces {
     }
 }
 declare module Common.Interfaces {
-    interface IPlay extends Common.Interfaces.IActionable {
+    interface IPlay extends Common.Interfaces.IActionable, Common.Interfaces.IAssociable {
         playType: Playbook.Enums.PlayTypes;
         unitType: Team.Enums.UnitTypes;
         assignmentGroup: Common.Models.AssignmentGroup;
         formation: Common.Models.Formation;
         personnel: Team.Models.Personnel;
         name: string;
+        key: number;
         setField(field: Common.Interfaces.IField): void;
         copy(newElement?: Common.Interfaces.IPlay): Common.Interfaces.IPlay;
     }

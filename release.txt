@@ -1,3 +1,12 @@
+IMPAKT BETA v0.1.15 RELEASE
+* fixes a syntax bug in update scenario
+* Hides Unit type designation from playbook
+* Added ‘update’ methods and dialogs for Playbook, Scenario, Play,
+Formation, and Assignment Group
+* Fixes bug in syntax error for scenario-preview/ create scenario dialog
+* Merge conflicts
+
+
 IMPAKT BETA v0.1.14 RELEASE
 
 * Fixes game item title overflow

@@ -1,13 +1,16 @@
 /// <reference path='../playbook-modals.mdl.ts' />
  
-impakt.playbook.modals.controller('playbook.modals.deletePlay.ctrl', 
-[
-'$scope', '$uibModalInstance', '_playbook', 'play',
+impakt.playbook.modals.controller('playbook.modals.deletePlay.ctrl', [
+'$scope', 
+'$uibModalInstance', 
+'_playbook', 
+'play',
 function(
 	$scope: any, 
 	$uibModalInstance: any, 
 	_playbook: any, 
-	play: any) {
+	play: any
+) {
 
 	$scope.play = play;
 

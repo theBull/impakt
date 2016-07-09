@@ -82,7 +82,7 @@ function(
 					 */
 					$timeout(function() {
 						if($scope.previewCanvas) {
-							$scope.previewcanvas.setListener('onready', function() {
+							$scope.previewCanvas.setListener('onready', function() {
 								let scrollTop = $scope.previewCanvas.field.getLOSAbsolute()
 									- ($scope.$element.height() / 2);
 								$scope.$element.scrollTop(scrollTop);

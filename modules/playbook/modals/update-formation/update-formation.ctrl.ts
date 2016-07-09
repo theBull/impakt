@@ -1,21 +1,22 @@
 /// <reference path='../playbook-modals.mdl.ts' />
  
-impakt.playbook.modals.controller('playbook.modals.deleteAssignmentGroup.ctrl', 
+impakt.playbook.modals.controller('playbook.modals.updateFormation.ctrl', 
 [
 '$scope', 
 '$uibModalInstance', 
 '_playbook', 
-'assignmentGroup',
+'formation',
 function(
 	$scope: any, 
 	$uibModalInstance: any, 
 	_playbook: any, 
-	assignmentGroup: any) {
+	formation: any
+) {
 
-	$scope.assignmentGroup = assignmentGroup;
+	$scope.formation = formation;
 
 	$scope.ok = function () {
-		_playbook.deleteAssignmentGroup($scope.assignmentGroup)
+		_playbook.updateFormation($scope.formation)
 		.then(function(results) {
 			$uibModalInstance.close(results);
 		}, function(err) {

@@ -1,6 +1,6 @@
 /// <reference path='../playbook-modals.mdl.ts' />
 
-impakt.playbook.modals.controller('playbook.modals.savePlaybook.ctrl', [
+impakt.playbook.modals.controller('playbook.modals.updatePlaybook.ctrl', [
 '$scope',
 '$uibModalInstance',
 '_playbook',

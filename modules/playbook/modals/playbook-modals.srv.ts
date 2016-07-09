@@ -73,13 +73,13 @@ function($q: any, __modals: any) {
 		});
 		return d.promise;
 	}
-	this.savePlaybook = function(playbook: Common.Models.PlaybookModel) {
+	this.updatePlaybook = function(playbook: Common.Models.PlaybookModel) {
 		let d = $q.defer();
 		
 		let modalInstance = __modals.open(
 			'',
-			'modules/playbook/modals/save-playbook/save-playbook.tpl.html',
-			'playbook.modals.savePlaybook.ctrl',
+			'modules/playbook/modals/update-playbook/update-playbook.tpl.html',
+			'playbook.modals.updatePlaybook.ctrl',
 			{
 				playbook: function() {
 					return playbook;
@@ -170,6 +170,29 @@ function($q: any, __modals: any) {
 
 		return d.promise;
 	}
+	this.updateScenario = function(scenario: Common.Models.Scenario) {
+		let d = $q.defer();
+		let modalInstance = __modals.open(
+			'',
+			'modules/playbook/modals/update-scenario/update-scenario.tpl.html',
+			'playbook.modals.updateScenario.ctrl',
+			{
+				scenario: function() {
+					return scenario;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(results) {
+			console.log(results);
+			d.resolve();
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+
+		return d.promise;
+	}
 
 	/**
 	 * 
@@ -196,7 +219,7 @@ function($q: any, __modals: any) {
 
 		return d.promise;
 	}
-	this.savePlay = function(play: Common.Models.Play) {
+	this.savePlay = function(play: Common.Interfaces.IPlay) {
 		let d = $q.defer();
 		
 		let modalInstance = __modals.open(
@@ -220,12 +243,35 @@ function($q: any, __modals: any) {
 
 		return d.promise;
 	}
-	this.deletePlay = function(play: Common.Models.Play) {
+	this.deletePlay = function(play: Common.Interfaces.IPlay) {
 		let d = $q.defer();
 		let modalInstance = __modals.open(
 			'',
 			'modules/playbook/modals/delete-play/delete-play.tpl.html',
 			'playbook.modals.deletePlay.ctrl',
+			{
+				play: function() {
+					return play;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(results) {
+			console.log(results);
+			d.resolve();
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+
+		return d.promise;
+	}
+	this.updatePlay = function(play: Common.Interfaces.IPlay) {
+		let d = $q.defer();
+		let modalInstance = __modals.open(
+			'',
+			'modules/playbook/modals/update-play/update-play.tpl.html',
+			'playbook.modals.updatePlay.ctrl',
 			{
 				play: function() {
 					return play;
@@ -293,11 +339,32 @@ function($q: any, __modals: any) {
 	}
 	this.deleteFormation = function(formation: Common.Models.Formation) {
 		let d = $q.defer();
-		console.log('delete formation');
 		let modalInstance = __modals.open(
 			'',
 			'modules/playbook/modals/delete-formation/delete-formation.tpl.html',
 			'playbook.modals.deleteFormation.ctrl',
+			{
+				formation: function() {
+					return formation;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(results) {
+			d.resolve();			
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+
+		return d.promise;
+	}
+	this.updateFormation = function(formation: Common.Models.Formation) {
+		let d = $q.defer();
+		let modalInstance = __modals.open(
+			'',
+			'modules/playbook/modals/update-formation/update-formation.tpl.html',
+			'playbook.modals.updateFormation.ctrl',
 			{
 				formation: function() {
 					return formation;
@@ -323,6 +390,29 @@ function($q: any, __modals: any) {
 			'',
 			'modules/playbook/modals/delete-assignmentGroup/delete-assignmentGroup.tpl.html',
 			'playbook.modals.deleteAssignmentGroup.ctrl',
+			{
+				assignmentGroup: function() {
+					return assignmentGroup;
+				}
+			}
+		);
+
+		modalInstance.result.then(function(results) {
+			d.resolve();			
+		}, function(results) {
+			console.log('dismissed');
+			d.reject();
+		});
+
+		return d.promise;
+	}
+	this.updateAssignmentGroup = function(assignmentGroup: Common.Models.AssignmentGroup) {
+		let d = $q.defer();
+
+		let modalInstance = __modals.open(
+			'',
+			'modules/playbook/modals/update-assignmentGroup/update-assignmentGroup.tpl.html',
+			'playbook.modals.updateAssignmentGroup.ctrl',
 			{
 				assignmentGroup: function() {
 					return assignmentGroup;

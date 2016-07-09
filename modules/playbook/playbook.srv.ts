@@ -183,6 +183,8 @@ function(
 
             notification.success('Deleted playbook "', playbook.name, '"');
 
+            _associations.deleteAssociations(playbook.associationKey);
+
             d.resolve(playbook);
         }, function(error: any) {
             notification.error('Failed to delete playbook "', playbook.name, '"');
@@ -335,6 +337,8 @@ function(
                 );
 
                 $rootScope.$broadcast('delete-formation', formation);
+
+                _associations.deleteAssociations(formation.associationKey);
                 
                 d.resolve(formationKey);
             }, function(error: any) {
@@ -647,6 +651,8 @@ function(
                 );
 
                 $rootScope.$broadcast('delete-assignmentGroup', assignmentGroup);
+
+                _associations.deleteAssociations(assignmentGroup.associationKey);
 
                 d.resolve(assignmentGroupKey);
             }, function(error: any) {
@@ -980,7 +986,7 @@ function(
      * Updates the given play for the current user
      * @param {Common.Models.Play} play The play to update
      */
-    this.updatePlay = function(play: Common.Models.Play) {
+    this.updatePlay = function(play: Common.Interfaces.IPlay) {
         var d = $q.defer();
 
         let notification = __notifications.pending('Updating play "', play.name, '"...');
@@ -1131,6 +1137,8 @@ function(
                 );
 
                 $rootScope.$broadcast('delete-play', play);
+
+                _associations.deleteAssociations(play.associationKey);
 
                 d.resolve(play);
             }, function(error: any) {
@@ -1291,7 +1299,7 @@ function(
                 scenarioModel.fromJson(results.data.scenario);
 
                 // update the context
-                impakt.context.Playbook.scenario.set(scenarioModel.guid, scenarioModel);
+                impakt.context.Playbook.scenarios.set(scenarioModel.guid, scenarioModel);
             }
 
             notification.success('Successfully updated scenario "', scenarioModel.name, '"');
@@ -1403,6 +1411,8 @@ function(
                 );
 
                 $rootScope.$broadcast('delete-scenario', scenario);
+
+                _associations.deleteAssociations(scenario.associationKey);
 
                 d.resolve(scenario);
             }, function(error: any) {
@@ -1539,15 +1549,15 @@ function(
 
         switch(entity.impaktDataType) {
             case Common.Enums.ImpaktDataTypes.Playbook:
-                return _playbookModals.savePlaybook(entity);
+                return _playbookModals.updatePlaybook(entity);
             case Common.Enums.ImpaktDataTypes.Play:
-                return _playbookModals.savePlay(entity);
+                return _playbookModals.updatePlay(entity);
             case Common.Enums.ImpaktDataTypes.Formation:
-                return _playbookModals.saveFormation(entity);
+                return _playbookModals.updateFormation(entity);
             case Common.Enums.ImpaktDataTypes.AssignmentGroup:
-                return _playbookModals.saveAssignmentGroup(entity);
+                return _playbookModals.updateAssignmentGroup(entity);
             case Common.Enums.ImpaktDataTypes.Scenario:
-                return _playbookModals.saveScenario(entity);
+                return _playbookModals.updateScenario(entity);
             default:
                 d.reject(new Error('_playbook deleteEntityByType: impaktDataType not supported'));
                 break;
