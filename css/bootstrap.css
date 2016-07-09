@@ -4994,7 +4994,7 @@ button.close {
 }
 .modal-content {
   position: relative;
-  background-color: rgba(0, 0, 0, 0.9);
+  background-color: rgba(40, 40, 45, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 0;
   color: #fff;

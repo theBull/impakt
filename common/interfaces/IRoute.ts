@@ -8,7 +8,7 @@ module Common.Interfaces {
 		player: Common.Interfaces.IPlayer;
 		field: Common.Interfaces.IField;
 		layer: Common.Models.Layer;
-		paper: Common.Interfaces.IPaper;
+		canvas: Common.Interfaces.ICanvas;
 		grid: Common.Interfaces.IGrid;
         nodes: Common.Models.LinkedList<Common.Interfaces.IRouteNode>;
         routePath: Common.Interfaces.IRoutePath;
@@ -34,5 +34,7 @@ module Common.Interfaces {
 			initialize: boolean, 
 			nodeArray: Common.Interfaces.IRouteNode[]
 		): string;
+		setPlacement(placement: Common.Models.Placement): void;
+		refresh(): void;
 	}
 }

@@ -6,7 +6,7 @@ body {
   font-size: 12px;
   font-weight: 200;
   letter-spacing: 1px;
-  background-color: black;
+  background-color: #a5aaa0;
   color: white;
 }
 
@@ -19,7 +19,7 @@ img.fill {
 }
 
 table, tr, td {
-  border: 1px solid rgba(150, 150, 150, 0.3);
+  border: 1px solid rgba(150, 150, 150, 0.6);
   border-collapse: collapse;
 }
 
@@ -34,25 +34,25 @@ span, strong {
 }
 
 input, input:-webkit-autofill, textarea {
-  border: 1px solid #303030;
+  border: 1px solid rgba(48, 48, 48, 0.6);
   margin-right: 1px;
   margin-bottom: 1px;
-  background-color: #202020;
+  background-color: rgba(32, 32, 32, 0.6);
   -webkit-text-fill-color: rgba(255, 255, 255, 0.9);
-  -webkit-box-shadow: 0 0 0px 1000px #202020 inset;
+  -webkit-box-shadow: 0 0 0px 1000px rgba(32, 32, 32, 0.6) inset;
   color: rgba(255, 255, 255, 0.9);
 }
 
 input:focus, textarea:focus {
   outline: 0;
-  border: 1px solid #404040;
+  border: 1px solid rgba(64, 64, 64, 0.6);
 }
 
 input[disabled], input[disabled]:-webkit-autofill, textarea[disabled], select[disabled] {
   color: #888 !important;
-  background-color: #101010 !important;
-  border: 1px solid gray;
-  -webkit-box-shadow: 0 0 0px 1000px #101010 inset;
+  background-color: rgba(16, 16, 16, 0.6) !important;
+  border: 1px solid rgba(128, 128, 128, 0.6);
+  -webkit-box-shadow: 0 0 0px 1000px rgba(16, 16, 16, 0.6) inset;
   -webkit-text-fill-color: #888 !important;
   font-weight: 200;
   -webkit-touch-callout: none;
@@ -65,8 +65,8 @@ input[disabled], input[disabled]:-webkit-autofill, textarea[disabled], select[di
 }
 
 input[type="checkbox"], input[type="radio"] {
-  background-color: #404040;
-  border-color: #707070;
+  background-color: rgba(64, 64, 64, 0.6);
+  border-color: rgba(112, 112, 112, 0.6);
   -webkit-box-shadow: none;
 }
 
@@ -88,16 +88,16 @@ label {
 select {
   font-size: 12px;
   margin: 1px;
-  border: 1px solid #303030;
+  border: 1px solid rgba(48, 48, 48, 0.6);
   outline: 0;
   height: 3em;
-  background-color: #202020;
+  background-color: rgba(32, 32, 32, 0.6);
   color: rgba(255, 255, 255, 0.9);
   width: 100%;
 }
 
 select:focus {
-  outline: 1px solid #404040;
+  outline: 1px solid rgba(64, 64, 64, 0.6);
   padding: 1px;
   height: 3em;
   margin: 1px;
@@ -190,7 +190,7 @@ details summary {
 }
 
 .shadow {
-  box-shadow: 0 0 10px black;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
 }
 
 /* UTILITY CLASSES */
@@ -231,22 +231,22 @@ details summary {
   font-size: 0.9em;
   text-align: center;
   padding: 0.25em 0.5em;
-  border: 1px solid rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(50, 50, 50, 0.5);
 }
 
 .circle-bg {
   border-radius: 50%;
   text-align: center;
   padding: 0.9em;
-  border: 1px solid rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(50, 50, 50, 0.5);
 }
 
 .black-bg, .black-bg-hover, .black-circle-bg, .black-rounded-rect-bg {
-  background-color: black;
+  background-color: rgba(0, 0, 0, 0.6);
 }
 
 .black-bg-hover:hover {
-  background-color: #101010;
+  background-color: rgba(16, 16, 16, 0.6);
 }
 
 .black-circle-bg, .black-rounded-rect-bg {
@@ -254,59 +254,59 @@ details summary {
 }
 
 .gray-bg-1, .gray-bg-1-hover {
-  background-color: #101010;
+  background-color: rgba(16, 16, 16, 0.6);
 }
 
 .gray-bg-1-hover:hover {
-  background-color: #181818;
+  background-color: rgba(24, 24, 24, 0.6);
 }
 
 .gray-bg-2, .gray-bg-2-hover {
-  background-color: #202020;
+  background-color: rgba(32, 32, 32, 0.6);
 }
 
 .gray-bg-2-hover:hover {
-  background-color: #282828;
+  background-color: rgba(40, 40, 40, 0.6);
 }
 
 .gray-bg-3, .gray-bg-3-hover {
-  background-color: #303030;
+  background-color: rgba(48, 48, 48, 0.6);
 }
 
 .gray-bg-3-hover:hover {
-  background-color: #383838;
+  background-color: rgba(56, 56, 56, 0.6);
 }
 
 .gray-bg-4, .gray-bg-4-hover {
-  background-color: #404040;
+  background-color: rgba(64, 64, 64, 0.6);
 }
 
 .gray-bg-4-hover:hover {
-  background-color: #484848;
+  background-color: rgba(72, 72, 72, 0.6);
 }
 
 .gray-bg-5, .gray-bg-5-hover {
-  background-color: #505050;
+  background-color: rgba(80, 80, 80, 0.6);
 }
 
 .gray-bg-5-hover:hover {
-  background-color: #585858;
+  background-color: rgba(88, 88, 88, 0.6);
 }
 
 .gray-bg-6, .gray-bg-6-hover {
-  background-color: #606060;
+  background-color: rgba(96, 96, 96, 0.6);
 }
 
 .gray-bg-6-hover:hover {
-  background-color: #686868;
+  background-color: rgba(104, 104, 104, 0.6);
 }
 
 .gray-bg-7, .gray-bg-7-hover {
-  background-color: gray;
+  background-color: rgba(128, 128, 128, 0.6);
 }
 
 .gray-bg-7-hover:hover {
-  background-color: #888888;
+  background-color: rgba(136, 136, 136, 0.6);
 }
 
 .black-gradient-bg {
@@ -353,11 +353,11 @@ details summary {
 }
 
 .green-bg, .green-bg-hover, .green-circle-bg, .green-rounded-rect-bg {
-  background-color: #39A017;
+  background-color: rgba(57, 160, 23, 0.6);
 }
 
 .green-bg-hover:hover {
-  background-color: #2E8212;
+  background-color: rgba(37, 140, 3, 0.6);
 }
 
 .green-circle-bg, .green-rounded-rect-bg {
@@ -405,15 +405,15 @@ details summary {
 }
 
 .light-border {
-  border: 1px solid rgba(150, 150, 150, 0.3);
+  border: 1px solid rgba(150, 150, 150, 0.6);
 }
 
 .light-border-top {
-  border-top: 1px solid rgba(150, 150, 150, 0.3);
+  border-top: 1px solid rgba(150, 150, 150, 0.6);
 }
 
 .light-border-bottom {
-  border-bottom: 1px solid rgba(150, 150, 150, 0.3);
+  border-bottom: 1px solid rgba(150, 150, 150, 0.6);
 }
 
 .light-border-bottom-red {
@@ -421,7 +421,7 @@ details summary {
 }
 
 .light-border-left {
-  border-left: 1px solid rgba(150, 150, 150, 0.3);
+  border-left: 1px solid rgba(150, 150, 150, 0.6);
 }
 
 .light-border-left-red {
@@ -429,7 +429,7 @@ details summary {
 }
 
 .light-border-right {
-  border-right: 1px solid rgba(150, 150, 150, 0.3);
+  border-right: 1px solid rgba(150, 150, 150, 0.6);
 }
 
 .light-border-right-red {
@@ -437,23 +437,23 @@ details summary {
 }
 
 .dark-border {
-  border: 1px solid rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(50, 50, 50, 0.5);
 }
 
 .dark-border-top {
-  border-top: 1px solid rgba(0, 0, 0, 0.5);
+  border-top: 1px solid rgba(50, 50, 50, 0.5);
 }
 
 .dark-border-bottom {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid rgba(50, 50, 50, 0.5);
 }
 
 .dark-border-left {
-  border-left: 1px solid rgba(0, 0, 0, 0.5);
+  border-left: 1px solid rgba(50, 50, 50, 0.5);
 }
 
 .dark-border-right {
-  border-right: 1px solid rgba(0, 0, 0, 0.5);
+  border-right: 1px solid rgba(50, 50, 50, 0.5);
 }
 
 .white-bg, .white-circle-bg {
@@ -461,7 +461,7 @@ details summary {
 }
 
 .white-circle-bg {
-  color: black;
+  color: rgba(0, 0, 0, 0.6);
 }
 
 .white-border {
@@ -493,31 +493,31 @@ details summary {
 }
 
 .gray-border {
-  border: 1px solid #303030;
+  border: 1px solid rgba(48, 48, 48, 0.6);
 }
 
 .gray-border-top {
-  border-top: 1px solid #303030;
+  border-top: 1px solid rgba(48, 48, 48, 0.6);
 }
 
 .gray-border-bottom {
-  border-bottom: 1px solid #303030;
+  border-bottom: 1px solid rgba(48, 48, 48, 0.6);
 }
 
 .gray-border-bottom-red {
-  border-bottom: 1px solid #303030;
+  border-bottom: 1px solid rgba(48, 48, 48, 0.6);
 }
 
 .gray-border-left {
-  border-left: 1px solid #303030;
+  border-left: 1px solid rgba(48, 48, 48, 0.6);
 }
 
 .gray-border-left-red {
-  border-left: 1px solid #303030;
+  border-left: 1px solid rgba(48, 48, 48, 0.6);
 }
 
 .selected-border {
-  outline: gray solid 3px;
+  outline: rgba(128, 128, 128, 0.6) solid 3px;
 }
 
 /*
@@ -815,7 +815,7 @@ expandable {
 
 .expandable-handle {
   position: absolute;
-  background-color: #303030;
+  background-color: rgba(48, 48, 48, 0.6);
   border: 1px solid #222;
 }
 
@@ -835,7 +835,7 @@ expandable {
 }
 
 .expandable-handle:hover {
-  background-color: #202020;
+  background-color: rgba(32, 32, 32, 0.6);
   box-shadow: 0 0 5px rgba(255, 255, 255, 0.15);
 }
 
@@ -939,12 +939,15 @@ div.popout {
   height: 100%;
 }
 
-div.popout button.popout-toggle {
+div.popout button.popout-toggle,
+div.popout input.popout-search {
   cursor: pointer;
   width: 100%;
   display: block;
   background: transparent;
-  padding: 0;
+  padding: 0.5em;
+  margin: 0;
+  border: none;
 }
 
 div.popout popout-contents {
@@ -1071,7 +1074,7 @@ body .popout-clickeater {
 }
 
 .playbook-editor-tab:hover {
-  background-color: #888888;
+  background-color: rgba(136, 136, 136, 0.6);
 }
 
 .playbook-editor-tab span {
@@ -1145,6 +1148,10 @@ playbook-editor-canvas svg * {
 .playbook-editor-info-container {
   margin: 1em 0 0 3em;
   width: calc(100% - 6em);
+}
+
+.playbook-editor-info-container table {
+  table-layout: fixed;
 }
 
 .playbook-editor-info-container table,

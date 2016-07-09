@@ -27,9 +27,7 @@ module Playbook.Models {
 
 			// parse route json data
 			if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
-				this.assignment.listen(false);
 				this.assignment.setRoutes(this, Common.Enums.RenderTypes.Preview);
-				this.assignment.listen(true);
 			}
 		}
 
@@ -37,7 +35,9 @@ module Playbook.Models {
 			this.icon.draw();
 			//this.personnelLabel.draw();
 
-			this.drawRoute();
+			if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+				this.assignment.draw();
+			}
 		}
 
 		public dragMove(dx: number, dy: number, posx: number, posy: number, e: any): void {
@@ -48,6 +48,15 @@ module Playbook.Models {
 		}
 		public dragEnd(e: any): void {
 			// Not implemented - preview player does not have drag functionality
+		}
+
+		public setAssignment(assignment: Common.Models.Assignment): void {
+			super.setAssignment(assignment);
+
+			if(Common.Utilities.isNotNullOrUndefined(assignment))
+				this.assignment.setRoutes(this, Common.Enums.RenderTypes.Preview);
+
+			this.setModified(true);
 		}
 	}
 }

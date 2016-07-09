@@ -1,10 +1,31 @@
-<button class='popout-toggle' ng-click='expandable.toggle()'>
-	
-	<!-- label -->
-	<p class='row'>
-		<span class='col marginRight1'>{{expandable.label}}</span>
-		<!-- direction icon -->
-		<span class='glyphicon {{expandable.handle.class}} textRight'></span>
-	</p>
+<div>
 
-</button>
+	<button class='popout-toggle pad05 gray-bg-4-hover' 
+		ng-click='toggle($event)'
+		ng-hide='searchVisible'>
+		
+		<!-- label -->
+		<p class='row' ng-class='{"font-gray": filteredCollection.isEmpty()}'>
+			<span class='col marginRight1' ng-show='filteredCollection.isEmpty()'>
+				<em>No data</em>
+			</span>
+
+			<span class='col marginRight1' ng-show='filteredCollection.hasElements()'>
+				{{expandable.label}}
+			</span>
+
+			<!-- direction icon -->
+			<span class='glyphicon {{expandable.handle.class}} textRight'></span>
+		</p>
+
+	</button>
+	
+	<input class='popout-search' 
+		type='text' 
+		ng-show='searchVisible'
+		autofocus
+		ng-model='query.text'
+		ng-click='toggle($event)'
+		ng-placeholder='filter items...' />
+
+</div>

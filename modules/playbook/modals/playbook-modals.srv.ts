@@ -267,7 +267,7 @@ function($q: any, __modals: any) {
 
 		return d.promise;
 	}
-	this.saveFormation = function(play: Common.Models.Play) {
+	this.saveFormation = function(play: Common.Interfaces.IPlay) {
 		let d = $q.defer();
 		
 		let modalInstance = __modals.open(
@@ -276,7 +276,7 @@ function($q: any, __modals: any) {
 			'playbook.modals.saveFormation.ctrl',
 			{
 				play: function() {
-				return play;
+					return play;
 				}
 			}
 		);

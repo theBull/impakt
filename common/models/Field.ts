@@ -2,17 +2,17 @@
 
 module Common.Models {
     export abstract class Field
-    extends Common.Models.Modifiable {
+    extends Common.Models.Actionable {
 
-        public paper: Common.Interfaces.IPaper;
+        public canvas: Common.Interfaces.ICanvas;
         public grid: Common.Interfaces.IGrid;
         public scenario: Common.Models.Scenario;
         public primaryPlayers: Common.Models.PlayerCollection;
         public opponentPlayers: Common.Models.PlayerCollection;
-        public selected: Common.Models.Collection<Common.Interfaces.IFieldElement>;
-        public layers: Common.Models.LayerCollection;
+        public selectedElements: Common.Models.Collection<Common.Interfaces.IFieldElement>;
+        public layer: Common.Models.Layer;
+        public state: Common.Enums.State;
         public cursorCoordinates: Common.Models.Coordinates;
-        public editorType: Playbook.Enums.EditorTypes;
 
         public ball: Common.Interfaces.IBall;
         public ground: Common.Interfaces.IGround;
@@ -27,24 +27,22 @@ module Common.Models {
         public hashmark_sideline_right: Common.Interfaces.IHashmark;
 
         constructor(
-            paper: Common.Interfaces.IPaper, 
-            scenario: Common.Models.Scenario
+            canvas: Common.Interfaces.ICanvas
         ) {
-            super();
+            super(Common.Enums.ImpaktDataTypes.Unknown);
             super.setContext(this);
             
-            this.paper = paper;
-            this.grid = this.paper.grid;
-            this.scenario = scenario;
+            this.canvas = canvas;
+            this.grid = this.canvas.grid;
+            this.scenario = null;
             this.primaryPlayers = new Common.Models.PlayerCollection();
             this.opponentPlayers = new Common.Models.PlayerCollection();
-            this.selected = new Common.Models.Collection<Common.Interfaces.IFieldElement>();
-            this.layers = new Common.Models.LayerCollection();
+            this.selectedElements = new Common.Models.Collection<Common.Interfaces.IFieldElement>();
+            this.layer = new Common.Models.Layer(this, Common.Enums.LayerTypes.Field);
             this.cursorCoordinates = new Common.Models.Coordinates(0, 0);
-            this.editorType = Playbook.Enums.EditorTypes.Any;
 
             let self = this;
-            this.selected.onModified(function() {
+            this.selectedElements.onModified(function() {
                 self.setModified(true);
             });
 
@@ -54,9 +52,6 @@ module Common.Models {
 
             this.opponentPlayers.onModified(function() {
                 self.setModified(true);
-            });
-
-            this.onModified(function() {
             });
         }
 
@@ -82,16 +77,11 @@ module Common.Models {
 
         public abstract useAssignmentTool(coords: Common.Models.Coordinates);
 
-        public registerLayer(layer: Common.Models.Layer) {
-            this.layers.add(layer);
-        }
-
         public draw(): void {
             this.ground.draw();
             this.grid.draw();
             this.los.draw();
             this.ball.draw();
-            this.drawScenario();
         }
         public clearPlayers(): void {
             this.clearPrimaryPlayers();
@@ -99,33 +89,21 @@ module Common.Models {
         }
         public clearPrimaryPlayers(): void {
             this.primaryPlayers.listen(false);
-            this.primaryPlayers.forEach(function(player, index) {
-                if (Common.Utilities.isNotNullOrUndefined(player.assignment)) {
-                    player.assignment.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
-                        route.layer.remove();
-                    });
-                }
-                player.layer.remove();
-            });
+            let self = this;
+            this.layer.removeLayerByType(Common.Enums.LayerTypes.PrimaryPlayer);
             this.primaryPlayers.removeAll();
             this.primaryPlayers.listen(true);
         }
         public clearOpponentPlayers(): void {
             this.opponentPlayers.listen(false);
-            this.opponentPlayers.forEach(function(player, index) {
-                if (Common.Utilities.isNotNullOrUndefined(player.assignment)) {
-                    player.assignment.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
-                        route.layer.remove();
-                    });
-                }
-                player.layer.remove();
-            });
+            this.layer.removeLayerByType(Common.Enums.LayerTypes.OpponentPlayer);
             this.opponentPlayers.removeAll();
             this.opponentPlayers.listen(true);
         }
         public clearScenario(): void {
             this.clearPrimaryPlay();
             this.clearOpponentPlay();
+            this.invokeListener('onclear');
         }
         public clearPrimaryPlay(): void {
             this.clearPrimaryPlayers();
@@ -134,14 +112,20 @@ module Common.Models {
             this.clearOpponentPlayers();
         }
         public drawScenario(): void {
+            
             // draw the play data onto the field
             this.scenario.draw(this);
         }
         public updateScenario(scenario: Common.Models.Scenario): void {
+            this.state = Common.Enums.State.Updating;
             this.clearScenario();
             this.scenario = scenario;
             this.drawScenario();
+            this.state = Common.Enums.State.Ready;
+            this.invokeListener('onload');
+            this.setModified(true);
         }
+
         public updatePlacements(): void {
             let self = this;
             if(Common.Utilities.isNotNullOrUndefined(this.scenario)) {
@@ -186,17 +170,32 @@ module Common.Models {
             throw new Error('field applyPrimaryPlay() not implemented');
         }
 
-        public applyPrimaryFormation(formation: Common.Models.Formation): void {
+        public applyFormation(formation: Common.Models.Formation, playType: Playbook.Enums.PlayTypes): void {
             if (Common.Utilities.isNullOrUndefined(formation) ||
-                Common.Utilities.isNullOrUndefined(this.scenario) ||
-                Common.Utilities.isNullOrUndefined(this.scenario.playPrimary))
+                Common.Utilities.isNullOrUndefined(this.scenario))
                 return;
 
-            //console.log(formation);
+            let formationCopy = formation.copy();
+            let playerCollection = null;
+            let play = null;
+            switch (playType) {
+                case Playbook.Enums.PlayTypes.Primary:
+                    playerCollection = this.primaryPlayers;
+                    play = this.scenario.playPrimary;
+                    break;
+                case Playbook.Enums.PlayTypes.Opponent:
+                    playerCollection = this.opponentPlayers;
+                    play = this.scenario.playOpponent;
+                    break;
+            }
+
+            if (!playerCollection || !play)
+                return;
+            
             // the order of placements within the formation get applied straight across
             // to the order of personnel and positions.
             let self = this;
-            this.primaryPlayers.forEach(function(player, index) {
+            playerCollection.forEach(function(player, index) {
                 // NOTE: we're not using the index from the forEach callback,
                 // because we can't assume the players collection stores the players
                 // in the order according to the player's actual index property
@@ -204,21 +203,38 @@ module Common.Models {
                 if (playerIndex < 0) {
                     throw new Error('Player must have a position index');
                 }
-                let newPlacement = formation.placements.getIndex(playerIndex);
+                let newPlacement = formationCopy.placements.getIndex(playerIndex);
                 if (!newPlacement) {
                     throw new Error('Updated player placement is invalid');
                 }
+
                 player.setPlacement(newPlacement);
                 player.draw();
             });
+
+            // Flip placement for opponent formations
+            if (playType == Playbook.Enums.PlayTypes.Opponent)
+                formationCopy.placements.flip();
             
-            this.scenario.playPrimary.setFormation(formation);
+            play.setFormation(formationCopy);
         }
 
-        public applyPrimaryAssignmentGroup(assignmentGroup: Common.Models.AssignmentGroup): void {
+        public applyAssignmentGroup(assignmentGroup: Common.Models.AssignmentGroup, playType: Playbook.Enums.PlayTypes): void {
             if (Common.Utilities.isNullOrUndefined(assignmentGroup) ||
-                Common.Utilities.isNullOrUndefined(this.scenario) ||
-                Common.Utilities.isNullOrUndefined(this.scenario.playPrimary))
+                Common.Utilities.isNullOrUndefined(this.scenario))
+                return;
+
+            let play = null;
+            switch (playType) {
+                case Playbook.Enums.PlayTypes.Primary:
+                    play = this.scenario.playPrimary;
+                    break;
+                case Playbook.Enums.PlayTypes.Opponent:
+                    play = this.scenario.playOpponent;
+                    break;
+            }
+
+            if (!play)
                 return;
 
             let self = this;
@@ -227,37 +243,59 @@ module Common.Models {
                     if (Common.Utilities.isNullOrUndefined(assignment))
                         return;
                     
-                    let player = self.getPrimaryPlayerWithPositionIndex(assignment.positionIndex);
+                    let player = null;
+                    switch (playType) {
+                        case Playbook.Enums.PlayTypes.Primary:
+                            player = self.getPrimaryPlayerWithPositionIndex(assignment.positionIndex);
+                            break;
+                        case Playbook.Enums.PlayTypes.Opponent:
+                            player = self.getOpponentPlayerWithPositionIndex(assignment.positionIndex);
+                            break;
+                    }
                     if (player) {
-                        assignment.setContext(player);
-                        player.assignment.remove();
-                        player.assignment = assignment;
+                        player.setAssignment(assignment);
                         player.draw();
                     }
                 });
 
-                this.scenario.playPrimary.setAssignmentGroup(assignmentGroup);
+                play.setAssignmentGroup(assignmentGroup);
             }
         }
-        public applyPrimaryPersonnel(personnel: Team.Models.Personnel): void {
+
+        public applyPersonnel(personnel: Team.Models.Personnel, playType: Playbook.Enums.PlayTypes): void {
             if (Common.Utilities.isNullOrUndefined(personnel) ||
-                Common.Utilities.isNullOrUndefined(this.scenario) ||
-                Common.Utilities.isNullOrUndefined(this.scenario.playPrimary))
+                Common.Utilities.isNullOrUndefined(this.scenario))
+                return;
+
+            let playerCollection = null;
+            let play = null;
+            switch (playType) {
+                case Playbook.Enums.PlayTypes.Primary:
+                    playerCollection = this.primaryPlayers;
+                    play = this.scenario.playPrimary;
+                    break;
+                case Playbook.Enums.PlayTypes.Opponent:
+                    playerCollection = this.opponentPlayers;
+                    play = this.scenario.playOpponent;
+                    break;
+            }
+
+            if (!playerCollection || !play)
                 return;
 
             let self = this;
             if (personnel && personnel.hasPositions()) {
-                this.primaryPlayers.forEach(function(player, index) {
+                playerCollection.forEach(function(player, index) {
                     let newPosition = personnel.positions.getIndex(index);
-                    if (self.scenario.playPrimary.personnel &&
-                        self.scenario.playPrimary.personnel.hasPositions()) {
-                        self.scenario.playPrimary.personnel.positions.getIndex(index).fromJson(newPosition.toJson());
+                    if (play.personnel &&
+                        play.personnel.hasPositions()) {
+                        play.personnel.positions.getIndex(index).fromJson(newPosition.toJson());
                     }
                     player.position.fromJson(newPosition.toJson());
                     player.draw();
                 });
                 
-                this.scenario.playPrimary.setPersonnel(personnel);
+                play.setPersonnel(personnel);
             }
             else {
                 let details = personnel ? '# positions: ' + personnel.positions.size() : 'Personnel is undefined.';
@@ -268,37 +306,21 @@ module Common.Models {
                 ].join(''));
             }
         }
-
-        public applyPrimaryUnitType(unitType: Team.Enums.UnitTypes): void {
-            if (Common.Utilities.isNullOrUndefined(unitType) ||
-                Common.Utilities.isNullOrUndefined(this.scenario) ||
-                Common.Utilities.isNullOrUndefined(this.scenario.playPrimary))
-                return;
-            
-
-            this.scenario.playPrimary.setUnitType(unitType);
-            
-            if(Common.Utilities.isNotNullOrUndefined(this.scenario.playOpponent))
-                this.scenario.playOpponent.setUnitType(this.scenario.playPrimary.getOpposingUnitType());
-            
-            this.clearPlayers();
-            this.drawScenario();
-        }
         
         public deselectAll(): void {
-            if (this.selected.isEmpty())
+            if (this.selectedElements.isEmpty())
                 return;
             
-            this.selected.forEach(function(element: Common.Interfaces.IFieldElement, index: number) {
+            this.selectedElements.forEach(function(element: Common.Interfaces.IFieldElement, index: number) {
                 element.deselect();
             });
-            this.selected.removeAll();
+            this.selectedElements.removeAll();
         }
 
         public getSelectedByLayerType(layerType: Common.Enums.LayerTypes)
         : Common.Models.Collection<Common.Interfaces.IFieldElement> {
             let collection = new Common.Models.Collection<Common.Interfaces.IFieldElement>();
-            this.selected.forEach(function(selectedElement: Common.Interfaces.IFieldElement, index: number) {
+            this.selectedElements.forEach(function(selectedElement: Common.Interfaces.IFieldElement, index: number) {
                 if(selectedElement.layer.type == layerType) {
                     collection.add(selectedElement);
                 }
@@ -307,7 +329,7 @@ module Common.Models {
         }
 
         public toggleSelectionByLayerType(layerType: Common.Enums.LayerTypes): void {
-            let selectedElements = this.selected.filter(
+            let selectedElements = this.selectedElements.filter(
                 function(selectedElement: Common.Interfaces.IFieldElement, index: number) {
                     return selectedElement.layer.type == layerType;
                 });
@@ -328,14 +350,14 @@ module Common.Models {
          */
         public setSelection(element: Common.Interfaces.IFieldElement): void {
             // clear any selected players
-            this.selected.forEach(
+            this.selectedElements.forEach(
                 function(selectedElement: Common.Interfaces.IFieldElement, index: number) {
                     selectedElement.deselect();
                 });
 
-            this.selected.removeAll();
+            this.selectedElements.removeAll();
             element.select();
-            this.selected.add(element);
+            this.selectedElements.add(element);
         }
         
         /**
@@ -348,12 +370,12 @@ module Common.Models {
 
             // element.graphics.toggleSelect();
             
-            if (this.selected.contains(element.guid)) {
-                this.selected.remove(element.guid);
+            if (this.selectedElements.contains(element.guid)) {
+                this.selectedElements.remove(element.guid);
                 element.deselect();
             }
             else {
-                this.selected.add(element);
+                this.selectedElements.add(element);
                 element.select();
             }
         }

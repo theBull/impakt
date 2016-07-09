@@ -7,7 +7,7 @@ module Common.Interfaces {
 		field: Common.Interfaces.IField;
 		ball: Common.Interfaces.IBall;
 		relativeElement: Common.Interfaces.IFieldElement;
-		paper: Common.Interfaces.IPaper;
+		canvas: Common.Interfaces.ICanvas;
 		grid: Common.Interfaces.IGrid;
 		layer: Common.Models.Layer;
 

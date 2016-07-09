@@ -15,6 +15,12 @@ impakt.common.ui.directive('ngPlaceholder', [
 				if(!$scope.ngPlaceholder || !attrs)
 					return;
 
+				if(attrs && attrs.hasOwnProperty('autofocus') && 
+					(attrs['autofocus'] === undefined || Boolean(attrs['autofocus']) === true ||
+					attrs['autofocus'] == '')) {
+						$element.focus();
+					}
+
 				$element.focus(function() {
 					if(!_isNgModelSet())
 						_clear();

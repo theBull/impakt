@@ -45,6 +45,7 @@
 /// <reference path='./IModifiable.ts' />
 /// <reference path='./IModifiableCollection.ts' />
 /// <reference path='./IStorable.ts' />
+/// <reference path='./IInvokableCallback.ts' />
 /// <reference path='./IActionable.ts' />
 /// <reference path='./IActionableCollection.ts' />
 /// <reference path='./IScrollable.ts' />
@@ -59,7 +60,6 @@
 /// <reference path='./IAssociable.ts' />
 /// <reference path='./IPlay.ts' />
 /// <reference path='./IScenario.ts' />
-/// <reference path='./IPaper.ts' />
 /// <reference path='./IGrid.ts' />
 /// <reference path='./ICanvas.ts' />
 /// <reference path='./IField.ts' />
@@ -129,6 +129,10 @@ var Common;
                 // to calling a method that will trigger a modification.
                 this.listening = true;
                 this.callbacks = [];
+                this.listeners = {
+                    'onready': [],
+                    'onload': []
+                };
                 this.isContextSet = false;
             }
             Modifiable.prototype.checkContextSet = function () {
@@ -153,12 +157,58 @@ var Common;
                 this.listening = startListening;
                 return this;
             };
+            /**
+             * Takes an action id ('onready', 'onclose', etc.) and a callback function to invoke
+             * when the action occurs. Optionally, you can pass a `persist` flag, which specifies
+             * whether to keep the callback in the array after it's been invoked (persist = true)
+             * or to remove the callback after it is called the first time (!persist).
+             *
+             * @param {string}   actionId [description]
+             * @param {Function} callback [description]
+             * @param {boolean}  persist    default = false
+             */
+            Modifiable.prototype.setListener = function (actionId, callback, persist) {
+                if (!this.listeners.hasOwnProperty(actionId))
+                    this.listeners[actionId] = [];
+                this.listeners[actionId].push({
+                    callback: callback,
+                    persist: (persist === true)
+                });
+            };
             Modifiable.prototype.hasListeners = function () {
                 return Common.Utilities.isNotNullOrUndefined(this.callbacks) && this.callbacks.length > 0;
             };
             Modifiable.prototype.clearListeners = function () {
                 // empty all callbacks
                 this.callbacks = [];
+            };
+            Modifiable.prototype.invokeListener = function (actionId, data) {
+                if (!this.listeners[actionId])
+                    return;
+                var invokables = this.listeners[actionId];
+                var i = 0;
+                while (i < invokables.length) {
+                    var invokable = invokables[i];
+                    if (invokable) {
+                        var callback = invokable.callback;
+                        if (callback) {
+                            // invoke the callback, passing in optional data param and
+                            // this object's context
+                            callback(data, this.context);
+                            if (invokable.persist === false) {
+                                // call and remove; don't increment iterator
+                                // since length will change once we remove
+                                // the element from the array.
+                                invokables.splice(i, 1);
+                            }
+                            else {
+                                // increment iterator, skip ahead to next
+                                // callback
+                                i++;
+                            }
+                        }
+                    }
+                }
             };
             /**
              * Register listeners to be fired when this object is modified.
@@ -505,7 +555,43 @@ var Common;
                 var results = this.filter(predicate);
                 return results && results.length > 0 ? results[0] : null;
             };
-            Collection.prototype.remove = function (key) {
+            /**
+             * Assumes a 1-deep object: {A: 1, B: 2, C: 3}
+             *
+             * @param {any} obj [description]
+             */
+            Collection.prototype.filterCollection = function (obj) {
+                if (Common.Utilities.isNullOrUndefined(obj))
+                    return;
+                var newCollection = new Common.Models.Collection();
+                var results = [];
+                this.forEach(function (item, index) {
+                    for (var key in obj) {
+                        var matches = false;
+                        if (typeof item[key] == typeof obj[key]) {
+                            switch (typeof item[key]) {
+                                case 'string':
+                                    matches = item[key].indexOf(obj[key]) > -1;
+                                    break;
+                                case 'number':
+                                    matches = item[key] === obj[key];
+                                    break;
+                            }
+                        }
+                        if (matches) {
+                            results.push(item.guid);
+                            return;
+                        }
+                    }
+                });
+                if (Common.Utilities.isNotNullOrUndefined(results) && results.length > 0) {
+                    for (var i = 0; i < results.length; i++) {
+                        newCollection.add(this.get(results[i]), false);
+                    }
+                }
+                return newCollection;
+            };
+            Collection.prototype.remove = function (key, listen) {
                 if (!this[key]) {
                     console.warn('Collection remove(): Tried to remove item, \
 					but item with guid does not exist: ', key);
@@ -515,20 +601,21 @@ var Common;
                 delete this[key];
                 this._keys.splice(this._keys.indexOf(key), 1);
                 this._count--;
-                this.setModified(true);
+                if (listen !== false)
+                    this.setModified(true);
                 return obj;
             };
             Collection.prototype.pop = function () {
                 var key = this._keys[this._count - 1];
                 return this.remove(key);
             };
-            Collection.prototype.empty = function () {
-                this.removeAll();
+            Collection.prototype.empty = function (listen) {
+                this.removeAll(listen);
             };
-            Collection.prototype.removeAll = function () {
+            Collection.prototype.removeAll = function (listen) {
                 while (this._count > 0) {
                     var key = this._keys[0];
-                    this.remove(key);
+                    this.remove(key, listen);
                 }
             };
             /**
@@ -536,12 +623,23 @@ var Common;
              * in the collection before the collection is completely
              * emptied.
              */
-            Collection.prototype.removeEach = function (iterator) {
+            Collection.prototype.removeEach = function (iterator, listen) {
                 // first, run the iterator over each item in the
                 // collection
                 this.forEach(iterator);
                 // now remove all of them
-                this.removeAll();
+                this.removeAll(listen);
+            };
+            Collection.prototype.removeWhere = function (predicate, listen) {
+                var i = 0;
+                var elementsToRemove = this.filter(predicate);
+                for (var i_1 = 0; i_1 < elementsToRemove.length; i_1++) {
+                    var elementToRemove = elementsToRemove[i_1];
+                    if (Common.Utilities.isNotNullOrUndefined(elementToRemove)) {
+                        if (elementToRemove.guid)
+                            this.remove(elementToRemove.guid, listen);
+                    }
+                }
             };
             Collection.prototype.contains = function (key) {
                 return this[key] != null && this[key] != undefined;
@@ -1087,6 +1185,8 @@ var Common;
                 // set width, so we add the class 'width3' to the HTML element
                 // by default and remove it once we're in here.
                 this.$element.removeClass('width3');
+                this.openCallbacks = [];
+                this.closeCallbacks = [];
             }
             Expandable.prototype.setHandleClass = function () {
                 this.handle.class = this.collapsed ? this.handle.collapsed : this.handle.expanded;
@@ -1115,12 +1215,24 @@ var Common;
                 if (this.expandable)
                     this.$element.removeClass(this.getMinClass()).addClass(this.getMaxClass());
                 this.setHandleClass();
+                for (var i = 0; i < this.openCallbacks.length; i++) {
+                    this.openCallbacks[0]();
+                }
+            };
+            Expandable.prototype.onopen = function (callback) {
+                this.openCallbacks.push(callback);
             };
             Expandable.prototype.close = function () {
                 this.collapsed = true;
                 if (this.expandable)
                     this.$element.removeClass(this.getMaxClass()).addClass(this.getMinClass());
                 this.setHandleClass();
+                for (var i = 0; i < this.closeCallbacks.length; i++) {
+                    this.closeCallbacks[0]();
+                }
+            };
+            Expandable.prototype.onclose = function (callback) {
+                this.closeCallbacks.push(callback);
             };
             Expandable.prototype.getMinClass = function () {
                 return 'width' + this.min;
@@ -1231,7 +1343,7 @@ var Common;
                 return $.extend({
                     graphics: this.hasGraphics() ? this.graphics.toJson() : null,
                     disabled: this.disabled,
-                    selected: this.selected,
+                    selected: false,
                     clickable: this.clickable,
                     hoverable: this.hoverable,
                     hovered: this.hovered,
@@ -2315,14 +2427,17 @@ var Common;
             __extends(Assignment, _super);
             function Assignment(unitType) {
                 _super.call(this, Common.Enums.ImpaktDataTypes.Assignment);
-                _super.prototype.setContext.call(this, this);
                 this.unitType = unitType;
                 this.routes = new Common.Models.RouteCollection();
                 this.routeArray = [];
                 this.positionIndex = -1;
                 this.setType = Common.Enums.SetTypes.Assignment;
+                this.layer = new Common.Models.Layer(this, Common.Enums.LayerTypes.Assignment);
                 var self = this;
                 this.routes.onModified(function () {
+                    self.setModified(true);
+                });
+                this.layer.onModified(function () {
                     self.setModified(true);
                 });
             }
@@ -2354,7 +2469,7 @@ var Common;
                 return copied;
             };
             Assignment.prototype.remove = function () {
-                this.routes.removeAll();
+                this.layer.remove();
             };
             Assignment.prototype.setContext = function (context) {
                 this.routes.forEach(function (route, index) {
@@ -2366,6 +2481,17 @@ var Common;
                     route.draw();
                 });
             };
+            Assignment.prototype.drop = function () {
+                this.routes.forEach(function (route, index) {
+                    if (Common.Utilities.isNotNullOrUndefined(route)) {
+                        if (route.dragInitialized) {
+                            route.dragInitialized = false;
+                        }
+                        route.drop();
+                        route.draw();
+                    }
+                });
+            };
             Assignment.prototype.addRoute = function (route) {
                 if (Common.Utilities.isNullOrUndefined(route))
                     return;
@@ -2373,6 +2499,7 @@ var Common;
                 this.routeArray = this.routes.toJson();
             };
             Assignment.prototype.setRoutes = function (player, renderType) {
+                this.listen(false);
                 // intiialize the routeArray json for transferrence between
                 // different rendering types for editor and preview modes
                 if (!this.hasRouteArray() && this.routes.isEmpty())
@@ -2408,10 +2535,9 @@ var Common;
                     }
                 }
                 if (routesToAdd.length > 0) {
-                    this.routes.listen(false);
                     this.routes.addAll(routesToAdd);
-                    this.routes.listen(true);
                 }
+                this.listen(true);
             };
             Assignment.prototype.hasRouteArray = function () {
                 return this.routeArray && this.routeArray.length > 0;
@@ -2427,6 +2553,19 @@ var Common;
                     });
                     this.flipped = !this.flipped;
                 }
+            };
+            Assignment.prototype.moveByDelta = function (dx, dy) {
+                // TODO: implement route switching
+                this.routes.forEach(function (route, index) {
+                    if (Common.Utilities.isNotNullOrUndefined(route)) {
+                        route.layer.moveByDelta(dx, dy);
+                    }
+                });
+            };
+            Assignment.prototype.refresh = function () {
+                this.routes.forEach(function (route, index) {
+                    route.refresh();
+                });
             };
             return Assignment;
         })(Common.Models.AssociableEntity);
@@ -2587,7 +2726,7 @@ var Common;
                 this.unitType = unitType;
                 this.parentRK = 1;
                 this.editorType = Playbook.Enums.EditorTypes.Formation;
-                this.name = name || 'New formation';
+                this.name = '';
                 this.placements = new Common.Models.PlacementCollection();
                 this.png = null;
                 //this.setDefault();
@@ -2742,7 +2881,7 @@ var Common;
             function Play(unitType) {
                 _super.call(this, Common.Enums.ImpaktDataTypes.Play);
                 this.field = null;
-                this.name = 'New play';
+                this.name = '';
                 this.unitType = unitType;
                 this.assignmentGroup = null;
                 this.formation = null;
@@ -3082,7 +3221,7 @@ var Common;
             __extends(PlaybookModel, _super);
             function PlaybookModel(unitType) {
                 _super.call(this, Common.Enums.ImpaktDataTypes.Playbook);
-                this.name = 'Untitled';
+                this.name = '';
                 this.unitType = unitType;
                 this.associable = [
                     'scenarios',
@@ -3171,6 +3310,7 @@ var Common;
                 this.playOpponentGuid = this.playOpponent.guid;
                 this.unitType = this.playPrimary.unitType;
                 this.editorType = Playbook.Enums.EditorTypes.Play;
+                this.name = '';
                 this.associable = [
                     'playbooks',
                     'scenarios',
@@ -3499,44 +3639,15 @@ var Common;
     })(Input = Common.Input || (Common.Input = {}));
 })(Common || (Common = {}));
 /// <reference path='./models.ts' />
-var Playbook;
-(function (Playbook) {
-    var Models;
-    (function (Models) {
-        var Listener = (function () {
-            function Listener(context) {
-                this.actions = {};
-            }
-            Listener.prototype.listen = function (actionId, fn) {
-                if (!this.actions.hasOwnProperty[actionId])
-                    this.actions[actionId] = [];
-                this.actions[actionId].push(fn);
-            };
-            Listener.prototype.invoke = function (actionId, data, context) {
-                if (!this.actions[actionId])
-                    return;
-                for (var i = 0; i < this.actions[actionId].length; i++) {
-                    this.actions[actionId][i](data, context);
-                }
-            };
-            return Listener;
-        })();
-        Models.Listener = Listener;
-    })(Models = Playbook.Models || (Playbook.Models = {}));
-})(Playbook || (Playbook = {}));
-/// <reference path='./models.ts' />
 var Common;
 (function (Common) {
     var Models;
     (function (Models) {
         var Canvas = (function (_super) {
             __extends(Canvas, _super);
-            function Canvas(scenario, width, height) {
+            function Canvas(width, height) {
                 _super.call(this);
                 _super.prototype.setContext.call(this, this);
-                if (Common.Utilities.isNullOrUndefined(scenario))
-                    throw new Error('EditorCanvas constructor(): scenario is null or undefined');
-                this.scenario = scenario;
                 /**
                  * Note that paper is created during the initialize() method;
                  * canvas is dependent on angular directive / dynamic HTML include
@@ -3544,6 +3655,9 @@ var Common;
                  * available; these containers are required by the paper, which
                  * implements a Raphael object, that requires a container HTML element.
                  */
+                this.sizingMode = this.sizingMode || Common.Enums.CanvasSizingModes.MaxContainerWidth;
+                this.x = 0;
+                this.y = 0;
                 this.dimensions = new Common.Models.Dimensions();
                 this.dimensions.setMinWidth(500);
                 this.dimensions.setMinHeight(400);
@@ -3556,9 +3670,8 @@ var Common;
                 this.listener = new Common.Models.CanvasListener(this);
             }
             Canvas.prototype.clear = function () {
-                this.paper.clear();
-                this.scenario.clear();
                 this.clearListeners();
+                this.field.clearScenario();
                 this.setModified(true);
             };
             /**
@@ -3587,48 +3700,30 @@ var Common;
                 var svg_blob = serializer.serializeToString($svg[0]);
                 return svg_blob;
             };
-            Canvas.prototype.updateScenario = function (scenario, redraw) {
-                if (Common.Utilities.isNullOrUndefined(scenario))
-                    return;
-                this.paper.updateScenario(scenario);
-                this.scenario = scenario;
-                this.setModified(true);
-            };
             Canvas.prototype.refresh = function () {
-                if (Common.Utilities.isNullOrUndefined(this.paper))
-                    return;
-                this.paper.draw();
-            };
-            Canvas.prototype.onready = function (callback) {
-                if (this.readyCallbacks && this.readyCallbacks.length > 1000)
-                    throw new Error('Canvas onready(): callback not added; max ready callback limit exceeded');
-                this.readyCallbacks.push(callback);
-            };
-            Canvas.prototype._ready = function () {
-                if (Common.Utilities.isNullOrUndefined(this.readyCallbacks))
-                    return;
-                for (var i = 0; i < this.readyCallbacks.length; i++) {
-                    this.readyCallbacks[i]();
-                }
-                this.clearListeners();
-            };
-            Canvas.prototype.clearListeners = function () {
-                this.readyCallbacks = [];
+                this.field.draw();
             };
             Canvas.prototype.resize = function () {
-                var self = this;
                 this.dimensions.width = this.$container.width();
                 this.dimensions.height = this.$container.height();
-                this.paper.resize();
-                if (this.scrollable) {
-                    this.scrollable.initialize(this.$container, this.paper);
-                    this.scrollable.onready(function (content) {
-                        self.scrollable.scrollToPercentY(0.5);
-                    });
-                }
+                this.grid.resize(this.sizingMode);
+                this.setViewBox();
             };
-            Canvas.prototype.setScrollable = function (scrollable) {
-                this.scrollable = scrollable;
+            Canvas.prototype.getWidth = function () {
+                return this.grid.dimensions.width;
+            };
+            Canvas.prototype.getHeight = function () {
+                return this.grid.dimensions.height;
+            };
+            Canvas.prototype.getXOffset = function () {
+                return -Math.round((this.dimensions.width
+                    - this.grid.dimensions.width) / 2);
+            };
+            Canvas.prototype.setViewBox = function (center) {
+                center = center === true;
+                this.drawing.setAttribute('width', this.grid.dimensions.width);
+                //this.x = this.getXOffset();
+                var setting = this.drawing.setViewBox(this.x, this.y, this.grid.dimensions.width, this.grid.dimensions.height, true);
             };
             return Canvas;
         })(Common.Models.Modifiable);
@@ -3880,6 +3975,7 @@ var Common;
                 this.actionable = actionable;
                 this.type = layerType;
                 this.visible = true;
+                this.name = '';
                 // sub layers
                 this.layers = new Common.Models.LayerCollection();
                 var self = this;
@@ -3891,23 +3987,53 @@ var Common;
                 if (!this.hasLayers())
                     return false;
                 var self = this;
-                var predicate = function (layer, index) {
-                    return self.guid == layer.guid;
-                };
-                return this.guid == layer.guid || this.layers.hasElementWhich(predicate);
+                return this.guid == layer.guid ||
+                    this.layers.hasElementWhich(function (layer, index) {
+                        return self.guid == layer.guid;
+                    });
             };
-            Layer.prototype.addLayer = function (layer) {
+            Layer.prototype.containsLayerType = function (type) {
+                if (!this.hasLayers())
+                    return false;
+                var self = this;
+                return this.type == type ||
+                    this.layers.hasElementWhich(function (layer, index) {
+                        return self.type == layer.type;
+                    });
+            };
+            Layer.prototype.addLayer = function (layer, unique) {
                 this.layers.listen(false);
-                if (this.hasLayers())
+                if (this.hasLayers()) {
                     this.layers.add(layer);
-                this.actionable.graphics.set.push(layer.actionable.graphics);
+                }
+                if (this.hasGraphics())
+                    this.actionable.graphics.set.push(layer.actionable.graphics);
                 this.layers.listen(true);
             };
             Layer.prototype.removeLayer = function (layer) {
-                if (this.hasGraphics())
-                    layer.actionable.graphics.remove();
-                this.actionable.graphics.set.exclude(layer.actionable.graphics);
-                return this.hasLayers() ? this.layers.remove(layer.guid) : null;
+                if (layer.guid == this.guid) {
+                    this.remove();
+                }
+                else if (this.hasLayers()) {
+                    // search sub layers
+                    this.layers.forEach(function (subLayer, index) {
+                        // layer exists somewhere down the chain...
+                        subLayer.removeLayer(layer);
+                    });
+                }
+            };
+            Layer.prototype.removeLayerByType = function (type) {
+                if (type == this.type) {
+                    this.remove();
+                }
+                else if (this.hasLayers()) {
+                    this.layers.forEach(function (layer, index) {
+                        layer.removeLayerByType(type);
+                    });
+                    this.layers.removeWhere(function (layer) {
+                        return layer.type == type;
+                    });
+                }
             };
             Layer.prototype.removeAllLayers = function () {
                 if (this.hasLayers())
@@ -3936,7 +4062,8 @@ var Common;
             };
             Layer.prototype.show = function () {
                 this.visible = true;
-                this.actionable.graphics.show();
+                if (this.hasGraphics())
+                    this.actionable.graphics.show();
                 this.showLayers();
             };
             Layer.prototype.showLayers = function () {
@@ -3948,7 +4075,8 @@ var Common;
             };
             Layer.prototype.hide = function () {
                 this.visible = false;
-                this.actionable.graphics.hide();
+                if (this.hasGraphics())
+                    this.actionable.graphics.hide();
                 this.hideLayers();
             };
             Layer.prototype.hideLayers = function () {
@@ -3962,11 +4090,13 @@ var Common;
                 this.removeAllLayers();
             };
             Layer.prototype.removeGraphics = function () {
-                if (this.hasGraphics())
+                if (this.hasGraphics()) {
                     this.actionable.graphics.remove();
+                }
             };
             Layer.prototype.moveByDelta = function (dx, dy) {
-                this.actionable.graphics.moveByDelta(dx, dy);
+                if (this.hasGraphics())
+                    this.actionable.graphics.moveByDelta(dx, dy);
                 if (this.hasLayers()) {
                     this.layers.forEach(function (layer, index) {
                         layer.moveByDelta(dx, dy);
@@ -3974,7 +4104,8 @@ var Common;
                 }
             };
             Layer.prototype.drop = function () {
-                this.actionable.graphics.drop();
+                if (this.hasGraphics())
+                    this.actionable.graphics.drop();
                 if (this.hasLayers()) {
                     this.layers.forEach(function (layer, index) {
                         layer.drop();
@@ -4003,7 +4134,8 @@ var Common;
                     });
             };
             Layer.prototype.flip = function () {
-                this.actionable.graphics.flip(this.actionable.flippable);
+                if (this.hasGraphics())
+                    this.actionable.graphics.flip(this.actionable.flippable);
                 if (this.hasLayers()) {
                     this.layers.forEach(function (layer, index) {
                         layer.flip();
@@ -4089,97 +4221,15 @@ var Common;
 (function (Common) {
     var Models;
     (function (Models) {
-        var Paper = (function () {
-            function Paper(canvas) {
-                this.canvas = this.canvas || canvas;
-                // By default, paper should be scaled based on max canvas width
-                this.sizingMode = this.sizingMode || Common.Enums.PaperSizingModes.MaxCanvasWidth;
-                this.x = 0;
-                this.y = 0;
-                this.scrollSpeed = 0.5;
-                this.zoomSpeed = 100;
-                this.showBorder = false;
-            }
-            Paper.prototype.getWidth = function () {
-                return this.grid.dimensions.width;
-            };
-            Paper.prototype.getHeight = function () {
-                return this.grid.dimensions.height;
-            };
-            Paper.prototype.getXOffset = function () {
-                return -Math.round((this.canvas.dimensions.width
-                    - this.grid.dimensions.width) / 2);
-            };
-            Paper.prototype.draw = function () {
-                this.field.initialize();
-                if (this.showBorder)
-                    this.drawOutline();
-            };
-            Paper.prototype.updateScenario = function (scenario) {
-                this.field.updateScenario(scenario);
-            };
-            Paper.prototype.resize = function () {
-                this.grid.resize(this.sizingMode);
-                this.setViewBox();
-                this.draw();
-            };
-            Paper.prototype.clear = function () {
-                this.field.clearScenario();
-            };
-            Paper.prototype.setViewBox = function (center) {
-                center = center === true;
-                this.drawing.setAttribute('width', this.grid.dimensions.width);
-                //this.x = this.getXOffset();
-                var setting = this.drawing.setViewBox(this.x, this.y, this.grid.dimensions.width, this.grid.dimensions.height, true);
-            };
-            Paper.prototype.drawOutline = function () {
-                var self = this;
-                if (this.showBorder) {
-                    // paper view port
-                    if (!this.viewOutline) {
-                        this.viewOutline = this.drawing.rect(this.x, this.y, this.canvas.dimensions.width, this.canvas.dimensions.height, true);
-                    }
-                    this.viewOutline.attr({
-                        x: self.x + 1,
-                        y: self.y + 1,
-                        width: self.canvas.dimensions.width - 1,
-                        height: self.canvas.dimensions.height - 1,
-                        stroke: 'red'
-                    });
-                }
-            };
-            /**
-             * Scrolls to the given x/y pixels (top/left). If center is set to true,
-             * centers the scroll on the x/y pixels.
-             *
-             * @param {number}  scrollToX [description]
-             * @param {number}  scrollToY [description]
-             * @param {boolean} center    [description]
-             */
-            Paper.prototype.scroll = function (scrollToX, scrollToY, center) {
-                center = center === true;
-                this.y = center ? this.field.getLOSAbsolute() : scrollToY;
-                return this.setViewBox(center);
-            };
-            return Paper;
-        })();
-        Models.Paper = Paper;
-    })(Models = Common.Models || (Common.Models = {}));
-})(Common || (Common = {}));
-/// <reference path='./models.ts' />
-var Common;
-(function (Common) {
-    var Models;
-    (function (Models) {
         var Grid = (function () {
-            function Grid(paper, cols, rows) {
-                this.paper = paper;
+            function Grid(canvas, cols, rows) {
+                this.canvas = canvas;
                 this.cols = cols;
                 this.rows = rows;
                 this.dimensions = new Common.Models.Dimensions();
                 this.dimensions.offset.x = 0;
                 // sets this.width and this.height
-                this.size = this.resize(this.paper.sizingMode);
+                this.size = this.resize(this.canvas.sizingMode);
                 this.base = Playbook.Constants.GRID_BASE;
                 this.divisor = 2; // TODO @theBull document this
                 this.dashArray = ['- '];
@@ -4211,7 +4261,7 @@ var Common;
             Grid.prototype.draw = function () {
                 var cols = this.cols;
                 var rows = this.rows;
-                //var font = this.paper.getFont('Arial');
+                //var font = this.canvas.getFont('Arial');
                 for (var c = 1; c <= cols; c++) {
                     var colX = c * this.size;
                     var pathStr = Common.Drawing.Utilities.getPathString(true, [
@@ -4220,7 +4270,7 @@ var Common;
                         colX,
                         rows * this.size
                     ]);
-                    var p = this.paper.drawing.path(pathStr).attr({
+                    var p = this.canvas.drawing.path(pathStr).attr({
                         'stroke-dasharray': this.dashArray,
                         'stroke-opacity': this.verticalStrokeOpacity,
                         'stroke-width': this.strokeWidth,
@@ -4243,25 +4293,25 @@ var Common;
                             if (value > 50)
                                 value = value - ((value - 50) * 2);
                             var str = value.toString();
-                            // let lineNumbersLeft = this.paper.print(
+                            // let lineNumbersLeft = this.canvas.print(
                             // 	2,
                             // 	r,
                             // 	str,
                             // 	font,
                             // 	30
                             // );.transform('r-90');
-                            var lineNumbersLeft = this.paper.drawing.text(2, r, str, false).transform('r-90').attr({ 'class': 'no-highlight' });
-                            // let lineNumbersRight = this.paper.print(
+                            var lineNumbersLeft = this.canvas.drawing.text(2, r, str, false).transform('r-90').attr({ 'class': 'no-highlight' });
+                            // let lineNumbersRight = this.canvas.print(
                             // 	50, 
                             // 	r, 
                             // 	str, 
                             // 	font, 
                             // 	30
                             // ).transform('r90');
-                            var lineNumbersRight = this.paper.drawing.text(50, r, str, false).transform('r90').attr({ 'class': 'no-highlight' });
+                            var lineNumbersRight = this.canvas.drawing.text(50, r, str, false).transform('r90').attr({ 'class': 'no-highlight' });
                         }
                         opacity = 1;
-                        this.paper.drawing.path(pathStr).attr({
+                        this.canvas.drawing.path(pathStr).attr({
                             'stroke-opacity': this.horizontalStrokeOpacity,
                             'stroke-width': 3,
                             'stroke': '#ffffff',
@@ -4269,7 +4319,7 @@ var Common;
                         });
                     }
                     else {
-                        this.paper.drawing.path(pathStr).attr({
+                        this.canvas.drawing.path(pathStr).attr({
                             'stroke-dasharray': this.dashArray,
                             'stroke-opacity': this.horizontalStrokeOpacity,
                             'stroke-width': this.strokeWidth,
@@ -4286,18 +4336,18 @@ var Common;
             Grid.prototype.resize = function (sizingMode) {
                 if (this.cols <= 0)
                     throw new Error('Grid cols must be defined and greater than 0');
-                var canvasWidth = this.paper.canvas.dimensions.width;
+                var canvasWidth = this.canvas.dimensions.width;
                 if (canvasWidth == 0)
                     throw new Error('Grid canvas width must be greater than 0');
-                switch (this.paper.sizingMode) {
-                    case Common.Enums.PaperSizingModes.TargetGridWidth:
+                switch (this.canvas.sizingMode) {
+                    case Common.Enums.CanvasSizingModes.TargetGridWidth:
                         this.size = Playbook.Constants.GRID_SIZE;
                         break;
-                    case Common.Enums.PaperSizingModes.MaxCanvasWidth:
-                        this.size = Math.floor(this.paper.canvas.dimensions.width / this.cols);
+                    case Common.Enums.CanvasSizingModes.MaxContainerWidth:
+                        this.size = Math.floor(this.canvas.dimensions.width / this.cols);
                         break;
-                    case Common.Enums.PaperSizingModes.PreviewWidth:
-                        this.size = this.paper.canvas.dimensions.width / this.cols; // don't round
+                    case Common.Enums.CanvasSizingModes.PreviewWidth:
+                        this.size = this.canvas.dimensions.width / this.cols; // don't round
                         break;
                 }
                 this.dimensions.width = this.cols * this.size;
@@ -4336,8 +4386,8 @@ var Common;
                 return this.getAbsoluteFromCoordinates(centerCoords.x, centerCoords.y);
             };
             Grid.prototype.getCursorOffset = function (offsetX, offsetY) {
-                var canvasOffsetX = offsetX + this.paper.x - this.getSize(); // -1 for left sideline offset
-                var canvasOffsetY = offsetY + this.paper.y - (10 * this.getSize()); // -10 to account for endzones
+                var canvasOffsetX = offsetX + this.canvas.x - this.getSize(); // -1 for left sideline offset
+                var canvasOffsetY = offsetY + this.canvas.y - (10 * this.getSize()); // -10 to account for endzones
                 return new Common.Models.Coordinates(canvasOffsetX, canvasOffsetY);
             };
             Grid.prototype.getCursorPositionAbsolute = function (offsetX, offsetY) {
@@ -4400,7 +4450,7 @@ var Common;
              * @return {Playbook.Models.Coordinate}		the matching grid pixels as coords
              */
             Grid.prototype.getCoordinatesFromAbsolute = function (x, y) {
-                // TODO: add in paper scroll offset
+                // TODO: add in canvas scroll offset
                 var coordX = Math.round((x / this.size) * this.divisor) / this.divisor;
                 var coordY = Math.round((y / this.size) * this.divisor) / this.divisor;
                 return new Common.Models.Coordinates(coordX + this.dimensions.offset.x, coordY);
@@ -4461,20 +4511,19 @@ var Common;
     (function (Models) {
         var Field = (function (_super) {
             __extends(Field, _super);
-            function Field(paper, scenario) {
-                _super.call(this);
+            function Field(canvas) {
+                _super.call(this, Common.Enums.ImpaktDataTypes.Unknown);
                 _super.prototype.setContext.call(this, this);
-                this.paper = paper;
-                this.grid = this.paper.grid;
-                this.scenario = scenario;
+                this.canvas = canvas;
+                this.grid = this.canvas.grid;
+                this.scenario = null;
                 this.primaryPlayers = new Common.Models.PlayerCollection();
                 this.opponentPlayers = new Common.Models.PlayerCollection();
-                this.selected = new Common.Models.Collection();
-                this.layers = new Common.Models.LayerCollection();
+                this.selectedElements = new Common.Models.Collection();
+                this.layer = new Common.Models.Layer(this, Common.Enums.LayerTypes.Field);
                 this.cursorCoordinates = new Common.Models.Coordinates(0, 0);
-                this.editorType = Playbook.Enums.EditorTypes.Any;
                 var self = this;
-                this.selected.onModified(function () {
+                this.selectedElements.onModified(function () {
                     self.setModified(true);
                 });
                 this.primaryPlayers.onModified(function () {
@@ -4483,18 +4532,12 @@ var Common;
                 this.opponentPlayers.onModified(function () {
                     self.setModified(true);
                 });
-                this.onModified(function () {
-                });
             }
-            Field.prototype.registerLayer = function (layer) {
-                this.layers.add(layer);
-            };
             Field.prototype.draw = function () {
                 this.ground.draw();
                 this.grid.draw();
                 this.los.draw();
                 this.ball.draw();
-                this.drawScenario();
             };
             Field.prototype.clearPlayers = function () {
                 this.clearPrimaryPlayers();
@@ -4502,33 +4545,21 @@ var Common;
             };
             Field.prototype.clearPrimaryPlayers = function () {
                 this.primaryPlayers.listen(false);
-                this.primaryPlayers.forEach(function (player, index) {
-                    if (Common.Utilities.isNotNullOrUndefined(player.assignment)) {
-                        player.assignment.routes.forEach(function (route, index) {
-                            route.layer.remove();
-                        });
-                    }
-                    player.layer.remove();
-                });
+                var self = this;
+                this.layer.removeLayerByType(Common.Enums.LayerTypes.PrimaryPlayer);
                 this.primaryPlayers.removeAll();
                 this.primaryPlayers.listen(true);
             };
             Field.prototype.clearOpponentPlayers = function () {
                 this.opponentPlayers.listen(false);
-                this.opponentPlayers.forEach(function (player, index) {
-                    if (Common.Utilities.isNotNullOrUndefined(player.assignment)) {
-                        player.assignment.routes.forEach(function (route, index) {
-                            route.layer.remove();
-                        });
-                    }
-                    player.layer.remove();
-                });
+                this.layer.removeLayerByType(Common.Enums.LayerTypes.OpponentPlayer);
                 this.opponentPlayers.removeAll();
                 this.opponentPlayers.listen(true);
             };
             Field.prototype.clearScenario = function () {
                 this.clearPrimaryPlay();
                 this.clearOpponentPlay();
+                this.invokeListener('onclear');
             };
             Field.prototype.clearPrimaryPlay = function () {
                 this.clearPrimaryPlayers();
@@ -4541,9 +4572,13 @@ var Common;
                 this.scenario.draw(this);
             };
             Field.prototype.updateScenario = function (scenario) {
+                this.state = Common.Enums.State.Updating;
                 this.clearScenario();
                 this.scenario = scenario;
                 this.drawScenario();
+                this.state = Common.Enums.State.Ready;
+                this.invokeListener('onload');
+                this.setModified(true);
             };
             Field.prototype.updatePlacements = function () {
                 var self = this;
@@ -4583,16 +4618,29 @@ var Common;
             Field.prototype.applyPrimaryPlay = function (play) {
                 throw new Error('field applyPrimaryPlay() not implemented');
             };
-            Field.prototype.applyPrimaryFormation = function (formation) {
+            Field.prototype.applyFormation = function (formation, playType) {
                 if (Common.Utilities.isNullOrUndefined(formation) ||
-                    Common.Utilities.isNullOrUndefined(this.scenario) ||
-                    Common.Utilities.isNullOrUndefined(this.scenario.playPrimary))
+                    Common.Utilities.isNullOrUndefined(this.scenario))
                     return;
-                //console.log(formation);
+                var formationCopy = formation.copy();
+                var playerCollection = null;
+                var play = null;
+                switch (playType) {
+                    case Playbook.Enums.PlayTypes.Primary:
+                        playerCollection = this.primaryPlayers;
+                        play = this.scenario.playPrimary;
+                        break;
+                    case Playbook.Enums.PlayTypes.Opponent:
+                        playerCollection = this.opponentPlayers;
+                        play = this.scenario.playOpponent;
+                        break;
+                }
+                if (!playerCollection || !play)
+                    return;
                 // the order of placements within the formation get applied straight across
                 // to the order of personnel and positions.
                 var self = this;
-                this.primaryPlayers.forEach(function (player, index) {
+                playerCollection.forEach(function (player, index) {
                     // NOTE: we're not using the index from the forEach callback,
                     // because we can't assume the players collection stores the players
                     // in the order according to the player's actual index property
@@ -4600,53 +4648,85 @@ var Common;
                     if (playerIndex < 0) {
                         throw new Error('Player must have a position index');
                     }
-                    var newPlacement = formation.placements.getIndex(playerIndex);
+                    var newPlacement = formationCopy.placements.getIndex(playerIndex);
                     if (!newPlacement) {
                         throw new Error('Updated player placement is invalid');
                     }
                     player.setPlacement(newPlacement);
                     player.draw();
                 });
-                this.scenario.playPrimary.setFormation(formation);
+                // Flip placement for opponent formations
+                if (playType == Playbook.Enums.PlayTypes.Opponent)
+                    formationCopy.placements.flip();
+                play.setFormation(formationCopy);
             };
-            Field.prototype.applyPrimaryAssignmentGroup = function (assignmentGroup) {
+            Field.prototype.applyAssignmentGroup = function (assignmentGroup, playType) {
                 if (Common.Utilities.isNullOrUndefined(assignmentGroup) ||
-                    Common.Utilities.isNullOrUndefined(this.scenario) ||
-                    Common.Utilities.isNullOrUndefined(this.scenario.playPrimary))
+                    Common.Utilities.isNullOrUndefined(this.scenario))
+                    return;
+                var play = null;
+                switch (playType) {
+                    case Playbook.Enums.PlayTypes.Primary:
+                        play = this.scenario.playPrimary;
+                        break;
+                    case Playbook.Enums.PlayTypes.Opponent:
+                        play = this.scenario.playOpponent;
+                        break;
+                }
+                if (!play)
                     return;
                 var self = this;
                 if (assignmentGroup.assignments.hasElements()) {
                     assignmentGroup.assignments.forEach(function (assignment, index) {
                         if (Common.Utilities.isNullOrUndefined(assignment))
                             return;
-                        var player = self.getPrimaryPlayerWithPositionIndex(assignment.positionIndex);
+                        var player = null;
+                        switch (playType) {
+                            case Playbook.Enums.PlayTypes.Primary:
+                                player = self.getPrimaryPlayerWithPositionIndex(assignment.positionIndex);
+                                break;
+                            case Playbook.Enums.PlayTypes.Opponent:
+                                player = self.getOpponentPlayerWithPositionIndex(assignment.positionIndex);
+                                break;
+                        }
                         if (player) {
-                            assignment.setContext(player);
-                            player.assignment.remove();
-                            player.assignment = assignment;
+                            player.setAssignment(assignment);
                             player.draw();
                         }
                     });
-                    this.scenario.playPrimary.setAssignmentGroup(assignmentGroup);
+                    play.setAssignmentGroup(assignmentGroup);
                 }
             };
-            Field.prototype.applyPrimaryPersonnel = function (personnel) {
+            Field.prototype.applyPersonnel = function (personnel, playType) {
                 if (Common.Utilities.isNullOrUndefined(personnel) ||
-                    Common.Utilities.isNullOrUndefined(this.scenario) ||
-                    Common.Utilities.isNullOrUndefined(this.scenario.playPrimary))
+                    Common.Utilities.isNullOrUndefined(this.scenario))
+                    return;
+                var playerCollection = null;
+                var play = null;
+                switch (playType) {
+                    case Playbook.Enums.PlayTypes.Primary:
+                        playerCollection = this.primaryPlayers;
+                        play = this.scenario.playPrimary;
+                        break;
+                    case Playbook.Enums.PlayTypes.Opponent:
+                        playerCollection = this.opponentPlayers;
+                        play = this.scenario.playOpponent;
+                        break;
+                }
+                if (!playerCollection || !play)
                     return;
                 var self = this;
                 if (personnel && personnel.hasPositions()) {
-                    this.primaryPlayers.forEach(function (player, index) {
+                    playerCollection.forEach(function (player, index) {
                         var newPosition = personnel.positions.getIndex(index);
-                        if (self.scenario.playPrimary.personnel &&
-                            self.scenario.playPrimary.personnel.hasPositions()) {
-                            self.scenario.playPrimary.personnel.positions.getIndex(index).fromJson(newPosition.toJson());
+                        if (play.personnel &&
+                            play.personnel.hasPositions()) {
+                            play.personnel.positions.getIndex(index).fromJson(newPosition.toJson());
                         }
                         player.position.fromJson(newPosition.toJson());
                         player.draw();
                     });
-                    this.scenario.playPrimary.setPersonnel(personnel);
+                    play.setPersonnel(personnel);
                 }
                 else {
                     var details = personnel ? '# positions: ' + personnel.positions.size() : 'Personnel is undefined.';
@@ -4657,28 +4737,17 @@ var Common;
                     ].join(''));
                 }
             };
-            Field.prototype.applyPrimaryUnitType = function (unitType) {
-                if (Common.Utilities.isNullOrUndefined(unitType) ||
-                    Common.Utilities.isNullOrUndefined(this.scenario) ||
-                    Common.Utilities.isNullOrUndefined(this.scenario.playPrimary))
-                    return;
-                this.scenario.playPrimary.setUnitType(unitType);
-                if (Common.Utilities.isNotNullOrUndefined(this.scenario.playOpponent))
-                    this.scenario.playOpponent.setUnitType(this.scenario.playPrimary.getOpposingUnitType());
-                this.clearPlayers();
-                this.drawScenario();
-            };
             Field.prototype.deselectAll = function () {
-                if (this.selected.isEmpty())
+                if (this.selectedElements.isEmpty())
                     return;
-                this.selected.forEach(function (element, index) {
+                this.selectedElements.forEach(function (element, index) {
                     element.deselect();
                 });
-                this.selected.removeAll();
+                this.selectedElements.removeAll();
             };
             Field.prototype.getSelectedByLayerType = function (layerType) {
                 var collection = new Common.Models.Collection();
-                this.selected.forEach(function (selectedElement, index) {
+                this.selectedElements.forEach(function (selectedElement, index) {
                     if (selectedElement.layer.type == layerType) {
                         collection.add(selectedElement);
                     }
@@ -4686,7 +4755,7 @@ var Common;
                 return collection;
             };
             Field.prototype.toggleSelectionByLayerType = function (layerType) {
-                var selectedElements = this.selected.filter(function (selectedElement, index) {
+                var selectedElements = this.selectedElements.filter(function (selectedElement, index) {
                     return selectedElement.layer.type == layerType;
                 });
                 if (selectedElements && selectedElements.length > 0) {
@@ -4704,12 +4773,12 @@ var Common;
              */
             Field.prototype.setSelection = function (element) {
                 // clear any selected players
-                this.selected.forEach(function (selectedElement, index) {
+                this.selectedElements.forEach(function (selectedElement, index) {
                     selectedElement.deselect();
                 });
-                this.selected.removeAll();
+                this.selectedElements.removeAll();
                 element.select();
-                this.selected.add(element);
+                this.selectedElements.add(element);
             };
             /**
              * Toggles the selection state of the given element; adds it to the
@@ -4719,12 +4788,12 @@ var Common;
              */
             Field.prototype.toggleSelection = function (element) {
                 // element.graphics.toggleSelect();
-                if (this.selected.contains(element.guid)) {
-                    this.selected.remove(element.guid);
+                if (this.selectedElements.contains(element.guid)) {
+                    this.selectedElements.remove(element.guid);
                     element.deselect();
                 }
                 else {
-                    this.selected.add(element);
+                    this.selectedElements.add(element);
                     element.select();
                 }
             };
@@ -4738,7 +4807,7 @@ var Common;
                 return this.los.graphics.location.ay;
             };
             return Field;
-        })(Common.Models.Modifiable);
+        })(Common.Models.Actionable);
         Models.Field = Field;
     })(Models = Common.Models || (Common.Models = {}));
 })(Common || (Common = {}));
@@ -4751,17 +4820,15 @@ var Common;
             __extends(FieldElement, _super);
             function FieldElement() {
                 _super.call(this, Common.Enums.ImpaktDataTypes.Unknown);
-                _super.prototype.setContext.call(this, this);
                 this.contextmenuTemplateUrl = Common.Constants.DEFAULT_CONTEXTMENU_TEMPLATE_URL;
             }
             FieldElement.prototype.initialize = function (field, relativeElement) {
                 this.field = field;
                 this.ball = this.field.ball;
                 this.relativeElement = relativeElement;
-                this.paper = this.field.paper;
-                this.canvas = this.paper.canvas;
-                this.grid = this.paper.grid;
-                this.graphics = new Common.Models.Graphics(this.paper);
+                this.canvas = this.field.canvas;
+                this.grid = this.canvas.grid;
+                this.graphics = new Common.Models.Graphics(this.canvas);
                 this.layer = new Common.Models.Layer(this, Common.Enums.LayerTypes.FieldElement);
                 this._originalScreenPositionX = null;
                 this._originalScreenPositionY = null;
@@ -4884,7 +4951,7 @@ var Common;
             Ground.prototype.initialize = function (field, relativeElement) {
                 _super.prototype.initialize.call(this, field, null);
                 this.selectable = false;
-                this.graphics.initializePlacement(new Common.Models.Placement(this.paper.x, this.paper.y, null));
+                this.graphics.initializePlacement(new Common.Models.Placement(this.canvas.x, this.canvas.y, null));
                 this.graphics.dimensions.setWidth(this.grid.dimensions.width + 2);
                 this.graphics.dimensions.setHeight(this.grid.dimensions.height + 2);
                 this.graphics.setOriginalOpacity(1);
@@ -4904,7 +4971,7 @@ var Common;
                 return this.grid.getCoordinatesFromAbsolute(absCoords.x, absCoords.y);
             };
             Ground.prototype.getClickAbsolute = function (offsetX, offsetY) {
-                return new Common.Models.Coordinates(offsetX + this.graphics.dimensions.offset.x - Math.abs(this.paper.x), offsetY + Math.abs(this.paper.y) + this.graphics.dimensions.offset.y);
+                return new Common.Models.Coordinates(offsetX + this.graphics.dimensions.offset.x - Math.abs(this.canvas.x), offsetY + Math.abs(this.canvas.y) + this.graphics.dimensions.offset.y);
             };
             return Ground;
         })(Common.Models.FieldElement);
@@ -4953,7 +5020,7 @@ var Common;
                 this.graphics.fill = 'black';
                 this.graphics.setOpacity(0.25);
                 this.graphics.initializePlacement(new Common.Models.Placement(1, this.offsetY, null));
-                this.graphics.dimensions.setWidth(this.paper.getWidth() - (2 * this.grid.getSize()));
+                this.graphics.dimensions.setWidth(this.canvas.getWidth() - (2 * this.grid.getSize()));
                 this.graphics.dimensions.setHeight(10 * this.grid.getSize());
             };
             Endzone.prototype.draw = function () {
@@ -4988,7 +5055,7 @@ var Common;
             Hashmark.prototype.draw = function () {
                 var hashmarkWidth = this.grid.getSize() / 2;
                 for (var i = this.start; i < this.yards; i++) {
-                    var hashmark = this.paper.drawing.rect(this.graphics.placement.coordinates.x, i, hashmarkWidth, 1, false, this.graphics.dimensions.offset.x, 0).attr({
+                    var hashmark = this.canvas.drawing.rect(this.graphics.placement.coordinates.x, i, hashmarkWidth, 1, false, this.graphics.dimensions.offset.x, 0).attr({
                         'fill': 'white',
                         'stroke-width': 0
                     });
@@ -5082,59 +5149,27 @@ var Common;
                 this.placement.setRelativeElement(this.field.ball);
                 this.graphics.dimensions.setWidth(this.grid.getSize());
                 this.graphics.dimensions.setHeight(this.grid.getSize());
+                this.layer.addLayer(this.assignment.layer);
                 var self = this;
-                this.onModified(function () {
-                    self.field.primaryPlayers.setModified(true);
-                });
                 this.layer.onModified(function () {
                     self.setModified(true);
                 });
+                this.field.layer.addLayer(this.layer);
             };
             Player.prototype.flip = function () {
                 this.layer.flip();
-                if (Common.Utilities.isNotNullOrUndefined(this.assignment) &&
-                    Common.Utilities.isNotNullOrUndefined(this.assignment.routes)) {
-                    this.assignment.routes.forEach(function (route, index) {
-                        route.flip();
-                    });
+                if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+                    this.assignment.flip();
                 }
                 this.flipped = !this.flipped;
             };
             Player.prototype.remove = function () {
                 this.layer.remove();
             };
-            Player.prototype.drawRoute = function () {
-                // Draw the player's assignment
+            Player.prototype.drop = function () {
+                _super.prototype.drop.call(this);
                 if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
-                    if (this.assignment.routes.hasElements()) {
-                        this.assignment.routes.forEach(function (route, index) {
-                            route.draw();
-                        });
-                    }
-                }
-            };
-            Player.prototype.moveAssignmentByDelta = function (dx, dy) {
-                if (this.assignment) {
-                    // TODO: implement route switching
-                    this.assignment.routes.forEach(function (route, index) {
-                        if (Common.Utilities.isNotNullOrUndefined(route)) {
-                            route.layer.moveByDelta(dx, dy);
-                        }
-                    });
-                }
-            };
-            Player.prototype.dropAssignment = function () {
-                if (this.assignment) {
-                    // TODO: implement route switching
-                    this.assignment.routes.forEach(function (route, index) {
-                        if (Common.Utilities.isNotNullOrUndefined(route)) {
-                            if (route.dragInitialized) {
-                                route.dragInitialized = false;
-                            }
-                            route.drop();
-                            route.draw();
-                        }
-                    });
+                    this.assignment.drop();
                 }
             };
             Player.prototype.getPositionRelativeToBall = function () {
@@ -5155,8 +5190,11 @@ var Common;
                 return this.assignment;
             };
             Player.prototype.setAssignment = function (assignment) {
+                if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+                    this.layer.removeLayer(this.assignment.layer);
+                }
                 this.assignment = assignment;
-                this.setModified(true);
+                this.layer.addLayer(this.assignment.layer);
             };
             /**
              *
@@ -5185,7 +5223,8 @@ var Common;
                 return this.graphics.placement;
             };
             Player.prototype.setPlacement = function (placement) {
-                this.graphics.placement.update(placement);
+                this.graphics.initializePlacement(placement);
+                this.assignment.refresh();
                 this.setModified(true);
             };
             return Player;
@@ -5232,6 +5271,7 @@ var Common;
                 this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.player));
             }
             PlayerSelectionBox.prototype.draw = function () {
+                this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.player));
                 this.graphics.rect();
                 this.graphics.hide();
             };
@@ -5262,10 +5302,12 @@ var Common;
                 switch (this.player.unitType) {
                     case Team.Enums.UnitTypes.Offense:
                         this.graphics.setOffsetXY(0, 0);
+                        this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.player));
                         this.graphics.circle();
                         break;
                     case Team.Enums.UnitTypes.Defense:
                         this.graphics.setOffsetXY(0, 0);
+                        this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.player));
                         this.graphics.triangle();
                         break;
                     case Team.Enums.UnitTypes.SpecialTeams:
@@ -5303,6 +5345,7 @@ var Common;
                 this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.player));
             }
             PlayerRelativeCoordinatesLabel.prototype.draw = function () {
+                this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.player));
                 this.graphics.text([
                     this.player.graphics.placement.relative.rx, ', ',
                     this.player.graphics.placement.relative.ry
@@ -5333,6 +5376,7 @@ var Common;
                 this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.player));
             }
             PlayerPersonnelLabel.prototype.draw = function () {
+                this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.player));
                 this.graphics.text(this.player.position.label);
                 this.graphics.setAttribute('class', 'no-highlight');
             };
@@ -5359,6 +5403,7 @@ var Common;
                 this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.player));
             }
             PlayerIndexLabel.prototype.draw = function () {
+                this.graphics.initializePlacement(new Common.Models.Placement(0, 0, this.player));
                 this.graphics.text((this.player.position.index).toString());
                 this.graphics.setAttribute('class', 'no-highlight');
             };
@@ -5381,23 +5426,13 @@ var Common;
                 this.flippable = true;
                 this.unitType = Team.Enums.UnitTypes.Other;
             }
-            Route.prototype.setPlayer = function (player) {
-                this.player = player;
-                this.unitType = this.player.unitType;
-                this.initialize(this.player.field, this.player);
-                this.graphics.initializePlacement(this.player.graphics.placement);
-                if (this.player) {
-                    this.nodes = new Common.Models.LinkedList();
-                    var self_3 = this;
-                    this.nodes.onModified(function () {
-                        self_3.setModified(true);
-                    });
-                }
-                /**
-                 * Add layer to Player layers
-                 * @type {[type]}
-                 */
-                this.layer.type = Common.Enums.LayerTypes.PlayerRoute;
+            Route.prototype.toJson = function () {
+                return {
+                    nodes: this.nodes.toJson(),
+                    type: this.type,
+                    guid: this.guid,
+                    unitType: this.unitType
+                };
             };
             Route.prototype.fromJson = function (json) {
                 if (Common.Utilities.isNullOrUndefined(this.player))
@@ -5439,13 +5474,37 @@ var Common;
                     this.nodes.listen(true);
                 }
             };
-            Route.prototype.toJson = function () {
-                return {
-                    nodes: this.nodes.toJson(),
-                    type: this.type,
-                    guid: this.guid,
-                    unitType: this.unitType
-                };
+            Route.prototype.setPlayer = function (player) {
+                this.player = player;
+                this.unitType = this.player.unitType;
+                this.initialize(this.player.field, this.player);
+                this.graphics.initializePlacement(this.player.graphics.placement);
+                if (this.player) {
+                    this.nodes = new Common.Models.LinkedList();
+                    var self_3 = this;
+                    this.nodes.onModified(function () {
+                        self_3.setModified(true);
+                    });
+                }
+                /**
+                 * Add layer to Player layers
+                 * @type {[type]}
+                 */
+                this.layer.type = Common.Enums.LayerTypes.PlayerRoute;
+                if (Common.Utilities.isNotNullOrUndefined(this.player) &&
+                    Common.Utilities.isNotNullOrUndefined(this.player.assignment)) {
+                    this.player.assignment.layer.addLayer(this.layer);
+                }
+            };
+            Route.prototype.setPlacement = function (placement) {
+                this.nodes.forEach(function (node, index) {
+                    node.setPlacement(placement);
+                });
+            };
+            Route.prototype.refresh = function () {
+                this.nodes.forEach(function (node, index) {
+                    node.refresh();
+                });
             };
             Route.prototype.remove = function () {
                 this.routePath.remove();
@@ -5766,6 +5825,7 @@ var Common;
                 this.graphics.dimensions.width = this.graphics.dimensions.radius * 2;
                 this.graphics.dimensions.height = this.graphics.dimensions.radius * 2;
                 this.layer.type = Common.Enums.LayerTypes.PlayerRouteNode;
+                this.route.layer.addLayer(this.layer);
             };
             RouteNode.prototype.draw = function () {
                 this.graphics.circle();
@@ -5791,6 +5851,12 @@ var Common;
                 return this.type == Common.Enums.RouteNodeTypes.CurveControl ||
                     this.type == Common.Enums.RouteNodeTypes.CurveEnd ||
                     this.type == Common.Enums.RouteNodeTypes.CurveStart;
+            };
+            RouteNode.prototype.setPlacement = function (placement) {
+                this.graphics.initializePlacement(placement);
+            };
+            RouteNode.prototype.refresh = function () {
+                this.graphics.updatePlacement();
             };
             RouteNode.prototype.setAction = function (action) {
                 this.routeAction.action = action;
@@ -5902,6 +5968,10 @@ var Common;
                 this.coordinates.fromJson(json.coordinates);
                 this.index = json.index;
                 this.guid = json.guid;
+            };
+            Placement.prototype.refresh = function () {
+                var refreshedCoordinates = this.relative.getCoordinates();
+                this.coordinates.update(refreshedCoordinates.x, refreshedCoordinates.y);
             };
             Placement.prototype.setRelativeElement = function (relativeElement) {
                 if (Common.Utilities.isNotNullOrUndefined(relativeElement)) {
@@ -6202,11 +6272,11 @@ var Common;
     (function (Models) {
         var Graphics = (function (_super) {
             __extends(Graphics, _super);
-            function Graphics(paper) {
+            function Graphics(canvas) {
                 _super.call(this);
                 _super.prototype.setContext.call(this, this);
-                this.paper = paper;
-                this.grid = paper.grid;
+                this.canvas = canvas;
+                this.grid = canvas.grid;
                 this.placement = null; // new Common.Models.Placement(0, 0);
                 this.location = new Common.Models.Location(0, 0);
                 this.dimensions = new Common.Models.Dimensions();
@@ -6231,7 +6301,7 @@ var Common;
                 this.disabledOpacity = 0.5;
                 this.hoverOpacity = 0.4;
                 this.hoverFillOpacity = 0.4;
-                this.font = this.paper.drawing.getFont('Arial');
+                this.font = this.canvas.drawing.getFont('Arial');
                 this.drawingHandler = new Common.Models.DrawingHandler(this);
                 this.set = new Common.Models.GraphicsSet(this);
                 this.snapping = true;
@@ -6557,6 +6627,10 @@ var Common;
                 this.location.updateFromAbsolute(absCoords.x + this.dimensions.offset.x, absCoords.y + this.dimensions.offset.y);
                 this.refresh();
             };
+            Graphics.prototype.updatePlacement = function () {
+                this.placement.refresh();
+                this.updateFromCoordinates(this.placement.coordinates.x, this.placement.coordinates.y);
+            };
             Graphics.prototype.updateFromAbsolute = function (ax, ay) {
                 this.placement.updateFromAbsolute(ax, ay);
                 this.location.updateFromAbsolute(ax, ay);
@@ -6581,13 +6655,13 @@ var Common;
              */
             Graphics.prototype.path = function (path) {
                 this.remove();
-                this.raphael = this.paper.drawing.path(path);
+                this.raphael = this.canvas.drawing.path(path);
                 this.refresh();
                 return this;
             };
             Graphics.prototype.rect = function () {
                 this.remove();
-                this.raphael = this.paper.drawing.rect(this.placement.coordinates.x, this.placement.coordinates.y, this.dimensions.getWidth(), this.dimensions.getHeight(), false, this.dimensions.getOffsetX(), this.dimensions.getOffsetY());
+                this.raphael = this.canvas.drawing.rect(this.placement.coordinates.x, this.placement.coordinates.y, this.dimensions.getWidth(), this.dimensions.getHeight(), false, this.dimensions.getOffsetX(), this.dimensions.getOffsetY());
                 this.refresh();
                 return this;
             };
@@ -6599,25 +6673,25 @@ var Common;
             };
             Graphics.prototype.ellipse = function () {
                 this.remove();
-                this.raphael = this.paper.drawing.ellipse(this.placement.coordinates.x, this.placement.coordinates.y, this.dimensions.getWidth(), this.dimensions.getHeight(), false, this.dimensions.getOffsetX(), this.dimensions.getOffsetY());
+                this.raphael = this.canvas.drawing.ellipse(this.placement.coordinates.x, this.placement.coordinates.y, this.dimensions.getWidth(), this.dimensions.getHeight(), false, this.dimensions.getOffsetX(), this.dimensions.getOffsetY());
                 this.refresh();
                 return this;
             };
             Graphics.prototype.circle = function () {
                 this.remove();
-                this.raphael = this.paper.drawing.circle(this.placement.coordinates.x, this.placement.coordinates.y, this.dimensions.getRadius(), false, this.dimensions.getOffsetX(), this.dimensions.getOffsetY());
+                this.raphael = this.canvas.drawing.circle(this.placement.coordinates.x, this.placement.coordinates.y, this.dimensions.getRadius(), false, this.dimensions.getOffsetX(), this.dimensions.getOffsetY());
                 this.refresh();
                 return this;
             };
             Graphics.prototype.triangle = function () {
                 this.remove();
-                this.raphael = this.paper.drawing.triangle(this.placement.coordinates.x, this.placement.coordinates.y, this.dimensions.getHeight(), false, this.dimensions.getOffsetX(), this.dimensions.getOffsetY());
+                this.raphael = this.canvas.drawing.triangle(this.placement.coordinates.x, this.placement.coordinates.y, this.dimensions.getHeight(), false, this.dimensions.getOffsetX(), this.dimensions.getOffsetY());
                 this.refresh();
                 return this;
             };
             Graphics.prototype.text = function (text) {
                 this.remove();
-                this.raphael = this.paper.drawing.text(this.placement.coordinates.x, this.placement.coordinates.y, text, false, this.dimensions.getOffsetX(), this.dimensions.getOffsetY());
+                this.raphael = this.canvas.drawing.text(this.placement.coordinates.x, this.placement.coordinates.y, text, false, this.dimensions.getOffsetX(), this.dimensions.getOffsetY());
                 return this;
             };
             Graphics.prototype.refresh = function () {
@@ -6691,6 +6765,9 @@ var Common;
             Graphics.prototype.remove = function () {
                 if (!this.hasRaphael())
                     return;
+                if (this.hasSet()) {
+                    this.set.empty();
+                }
                 this.raphael && this.raphael[0] && this.raphael[0].remove();
                 this.raphael = null;
             };
@@ -6880,13 +6957,13 @@ var Common;
             // For some reason, transform(0,0) doesn't work the same on a path.
             Graphics.prototype.cleanTransform = function () {
                 if (this.raphael.data('element-type') == 'triangle') {
-                    var tempTriangle = this.paper.drawing.triangle(this.placement.coordinates.x, this.placement.coordinates.y, this.dimensions.getHeight(), false, this.dimensions.getOffsetX(), this.dimensions.getOffsetY());
+                    var tempTriangle = this.canvas.drawing.triangle(this.placement.coordinates.x, this.placement.coordinates.y, this.dimensions.getHeight(), false, this.dimensions.getOffsetX(), this.dimensions.getOffsetY());
                     var pathStr = tempTriangle.attr('path').toString();
                     this.raphael.attr({ 'path': pathStr });
                     tempTriangle.remove();
                 }
                 else if (this.raphael.type == 'ellipse') {
-                    var tempEllipse = this.paper.drawing.ellipse(this.placement.coordinates.x, this.placement.coordinates.y, this.dimensions.getWidth(), this.dimensions.getHeight(), false, this.dimensions.getOffsetX(), this.dimensions.getOffsetY());
+                    var tempEllipse = this.canvas.drawing.ellipse(this.placement.coordinates.x, this.placement.coordinates.y, this.dimensions.getWidth(), this.dimensions.getHeight(), false, this.dimensions.getOffsetX(), this.dimensions.getOffsetY());
                     tempEllipse.remove();
                 }
             };
@@ -6907,11 +6984,10 @@ var Common;
                     args[_i - 1] = arguments[_i];
                 }
                 this.context = context;
-                this.paper = this.context.paper;
-                this.canvas = this.paper.canvas;
-                this.grid = this.paper.grid;
+                this.canvas = this.context.canvas;
+                this.grid = this.canvas.grid;
                 this.items = [];
-                this.raphaelSet = this.paper.drawing.set();
+                this.raphaelSet = this.canvas.drawing.set();
                 if (args && args.length > 0) {
                     this.push.apply(this, args);
                 }
@@ -6928,10 +7004,17 @@ var Common;
                 }
                 for (var i = 0; i < args.length; i++) {
                     var graphics = args[i];
+                    if (Common.Utilities.isNullOrUndefined(graphics))
+                        continue;
                     this.length++;
                     this.raphaelSet.exclude(graphics.raphael);
                     this.raphaelSet.push(graphics.raphael);
                     this.items.push(graphics);
+                }
+            };
+            GraphicsSet.prototype.empty = function () {
+                while (this.length > 0) {
+                    this.pop();
                 }
             };
             GraphicsSet.prototype.pop = function () {
@@ -7418,13 +7501,11 @@ var Common;
 /// <reference path='./Template.ts' />
 /// <reference path='./TemplateCollection.ts' />
 /// <reference path='./Input.ts' />
-/// <reference path='./Listener.ts' />
 /// <reference path='./Canvas.ts' />
 /// <reference path='./Drawing.ts' />
 /// <reference path='./Layer.ts' />
 /// <reference path='./LayerCollection.ts' />
 /// <reference path='./CanvasListener.ts' />
-/// <reference path='./Paper.ts' />
 /// <reference path='./Grid.ts' />
 /// <reference path='./Field.ts' />
 /// <reference path='./FieldElement.ts' />
@@ -7510,6 +7591,15 @@ var Common;
             ImpaktDataTypes[ImpaktDataTypes["Organization"] = 2021] = "Organization";
         })(Enums.ImpaktDataTypes || (Enums.ImpaktDataTypes = {}));
         var ImpaktDataTypes = Enums.ImpaktDataTypes;
+        (function (State) {
+            State[State["Unknown"] = 0] = "Unknown";
+            State[State["Ready"] = 1] = "Ready";
+            State[State["Loaded"] = 2] = "Loaded";
+            State[State["Initialized"] = 3] = "Initialized";
+            State[State["Constructed"] = 4] = "Constructed";
+            State[State["Updating"] = 5] = "Updating";
+        })(Enums.State || (Enums.State = {}));
+        var State = Enums.State;
         (function (AssociationTypes) {
             AssociationTypes[AssociationTypes["Any"] = -1] = "Any";
             AssociationTypes[AssociationTypes["Unknown"] = 0] = "Unknown";
@@ -7524,22 +7614,22 @@ var Common;
         })(Enums.DimensionTypes || (Enums.DimensionTypes = {}));
         var DimensionTypes = Enums.DimensionTypes;
         /**
-         * Allows the paper to be scaled/sized differently.
-         * To specify an initial paper size, for example,
-         * Paper is initialized with MaxCanvasWidth,
-         * which causes the paper to determine its width based
-         * on the current maximum width of its parent canvas. On the
-         * contrary, the paper can be told to set its width based
+         * Allows the canvas to be scaled/sized differently.
+         * To specify an initial canvas size, for example,
+         * Canvas is initialized with MaxContainerWidth,
+         * which causes the canvas to determine its width based
+         * on the current maximum width of its parent container. On the
+         * contrary, the canvas can be told to set its width based
          * on a given, target grid cell size. For example, if the target
          * grid width is 20px and the grid is 50 cols, the resulting
-         * paper width will calculate to 1000px.
+         * canvas width will calculate to 1000px.
          */
-        (function (PaperSizingModes) {
-            PaperSizingModes[PaperSizingModes["TargetGridWidth"] = 0] = "TargetGridWidth";
-            PaperSizingModes[PaperSizingModes["MaxCanvasWidth"] = 1] = "MaxCanvasWidth";
-            PaperSizingModes[PaperSizingModes["PreviewWidth"] = 2] = "PreviewWidth";
-        })(Enums.PaperSizingModes || (Enums.PaperSizingModes = {}));
-        var PaperSizingModes = Enums.PaperSizingModes;
+        (function (CanvasSizingModes) {
+            CanvasSizingModes[CanvasSizingModes["TargetGridWidth"] = 0] = "TargetGridWidth";
+            CanvasSizingModes[CanvasSizingModes["MaxContainerWidth"] = 1] = "MaxContainerWidth";
+            CanvasSizingModes[CanvasSizingModes["PreviewWidth"] = 2] = "PreviewWidth";
+        })(Enums.CanvasSizingModes || (Enums.CanvasSizingModes = {}));
+        var CanvasSizingModes = Enums.CanvasSizingModes;
         var CursorTypes = (function () {
             function CursorTypes() {
             }
@@ -7605,6 +7695,7 @@ var Common;
             LayerTypes[LayerTypes["SidelineHashmark"] = 46] = "SidelineHashmark";
             LayerTypes[LayerTypes["Endzone"] = 47] = "Endzone";
             LayerTypes[LayerTypes["LineOfScrimmage"] = 48] = "LineOfScrimmage";
+            LayerTypes[LayerTypes["Assignment"] = 49] = "Assignment";
         })(Enums.LayerTypes || (Enums.LayerTypes = {}));
         var LayerTypes = Enums.LayerTypes;
         (function (RouteTypes) {
@@ -8001,7 +8092,9 @@ var Common;
         Utilities.parseData = function (data) {
             for (var i = 0; i < data.length; i++) {
                 try {
-                    data[i].data = JSON.parse(data[i].data);
+                    if (typeof (data[i].data) == 'string') {
+                        data[i].data = JSON.parse(data[i].data);
+                    }
                 }
                 catch (error) {
                     console.log(error);
@@ -8066,6 +8159,25 @@ var Common;
                 }
             }
             return enums;
+        };
+        Utilities.parseEnumFromString = function (enumString) {
+            if (Common.Utilities.isEmptyString(enumString))
+                return null;
+            var namespaceComponents = enumString.split('.');
+            // Drill down into namespace -> window['Playbook']['Editor']['EditorTypes']
+            // returns enum object
+            var namespaceRoot = window;
+            for (var i = 0; i < namespaceComponents.length; i++) {
+                if (namespaceComponents[i]) {
+                    // Follow the namespace path down to the node object
+                    // window['Playbook']...
+                    // window['Playbook']['Editor']...
+                    // window['Playbook']['Editor']['EditorTypes']
+                    // node reached, namespaceRoot will finally point to the node object
+                    namespaceRoot = namespaceRoot[namespaceComponents[i]];
+                }
+            }
+            return namespaceRoot;
         };
         Utilities.isArray = function (obj) {
             return Object.prototype.toString.call(obj) == '[object Array]';
@@ -8146,8 +8258,8 @@ var Common;
             var output = null;
             if (Array.isArray(obj)) {
                 var arr = obj;
-                for (var i_1 = 0; i_1 < arr.length; i_1++) {
-                    var arrItem = arr[i_1];
+                for (var i_2 = 0; i_2 < arr.length; i_2++) {
+                    var arrItem = arr[i_2];
                     output = Common.Utilities.prepareObjectForEncoding(arrItem);
                 }
             }
@@ -8367,56 +8479,80 @@ var Playbook;
     (function (Models) {
         var EditorField = (function (_super) {
             __extends(EditorField, _super);
-            function EditorField(paper, scenario) {
-                _super.call(this, paper, scenario);
+            function EditorField(canvas) {
+                _super.call(this, canvas);
                 this.zoom = 1;
-                this.editorType = this.scenario.editorType;
                 var self = this;
                 this.onModified(function () {
                     //console.log('field modified');
                 });
+                this.state = Common.Enums.State.Constructed;
             }
             EditorField.prototype.initialize = function () {
-                this.ball = new Playbook.Models.EditorBall();
-                this.ball.initialize(this, null);
-                this.ground = new Playbook.Models.EditorGround();
-                this.ground.initialize(this, null);
-                this.los = new Playbook.Models.EditorLineOfScrimmage();
-                this.los.initialize(this, null);
-                this.endzone_top = new Playbook.Models.EditorEndzone(0);
-                this.endzone_top.initialize(this, null);
-                this.endzone_bottom = new Playbook.Models.EditorEndzone(110);
-                this.endzone_bottom.initialize(this, null);
-                this.sideline_left = new Playbook.Models.EditorSideline(0);
-                this.sideline_left.initialize(this, null);
-                this.sideline_right = new Playbook.Models.EditorSideline(51);
-                this.sideline_right.initialize(this, null);
-                this.hashmark_left = new Playbook.Models.EditorHashmark(22);
-                this.hashmark_left.initialize(this, null);
-                this.hashmark_right = new Playbook.Models.EditorHashmark(28);
-                this.hashmark_right.initialize(this, null);
-                this.hashmark_sideline_left = new Playbook.Models.EditorHashmark(2);
-                this.hashmark_sideline_left.initialize(this, null);
-                this.hashmark_sideline_right = new Playbook.Models.EditorHashmark(50);
-                this.hashmark_sideline_right.initialize(this, null);
-                // Set containment around the ball to restrict its drag area
-                this.ball.graphics.setContainment(this.hashmark_left.graphics.placement.coordinates.x, this.hashmark_right.graphics.placement.coordinates.x, this.endzone_top.graphics.dimensions.getHeight(), this.endzone_top.graphics.placement.coordinates.y);
-                this.layers.add(this.ball.layer);
-                this.layers.add(this.ground.layer);
-                this.layers.add(this.los.layer);
-                this.layers.add(this.endzone_top.layer);
-                this.layers.add(this.endzone_bottom.layer);
-                this.layers.add(this.sideline_left.layer);
-                this.layers.add(this.sideline_right.layer);
-                this.layers.add(this.hashmark_left.layer);
-                this.layers.add(this.hashmark_right.layer);
-                this.layers.add(this.hashmark_sideline_left.layer);
-                this.layers.add(this.hashmark_sideline_right.layer);
-                if (!this.scenario.playPrimary.formation) {
-                    this.scenario.playPrimary.formation = new Common.Models.Formation(this.scenario.playPrimary.unitType);
-                    this.scenario.playPrimary.formation.setDefault(this.ball);
+                var setBallContainment = false;
+                if (!this.ball) {
+                    this.ball = new Playbook.Models.EditorBall();
+                    this.ball.initialize(this, null);
+                    setBallContainment = true;
+                    this.layer.addLayer(this.ball.layer);
+                }
+                if (!this.ground) {
+                    this.ground = new Playbook.Models.EditorGround();
+                    this.ground.initialize(this, null);
+                    this.layer.addLayer(this.ground.layer);
+                }
+                if (!this.los) {
+                    this.los = new Playbook.Models.EditorLineOfScrimmage();
+                    this.los.initialize(this, null);
+                    this.layer.addLayer(this.los.layer);
+                }
+                if (!this.endzone_top) {
+                    this.endzone_top = new Playbook.Models.EditorEndzone(0);
+                    this.endzone_top.initialize(this, null);
+                    this.layer.addLayer(this.endzone_top.layer);
+                }
+                if (!this.endzone_bottom) {
+                    this.endzone_bottom = new Playbook.Models.EditorEndzone(110);
+                    this.endzone_bottom.initialize(this, null);
+                    this.layer.addLayer(this.endzone_bottom.layer);
+                }
+                if (!this.sideline_left) {
+                    this.sideline_left = new Playbook.Models.EditorSideline(0);
+                    this.sideline_left.initialize(this, null);
+                    this.layer.addLayer(this.sideline_left.layer);
+                }
+                if (!this.sideline_right) {
+                    this.sideline_right = new Playbook.Models.EditorSideline(51);
+                    this.sideline_right.initialize(this, null);
+                    this.layer.addLayer(this.sideline_right.layer);
+                }
+                if (!this.hashmark_left) {
+                    this.hashmark_left = new Playbook.Models.EditorHashmark(22);
+                    this.hashmark_left.initialize(this, null);
+                    this.layer.addLayer(this.hashmark_left.layer);
+                }
+                if (!this.hashmark_right) {
+                    this.hashmark_right = new Playbook.Models.EditorHashmark(28);
+                    this.hashmark_right.initialize(this, null);
+                    this.layer.addLayer(this.hashmark_right.layer);
+                }
+                if (!this.hashmark_sideline_left) {
+                    this.hashmark_sideline_left = new Playbook.Models.EditorHashmark(2);
+                    this.hashmark_sideline_left.initialize(this, null);
+                    this.layer.addLayer(this.hashmark_sideline_left.layer);
+                }
+                if (!this.hashmark_sideline_right) {
+                    this.hashmark_sideline_right = new Playbook.Models.EditorHashmark(50);
+                    this.hashmark_sideline_right.initialize(this, null);
+                    this.layer.addLayer(this.hashmark_sideline_right.layer);
+                }
+                if (setBallContainment) {
+                    // Set containment around the ball to restrict its drag area
+                    this.ball.graphics.setContainment(this.hashmark_left.graphics.placement.coordinates.x, this.hashmark_right.graphics.placement.coordinates.x, this.endzone_top.graphics.dimensions.getHeight(), this.endzone_top.graphics.placement.coordinates.y);
                 }
                 this.draw();
+                this.invokeListener('onready');
+                this.state = Common.Enums.State.Ready;
             };
             EditorField.prototype.draw = function () {
                 this.ground.draw();
@@ -8431,14 +8567,19 @@ var Playbook;
                 this.hashmark_sideline_right.draw();
                 this.los.draw();
                 this.ball.draw();
-                this.drawScenario();
             };
             EditorField.prototype.useAssignmentTool = function (coords) {
-                if (!this.selected.hasElements()) {
+                if (!this.selectedElements.hasElements()) {
                     console.error('Select a player first');
                     return;
                 }
-                var selectedPlayers = this.getSelectedByLayerType(Common.Enums.LayerTypes.Player);
+                // NOTE:
+                // this method will return PRIMARY PLAYERS only.
+                // This means that drawing routes on opponent players would not be possible
+                // at this point.
+                // 
+                // TODO @theBull - implement checking for opponent players.
+                var selectedPlayers = this.getSelectedByLayerType(Common.Enums.LayerTypes.PrimaryPlayer);
                 var self = this;
                 var relativeCoords = null;
                 if (selectedPlayers.size() > 1) {
@@ -8466,11 +8607,19 @@ var Playbook;
                     route.flipped = player.flipped;
                     player.assignment.addRoute(route);
                 }
+                if (player.assignment &&
+                    !player.layer.containsLayer(player.assignment.layer)) {
+                    player.layer.addLayer(player.assignment.layer);
+                }
                 // TODO: this will only get the first route, implement
                 // route switching
                 var playerRoute = player.assignment.routes.getOne();
+                // if the user is dragging while adding assignment, the
+                // assignment route will be dynamically drawn; stop here,
+                // do not place a node yet.
                 if (playerRoute.dragInitialized)
                     return;
+                // Standard functionality - add a node where the click occurred
                 var newNode = new Playbook.Models.EditorRouteNode(relativeCoords, Common.Enums.RouteNodeTypes.Normal);
                 newNode.initialize(this, player);
                 // route exists, append the node
@@ -8489,6 +8638,7 @@ var Playbook;
                 var player = new Playbook.Models.EditorPlayer(placement, position, assignment);
                 player.initialize(this);
                 player.draw();
+                player.layer.type = Common.Enums.LayerTypes.PrimaryPlayer;
                 var self = this;
                 player.onModified(function () {
                     self.setModified(true);
@@ -8506,6 +8656,7 @@ var Playbook;
                 var player = new Playbook.Models.EditorPlayer(placement, position, assignment);
                 player.initialize(this);
                 player.draw();
+                player.layer.type = Common.Enums.LayerTypes.OpponentPlayer;
                 var self = this;
                 player.onModified(function () {
                     self.setModified(true);
@@ -8531,32 +8682,39 @@ var Playbook;
     (function (Models) {
         var EditorCanvas = (function (_super) {
             __extends(EditorCanvas, _super);
-            function EditorCanvas(scenario, width, height) {
-                _super.call(this, scenario);
-                /**
-                 * Note that paper is created during the initialize() method;
-                 * canvas is dependent on angular directive / dynamic HTML include
-                 * of the canvas, before the $container/container properties are
-                 * available; these containers are required by the paper, which
-                 * implements a Raphael object, that requires a container HTML element.
-                 */
-                //this.unitType = this.playPrimary.unitType;
-                //this.editorType = this.playPrimary.editorType;
+            function EditorCanvas(width, height) {
+                _super.call(this, width, height);
                 this.toolMode = Playbook.Enums.ToolModes.Select;
+                this.editorType = Playbook.Enums.EditorTypes.Any;
                 // need to set tab explicitly if it's within an editor
                 this.tab = null;
-                this.listener = new Common.Models.CanvasListener(this);
-                this.readyCallbacks = [function () {
-                        console.log('CANVAS READY: default canvas ready callback');
-                    }];
+                this.readyCallbacks.push(function () {
+                    console.log('CANVAS READY: default canvas ready callback');
+                });
+                this.state = Common.Enums.State.Constructed;
             }
             EditorCanvas.prototype.initialize = function ($container) {
                 var self = this;
-                this.container = $container[0]; // jquery lite converted to raw html
-                this.$container = $container; // jquery lite object
+                if (Common.Utilities.isNotNullOrUndefined($container)) {
+                    this.container = $container[0]; // jquery lite converted to raw html
+                    this.$container = $container; // jquery lite object    
+                }
+                else if (Common.Utilities.isNullOrUndefined(this.$container)) {
+                    throw new Error('Canvas intialize: $container arg passed or existing canvas \
+                    $container value is null or undefined. A jQuery HTML container element is \
+                    required in order to intialize the canvas.');
+                }
                 this.setDimensions();
-                this.paper = new Playbook.Models.EditorPaper(this);
-                this.paper.draw();
+                // Grid will help the paper determine its sizing
+                // and will be the basis for drawing objects' lengths and
+                // dimensions.
+                this.grid = this.grid || new Common.Models.Grid(this, Playbook.Constants.FIELD_COLS_FULL, Playbook.Constants.FIELD_ROWS_FULL);
+                this.drawing = new Common.Drawing.Utilities(this, this.grid);
+                // Paper methods within field are dependent on 
+                // this.Raphael
+                if (Common.Utilities.isNullOrUndefined(this.field))
+                    this.field = new Playbook.Models.EditorField(this);
+                this.field.initialize();
                 // TODO @theBull - stop / pause this timer if the canvas is not
                 // visible...
                 // this.widthChangeInterval = setInterval(function() {
@@ -8568,7 +8726,8 @@ var Playbook;
                 // 		self.resize();
                 // 	}
                 // }, 1);
-                this._ready();
+                this.invokeListener('onready');
+                this.state = Common.Enums.State.Ready;
             };
             EditorCanvas.prototype.setDimensions = function () {
                 this.dimensions.width = this.$container.width();
@@ -8576,12 +8735,6 @@ var Playbook;
             };
             EditorCanvas.prototype.resetHeight = function () {
                 //this.height = this.$container.height(this.$container.height());
-            };
-            EditorCanvas.prototype.zoomIn = function () {
-                throw new Error('canvas zoomIn() not implemented');
-            };
-            EditorCanvas.prototype.zoomOut = function () {
-                throw new Error('canvas zoomOut() not implemented');
             };
             EditorCanvas.prototype.getToolMode = function () {
                 return this.toolMode;
@@ -8599,82 +8752,72 @@ var Playbook;
 (function (Playbook) {
     var Models;
     (function (Models) {
-        var EditorPaper = (function (_super) {
-            __extends(EditorPaper, _super);
-            function EditorPaper(canvas) {
-                _super.call(this, canvas);
-                this.initialize();
-            }
-            EditorPaper.prototype.initialize = function () {
-                // Grid will help the paper determine its sizing
-                // and will be the basis for drawing objects' lengths and
-                // dimensions.
-                this.grid = this.grid || new Common.Models.Grid(this, Playbook.Constants.FIELD_COLS_FULL, Playbook.Constants.FIELD_ROWS_FULL);
-                this.drawing = new Common.Drawing.Utilities(this.canvas, this.grid);
-                // Paper methods within field are dependent on 
-                // this.Raphael
-                this.field = this.field || new Playbook.Models.EditorField(this, this.canvas.scenario);
-            };
-            return EditorPaper;
-        })(Common.Models.Paper);
-        Models.EditorPaper = EditorPaper;
-    })(Models = Playbook.Models || (Playbook.Models = {}));
-})(Playbook || (Playbook = {}));
-/// <reference path='./models.ts' />
-var Playbook;
-(function (Playbook) {
-    var Models;
-    (function (Models) {
         var PreviewField = (function (_super) {
             __extends(PreviewField, _super);
-            function PreviewField(paper, scenario) {
-                _super.call(this, paper, scenario);
+            function PreviewField(canvas) {
+                _super.call(this, canvas);
+                this.initialize();
+                this.state = Common.Enums.State.Constructed;
             }
             PreviewField.prototype.initialize = function () {
-                this.ball = new Playbook.Models.PreviewBall();
-                this.ball.initialize(this, null);
-                this.ground = new Playbook.Models.PreviewGround();
-                this.ground.initialize(this, null);
-                this.los = new Playbook.Models.PreviewLineOfScrimmage();
-                this.los.initialize(this, null);
-                this.endzone_top = new Playbook.Models.PreviewEndzone(0);
-                this.endzone_top.initialize(this, null);
-                this.endzone_bottom = new Playbook.Models.PreviewEndzone(110);
-                this.endzone_bottom.initialize(this, null);
-                this.sideline_left = new Playbook.Models.PreviewSideline(0);
-                this.sideline_left.initialize(this, null);
-                this.sideline_right = new Playbook.Models.PreviewSideline(51);
-                this.sideline_right.initialize(this, null);
-                this.hashmark_left = new Playbook.Models.PreviewHashmark(22);
-                this.hashmark_left.initialize(this, null);
-                this.hashmark_right = new Playbook.Models.PreviewHashmark(28);
-                this.hashmark_right.initialize(this, null);
-                this.hashmark_sideline_left = new Playbook.Models.PreviewHashmark(2);
-                this.hashmark_sideline_left.initialize(this, null);
-                this.hashmark_sideline_right = new Playbook.Models.PreviewHashmark(50);
-                this.hashmark_sideline_right.initialize(this, null);
-                this.layers.add(this.ball.layer);
-                this.layers.add(this.ground.layer);
-                this.layers.add(this.los.layer);
-                this.layers.add(this.endzone_top.layer);
-                this.layers.add(this.endzone_bottom.layer);
-                this.layers.add(this.sideline_left.layer);
-                this.layers.add(this.sideline_right.layer);
-                this.layers.add(this.hashmark_left.layer);
-                this.layers.add(this.hashmark_right.layer);
-                this.layers.add(this.hashmark_sideline_left.layer);
-                this.layers.add(this.hashmark_sideline_right.layer);
-                if (Common.Utilities.isNotNullOrUndefined(this.scenario)) {
-                    if (Common.Utilities.isNotNullOrUndefined(this.scenario.playPrimary) && Common.Utilities.isNullOrUndefined(this.scenario.playPrimary.formation)) {
-                        this.scenario.playPrimary.formation = new Common.Models.Formation(this.scenario.playPrimary.unitType);
-                        this.scenario.playPrimary.formation.setDefault(this.ball);
-                    }
-                    if (Common.Utilities.isNotNullOrUndefined(this.scenario.playOpponent) && Common.Utilities.isNullOrUndefined(this.scenario.playOpponent.formation)) {
-                        this.scenario.playOpponent.formation = new Common.Models.Formation(this.scenario.playOpponent.unitType);
-                        this.scenario.playOpponent.formation.setDefault(this.ball);
-                    }
+                if (!this.ball) {
+                    this.ball = new Playbook.Models.PreviewBall();
+                    this.ball.initialize(this, null);
+                    this.layer.addLayer(this.ball.layer);
+                }
+                if (!this.ground) {
+                    this.ground = new Playbook.Models.PreviewGround();
+                    this.ground.initialize(this, null);
+                    this.layer.addLayer(this.ground.layer);
+                }
+                if (!this.los) {
+                    this.los = new Playbook.Models.PreviewLineOfScrimmage();
+                    this.los.initialize(this, null);
+                    this.layer.addLayer(this.los.layer);
+                }
+                if (!this.endzone_top) {
+                    this.endzone_top = new Playbook.Models.PreviewEndzone(0);
+                    this.endzone_top.initialize(this, null);
+                    this.layer.addLayer(this.endzone_top.layer);
+                }
+                if (!this.endzone_bottom) {
+                    this.endzone_bottom = new Playbook.Models.PreviewEndzone(110);
+                    this.endzone_bottom.initialize(this, null);
+                    this.layer.addLayer(this.endzone_bottom.layer);
+                }
+                if (!this.sideline_left) {
+                    this.sideline_left = new Playbook.Models.PreviewSideline(0);
+                    this.sideline_left.initialize(this, null);
+                    this.layer.addLayer(this.sideline_left.layer);
+                }
+                if (!this.sideline_right) {
+                    this.sideline_right = new Playbook.Models.PreviewSideline(51);
+                    this.sideline_right.initialize(this, null);
+                    this.layer.addLayer(this.sideline_right.layer);
+                }
+                if (!this.hashmark_left) {
+                    this.hashmark_left = new Playbook.Models.PreviewHashmark(22);
+                    this.hashmark_left.initialize(this, null);
+                    this.layer.addLayer(this.hashmark_left.layer);
+                }
+                if (!this.hashmark_right) {
+                    this.hashmark_right = new Playbook.Models.PreviewHashmark(28);
+                    this.hashmark_right.initialize(this, null);
+                    this.layer.addLayer(this.hashmark_right.layer);
+                }
+                if (!this.hashmark_sideline_left) {
+                    this.hashmark_sideline_left = new Playbook.Models.PreviewHashmark(2);
+                    this.hashmark_sideline_left.initialize(this, null);
+                    this.layer.addLayer(this.hashmark_sideline_left.layer);
+                }
+                if (!this.hashmark_sideline_right) {
+                    this.hashmark_sideline_right = new Playbook.Models.PreviewHashmark(50);
+                    this.hashmark_sideline_right.initialize(this, null);
+                    this.layer.addLayer(this.hashmark_sideline_right.layer);
                 }
                 this.draw();
+                this.invokeListener('onready');
+                this.state = Common.Enums.State.Ready;
             };
             PreviewField.prototype.draw = function () {
                 this.ground.draw();
@@ -8686,7 +8829,6 @@ var Playbook;
                 this.endzone_bottom.draw();
                 this.los.draw();
                 this.ball.draw();
-                this.drawScenario();
             };
             PreviewField.prototype.addPrimaryPlayer = function (placement, position, assignment) {
                 // TODO @theBull - look into this
@@ -8694,8 +8836,8 @@ var Playbook;
                 //placement.x -= 1;
                 var player = new Playbook.Models.PreviewPlayer(placement, position, assignment);
                 player.initialize(this);
-                // TODO @theBull - add players to new layers
                 player.draw();
+                player.layer.type = Common.Enums.LayerTypes.PrimaryPlayer;
                 this.primaryPlayers.add(player);
                 return player;
             };
@@ -8705,8 +8847,8 @@ var Playbook;
                 //placement.x -= 1;
                 var player = new Playbook.Models.PreviewPlayer(placement, position, assignment);
                 player.initialize(this);
-                // TODO @theBull - add players to new layers
                 player.draw();
+                player.layer.type = Common.Enums.LayerTypes.OpponentPlayer;
                 this.opponentPlayers.add(player);
                 return player;
             };
@@ -8725,22 +8867,28 @@ var Playbook;
     (function (Models) {
         var PreviewCanvas = (function (_super) {
             __extends(PreviewCanvas, _super);
-            function PreviewCanvas(scenario) {
-                _super.call(this, scenario);
+            function PreviewCanvas() {
+                _super.call(this);
+                this.sizingMode = Common.Enums.CanvasSizingModes.PreviewWidth;
                 this.dimensions.setMinWidth(250);
                 this.dimensions.setMinHeight(200);
+                this.state = Common.Enums.State.Constructed;
             }
             PreviewCanvas.prototype.initialize = function ($container) {
                 this.container = $container[0]; // jquery lite converted to raw html
                 this.$container = $container;
                 this.setDimensions();
-                this.paper = new Playbook.Models.PreviewPaper(this);
-                this.paper.draw();
+                // NOTE: Grid size uses PREVIEW constants
+                this.grid = new Common.Models.Grid(this, Playbook.Constants.FIELD_COLS_FULL, Playbook.Constants.FIELD_ROWS_FULL);
+                this.drawing = new Common.Drawing.Utilities(this, this.grid);
+                this.field = new Playbook.Models.PreviewField(this);
+                this.field.initialize();
                 this.$exportCanvas = $('<canvas/>', {
                     id: 'exportCanvas' + this.guid
                 }).width(this.dimensions.width).height(this.dimensions.height);
                 this.exportCanvas = this.$exportCanvas[0];
-                this._ready();
+                this.invokeListener('onready');
+                this.state = Common.Enums.State.Ready;
             };
             PreviewCanvas.prototype.setDimensions = function () {
                 this.dimensions.width = Math.min(500, this.$container.width());
@@ -8749,31 +8897,6 @@ var Playbook;
             return PreviewCanvas;
         })(Common.Models.Canvas);
         Models.PreviewCanvas = PreviewCanvas;
-    })(Models = Playbook.Models || (Playbook.Models = {}));
-})(Playbook || (Playbook = {}));
-/// <reference path='./models.ts' />
-var Playbook;
-(function (Playbook) {
-    var Models;
-    (function (Models) {
-        var PreviewPaper = (function (_super) {
-            __extends(PreviewPaper, _super);
-            function PreviewPaper(previewCanvas) {
-                _super.call(this, previewCanvas);
-                this.canvas = previewCanvas;
-                this.sizingMode = Common.Enums.PaperSizingModes.PreviewWidth;
-                this.showBorder = false;
-                this.initialize();
-            }
-            PreviewPaper.prototype.initialize = function () {
-                // NOTE: Grid size uses PREVIEW constants
-                this.grid = new Common.Models.Grid(this, Playbook.Constants.FIELD_COLS_FULL, Playbook.Constants.FIELD_ROWS_FULL);
-                this.drawing = new Common.Drawing.Utilities(this.canvas, this.grid);
-                this.field = new Playbook.Models.PreviewField(this, this.canvas.scenario);
-            };
-            return PreviewPaper;
-        })(Common.Models.Paper);
-        Models.PreviewPaper = PreviewPaper;
     })(Models = Playbook.Models || (Playbook.Models = {}));
 })(Playbook || (Playbook = {}));
 /// <reference path='./models.ts' />
@@ -8865,11 +8988,9 @@ var Playbook;
                 this.field.ball.layer.moveByDelta(0, dy);
                 this.field.primaryPlayers.forEach(function (player, index) {
                     player.layer.moveByDelta(0, dy);
-                    player.moveAssignmentByDelta(0, dy);
                 });
                 this.field.opponentPlayers.forEach(function (player, index) {
                     player.layer.moveByDelta(0, dy);
-                    player.moveAssignmentByDelta(0, dy);
                 });
                 this.setModified(true);
             };
@@ -8882,11 +9003,9 @@ var Playbook;
                     this.field.ball.drop();
                     this.field.primaryPlayers.forEach(function (player, index) {
                         player.drop();
-                        player.dropAssignment();
                     });
                     this.field.opponentPlayers.forEach(function (player, index) {
                         player.drop();
-                        player.dropAssignment();
                     });
                     this.dragging = false;
                 }
@@ -8965,7 +9084,7 @@ var Playbook;
             EditorGround.prototype.click = function (e) {
                 var coords = this.getClickCoordinates(e.offsetX, e.offsetY);
                 console.log('ground clicked', coords);
-                var toolMode = this.paper.canvas.toolMode;
+                var toolMode = this.canvas.toolMode;
                 switch (toolMode) {
                     case Playbook.Enums.ToolModes.Select:
                         console.log('selection mode');
@@ -9089,7 +9208,7 @@ var Playbook;
             }
             PreviewSideline.prototype.initialize = function (field) {
                 _super.prototype.initialize.call(this, field);
-                this.graphics.opacity = 0.35;
+                this.graphics.opacity = 1;
             };
             return PreviewSideline;
         })(Common.Models.Sideline);
@@ -9143,10 +9262,8 @@ var Playbook;
                 // parse route json data 
                 // don't render the assignments if the editor type is of type Formation
                 if (Common.Utilities.isNotNullOrUndefined(this.assignment) &&
-                    this.field.editorType != Playbook.Enums.EditorTypes.Formation) {
-                    this.assignment.listen(false);
+                    this.canvas.editorType != Playbook.Enums.EditorTypes.Formation) {
                     this.assignment.setRoutes(this, Common.Enums.RenderTypes.Editor);
-                    this.assignment.listen(true);
                 }
                 this.contextmenuTemplateUrl = Common.Constants.PLAYER_CONTEXTMENU_TEMPLATE_URL;
             };
@@ -9172,7 +9289,9 @@ var Playbook;
                  * Index label
                  */
                 this.indexLabel.draw();
-                this.drawRoute();
+                if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+                    this.assignment.draw();
+                }
             };
             EditorPlayer.prototype.remove = function () {
                 this.layer.remove();
@@ -9256,7 +9375,6 @@ var Playbook;
                 }
                 else if (!e.shiftKey && e.which != Common.Input.Which.RightClick) {
                     this.layer.moveByDelta(dx, dy);
-                    this.moveAssignmentByDelta(dx, dy);
                     // Update relative coordinates label, if it exists
                     if (this.relativeCoordinatesLabel) {
                         var updatedRelativeCoordinates = [
@@ -9279,7 +9397,6 @@ var Playbook;
             EditorPlayer.prototype.dragEnd = function (e) {
                 if (this.dragging) {
                     this.drop();
-                    this.dropAssignment();
                     if (this.relativeCoordinatesLabel)
                         this.relativeCoordinatesLabel.layer.hide();
                 }
@@ -9302,6 +9419,12 @@ var Playbook;
             };
             EditorPlayer.prototype.hasPosition = function () {
                 return this.position != null;
+            };
+            EditorPlayer.prototype.setAssignment = function (assignment) {
+                _super.prototype.setAssignment.call(this, assignment);
+                if (Common.Utilities.isNotNullOrUndefined(assignment))
+                    this.assignment.setRoutes(this, Common.Enums.RenderTypes.Editor);
+                this.setModified(true);
             };
             return EditorPlayer;
         })(Common.Models.Player);
@@ -9327,15 +9450,15 @@ var Playbook;
                 this.layer.addLayer(this.icon.layer);
                 // parse route json data
                 if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
-                    this.assignment.listen(false);
                     this.assignment.setRoutes(this, Common.Enums.RenderTypes.Preview);
-                    this.assignment.listen(true);
                 }
             };
             PreviewPlayer.prototype.draw = function () {
                 this.icon.draw();
                 //this.personnelLabel.draw();
-                this.drawRoute();
+                if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+                    this.assignment.draw();
+                }
             };
             PreviewPlayer.prototype.dragMove = function (dx, dy, posx, posy, e) {
                 // Not implemented - preview player does not have drag functionality
@@ -9345,6 +9468,12 @@ var Playbook;
             };
             PreviewPlayer.prototype.dragEnd = function (e) {
                 // Not implemented - preview player does not have drag functionality
+            };
+            PreviewPlayer.prototype.setAssignment = function (assignment) {
+                _super.prototype.setAssignment.call(this, assignment);
+                if (Common.Utilities.isNotNullOrUndefined(assignment))
+                    this.assignment.setRoutes(this, Common.Enums.RenderTypes.Preview);
+                this.setModified(true);
             };
             return PreviewPlayer;
         })(Common.Models.Player);
@@ -9592,7 +9721,7 @@ var Playbook;
                     this.player = player;
                     this.grid = this.player.grid;
                     this.field = this.player.field;
-                    this.paper = this.player.paper;
+                    this.canvas = this.player.canvas;
                     var self_4 = this;
                     this.nodes.forEach(function (node, index) {
                         node.setContext(self_4);
@@ -9751,7 +9880,7 @@ var Playbook;
                 this.field.toggleSelection(this);
             };
             EditorRouteNode.prototype.contextmenu = function (e) {
-                this.paper.canvas.listener.invoke(Playbook.Enums.Actions.RouteNodeContextmenu, new Common.Models.ContextmenuData(this, e.pageX, e.pageY));
+                this.canvas.listener.invoke(Playbook.Enums.Actions.RouteNodeContextmenu, new Common.Models.ContextmenuData(this, e.pageX, e.pageY));
             };
             EditorRouteNode.prototype.dragMove = function (dx, dy, posx, posy, e) {
                 if (this.disabled) {
@@ -9931,10 +10060,8 @@ var Playbook;
 /// <reference path='./PreviewBall.ts' />
 /// <reference path='./EditorField.ts' />
 /// <reference path='./EditorCanvas.ts' />
-/// <reference path='./EditorPaper.ts' />
 /// <reference path='./PreviewField.ts' />
 /// <reference path='./PreviewCanvas.ts' />
-/// <reference path='./PreviewPaper.ts' />
 /// <reference path='./PreviewLineOfScrimmage.ts' />
 /// <reference path='./EditorLineOfScrimmage.ts' />
 /// <reference path='./PreviewGround.ts' />
@@ -10067,7 +10194,6 @@ var Team;
             __extends(TeamModel, _super);
             function TeamModel() {
                 _super.call(this, Common.Enums.ImpaktDataTypes.Team);
-                _super.prototype.setContext.call(this, this);
                 this.name = '';
                 this.teamType = Team.Enums.TeamTypes.Mixed;
                 this.records = new Team.Models.TeamRecordCollection();
@@ -10280,7 +10406,6 @@ var Team;
             __extends(Personnel, _super);
             function Personnel(unitType) {
                 _super.call(this, Common.Enums.ImpaktDataTypes.PersonnelGroup);
-                _super.prototype.setContext.call(this, this);
                 this.name = 'Untitled';
                 this.unitType = unitType;
                 this.positions = null;
@@ -11161,7 +11286,7 @@ var Planning;
                 this.situationData.fromJson(json.situationData);
                 this.offensiveData.fromJson(json.offensiveData);
                 this.defensiveData.fromJson(json.defensiveData);
-                this.items.empty();
+                this.items.empty(false);
                 this.items.fromJson(json.items);
                 _super.prototype.fromJson.call(this, json);
             };
@@ -11169,7 +11294,7 @@ var Planning;
                 for (var i = 0; i < Planning.Constants.DEFAULT_PRACTICE_PLAN_ITEMS_LENGTH; i++) {
                     var newItem = new Planning.Models.PracticePlanItem();
                     newItem.index = i;
-                    this.items.add(newItem);
+                    this.items.add(newItem, false);
                 }
             };
             PracticePlan.prototype.setPlan = function (plan) {
@@ -12724,7 +12849,7 @@ var Season;
                     }
                     var weekModel = new Season.Models.Week();
                     weekModel.fromJson(rawWeekModel);
-                    this.add(weekModel);
+                    this.add(weekModel, false);
                 }
             };
             return WeekCollection;
@@ -13205,11 +13330,26 @@ impakt.context = {};
 impakt.app = angular.module('impakt.app', [
     // module registration
     'ui.router',
+    'angular.filter',
     'ui.bootstrap',
     'impakt.common',
     'impakt.modules',
     'ngTagsInput'
 ])
+    .provider('appConfigurator', function () {
+    var impaktSettings = {
+        appVer: '0.0.0',
+        hostUrl: undefined
+    };
+    return {
+        set: function (overrides) {
+            angular.extend(impaktSettings, overrides);
+        },
+        $get: function () {
+            return impaktSettings;
+        }
+    };
+})
     .config([
     '$stateProvider',
     '$urlRouterProvider',
@@ -13278,6 +13418,20 @@ impakt.signin = angular.module('impakt.signin', [
     'ui.bootstrap',
     'impakt.common'
 ])
+    .provider('appConfigurator', function () {
+    var impaktSettings = {
+        appVer: '0.0.0',
+        hostUrl: undefined
+    };
+    return {
+        set: function (overrides) {
+            angular.extend(impaktSettings, overrides);
+        },
+        $get: function () {
+            return impaktSettings;
+        }
+    };
+})
     .config([function () {
         console.debug('impakt.signin - config');
     }])
@@ -13341,7 +13495,10 @@ impakt.common.api.factory('__api', [
     '$http',
     '$q',
     '__localStorage',
-    function (API, AUTH, $http, $q, __localStorage) {
+    'appConfigurator',
+    function (API, AUTH, $http, $q, __localStorage, appConfigurator) {
+        // Prefer the value from appConfigurator, if available.
+        var hostUrl = appConfigurator.hostUrl || API.HOST_URL;
         var self = {
             post: post,
             get: get,
@@ -13353,7 +13510,7 @@ impakt.common.api.factory('__api', [
             var d = $q.defer();
             $http({
                 method: 'POST',
-                url: path(API.HOST_URL, API.ENDPOINT, endpointUrl),
+                url: path(hostUrl, API.ENDPOINT, endpointUrl),
                 data: JSON.stringify(data),
                 headers: {
                     'Content-Type': 'application/json'
@@ -13372,7 +13529,7 @@ impakt.common.api.factory('__api', [
             var d = $q.defer();
             $http({
                 method: 'POST',
-                url: path(API.HOST_URL, API.ENDPOINT, endpointUrl),
+                url: path(hostUrl, API.ENDPOINT, endpointUrl),
                 headers: {
                     'X-HTTP-Method-Override': 'GET',
                     'Content-Type': 'application/json'
@@ -13411,8 +13568,9 @@ impakt.common.auth.constant('AUTH', {
 (function () {
     var name = '__auth';
     impakt.common.auth.factory(name, [
-        'AUTH', 'API', '$http', '$q', '__api',
-        function (AUTH, API, $http, $q, __api) {
+        'AUTH', 'API', '$http', '$q', '__api', 'appConfigurator',
+        function (AUTH, API, $http, $q, __api, appConfigurator) {
+            var hostUrl = appConfigurator.hostUrl || API.HOST_URL;
             var self = {
                 getToken: getToken
             };
@@ -13425,7 +13583,7 @@ impakt.common.auth.constant('AUTH', {
                 ].join('');
                 $http({
                     method: 'POST',
-                    url: __api.path(API.HOST_URL, AUTH.TOKEN_ENDPOINT),
+                    url: __api.path(hostUrl, AUTH.TOKEN_ENDPOINT),
                     data: data,
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
@@ -15516,7 +15674,12 @@ impakt.common.ui.controller('appLoading.ctrl', [
         $scope.notification;
         $scope.notifications.onModified(function (collection) {
             $scope.notification = collection.getLast();
+            if (!$scope.$$phase)
+                $scope.$apply();
         });
+        $scope.skip = function () {
+            $scope.visible = false;
+        };
         __context.onInitializing(function () {
             $scope.visible = true;
         });
@@ -15974,7 +16137,7 @@ impakt.common.ui.controller('expandable.ctrl', [
             transclude: true,
             replace: true,
             require: '^expandable',
-            template: "<div class='width3 pad {{expandable.handle.position}} \
+            template: "<div class='width3 height3 pad {{expandable.handle.position}} \
 			gray-bg-3-hover pointer font- white'\
 			ng-click='expandable.toggle()'>\
 				<div class='glyphicon {{expandable.handle.class}}'></div>\
@@ -16046,6 +16209,7 @@ impakt.common.ui.controller('formationPreview.ctrl', [
     '$scope', '$timeout', function ($scope, $timeout) {
         $scope.previewCanvas;
         $scope.play;
+        $scope.scenario;
         $scope.$element;
         $scope.isModified = true;
         $scope.modificationTimer;
@@ -16059,10 +16223,10 @@ impakt.common.ui.controller('formationPreview.ctrl', [
             if (!$scope.$element)
                 throw new Error('formation-preview refresh(): $element is null or undefined');
             $scope.$element.find('svg').show();
-            $scope.previewCanvas.refresh();
+            $scope.previewCanvas.field.updateScenario($scope.scenario);
             $scope.play.formation.png = $scope.previewCanvas.exportToPng();
             $scope.isModified = false;
-            var scrollTop = $scope.previewCanvas.paper.field.getLOSAbsolute()
+            var scrollTop = $scope.previewCanvas.field.getLOSAbsolute()
                 - ($scope.$element.height() / 2);
             $scope.$element.scrollTop(scrollTop);
             if ($scope.modificationTimer)
@@ -16089,17 +16253,8 @@ impakt.common.ui.controller('formationPreview.ctrl', [
                         // create a previewCanvas to handle preview creation. Creating
                         // a previewCanvas will insert a SVG into the <play-preview/> element
                         // after the intialization phase.
-                        if (Common.Utilities.isNotNullOrUndefined($scope.play)) {
-                            // get associated assignment group
-                            //let associations = _associations.getAssociated($scope.play);
-                            //$scope.play.assignmentGroup = associations.assignmentGroups.first();
-                            var scenario = new Common.Models.Scenario();
-                            scenario.setPlayPrimary($scope.play);
-                            scenario.setPlayOpponent(null);
-                            $scope.previewCanvas = new Playbook.Models.PreviewCanvas(scenario);
-                        }
-                        else {
-                            // if there's no play at this point, there's a problem
+                        $scope.previewCanvas = new Playbook.Models.PreviewCanvas();
+                        if (Common.Utilities.isNullOrUndefined($scope.play)) {
                             throw new Error('play-preview link(): Unable to find play');
                         }
                         $scope.play.onModified(function () {
@@ -16119,12 +16274,16 @@ impakt.common.ui.controller('formationPreview.ctrl', [
                          */
                         $timeout(function () {
                             if ($scope.previewCanvas) {
-                                $scope.previewCanvas.onready(function () {
-                                    var scrollTop = $scope.previewCanvas.paper.field.getLOSAbsolute()
+                                $scope.previewCanvas.setListener('onready', function () {
+                                    var scrollTop = $scope.previewCanvas.field.getLOSAbsolute()
                                         - ($scope.$element.height() / 2);
                                     $scope.$element.scrollTop(scrollTop);
                                 });
                                 $scope.previewCanvas.initialize($element);
+                                $scope.scenario = new Common.Models.Scenario();
+                                $scope.scenario.setPlayPrimary($scope.play);
+                                $scope.scenario.setPlayOpponent(null);
+                                $scope.previewCanvas.field.updateScenario($scope.scenario);
                                 $scope.play.formation.png = $scope.previewCanvas.exportToPng();
                             }
                         }, 0);
@@ -16200,21 +16359,7 @@ impakt.common.ui.controller('formationThumbnail.ctrl', [
 impakt.common.ui.controller('typeFormatter.ctrl', [
     '$scope', function ($scope) {
         $scope.parseValue = function ($element) {
-            // i.e. "['Playbook', 'Editor', 'EditorTypes']"
-            var namespaceComponents = $scope.type.split('.');
-            // Drill down into namespace -> window['Playbook']['Editor']['EditorTypes']
-            // returns enum object
-            var namespaceRoot = window;
-            for (var i = 0; i < namespaceComponents.length; i++) {
-                if (namespaceComponents[i]) {
-                    // Follow the namespace path down to the node object
-                    // window['Playbook']...
-                    // window['Playbook']['Editor']...
-                    // window['Playbook']['Editor']['EditorTypes']
-                    // node reached, namespaceRoot will finally point to the node object
-                    namespaceRoot = namespaceRoot[namespaceComponents[i]];
-                }
-            }
+            var namespaceRoot = Common.Utilities.parseEnumFromString($scope.type);
             // Get the enumeration list {enum: "Label"} || {number: string}
             var enumList = Common.Utilities.convertEnumToList(namespaceRoot);
             if (enumList) {
@@ -16456,6 +16601,11 @@ impakt.common.ui.directive('ngPlaceholder', [
             link: function ($scope, $element, attrs, ngModel) {
                 if (!$scope.ngPlaceholder || !attrs)
                     return;
+                if (attrs && attrs.hasOwnProperty('autofocus') &&
+                    (attrs['autofocus'] === undefined || Boolean(attrs['autofocus']) === true ||
+                        attrs['autofocus'] == '')) {
+                    $element.focus();
+                }
                 $element.focus(function () {
                     if (!_isNgModelSet())
                         _clear();
@@ -16761,6 +16911,7 @@ impakt.common.ui.controller('playPreview.ctrl', [
     '$scope', '$timeout', function ($scope, $timeout) {
         $scope.previewCanvas;
         $scope.play;
+        $scope.scenario;
         $scope.$element;
         $scope.isModified = true;
         $scope.modificationTimer;
@@ -16776,10 +16927,10 @@ impakt.common.ui.controller('playPreview.ctrl', [
                 return;
             }
             $scope.$element.find('svg').show();
-            $scope.previewCanvas.refresh();
+            $scope.previewCanvas.field.updateScenario($scope.scenario);
             $scope.play.png = $scope.previewCanvas.exportToPng();
             $scope.isModified = false;
-            var scrollTop = $scope.previewCanvas.paper.field.getLOSAbsolute() - ($scope.$element.height() / 2);
+            var scrollTop = $scope.previewCanvas.field.getLOSAbsolute() - ($scope.$element.height() / 2);
             $scope.$element.scrollTop(scrollTop);
             if ($scope.modificationTimer)
                 $timeout.cancel($scope.modificationTimer);
@@ -16810,10 +16961,7 @@ impakt.common.ui.controller('playPreview.ctrl', [
                             // get associated assignment group
                             //let associations = _associations.getAssociated($scope.play);
                             //$scope.play.assignmentGroup = associations.assignmentGroups.first();
-                            var scenario = new Common.Models.Scenario();
-                            scenario.setPlayPrimary($scope.play);
-                            scenario.setPlayOpponent(null);
-                            $scope.previewCanvas = new Playbook.Models.PreviewCanvas(scenario);
+                            $scope.previewCanvas = new Playbook.Models.PreviewCanvas();
                         }
                         else {
                             // if there's no play at this point, there's a problem
@@ -16836,12 +16984,16 @@ impakt.common.ui.controller('playPreview.ctrl', [
                          */
                         $timeout(function () {
                             if ($scope.previewCanvas) {
-                                $scope.previewCanvas.onready(function () {
-                                    var scrollTop = $scope.previewCanvas.paper.field.getLOSAbsolute()
+                                $scope.previewCanvas.setListener('onready', function () {
+                                    var scrollTop = $scope.previewCanvas.field.getLOSAbsolute()
                                         - ($scope.$element.height() / 2);
                                     $scope.$element.scrollTop(scrollTop);
                                 });
                                 $scope.previewCanvas.initialize($element);
+                                $scope.scenario = new Common.Models.Scenario();
+                                $scope.scenario.setPlayPrimary($scope.play);
+                                $scope.scenario.setPlayOpponent(null);
+                                $scope.previewCanvas.field.updateScenario($scope.scenario);
                                 $scope.play.png = $scope.previewCanvas.exportToPng();
                             }
                         }, 0);
@@ -17006,36 +17158,129 @@ impakt.common.ui.controller('playbookSelectDropdown.ctrl', [
 /// <reference path='../ui.mdl.ts' />
 impakt.common.ui.controller('popout.ctrl', [
     '$scope',
-    function ($scope) {
+    '$timeout',
+    function ($scope, $timeout) {
+        $scope.$element;
         $scope.expandable;
         $scope.collection;
+        $scope.filteredCollection;
+        $scope.optionalType;
+        $scope.query = {
+            text: ''
+        };
+        $scope.searchVisible = false;
+        $scope.itemSelect = function (item) {
+            $scope.expandable.close();
+            $scope.select(item, $scope.optionalType);
+            //$scope.expandable.label = item.name;
+        };
+        $scope.toggle = function (e) {
+            if ($scope.filteredCollection && $scope.filteredCollection.isEmpty())
+                return;
+            $scope.expandable.toggle();
+            $scope.searchVisible = !$scope.expandable.collapsed;
+            if ($scope.searchVisible) {
+                $timeout(function () {
+                    $scope.$element.find('input').focus();
+                }, 1);
+            }
+            else {
+                $scope.query.text = '';
+            }
+        };
+        $scope.close = function () {
+            $scope.searchVisible = false;
+            $scope.expandable.close();
+        };
+        $scope.filterCollection = function () {
+            if (Common.Utilities.isNotNullOrUndefined($scope.filterBy) &&
+                Common.Utilities.isNotNullOrUndefined($scope.filterValue)) {
+                $scope.filter = {};
+                $scope.filter[$scope.filterBy] = $scope.filterValue;
+                try {
+                    if (Common.Utilities.isNotNullOrUndefined($scope.filter) &&
+                        Common.Utilities.isNotNullOrUndefined($scope.collection)) {
+                        $scope.filteredCollection = $scope.collection.filterCollection($scope.filter);
+                    }
+                }
+                catch (e) {
+                    console.error(e);
+                }
+            }
+        };
+        $scope.setLabel = function () {
+        };
     }]).directive('popout', [
-    function () {
+    '$rootScope',
+    '$filter',
+    '$timeout',
+    function ($rootScope, $filter, $timeout) {
         return {
             restrict: 'E',
             controller: 'popout.ctrl',
             scope: {
-                data: '=',
+                root: '=',
+                label: '=',
                 direction: '@',
                 collapsed: '@?',
-                label: '=',
                 url: '@',
-                itemSelect: '&'
+                collection: '=',
+                select: '=',
+                type: '@',
+                filterBy: '@',
+                filterValue: '='
             },
             transclude: true,
             replace: true,
             templateUrl: 'common/ui/popout/popout.tpl.html',
             link: function ($scope, $element, attrs) {
+                $scope.$element = $element;
                 $scope.expandable = new Common.Models.Expandable($element);
-                $scope.expandable.url = $scope.url;
-                $scope.expandable.label = $scope.label;
-                $scope.expandable.direction = $scope.direction;
-                $scope.expandable.collapsed = Boolean($scope.collapsed) === false ? false : true;
-                $scope.expandable.expandable = false;
-                /**
-                 * Set initial class on the element for proper sizing
-                 */
-                $scope.expandable.ready = true;
+                $timeout(function () {
+                    $scope.optionalType = Common.Utilities.parseEnumFromString($scope.type);
+                    $scope.expandable.url = $scope.url;
+                    $scope.expandable.direction = $scope.direction;
+                    $scope.expandable.collapsed = Boolean($scope.collapsed) === false ? false : true;
+                    $scope.expandable.expandable = false;
+                    $scope.expandable.label = $scope.label;
+                    $scope.expandable.initializeToggleHandle();
+                    $scope.expandable.ready = true;
+                    $scope.filterCollection();
+                }, 1);
+                $scope.$element.click(function (e) {
+                    e.stopPropagation();
+                });
+                $scope.expandable.onopen(function () {
+                    $rootScope.$broadcast('popout-opened', $scope.expandable.guid);
+                    $('html').on('click.popout-clickeater', function (e) {
+                        $scope.close();
+                        $scope.$apply();
+                    }).on('keyup.popout-keyboard', function (e) {
+                        if (e.keyCode == Common.Input.Which.Esc) {
+                            $scope.close();
+                            $scope.$apply();
+                        }
+                        if (e.keyCode == Common.Input.Which.Enter) {
+                        }
+                    });
+                });
+                $scope.expandable.onclose(function () {
+                    $('html').off('click.popout-clickeater').off('popout-keyboard');
+                    $scope.searchVisible = false;
+                });
+                $rootScope.$on('popout-opened', function (e, guid) {
+                    if (guid != $scope.expandable.guid) {
+                        $scope.close();
+                    }
+                });
+                $scope.$watch('root', function (newVal, oldVal) {
+                    if (!newVal)
+                        return;
+                    if (!oldVal || newVal.guid != oldVal.guid) {
+                        $scope.expandable.label = $scope.label;
+                        $scope.filterCollection();
+                    }
+                });
             }
         };
     }]).directive('popoutToggle', [
@@ -17051,7 +17296,8 @@ impakt.common.ui.controller('popout.ctrl', [
                 /**
                  * Initialize the toggle handle
                  */
-                $scope.expandable.initializeToggleHandle();
+                if (Common.Utilities.isNotNullOrUndefined($scope.expandable))
+                    $scope.expandable.initializeToggleHandle();
             }
         };
     }]).directive('popoutContents', [function () {
@@ -17319,10 +17565,10 @@ impakt.common.ui.controller('scenarioPreview.ctrl', [
             if (!$scope.$element)
                 throw new Error('scenario-preview refresh(): $element is null or undefined');
             $scope.$element.find('svg').show();
-            $scope.previewCanvas.updateScenario($scope.scenario);
+            $scope.previewCanvas.field.updateScenario($scope.scenario);
             $scope.scenario.png = $scope.previewCanvas.exportToPng();
             $scope.isModified = false;
-            var scrollTop = $scope.previewCanvas.paper.field.getLOSAbsolute() - ($scope.$element.height() / 2);
+            var scrollTop = $scope.previewCanvas.field.getLOSAbsolute() - ($scope.$element.height() / 2);
             $scope.$element.scrollTop(scrollTop);
             if ($scope.modificationTimer)
                 $timeout.cancel($scope.modificationTimer);
@@ -17350,7 +17596,7 @@ impakt.common.ui.controller('scenarioPreview.ctrl', [
                         // a previewCanvas will insert a SVG into the <scenario-preview/> element
                         // after the intialization phase.
                         if (Common.Utilities.isNotNullOrUndefined($scope.scenario)) {
-                            $scope.previewCanvas = new Playbook.Models.PreviewCanvas($scope.scenario);
+                            $scope.previewCanvas = new Playbook.Models.PreviewCanvas();
                         }
                         else {
                             // if there's no scenario at this point, there's a problem
@@ -17373,12 +17619,13 @@ impakt.common.ui.controller('scenarioPreview.ctrl', [
                          */
                         $timeout(function () {
                             if ($scope.previewCanvas) {
-                                $scope.previewCanvas.onready(function () {
-                                    var scrollTop = $scope.previewCanvas.paper.field.getLOSAbsolute()
+                                $scope.previewcanvas.setListener('onready', function () {
+                                    var scrollTop = $scope.previewCanvas.field.getLOSAbsolute()
                                         - ($scope.$element.height() / 2);
                                     $scope.$element.scrollTop(scrollTop);
                                 });
                                 $scope.previewCanvas.initialize($element);
+                                $scope.previewCanvas.field.updateScenario($scope.scenario);
                                 $scope.scenario.png = $scope.previewCanvas.exportToPng();
                             }
                         }, 0);
@@ -18461,7 +18708,7 @@ impakt.league.service('_league', [
                             var leagueModel = new League.Models.LeagueModel();
                             leagueResult.data.model.key = leagueResult.key;
                             leagueModel.fromJson(leagueResult.data.model);
-                            collection.add(leagueModel);
+                            collection.add(leagueModel, false);
                         }
                     }
                 }
@@ -18524,7 +18771,7 @@ impakt.league.service('_league', [
                     results.data.model.key = results.key;
                     leagueModel.fromJson(results.data.model);
                     // update the context
-                    impakt.context.League.leagues.add(leagueModel);
+                    impakt.context.League.leagues.add(leagueModel, false);
                 }
                 else {
                     throw new Error('CreateLeague did not return a valid league model');
@@ -18610,7 +18857,7 @@ impakt.league.service('_league', [
                             var conferenceModel = new League.Models.Conference();
                             conferenceResult.data.conference.key = conferenceResult.key;
                             conferenceModel.fromJson(conferenceResult.data.conference);
-                            collection.add(conferenceModel);
+                            collection.add(conferenceModel, false);
                         }
                     }
                 }
@@ -18673,7 +18920,7 @@ impakt.league.service('_league', [
                     results.data.conference.key = results.key;
                     conferenceModel.fromJson(results.data.conference);
                     // update the context
-                    impakt.context.League.conferences.add(conferenceModel);
+                    impakt.context.League.conferences.add(conferenceModel, false);
                 }
                 else {
                     throw new Error('CreateConference did not return a valid conference');
@@ -18757,7 +19004,7 @@ impakt.league.service('_league', [
                             var divisionModel = new League.Models.Division();
                             divisionResult.data.division.key = divisionResult.key;
                             divisionModel.fromJson(divisionResult.data.division);
-                            collection.add(divisionModel);
+                            collection.add(divisionModel, false);
                         }
                     }
                 }
@@ -18820,7 +19067,7 @@ impakt.league.service('_league', [
                     results.data.division.key = results.key;
                     divisionModel.fromJson(results.data.division);
                     // update the context
-                    impakt.context.League.divisions.add(divisionModel);
+                    impakt.context.League.divisions.add(divisionModel, false);
                 }
                 else {
                     throw new Error('CreateDivision did not return a valid division');
@@ -18904,7 +19151,7 @@ impakt.league.service('_league', [
                             var locationModel = new League.Models.Location();
                             locationResult.data.location.key = locationResult.key;
                             locationModel.fromJson(locationResult.data.location);
-                            collection.add(locationModel);
+                            collection.add(locationModel, false);
                         }
                     }
                 }
@@ -18967,7 +19214,7 @@ impakt.league.service('_league', [
                     results.data.location.key = results.key;
                     locationModel.fromJson(results.data.location);
                     // update the context
-                    impakt.context.League.locations.add(locationModel);
+                    impakt.context.League.locations.add(locationModel, false);
                 }
                 else {
                     throw new Error('CreateLocation did not return a valid location');
@@ -19869,7 +20116,9 @@ impakt.nav.controller('nav.ctrl', [
     '$location',
     '__nav',
     '__notifications',
-    function ($scope, $location, __nav, __notifications) {
+    'appConfigurator',
+    function ($scope, $location, __nav, __notifications, appConfigurator) {
+        $scope.appVer = appConfigurator.appVer;
         // Default menu visiblity
         $scope.isMenuCollapsed = true;
         $scope.notifications = __notifications.notifications;
@@ -21309,7 +21558,7 @@ impakt.planning.service('_planning', [
                             var planModel = new Planning.Models.Plan();
                             planResult.data.plan.key = planResult.key;
                             planModel.fromJson(planResult.data.plan);
-                            collection.add(planModel);
+                            collection.add(planModel, false);
                         }
                     }
                 }
@@ -21372,7 +21621,7 @@ impakt.planning.service('_planning', [
                     results.data.plan.key = results.key;
                     planModel.fromJson(results.data.plan);
                     // update the context
-                    impakt.context.Planning.plans.add(planModel);
+                    impakt.context.Planning.plans.add(planModel, false);
                 }
                 else {
                     throw new Error('createPlan did not return a valid Plan');
@@ -21457,7 +21706,7 @@ impakt.planning.service('_planning', [
                             var practicePlanModel = new Planning.Models.PracticePlan();
                             practicePlanResult.data.practicePlan.key = practicePlanResult.key;
                             practicePlanModel.fromJson(practicePlanResult.data.practicePlan);
-                            collection.add(practicePlanModel);
+                            collection.add(practicePlanModel, false);
                         }
                     }
                 }
@@ -21520,7 +21769,7 @@ impakt.planning.service('_planning', [
                     results.data.practicePlan.key = results.key;
                     practicePlanModel.fromJson(results.data.practicePlan);
                     // update the context
-                    impakt.context.Planning.practicePlans.add(practicePlanModel);
+                    impakt.context.Planning.practicePlans.add(practicePlanModel, false);
                 }
                 else {
                     throw new Error('createPracticePlan did not return a valid PracticePlan');
@@ -21604,7 +21853,7 @@ impakt.planning.service('_planning', [
                             var gamePlanModel = new Planning.Models.GamePlan();
                             gamePlanResult.data.gamePlan.key = gamePlanResult.key;
                             gamePlanModel.fromJson(gamePlanResult.data.gamePlan);
-                            collection.add(gamePlanModel);
+                            collection.add(gamePlanModel, false);
                         }
                     }
                 }
@@ -21667,7 +21916,7 @@ impakt.planning.service('_planning', [
                     results.data.gamePlan.key = results.key;
                     gamePlanModel.fromJson(results.data.gamePlan);
                     // update the context
-                    impakt.context.Planning.gamePlans.add(gamePlanModel);
+                    impakt.context.Planning.gamePlans.add(gamePlanModel, false);
                 }
                 else {
                     throw new Error('CreateGamePlan did not return a valid game plan');
@@ -21751,7 +22000,7 @@ impakt.planning.service('_planning', [
                             var practiceScheduleModel = new Planning.Models.PracticeSchedule();
                             practiceScheduleResult.data.practiceSchedule.key = practiceScheduleResult.key;
                             practiceScheduleModel.fromJson(practiceScheduleResult.data.practiceSchedule);
-                            collection.add(practiceScheduleModel);
+                            collection.add(practiceScheduleModel, false);
                         }
                     }
                 }
@@ -21814,7 +22063,7 @@ impakt.planning.service('_planning', [
                     results.data.practiceSchedule.key = results.key;
                     practiceScheduleModel.fromJson(results.data.practiceSchedule);
                     // update the context
-                    impakt.context.Planning.practiceSchedules.add(practiceScheduleModel);
+                    impakt.context.Planning.practiceSchedules.add(practiceScheduleModel, false);
                 }
                 else {
                     throw new Error('CreatePracticeSchedule did not return a valid practiceSchedule');
@@ -21898,7 +22147,7 @@ impakt.planning.service('_planning', [
                             var scoutCardModel = new Planning.Models.ScoutCard();
                             scoutCardResult.data.scoutCard.key = scoutCardResult.key;
                             scoutCardModel.fromJson(scoutCardResult.data.scoutCard);
-                            collection.add(scoutCardModel);
+                            collection.add(scoutCardModel, false);
                         }
                     }
                 }
@@ -21961,7 +22210,7 @@ impakt.planning.service('_planning', [
                     results.data.scoutCard.key = results.key;
                     scoutCardModel.fromJson(results.data.scoutCard);
                     // update the context
-                    impakt.context.Planning.scoutCards.add(scoutCardModel);
+                    impakt.context.Planning.scoutCards.add(scoutCardModel, false);
                 }
                 else {
                     throw new Error('CreateScoutCard did not return a valid scoutCard');
@@ -22045,7 +22294,7 @@ impakt.planning.service('_planning', [
                             var QBWristbandModel = new Planning.Models.QBWristband();
                             QBWristbandResult.data.QBWristband.key = QBWristbandResult.key;
                             QBWristbandModel.fromJson(QBWristbandResult.data.QBWristband);
-                            collection.add(QBWristbandModel);
+                            collection.add(QBWristbandModel, false);
                         }
                     }
                 }
@@ -22108,7 +22357,7 @@ impakt.planning.service('_planning', [
                     results.data.QBWristband.key = results.key;
                     QBWristbandModel.fromJson(results.data.QBWristband);
                     // update the context
-                    impakt.context.Planning.QBWristbands.add(QBWristbandModel);
+                    impakt.context.Planning.QBWristbands.add(QBWristbandModel, false);
                 }
                 else {
                     throw new Error('CreateQBWristband did not return a valid QBWristband');
@@ -22225,23 +22474,23 @@ impakt.planning.service('_planning', [
             $state.transitionTo('planning.browser');
         };
         this.toPracticePlanEditor = function (practicePlan) {
-            impakt.context.Planning.editor.practicePlans.add(practicePlan);
+            impakt.context.Planning.editor.practicePlans.add(practicePlan, false);
             $state.transitionTo('planning.editor.practicePlan');
         };
         this.toGamePlanEditor = function (gamePlan) {
-            impakt.context.Planning.editor.gamePlans.add(gamePlan);
+            impakt.context.Planning.editor.gamePlans.add(gamePlan, false);
             $state.transitionTo('planning.editor');
         };
         this.toPracticeScheduleEditor = function (practiceSchedule) {
-            impakt.context.Planning.editor.practiceSchedules.add(practiceSchedule);
+            impakt.context.Planning.editor.practiceSchedules.add(practiceSchedule, false);
             $state.transitionTo('planning.editor');
         };
         this.toScoutCardEditor = function (scoutCard) {
-            impakt.context.Planning.editor.scoutCards.add(scoutCard);
+            impakt.context.Planning.editor.scoutCards.add(scoutCard, false);
             $state.transitionTo('planning.editor');
         };
         this.toQBWristbandEditor = function (QBWristband) {
-            impakt.context.Planning.editor.QBWristbands.add(QBWristband);
+            impakt.context.Planning.editor.QBWristbands.add(QBWristband, false);
             $state.transitionTo('planning.editor');
         };
         this.toPlanDrilldown = function (plan) {
@@ -22448,6 +22697,7 @@ impakt.playbook.drilldown.playbook.controller('playbook.drilldown.playbook.ctrl'
         $scope.scenarios = impakt.context.Playbook.scenarios;
         $scope.plays = impakt.context.Playbook.plays;
         $scope.formations = impakt.context.Playbook.formations;
+        $scope.personnelCollection = impakt.context.Team.personnel;
         $scope.assignmentGroups = impakt.context.Playbook.assignmentGroups;
         var deleteScenarioListener = $rootScope.$on('delete-scenario', function (e, scenario) {
             $scope.scenarios.remove(scenario.guid);
@@ -22495,7 +22745,14 @@ impakt.playbook.drilldown.playbook.controller('playbook.drilldown.playbook.ctrl'
         };
         $scope.alertDataRequired = function (dataType) {
             if ($scope.formations.isEmpty()) {
-                alert("Please create a base formation in order to begin creating " + dataType + ".");
+                alert("Please create the required base data in order to begin creating " + dataType + ".");
+            }
+        };
+        // Navigates to the team module
+        $scope.toTeam = function () {
+            var response = confirm('You are about to navigate to the Team module. Continue?');
+            if (response) {
+                _playbook.toTeam();
             }
         };
         init();
@@ -22506,7 +22763,8 @@ impakt.playbook.editor = angular.module('impakt.playbook.editor', [
     'impakt.playbook.editor.tools',
     'impakt.playbook.editor.mode',
     'impakt.playbook.editor.canvas',
-    'impakt.playbook.editor.details'
+    'impakt.playbook.editor.details',
+    'impakt.playbook.editor.applicator'
 ])
     .config([
     '$stateProvider',
@@ -22522,60 +22780,75 @@ impakt.playbook.editor = angular.module('impakt.playbook.editor', [
     console.debug('impakt.playbook.editor - run');
 });
 /// <reference path='../playbook-editor.mdl.ts' />
-impakt.playbook.editor.canvas =
-    angular.module('impakt.playbook.editor.canvas', [])
+impakt.playbook.editor.applicator =
+    angular.module('impakt.playbook.editor.applicator', [])
         .config(function () {
-        console.debug('impakt.playbook.editor.canvas - config');
+        console.debug('impakt.playbook.editor.applicator - config');
     })
         .run(function () {
-        console.debug('impakt.playbook.editor.canvas - run');
+        console.debug('impakt.playbook.editor.applicator - run');
     });
-/// <reference path='./playbook-editor-canvas.mdl.ts' />
-impakt.playbook.editor.canvas.controller('playbook.editor.canvas.ctrl', [
+/// <reference path='./playbook-editor-applicator.mdl.ts' />
+impakt.playbook.editor.applicator.controller('playbook.editor.applicator.ctrl', [
     '$scope',
     '$timeout',
-    '_playbookEditorCanvas',
-    function ($scope, $timeout, _playbookEditorCanvas) {
-        $scope.unitTypes = _playbookEditorCanvas.unitTypes;
-        $scope.formations = _playbookEditorCanvas.formations;
-        $scope.personnelCollection = _playbookEditorCanvas.personnelCollection;
-        $scope.assignmentGroups = _playbookEditorCanvas.assignmentGroups;
-        $scope.plays = _playbookEditorCanvas.plays;
-        $scope.tab = _playbookEditorCanvas.getActiveTab();
-        $scope.tabs = _playbookEditorCanvas.tabs;
-        $scope.hasOpenTabs = _playbookEditorCanvas.hasTabs();
-        $scope.canvas = _playbookEditorCanvas.canvas;
+    '_playbookEditor',
+    function ($scope, $timeout, _playbookEditor) {
+        var component = new Common.Base.Component('playbook.editor.applicator.ctrl', Common.Base.ComponentType.Controller);
+        $scope.scenario = new Common.Models.Scenario();
+        $scope.formations = impakt.context.Playbook.formations;
+        $scope.personnelCollection = impakt.context.Team.personnel;
+        $scope.assignmentGroups = impakt.context.Playbook.assignmentGroups;
         $scope.editorModeClass = '';
-        // check if there are any open tabs; if not, hide the canvas and
-        // clear the canvas data.
-        if (Common.Utilities.isNotNullOrUndefined($scope.tab)) {
-            $scope.tab.onclose(function () {
-                $scope.hasOpenTabs = _playbookEditorCanvas.hasTabs();
+        $scope.$on("$destroy", function () {
+        });
+        function init() {
+            // TODO @theBull - implement unique callback naming for targeted un/binding of
+            // event listeners on $destroy. Find all for ".onModified("
+            impakt.context.Playbook.formations.onModified(function () {
+                $scope.formations = impakt.context.Playbook.formations;
             });
-            $scope.canvas.onready(function () {
-                $scope.editorModeClass = $scope.getEditorTypeClass($scope.canvas.scenario.editorType);
-                $scope.canvas.onModified(function () {
-                    if (Common.Utilities.isNullOrUndefined($scope.canvas.scenario))
-                        return;
-                    $scope.editorModeClass = $scope.getEditorTypeClass($scope.canvas.scenario.editorType);
+            impakt.context.Team.personnel.onModified(function () {
+                $scope.personnelCollection = impakt.context.Team.personnel;
+            });
+            impakt.context.Playbook.assignmentGroups.onModified(function () {
+                $scope.assignmentGroups = impakt.context.Playbook.assignmentGroups;
+            });
+            if (Common.Utilities.isNullOrUndefined(_playbookEditor.canvas))
+                return;
+            if (_playbookEditor.canvas.state == Common.Enums.State.Ready) {
+                onCanvasReady();
+            }
+            else {
+                _playbookEditor.canvas.setListener('ready', onFieldLoad);
+            }
+            // Tell the editor service that the applicator ctrl is ready
+            _playbookEditor.component.loadDependency(component);
+        }
+        function onCanvasReady() {
+            if (Common.Utilities.isNullOrUndefined(_playbookEditor.canvas.field))
+                return;
+            onFieldLoad();
+            _playbookEditor.canvas.field.clearListeners();
+            _playbookEditor.canvas.field.setListener('onload', onFieldLoad, true);
+            _playbookEditor.canvas.field.setListener('onclear', onFieldClear, true);
+        }
+        function onFieldLoad() {
+            if (_playbookEditor.canvas.field.state == Common.Enums.State.Ready) {
+                $scope.scenario = _playbookEditor.canvas.field.scenario;
+                if (Common.Utilities.isNullOrUndefined($scope.scenario))
+                    return;
+                $scope.scenario.clearListeners();
+                $scope.scenario.onModified(function () {
                     $timeout(function () {
-                        console.log('timeout running');
                         $scope.$apply();
                     }, 1);
                 });
-            });
+            }
         }
-        if (Common.Utilities.isNotNullOrUndefined($scope.tabs)) {
-            $scope.tabs.onModified(function (tabs) {
-                $scope.hasOpenTabs = tabs.hasElements();
-            });
+        function onFieldClear() {
+            $scope.scenario = null;
         }
-        // _playbookEditorCanvas.onready(function() {
-        // 	$scope.tab = _playbookEditorCanvas.activeTab;
-        // });	
-        $scope.formations.onModified(function () {
-            // $scope.$apply();
-        });
         /**
          * Toggle Editor mode
          */
@@ -22584,34 +22857,28 @@ impakt.playbook.editor.canvas.controller('playbook.editor.canvas.ctrl', [
             $scope.tab.scenario.editorType = Playbook.Enums.EditorTypes.Play;
         };
         $scope.getEditorTypeClass = function (editorType) {
-            return _playbookEditorCanvas.getEditorTypeClass(parseInt(editorType));
+            return _playbookEditor.getEditorTypeClass(parseInt(editorType));
         };
         /**
          * Toggle Formation / Personnel / Assignments
          */
-        $scope.applyFormation = function (formation) {
-            console.log('apply formation to editor');
-            _playbookEditorCanvas.applyPrimaryFormation(formation);
-            $scope.formationDropdownVisible = false;
+        $scope.applyFormation = function (formation, playType) {
+            _playbookEditor.applyFormation(formation, playType);
         };
-        $scope.applyPersonnel = function (personnel) {
-            _playbookEditorCanvas.applyPrimaryPersonnel(personnel);
-            $scope.setDropdownVisible = false;
+        $scope.applyPersonnel = function (personnel, playType) {
+            _playbookEditor.applyPersonnel(personnel, playType);
         };
-        $scope.applyPlay = function (play) {
-            _playbookEditorCanvas.applyPrimaryPlay(play);
-        };
-        $scope.applyAssignmentGroup = function (assignmentGroup) {
-            _playbookEditorCanvas.applyPrimaryAssignmentGroup(assignmentGroup);
-        };
-        $scope.applyUnitType = function (unitType) {
-            if (unitType.unitType == $scope.canvas.scenario.playPrimary.unitType)
-                return;
-            _playbookEditorCanvas.applyPrimaryUnitType(unitType.unitType);
-            $scope.unitTypeDropdownVisible = false;
+        $scope.applyAssignmentGroup = function (assignmentGroup, playType) {
+            _playbookEditor.applyAssignmentGroup(assignmentGroup, playType);
         };
         $scope.flipScenario = function () {
-            _playbookEditorCanvas.flipScenario();
+            _playbookEditor.flipScenario();
+        };
+        $scope.isNameVisible = function () {
+            return Common.Utilities.isNotNullOrUndefined($scope.scenario);
+        };
+        $scope.isUnitTypeVisible = function () {
+            return Common.Utilities.isNotNullOrUndefined($scope.scenario);
         };
         /**
          * Determine whether to show quick formation dropdown. Should only
@@ -22619,7 +22886,10 @@ impakt.playbook.editor.canvas.controller('playbook.editor.canvas.ctrl', [
          * @param {Playbook.Enums.EditorTypes} editorType Editor type enum to
          * determine which type of editor window we have open.
          */
-        $scope.isFormationVisible = function (editorType) {
+        $scope.isFormationVisible = function () {
+            if (Common.Utilities.isNullOrUndefined($scope.scenario))
+                return false;
+            var editorType = $scope.scenario.editorType;
             return editorType == Playbook.Enums.EditorTypes.Formation ||
                 editorType == Playbook.Enums.EditorTypes.Play ||
                 editorType == Playbook.Enums.EditorTypes.Scenario;
@@ -22630,40 +22900,81 @@ impakt.playbook.editor.canvas.controller('playbook.editor.canvas.ctrl', [
          * paired with the players in the given formation.
          * @param {Playbook.Enums.EditorTypes} editorType [description]
          */
-        $scope.isPersonnelVisible = function (editorType) {
+        $scope.isPersonnelVisible = function () {
+            if (Common.Utilities.isNullOrUndefined($scope.scenario))
+                return false;
+            var editorType = $scope.scenario.editorType;
             return editorType == Playbook.Enums.EditorTypes.Assignment ||
                 editorType == Playbook.Enums.EditorTypes.Play ||
                 editorType == Playbook.Enums.EditorTypes.Scenario;
         };
-        $scope.isAssignmentGroupsVisible = function (editorType) {
+        $scope.isAssignmentGroupsVisible = function () {
+            if (Common.Utilities.isNullOrUndefined($scope.scenario))
+                return false;
+            var editorType = $scope.scenario.editorType;
             return editorType == Playbook.Enums.EditorTypes.Assignment ||
                 editorType == Playbook.Enums.EditorTypes.Play ||
                 editorType == Playbook.Enums.EditorTypes.Scenario;
         };
-        $scope.isOpponentBarVisible = function (editorType) {
+        $scope.isOpponentBarVisible = function () {
+            if (Common.Utilities.isNullOrUndefined($scope.scenario))
+                return false;
+            var editorType = $scope.scenario.editorType;
             return editorType == Playbook.Enums.EditorTypes.Scenario;
         };
         $scope.toBrowser = function () {
-            _playbookEditorCanvas.toBrowser();
+            _playbookEditor.toBrowser();
         };
+        init();
     }]);
+/// <reference path='../playbook-editor.mdl.ts' />
+impakt.playbook.editor.canvas =
+    angular.module('impakt.playbook.editor.canvas', [])
+        .config(function () {
+        console.debug('impakt.playbook.editor.canvas - config');
+    })
+        .run(function () {
+        console.debug('impakt.playbook.editor.canvas - run');
+    });
 ///<reference path='./playbook-editor-canvas.mdl.ts' />
-// TODO - needed?
-impakt.playbook.editor.canvas.directive('playbookEditorCanvas', ['$rootScope',
+impakt.playbook.editor.canvas.controller('playbook.editor.canvas.ctrl', [
+    '$scope',
+    '$timeout',
+    '_playbookEditor',
+    function ($scope, $timeout, _playbookEditor) {
+        $scope.tab = _playbookEditor.getActiveTab();
+        $scope.tabs = _playbookEditor.tabs;
+        $scope.hasOpenTabs = _playbookEditor.hasTabs();
+        // check if there are any open tabs; if not, hide the canvas and
+        // clear the canvas data.
+        if (Common.Utilities.isNotNullOrUndefined($scope.tab)) {
+            $scope.tab.onclose(function () {
+                $scope.hasOpenTabs = _playbookEditor.hasTabs();
+            });
+        }
+        if (Common.Utilities.isNotNullOrUndefined($scope.tabs)) {
+            $scope.tabs.onModified(function (tabs) {
+                $scope.hasOpenTabs = tabs.hasElements();
+            });
+        }
+    }])
+    .directive('playbookEditorCanvas', ['$rootScope',
     '$compile',
     '$templateCache',
     '$timeout',
     '_contextmenu',
     '_playPreview',
-    '_playbookEditorCanvas',
+    '_playbookEditor',
     '_scrollable',
-    function ($rootScope, $compile, $templateCache, $timeout, _contextmenu, _playPreview, _playbookEditorCanvas, _scrollable) {
+    function ($rootScope, $compile, $templateCache, $timeout, _contextmenu, _playPreview, _playbookEditor, _scrollable) {
         console.debug('directive: impakt.playbook.editor.canvas - register');
         return {
             restrict: 'E',
+            controller: '',
             link: function ($scope, $element, attrs) {
                 console.debug('directive: impakt.playbook.editor.canvas - link');
-                $scope.canvas = _playbookEditorCanvas.getCanvas();
+                var component = new Common.Base.Component('playbookEditorCanvas', Common.Base.ComponentType.Directive);
+                $scope.canvas = _playbookEditor.canvas;
                 // $timeout NOTE:
                 // wrapping this step in a timeout due to a DOM rendering race.
                 // The angular ng-show directive kicks in when activating/
@@ -22674,19 +22985,13 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas', ['$rootScope',
                 // value in order to get its proper dimensions.
                 $timeout(function () {
                     if ($scope.canvas) {
-                        $scope.canvas.onready(function () {
-                            var scrollTop = $scope.canvas.paper.field.getLOSAbsolute()
+                        $scope.canvas.setListener('onready', function () {
+                            // Scroll the viewport to be centered over the LOS
+                            var scrollTop = $scope.canvas.field.getLOSAbsolute()
                                 - ($element.height() / 2);
                             $element.scrollTop(scrollTop);
-                            if (Common.Utilities.isNotNullOrUndefined($scope.canvas.paper) &&
-                                Common.Utilities.isNotNullOrUndefined($scope.canvas.paper.field) &&
-                                Common.Utilities.isNotNullOrUndefined($scope.canvas.paper.field.los)) {
-                                $scope.canvas.paper.field.los.onModified(function () {
-                                    var scrollTop = $scope.canvas.paper.field.getLOSAbsolute()
-                                        - ($element.height() / 2);
-                                    $element.scrollTop(scrollTop);
-                                });
-                            }
+                            // Load up the scenario into the canvas
+                            _playbookEditor.refreshScenario();
                         });
                         $scope.canvas.initialize($element);
                         // Listen for routenode contextmenu
@@ -22695,18 +23000,7 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas', ['$rootScope',
                         });
                     }
                 }, 0);
-                $(document).on('keydown', function (e) {
-                    //console.log(e.which);
-                    if (e.which == 8) {
-                        console.log('backspace pressed - playbook-editor-canvas.drv.ts');
-                    }
-                    if (e.which == 82) {
-                        console.log('R pressed - playbook-editor-canvas.drv.ts');
-                    }
-                    if (e.which == 65) {
-                        console.log('A pressed - playbook-editor-canvas.drv.ts');
-                    }
-                });
+                _playbookEditor.component.loadDependency(component);
             }
         };
     }]);
@@ -22723,170 +23017,8 @@ impakt.playbook.editor.canvas.service('_playbookEditorCanvas', [
     function ($rootScope, $timeout, _base, _contextmenu, _playPreview, _playbook, _playbookEditor) {
         console.debug('service: impakt.playbook.editor.canvas');
         var self = this;
-        this.activeTab = _playbookEditor.activeTab;
-        this.tabs = _playbookEditor.tabs;
-        this.playbooks = impakt.context.Playbook.playbooks;
-        this.formations = impakt.context.Playbook.formations;
-        this.personnelCollection = impakt.context.Team.personnel;
-        this.assignmentGroups = impakt.context.Playbook.assignmentGroups;
-        this.plays = impakt.context.Playbook.plays;
         this.readyCallbacks = [function () { console.log('canvas ready'); }];
-        this.canvas = _playbookEditor.canvas;
-        this.unitTypes = impakt.context.Team.unitTypes;
         this.component = new Common.Base.Component('_playbookEditorCanvas', Common.Base.ComponentType.Service, []);
-        function init() {
-            _playbookEditor.component.loadDependency(self.component);
-        }
-        this.onready = function (callback) {
-            this.readyCallbacks.push(callback);
-            _playbookEditor.onready(function () {
-                self.ready();
-            });
-        };
-        this.ready = function () {
-            for (var i = 0; i < this.readyCallbacks.length; i++) {
-                this.readyCallbacks[i]();
-            }
-            this.readyCallbacks = [];
-        };
-        this.create = function (tab) {
-            if (Common.Utilities.isNullOrUndefined(tab))
-                throw new Error('playbook-editor-canvas.srv create(): tab is null or undefined');
-            if (Common.Utilities.isNullOrUndefined(tab.scenario))
-                throw new Error('playbook-editor-canvas.srv create(): tab.scenario is null or undefined');
-            var canvas = new Playbook.Models.EditorCanvas(tab.scenario);
-            canvas.tab = tab;
-        };
-        this.getActiveTab = function () {
-            this.activeTab = _playbookEditor.activeTab;
-            return this.activeTab;
-        };
-        this.hasTabs = function () {
-            return _playbookEditor.hasTabs();
-        };
-        this.toBrowser = function () {
-            _playbookEditor.toBrowser();
-        };
-        this.getCanvas = function () {
-            return _playbookEditor.canvas;
-        };
-        /**
-         * Applies the given formation to the field
-         * @param {Common.Models.Formation} formation The Formation to apply
-         */
-        this.applyPrimaryFormation = function (formation) {
-            if (canApplyData()) {
-                _playbookEditor.canvas.paper.field.applyPrimaryFormation(formation);
-            }
-        };
-        /**
-         * Applies the given personnel data to the field
-         * @param {Team.Models.Personnel} personnel The Personnel to apply
-         */
-        this.applyPrimaryPersonnel = function (personnel) {
-            if (canApplyData()) {
-                _playbookEditor.canvas.paper.field.applyPrimaryPersonnel(personnel);
-            }
-        };
-        /**
-         * Applies the given assignmentGroup data to the field
-         * @param {Common.Models.AssignmentGroup} assignmentGroup The AssignmentGroup to apply
-         */
-        this.applyPrimaryAssignmentGroup = function (assignmentGroup) {
-            if (canApplyData()) {
-                _playbookEditor.canvas.paper.field.applyPrimaryAssignmentGroup(assignmentGroup);
-            }
-        };
-        /**
-         * Applies the given play data to the field
-         * @param {Common.Models.Play} play The Play to apply
-         */
-        this.applyPrimaryPlay = function (playPrimary) {
-            if (canApplyData()) {
-                _playbookEditor.canvas.paper.field.applyPlayPrimary(playPrimary);
-            }
-        };
-        /**
-         * Applies the given unitType to the play
-         * @param {Common.Models.Play} play The Play to apply
-         */
-        this.applyPrimaryUnitType = function (unitType) {
-            if (canApplyData()) {
-                _playbookEditor.canvas.paper.field.applyPrimaryUnitType(unitType);
-            }
-        };
-        this.flipScenario = function () {
-            _playbookEditor.flipScenario();
-        };
-        function canApplyData() {
-            if (!_playbookEditor.canvas ||
-                !_playbookEditor.canvas.paper ||
-                !_playbookEditor.canvas.paper.field) {
-                throw new Error('Cannot apply primary formation; canvas, paper, or field is null or undefined');
-            }
-            return true;
-        }
-        function getAbsolutePosition(element) {
-            var $dom = $(element.graphics.raphael.node);
-            console.log('$dom offsets: ', $dom.offset().left, $dom.offset().top, element.graphics.dimensions.width, element.graphics.dimensions.height);
-            //let $playbookCanvas = $dom.closest('playbook-editor-canvas');
-            return {
-                left: $dom.offset().left,
-                top: $dom.offset().top
-            };
-        }
-        this.remove = function (tab) {
-            // do something
-        };
-        this.scrollTo = function (x, y) {
-            console.log(x, y);
-            this.canvas.paper.scroll(x, y, true);
-        };
-        this.getEditorTypeClass = function (editorType) {
-            return _playbookEditor.getEditorTypeClass(editorType);
-        };
-        /*****
-        *
-        *
-        *	RECEIVE EXTERNAL COMMANDS
-        *
-        *
-        ******/
-        // receives command from playbook.editor to create a new canvas
-        $rootScope.$on('playbook-editor-canvas.create', function (e, tab) {
-            console.log('creating canvas...');
-            self.create(tab);
-        });
-        $rootScope.$on('playbook-editor-canvas.zoomIn', function (e, data) {
-            //self.active.canvas.paper.zoomIn();
-        });
-        $rootScope.$on('playbook-editor-canvas.zoomOut', function (e, data) {
-            //self.active.canvas.paper.zoomOut();
-        });
-        // receives command from playbook.editor to close canvas
-        $rootScope.$on('playbook-editor-canvas.close', function (e, tab) {
-            console.log('closing canvas...');
-            self.remove(tab);
-        });
-        // receives command from playbook.editor to activate canvas
-        $rootScope.$on('playbook-editor-canvas.activate', function (e, tab) {
-            console.log('activating canvas...');
-            self.activate(tab);
-        });
-        // receives command from playbook.editor to add a player to canvas
-        $rootScope.$on('playbook-editor-canvas.addPlayer', function (e, data) {
-            //self.active.canvas.field.addPlayer({});
-            console.info('add player');
-        });
-        // receives command from playbook.editor to zoom in canvas
-        $rootScope.$on('playbook-editor-canvas.zoomIn', function (e, data) {
-            console.info('zoom in');
-        });
-        // receives command from playbook.editor to zoom out canvas
-        $rootScope.$on('playbook-editor-canvas.zoomOut', function (e, data) {
-            console.info('zoom out');
-        });
-        init();
     }]);
 /// <reference path='../playbook-editor.mdl.ts' />
 impakt.playbook.editor.details = angular.module('impakt.playbook.editor.details', [])
@@ -22904,20 +23036,18 @@ impakt.playbook.editor.details.controller('playbook.editor.details.ctrl', [
     '_playbookEditorDetails',
     function ($scope, $timeout, _playbookModals, _playbookEditorDetails) {
         $scope.canvas = _playbookEditorDetails.canvas;
-        $scope.paper;
         $scope.field;
         $scope.grid;
         $scope.scenario;
         $scope.layers;
-        $scope.selected;
+        $scope.selectedElements;
         $scope.players;
-        $scope.canvas.onready(function () {
-            $scope.paper = $scope.canvas.paper;
-            $scope.field = $scope.paper.field;
-            $scope.grid = $scope.paper.grid;
+        $scope.canvas.setListener('onready', function () {
+            $scope.field = $scope.canvas.field;
+            $scope.grid = $scope.canvas.grid;
             $scope.scenario = $scope.canvas.scenario;
-            $scope.layers = $scope.field.layers;
-            $scope.selected = $scope.field.selected;
+            $scope.layers = $scope.field.layer.layers;
+            $scope.selectedElements = $scope.field.selectedElements;
             $scope.players = $scope.field.primaryPlayers;
             // update scope when changes to field occur
             $scope.field.onModified(function () {
@@ -22953,9 +23083,9 @@ impakt.playbook.editor.mode.controller('playbook.editor.mode.ctrl', [
     '_playbookEditor',
     function ($scope, _playbookEditor) {
         $scope.canvas = _playbookEditor.canvas;
-        $scope.canvas.onready(function () {
-            $scope.cursorCoordinates = $scope.canvas.paper.field.cursorCoordinates;
-            $scope.canvas.paper.field.onModified(function (field) {
+        $scope.canvas.setListener('onready', function () {
+            $scope.cursorCoordinates = $scope.canvas.field.cursorCoordinates;
+            $scope.canvas.field.onModified(function (field) {
                 $scope.cursorCoordinates.x = field.cursorCoordinates.x;
                 $scope.cursorCoordinates.y = field.cursorCoordinates.y;
                 if (!$scope.$$phase)
@@ -22970,6 +23100,16 @@ impakt.playbook.editor.controller('playbook.editor.ctrl', [
     '_playbookEditor',
     function ($scope, $stateParams, _playbookEditor) {
         $scope.canvas = _playbookEditor.canvas;
+        /**
+         * Note:
+         *
+         * Unlike in most services that invoke init() internally,
+         * the playbook editor must be initialized each time its UI
+         * is created (such as when navigating to the editor from another
+         * module). Since controllers are constructed along with the
+         * UI when navigating to a view, it is the prime way to
+         * ensure the service is initialized when the view loads.
+         */
         _playbookEditor.init();
         var templatePrefix = 'modules/playbook/editor/';
         $scope.templates = {
@@ -22988,7 +23128,14 @@ impakt.playbook.editor.controller('playbook.editor.ctrl', [
             mode: [
                 templatePrefix,
                 'mode/playbook-editor-mode.tpl.html'
+            ].join(''),
+            applicator: [
+                templatePrefix,
+                'applicator/playbook-editor-applicator.tpl.html'
             ].join('')
+        };
+        $scope.toBrowser = function () {
+            _playbookEditor.toBrowser();
         };
     }]);
 /// <reference path='./playbook-editor.mdl.ts' />
@@ -23004,8 +23151,8 @@ impakt.playbook.editor.service('_playbookEditor', [
         var self = this;
         this.component = new Common.Base.Component('_playbookEditor', Common.Base.ComponentType.Service, [
             '_playbookEditorTools',
-            '_playbookEditorTabs',
-            '_playbookEditorCanvas'
+            'playbookEditorCanvas',
+            'playbook.editor.applicator.ctrl'
         ]);
         this.tabs = impakt.context.Playbook.editor.tabs;
         this.scenarios = impakt.context.Playbook.editor.scenarios;
@@ -23026,33 +23173,26 @@ impakt.playbook.editor.service('_playbookEditor', [
         };
         this.init = function () {
             initialized = true;
-            var activeScenario = null;
             if (self.tabs.isEmpty() || self.tabs.size() != self.scenarios.size()) {
                 self.loadTabs();
             }
-            // check for active tab and initialize the canvas with that tab's play
-            self.tabs.forEach(function (tab, index) {
-                if (tab.active) {
-                    activeScenario = self.scenarios.filterFirst(function (scenario, j) {
-                        return scenario.guid == tab.scenario.guid;
-                    });
-                }
-            });
-            if (activeScenario) {
-                if (!self.canvas) {
-                    self.canvas = new Playbook.Models.EditorCanvas(activeScenario);
-                    self.editorType = activeScenario.editorType;
-                }
-            }
-            if (!activeScenario) {
-                // Throw an error at this point; we should always have some physical play to use
-                // whether it's a new play or an existing play; we shouldn't arbitrarily initialize
-                // the canvas with a blank play here
-                throw new Error('_playbookEditor init(): Trying to create a new canvas but there are no active tabs / scenario data to start with.');
+            if (!self.canvas) {
+                self.canvas = new Playbook.Models.EditorCanvas();
             }
             self.canvas.clearListeners();
-            self.canvas.onready(function () {
+            self.canvas.setListener('onready', function () {
                 self.loadTabs();
+                // check for active tab and initialize the canvas with that tab's play
+                self.tabs.forEach(function (tab, index) {
+                    if (tab.active) {
+                        // Get the scenario for the active tab
+                        var activeScenario = self.scenarios.filterFirst(function (scenario, j) {
+                            return scenario.guid == tab.scenario.guid;
+                        });
+                        // load it up
+                        self.loadScenario(activeScenario);
+                    }
+                });
                 self.ready();
             });
             _base.loadComponent(self.component);
@@ -23069,32 +23209,37 @@ impakt.playbook.editor.service('_playbookEditor', [
          * scenario and pass it in to initialize the canvas.
          */
         this.loadTabs = function () {
+            // ensure that each scenario in the editor context has
+            // a correspondign tab
             this.scenarios.forEach(function (scenario, index) {
-                // loop over all scenarios currently 'open' in the editor context...
-                // determine whether each scenario has a corresponding tab 
-                var scenarioExists = false;
+                // pair up each scenario with its matching tab
+                var matchFound = false;
                 self.tabs.forEach(function (tab, j) {
                     if (tab.scenario.guid == scenario.guid) {
-                        scenarioExists = true;
+                        matchFound = true;
                     }
                 });
-                if (!scenarioExists) {
+                if (!matchFound) {
+                    // No matching tab was found, so create a new
+                    // tab for the editor context scenario...
                     var tab = new Common.Models.Tab(scenario);
-                    // Hmm...
+                    // ...set that tab to be active if it's the
+                    // first scenario in the editor context...
                     tab.active = index == 0;
+                    // ...add the tab to the tabs collection
                     self.addTab(tab);
                 }
             });
         };
         this.addTab = function (tab) {
-            // ignore if it is already open
             if (this.tabs.contains(tab.guid)) {
+                // if the tab exists, activate it.
                 this.activateTab(tab, true);
                 return;
             }
             else {
-                // add the new tab...
-                this.tabs.add(tab);
+                // the tab doesn't exist, add it to the collection
+                this.tabs.add(tab, false);
                 this.activateTab(tab, false);
             }
         };
@@ -23106,7 +23251,7 @@ impakt.playbook.editor.service('_playbookEditor', [
             this.activeTab = tab;
             if (this.canvas) {
                 // pass new data to canvas
-                this.canvas.updateScenario(this.activeTab.scenario, true);
+                this.loadScenario(this.activeTab.scenario);
             }
         };
         this.closeTab = function (tab) {
@@ -23138,12 +23283,23 @@ impakt.playbook.editor.service('_playbookEditor', [
         this.getEditorTypeClass = function (editorType) {
             return _playbook.getEditorTypeClass(editorType);
         };
+        this.refreshScenario = function () {
+            if (Common.Utilities.isNotNullOrUndefined(this.activeTab))
+                this.loadScenario(this.activeTab.scenario);
+        };
+        this.loadScenario = function (scenario) {
+            // allows for scenario to be null to effectively clear the field
+            if (Common.Utilities.isNotNullOrUndefined(this.canvas) &&
+                Common.Utilities.isNotNullOrUndefined(this.canvas.field)) {
+                this.canvas.field.updateScenario(scenario);
+            }
+        };
         this.flipScenario = function () {
             if (Common.Utilities.isNotNullOrUndefined(this.canvas)) {
-                this.canvas.paper.field.primaryPlayers.forEach(function (player, index) {
+                this.canvas.field.primaryPlayers.forEach(function (player, index) {
                     player.flip();
                 });
-                this.canvas.paper.field.opponentPlayers.forEach(function (player, index) {
+                this.canvas.field.opponentPlayers.forEach(function (player, index) {
                     player.flip();
                 });
             }
@@ -23211,6 +23367,36 @@ impakt.playbook.editor.service('_playbookEditor', [
             this.loadTabs();
         };
         /**
+         * Applies the given formation to the field
+         * @param {Common.Models.Formation} formation The Formation to apply
+         */
+        this.applyFormation = function (formation, playType) {
+            if (Common.Utilities.isNotNullOrUndefined(this.canvas) &&
+                Common.Utilities.isNotNullOrUndefined(this.canvas.field)) {
+                this.canvas.field.applyFormation(formation, playType);
+            }
+        };
+        /**
+         * Applies the given personnel data to the field
+         * @param {Team.Models.Personnel} personnel The Personnel to apply
+         */
+        this.applyPersonnel = function (personnel, playType) {
+            if (Common.Utilities.isNotNullOrUndefined(this.canvas) &&
+                Common.Utilities.isNotNullOrUndefined(this.canvas.field)) {
+                this.canvas.field.applyPersonnel(personnel, playType);
+            }
+        };
+        /**
+         * Applies the given assignmentGroup data to the field
+         * @param {Common.Models.AssignmentGroup} assignmentGroup The AssignmentGroup to apply
+         */
+        this.applyAssignmentGroup = function (assignmentGroup, playType) {
+            if (Common.Utilities.isNotNullOrUndefined(this.canvas) &&
+                Common.Utilities.isNotNullOrUndefined(this.canvas.field)) {
+                this.canvas.field.applyAssignmentGroup(assignmentGroup, playType);
+            }
+        };
+        /**
          * Receives broadcast command from other services;
          * loads all tabs according to any plays that have been
          * added to the editor context.
@@ -23236,15 +23422,11 @@ impakt.playbook.editor.tabs.controller('playbook.editor.tabs.ctrl', [
     '$scope',
     '_base',
     '_playbookModals',
-    '_playbookEditorTabs',
-    function ($scope, _base, _playbookModals, _playbookEditorTabs) {
-        this.component = new Common.Base.Component('playbook.editor.tabs.ctrl', Common.Base.ComponentType.Controller);
-        function init(self) {
-            _playbookEditorTabs.component.loadDependency(self.component);
-        }
-        $scope.tabs = _playbookEditorTabs.tabs;
+    '_playbookEditor',
+    function ($scope, _base, _playbookModals, _playbookEditor) {
+        $scope.tabs = _playbookEditor.tabs;
         $scope.getEditorTypeClass = function (editorType) {
-            return _playbookEditorTabs.getEditorTypeClass(parseInt(editorType));
+            return _playbookEditor.getEditorTypeClass(parseInt(editorType));
         };
         $scope.new = function () {
             _playbookModals.openNewEditorTab();
@@ -23252,56 +23434,14 @@ impakt.playbook.editor.tabs.controller('playbook.editor.tabs.ctrl', [
         $scope.close = function (tab) {
             var toClose = confirm('Are you sure you want to close?');
             if (toClose)
-                _playbookEditorTabs.close(tab);
+                _playbookEditor.closeTab(tab);
         };
         $scope.activate = function (tab) {
-            _playbookEditorTabs.activate(tab, true);
+            _playbookEditor.activateTab(tab, true);
         };
         $scope.toBrowser = function () {
-            _playbookEditorTabs.toBrowser();
-        };
-        init(this);
-    }]);
-/// <reference path='../../playbook.ts' />
-/// <reference path='./playbook-editor-tabs.mdl.ts' />
-impakt.playbook.editor.tabs.service('_playbookEditorTabs', ['$rootScope',
-    '_base',
-    '_playbookEditor',
-    function ($rootScope, _base, _playbookEditor) {
-        console.debug('service: impakt.playbook.editor.tabs');
-        var self = this;
-        this.tabs = _playbookEditor.tabs;
-        this.canvas = _playbookEditor.canvas;
-        this.component = new Common.Base.Component('_playbookEditorTabs', Common.Base.ComponentType.Service, [
-            'playbook.editor.tabs.ctrl'
-        ]);
-        function init() {
-            _playbookEditor.component.loadDependency(self.component);
-        }
-        this.close = function (tab) {
-            // remove the tab from the array			
-            _playbookEditor.closeTab(tab);
-        };
-        this.activate = function (tab, activateCanvas) {
-            if (!tab.active)
-                _playbookEditor.activateTab(tab, true);
-        };
-        this.toBrowser = function () {
             _playbookEditor.toBrowser();
         };
-        this.getEditorTypeClass = function (editorType) {
-            return _playbookEditor.getEditorTypeClass(editorType);
-        };
-        this.editScenario = function (scenario) {
-            _playbookEditor.editScenario(scenario);
-        };
-        this.editPlay = function (play) {
-            _playbookEditor.editPlay(play);
-        };
-        this.editFormation = function (formation) {
-            _playbookEditor.editFormation(formation);
-        };
-        init();
     }]);
 /// <reference path='../playbook-editor.mdl.ts' />
 impakt.playbook.editor.tools =
@@ -23590,7 +23730,7 @@ impakt.playbook.modals.controller('playbook.modals.createPlay.ctrl', [
         };
         // Navigates to the team module
         $scope.toTeam = function () {
-            var response = confirm('You are about to navigate to the Team module. Your play will not be created. Continue?');
+            var response = confirm('You are about to navigate to the Team module. Continue?');
             if (response) {
                 $scope.cancel();
                 _playbook.toTeam();
@@ -23805,9 +23945,9 @@ impakt.playbook.modals.controller('playbook.modals.deleteScenario.ctrl', [
 impakt.playbook.modals.controller('playbook.modals.newEditor.ctrl', [
     '$scope',
     '$uibModalInstance',
-    '_playbookEditorTabs',
+    '_playbookEditor',
     'data',
-    function ($scope, $uibModalInstance, _playbookEditorTabs, data) {
+    function ($scope, $uibModalInstance, _playbookEditor, data) {
         $scope.scenarios = impakt.context.Playbook.scenarios;
         $scope.plays = impakt.context.Playbook.plays;
         $scope.formations = impakt.context.Playbook.formations;
@@ -23843,11 +23983,11 @@ impakt.playbook.modals.controller('playbook.modals.newEditor.ctrl', [
         };
         $scope.ok = function () {
             if ($scope.selectedScenario)
-                _playbookEditorTabs.editScenario($scope.selectedScenario);
+                _playbookEditor.editScenario($scope.selectedScenario);
             if ($scope.selectedPlay)
-                _playbookEditorTabs.editPlay($scope.selectedPlay);
+                _playbookEditor.editPlay($scope.selectedPlay);
             if ($scope.selectedFormation)
-                _playbookEditorTabs.editFormation($scope.selectedFormation);
+                _playbookEditor.editFormation($scope.selectedFormation);
             $uibModalInstance.close();
         };
         $scope.cancel = function () {
@@ -24354,7 +24494,7 @@ impakt.playbook.constant('PLAYBOOK', {
 impakt.playbook.controller('playbook.ctrl', ['$scope', '$state', '$stateParams', '_playbook',
     function ($scope, $state, $stateParams, _playbook) {
         // load up the browser by default
-        $state.go('playbook.browser');
+        // $state.go('playbook.browser');
     }]);
 /// <reference path='./models/models.ts' />
 /// <reference path='./playbook.ts' />
@@ -24393,7 +24533,7 @@ impakt.playbook.service('_playbook', [
                             var playbookModel = new Common.Models.PlaybookModel(Team.Enums.UnitTypes.Other);
                             playbookResult.data.model.key = playbookResult.key;
                             playbookModel.fromJson(playbookResult.data.model);
-                            collection.add(playbookModel);
+                            collection.add(playbookModel, false);
                         }
                     }
                 }
@@ -24456,7 +24596,7 @@ impakt.playbook.service('_playbook', [
                     results.data.model.key = results.key;
                     playbookModel.fromJson(results.data.model);
                     // update the context
-                    impakt.context.Playbook.playbooks.add(playbookModel);
+                    impakt.context.Playbook.playbooks.add(playbookModel, false);
                 }
                 else {
                     throw new Error('CreatePlaybook did not return a valid playbook model');
@@ -24555,7 +24695,7 @@ impakt.playbook.service('_playbook', [
                 result.data.formation.key = result.key;
                 formationModel.fromJson(result.data.formation);
                 console.log(formationModel);
-                impakt.context.Playbook.formations.add(formationModel);
+                impakt.context.Playbook.formations.add(formationModel, false);
                 notification.success('Successfully created formation "', formationModel.name, '"');
                 $rootScope.$broadcast('create-entity', formationModel);
                 d.resolve(formationModel);
@@ -24608,7 +24748,7 @@ impakt.playbook.service('_playbook', [
                         rawFormation.key = result.key;
                         var formationModel = new Common.Models.Formation(Team.Enums.UnitTypes.Other);
                         formationModel.fromJson(rawFormation);
-                        formationCollection.add(formationModel);
+                        formationCollection.add(formationModel, false);
                     }
                     else {
                         throw new Error('An invalid formation was retrieved');
@@ -24667,6 +24807,7 @@ impakt.playbook.service('_playbook', [
                 // need to make a copy of the formation here
                 var formationCopy = formation.copy();
                 primaryPlay.setFormation(formationCopy);
+                primaryPlay.name = formation.name;
                 // Set association data
                 this.setFormationAssociations(primaryPlay);
                 var scenario = new Common.Models.Scenario();
@@ -24675,7 +24816,7 @@ impakt.playbook.service('_playbook', [
                 scenario.editorType = Playbook.Enums.EditorTypes.Formation;
                 scenario.name = formation.name;
                 // add the play onto the editor context
-                impakt.context.Playbook.editor.scenarios.add(scenario);
+                impakt.context.Playbook.editor.scenarios.add(scenario, false);
             }
             // navigate to playbook editor
             //if(!$state.is('playbook.editor'))
@@ -24778,7 +24919,7 @@ impakt.playbook.service('_playbook', [
                         assignmentGroupModel.key = result.key;
                         result.data.assignmentGroup.key = result.key;
                         assignmentGroupModel.fromJson(result.data.assignmentGroup);
-                        assignmentGroupCollection.add(assignmentGroupModel);
+                        assignmentGroupCollection.add(assignmentGroupModel, false);
                     }
                 }
                 assignmentsNotification.success(assignmentGroupCollection.size(), ' Assignment groups successfully retrieved');
@@ -24839,7 +24980,7 @@ impakt.playbook.service('_playbook', [
                     var rawAssignmentGroup = results.data.assignmentGroup;
                     rawAssignmentGroup.key = results.key;
                     assignmentGroup.fromJson(rawAssignmentGroup);
-                    impakt.context.Playbook.assignmentGroups.add(assignmentGroup);
+                    impakt.context.Playbook.assignmentGroups.add(assignmentGroup, false);
                     notification.success('Successfully created assignment group "', assignmentGroup.name, '"');
                     $rootScope.$broadcast('create-entity', assignmentGroup);
                     d.resolve(assignmentGroup);
@@ -24919,7 +25060,7 @@ impakt.playbook.service('_playbook', [
                     playModel = new Common.Models.PlayPrimary(Team.Enums.UnitTypes.Other);
                     results.data.play.key = results.key;
                     playModel.fromJson(results.data.play);
-                    impakt.context.Playbook.plays.add(playModel);
+                    impakt.context.Playbook.plays.add(playModel, false);
                 }
                 notification.success('Successfully created play "', play.name, '"');
                 $rootScope.$broadcast('create-entity', playModel);
@@ -25110,7 +25251,7 @@ impakt.playbook.service('_playbook', [
                                 var playModel = new Common.Models.PlayPrimary(Team.Enums.UnitTypes.Other);
                                 rawPlay.key = result.key;
                                 playModel.fromJson(rawPlay);
-                                playCollection.add(playModel);
+                                playCollection.add(playModel, false);
                             }
                         }
                     }
@@ -25142,7 +25283,7 @@ impakt.playbook.service('_playbook', [
             // Set association data
             this.setPlayAssociations(scenario.playPrimary);
             // add the play onto the editor context
-            impakt.context.Playbook.editor.scenarios.add(scenario);
+            impakt.context.Playbook.editor.scenarios.add(scenario, false);
             // navigate to playbook editor
             //if (!$state.is('playbook.editor'))
             $state.transitionTo('playbook.editor');
@@ -25198,7 +25339,7 @@ impakt.playbook.service('_playbook', [
                     scenarioModel = new Common.Models.Scenario();
                     results.data.scenario.key = results.key;
                     scenarioModel.fromJson(results.data.scenario);
-                    impakt.context.Playbook.scenarios.add(scenarioModel);
+                    impakt.context.Playbook.scenarios.add(scenarioModel, false);
                 }
                 notification.success('Successfully created scenario "', scenario.name, '"');
                 $rootScope.$broadcast('create-entity', scenarioModel);
@@ -25311,7 +25452,7 @@ impakt.playbook.service('_playbook', [
                                 var scenarioModel = new Common.Models.Scenario();
                                 rawScenario.key = result.key;
                                 scenarioModel.fromJson(rawScenario);
-                                scenarioCollection.add(scenarioModel);
+                                scenarioCollection.add(scenarioModel, false);
                             }
                         }
                     }
@@ -25334,7 +25475,7 @@ impakt.playbook.service('_playbook', [
             var scenarioCopy = scenario.copy();
             scenarioCopy.editorType = Playbook.Enums.EditorTypes.Scenario;
             this.setScenarioAssociations(scenarioCopy);
-            impakt.context.Playbook.editor.scenarios.add(scenarioCopy); // <-- create copy
+            impakt.context.Playbook.editor.scenarios.add(scenarioCopy, false); // <-- create copy
             // navigate to playbook editor
             //if (!$state.is('playbook.editor'))
             $state.transitionTo('playbook.editor');
@@ -25420,10 +25561,14 @@ impakt.playbook.service('_playbook', [
          */
         this.toBrowser = function () {
             this.drilldown.playbook = null;
+            impakt.context.Playbook.playbooks.deselectAll();
+            impakt.context.Actionable.selected.deselectAll();
             $state.transitionTo('playbook.browser');
         };
         this.toPlaybookDrilldown = function (playbookModel) {
             this.drilldown.playbook = playbookModel;
+            impakt.context.Playbook.playbooks.select(playbookModel);
+            impakt.context.Actionable.selected.only(playbookModel);
             $state.transitionTo('playbook.drilldown.playbook');
         };
         /**
@@ -26438,7 +26583,7 @@ impakt.season.service('_season', [
                             var seasonModel = new Season.Models.SeasonModel();
                             seasonResult.data.model.key = seasonResult.key;
                             seasonModel.fromJson(seasonResult.data.model);
-                            collection.add(seasonModel);
+                            collection.add(seasonModel, false);
                         }
                     }
                 }
@@ -26501,7 +26646,7 @@ impakt.season.service('_season', [
                     results.data.model.key = results.key;
                     seasonModel.fromJson(results.data.model);
                     // update the context
-                    impakt.context.Season.seasons.add(seasonModel);
+                    impakt.context.Season.seasons.add(seasonModel, false);
                 }
                 else {
                     throw new Error('CreateSeason did not return a valid season model');
@@ -26587,7 +26732,7 @@ impakt.season.service('_season', [
                             var gameModel = new Season.Models.Game();
                             gameResult.data.game.key = gameResult.key;
                             gameModel.fromJson(gameResult.data.game);
-                            collection.add(gameModel);
+                            collection.add(gameModel, false);
                         }
                     }
                 }
@@ -26650,7 +26795,7 @@ impakt.season.service('_season', [
                     results.data.game.key = results.key;
                     gameModel.fromJson(results.data.game);
                     // update the context
-                    impakt.context.Season.games.add(gameModel);
+                    impakt.context.Season.games.add(gameModel, false);
                 }
                 else {
                     throw new Error('CreateGame did not return a valid game');
@@ -27178,7 +27323,7 @@ impakt.team.service('_team', [
                             var teamModel = new Team.Models.TeamModel();
                             teamResult.data.model.key = teamResult.key;
                             teamModel.fromJson(teamResult.data.model);
-                            collection.add(teamModel);
+                            collection.add(teamModel, false);
                         }
                     }
                 }
@@ -27241,7 +27386,7 @@ impakt.team.service('_team', [
                     results.data.model.key = results.key;
                     teamModel.fromJson(results.data.model);
                     // update the context
-                    impakt.context.Team.teams.add(teamModel);
+                    impakt.context.Team.teams.add(teamModel, false);
                 }
                 else {
                     throw new Error('CreateTeam did not return a valid team model');
@@ -27322,7 +27467,7 @@ impakt.team.service('_team', [
                         rawPersonnel.key = results.key;
                         var personnelModel = new Team.Models.Personnel(Team.Enums.UnitTypes.Other);
                         personnelModel.fromJson(rawPersonnel);
-                        personnelCollection.add(personnelModel);
+                        personnelCollection.add(personnelModel, false);
                     }
                 }
                 personnelNotification.success(personnelCollection.size(), ' Personnel groups successfully retrieved');
@@ -27379,7 +27524,7 @@ impakt.team.service('_team', [
                     results.data.personnel.key = results.key;
                     personnelModel.fromJson(results.data.personnel);
                 }
-                impakt.context.Team.personnel.add(personnelModel);
+                impakt.context.Team.personnel.add(personnelModel, false);
                 notification.success('Personnel group "', personnelModel.name, '" successfully created');
                 $rootScope.$broadcast('create-entity', personnelModel);
                 d.resolve(personnelModel);
@@ -27772,7 +27917,7 @@ impakt.user.service('_user', [
                         if (result) {
                             var organizationModel = new User.Models.Organization();
                             organizationModel.fromJson(result);
-                            self.organizations.add(organizationModel);
+                            self.organizations.add(organizationModel, false);
                         }
                     }
                 }

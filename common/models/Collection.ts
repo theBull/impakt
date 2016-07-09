@@ -272,7 +272,51 @@ module Common.Models {
 			let results = this.filter(predicate);
 			return results && results.length > 0 ? results[0] : null;
 		}
-		public remove(key: string | number): T {
+		/**
+		 * Assumes a 1-deep object: {A: 1, B: 2, C: 3}
+		 * 
+		 * @param {any} obj [description]
+		 */
+		public filterCollection(obj: any): Collection<T> {
+			if (Common.Utilities.isNullOrUndefined(obj))
+				return;
+
+			let newCollection = new Common.Models.Collection<T>();
+			let results = [];
+			this.forEach(function(item: T, index: number) {
+				for (let key in obj) {
+					
+					let matches = false;
+						
+					if(typeof item[key] == typeof obj[key]) {
+						
+						switch (typeof item[key]) {
+							case 'string':
+								matches = item[key].indexOf(obj[key]) > -1;
+								break;
+							case 'number':
+								matches = item[key] === obj[key];
+								break;
+						}
+
+					}
+
+					if (matches) {
+						results.push(item.guid);
+						return;
+					}
+				}
+			});
+
+			if(Common.Utilities.isNotNullOrUndefined(results) && results.length > 0) {
+				for (let i = 0; i < results.length; i++) {
+					newCollection.add(this.get(results[i]), false);
+				}
+			}
+
+			return newCollection;
+		}
+		public remove(key: string | number, listen?: boolean): T {
 			if (!this[key]) {
 				console.warn('Collection remove(): Tried to remove item, \
 					but item with guid does not exist: ', key);
@@ -284,20 +328,23 @@ module Common.Models {
 			this._keys.splice(this._keys.indexOf(key), 1);
 
 			this._count--;
-			this.setModified(true);
+
+			if(listen !== false)
+				this.setModified(true);
+
 			return obj;
 		}
 		public pop(): T {
 			let key = this._keys[this._count - 1];
 			return this.remove(key);
 		}
-		public empty(): void {
-			this.removeAll();
+		public empty(listen?: boolean): void {
+			this.removeAll(listen);
 		}
-		public removeAll(): void {
+		public removeAll(listen?: boolean): void {
 			while (this._count > 0) {
 				let key = this._keys[0];
-				this.remove(key);
+				this.remove(key, listen);
 			}
 		}
 		/**
@@ -305,13 +352,24 @@ module Common.Models {
 		 * in the collection before the collection is completely
 		 * emptied.
 		 */
-		public removeEach(iterator): void {
+		public removeEach(iterator: Function, listen?: boolean): void {
 			// first, run the iterator over each item in the
 			// collection
 			this.forEach(iterator); 
 
 			// now remove all of them
-			this.removeAll();
+			this.removeAll(listen);
+		}
+		public removeWhere(predicate: Function, listen?: boolean): void {
+			let i = 0;
+			let elementsToRemove = this.filter(predicate);
+			for(let i = 0; i < elementsToRemove.length; i++) {
+				let elementToRemove = elementsToRemove[i];
+				if(Common.Utilities.isNotNullOrUndefined(elementToRemove)) {
+					if(elementToRemove.guid)
+						this.remove(elementToRemove.guid, listen);
+				}
+			}
 		}
 		public contains(key: string | number): boolean {
 			return this[key] != null && this[key] != undefined;

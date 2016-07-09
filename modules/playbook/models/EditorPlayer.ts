@@ -40,11 +40,9 @@ module Playbook.Models {
 			// parse route json data 
 			// don't render the assignments if the editor type is of type Formation
 			if (Common.Utilities.isNotNullOrUndefined(this.assignment) && 
-				this.field.editorType != Playbook.Enums.EditorTypes.Formation
+				this.canvas.editorType != Playbook.Enums.EditorTypes.Formation
 			) {
-				this.assignment.listen(false);
 				this.assignment.setRoutes(this, Common.Enums.RenderTypes.Editor);
-				this.assignment.listen(true);
 			}
 
 			this.contextmenuTemplateUrl = Common.Constants.PLAYER_CONTEXTMENU_TEMPLATE_URL;
@@ -82,7 +80,9 @@ module Playbook.Models {
 			 */
 			this.indexLabel.draw();
 
-			this.drawRoute();
+			if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+				this.assignment.draw();
+			}
 		}
 
 		public remove(): void {
@@ -186,7 +186,6 @@ module Playbook.Models {
 			} else if (!e.shiftKey && e.which != Common.Input.Which.RightClick) {
 
 				this.layer.moveByDelta(dx, dy);
-				this.moveAssignmentByDelta(dx, dy);
 
 				// Update relative coordinates label, if it exists
 				if (this.relativeCoordinatesLabel) {
@@ -216,7 +215,6 @@ module Playbook.Models {
 			if(this.dragging) {
 				
 				this.drop();
-				this.dropAssignment();
 
 				if (this.relativeCoordinatesLabel)
 					this.relativeCoordinatesLabel.layer.hide();
@@ -247,6 +245,15 @@ module Playbook.Models {
 		}
 		public hasPosition(): boolean {
 			return this.position != null;
+		}
+
+		public setAssignment(assignment: Common.Models.Assignment): void {
+			super.setAssignment(assignment);
+
+			if(Common.Utilities.isNotNullOrUndefined(assignment))
+				this.assignment.setRoutes(this, Common.Enums.RenderTypes.Editor);
+
+			this.setModified(true);
 		}
 	}
 }

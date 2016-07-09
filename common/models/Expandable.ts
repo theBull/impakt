@@ -15,6 +15,8 @@ module Common.Models {
 		public label: string;
 		public handle: Common.Models.ExpandableHandle;
 		public expandable: boolean;
+		public openCallbacks: Function[];
+		public closeCallbacks: Function[];
 
 		constructor($element: any) {
 			super();
@@ -42,6 +44,8 @@ module Common.Models {
 			// set width, so we add the class 'width3' to the HTML element
 			// by default and remove it once we're in here.
 			this.$element.removeClass('width3');
+			this.openCallbacks = [];
+			this.closeCallbacks = [];
 		}
 
 		public setHandleClass(): void {
@@ -77,6 +81,14 @@ module Common.Models {
 				this.$element.removeClass(this.getMinClass()).addClass(this.getMaxClass());
 
 			this.setHandleClass();
+
+			for (let i = 0; i < this.openCallbacks.length; i++) {
+				this.openCallbacks[0]();
+			}
+		}
+
+		public onopen(callback: Function): void {
+			this.openCallbacks.push(callback);
 		}
 
 		public close() {
@@ -86,6 +98,14 @@ module Common.Models {
 				this.$element.removeClass(this.getMaxClass()).addClass(this.getMinClass());
 			
 			this.setHandleClass();
+
+			for (let i = 0; i < this.closeCallbacks.length; i++) {
+				this.closeCallbacks[0]();
+			}
+		}
+
+		public onclose(callback: Function): void {
+			this.closeCallbacks.push(callback);
 		}
 
 		public getMinClass() {

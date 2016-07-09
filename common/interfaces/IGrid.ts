@@ -4,7 +4,7 @@ module Common.Interfaces {
 	
 	export interface IGrid {
 		
-		paper: Common.Interfaces.IPaper;
+		canvas: Common.Interfaces.ICanvas;
 		dimensions: Common.Models.Dimensions;
 		size: number;
 		cols: number;
@@ -15,7 +15,7 @@ module Common.Interfaces {
 		draw(): void;
 		setSnapping(snapping: boolean): void;
 		toggleSnapping(): void;
-		resize(sizingMode: Common.Enums.PaperSizingModes): number;
+		resize(sizingMode: Common.Enums.CanvasSizingModes): number;
 		getSize(): number;
 		getWidth(): number;
 		getHeight(): number;

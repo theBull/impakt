@@ -2,7 +2,7 @@
 * GLOBAL VARIABLES
 */
 $BASE_FONT_SIZE: 12px;
-$BG_OPACITY: 1;
+$BG_OPACITY: 0.6;
 
 $actionable: rgb(160, 201, 262);
 $actionableHover: rgb(150, 201, 252);
@@ -30,7 +30,7 @@ $fontBlack: rgba(0, 0, 0, 0.9);
 $fontBlackHover: rgba(40, 40, 40, 0.9);
 
 $lightBackground: rgba(222, 225, 227, 0.9);
-$lightBorderColor: rgba(150, 150, 150, 0.3);
+$lightBorderColor: rgba(150, 150, 150, 0.6);
 $lightBorder: 1px solid $lightBorderColor;
 $whiteBorder: 1px solid $white;
 $whiteSelectedBorder: 3px solid $white;
@@ -42,12 +42,12 @@ $darkBlueBackground: #29506D;
 $darkBlueBackgroundHover: #18405c;
 $lightGreenBackground: #C3D49B;
 $darkGreenBackground: #7C8764;
-$darkBorderColor: rgba(0, 0, 0, 0.5);
+$darkBorderColor: rgba(50, 50, 50, 0.5);
 $darkBorder: 1px solid $darkBorderColor;
 $red: #BB250E;
 $red-hover: #AA0000;
-$green: #39A017;
-$green-hover: #2E8212;
+$green: rgba(57, 160, 23, $BG_OPACITY);
+$green-hover: rgba(37, 140, 3, $BG_OPACITY);
 $blue: #2A58D2;
 $blue-bg-hover: #336BCB;
 
@@ -71,6 +71,7 @@ $gray-bg-a-hover: rgba(120, 120, 120, $BG_OPACITY);
 $gray-bg-7: rgba(128, 128, 128, $BG_OPACITY);
 $gray-bg-7-hover: rgba(136, 136, 136, $BG_OPACITY);
 $gray: $gray-bg-3;
+$off-gray: rgba(165, 170, 160, 1);
 
 $selected-border: $gray-bg-7 solid 3px;
 
@@ -80,7 +81,7 @@ body {
 	font-size: $BASE_FONT_SIZE;
 	font-weight: 200;
 	letter-spacing: 1px;
-	background-color: $black;
+	background-color: $off-gray;
 	color: rgba(255, 255, 255, 1);
 }
 html, h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {

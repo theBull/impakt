@@ -31,7 +31,7 @@ module Season.Models {
 
                 var weekModel = new Season.Models.Week();
                 weekModel.fromJson(rawWeekModel);
-                this.add(weekModel);
+                this.add(weekModel, false);
             }
 		}
 

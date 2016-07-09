@@ -19,11 +19,26 @@ impakt.context = {}
 impakt.app = angular.module('impakt.app', [
 	// module registration
 	'ui.router', 
+	'angular.filter',
 	'ui.bootstrap',
 	'impakt.common',
 	'impakt.modules',
 	'ngTagsInput'
 ])
+.provider('appConfigurator', function() {
+	var impaktSettings = {
+		appVer: '0.0.0',
+		hostUrl: undefined
+	};
+	return {
+		set: function (overrides) {
+                angular.extend(impaktSettings, overrides);
+			},
+		$get: function() {
+			return impaktSettings;
+		}
+	};
+})
 .config(
 	[
 		'$stateProvider', 
@@ -117,6 +132,20 @@ impakt.signin = angular.module('impakt.signin', [
 	'ui.bootstrap',
 	'impakt.common'
 ])
+.provider('appConfigurator', function() {
+	var impaktSettings = {
+		appVer: '0.0.0',
+		hostUrl: undefined
+	};
+	return {
+		set: function (overrides) {
+                angular.extend(impaktSettings, overrides);
+			},
+		$get: function() {
+			return impaktSettings;
+		}
+	};
+})
 .config([function() {
 	console.debug('impakt.signin - config');
 }])

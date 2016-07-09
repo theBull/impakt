@@ -5,12 +5,15 @@ div.popout {
 	height: 100%;
 }
 
-div.popout button.popout-toggle {
+div.popout button.popout-toggle,
+div.popout input.popout-search {
 	cursor: pointer;
 	width: 100%;
 	display: block;
 	background: transparent;
-	padding: 0;
+	padding: 0.5em;
+	margin: 0;
+	border: none;
 }
 
 div.popout popout-contents {

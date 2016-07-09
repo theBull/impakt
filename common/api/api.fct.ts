@@ -6,13 +6,17 @@ impakt.common.api.factory('__api', [
 '$http', 
 '$q',
 '__localStorage',
+'appConfigurator',
 function(
 	API: any, 
 	AUTH: any, 
 	$http: any, 
 	$q: any,
 	__localStorage: any
+	,appConfigurator: any
 ) {
+    // Prefer the value from appConfigurator, if available.
+	var hostUrl = appConfigurator.hostUrl || API.HOST_URL;
 
 	let self = {
 		post: post,
@@ -28,7 +32,7 @@ function(
 		
 		$http({
 			method: 'POST',
-			url: path(API.HOST_URL, API.ENDPOINT, endpointUrl),
+			url: path(hostUrl, API.ENDPOINT, endpointUrl),
 			data: JSON.stringify(data),
 			headers: {
 				'Content-Type': 'application/json'
@@ -48,7 +52,7 @@ function(
 		let d = $q.defer();
 		$http({
 			method: 'POST',
-			url: path(API.HOST_URL, API.ENDPOINT, endpointUrl),
+			url: path(hostUrl, API.ENDPOINT, endpointUrl),
 			headers: {
 				'X-HTTP-Method-Override': 'GET',
 				'Content-Type': 'application/json'

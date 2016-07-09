@@ -12,6 +12,17 @@ function(
 ) {
 
 	$scope.canvas = _playbookEditor.canvas;
+
+	/**
+	 * Note:
+	 *
+	 * Unlike in most services that invoke init() internally,
+	 * the playbook editor must be initialized each time its UI
+	 * is created (such as when navigating to the editor from another
+	 * module). Since controllers are constructed along with the
+	 * UI when navigating to a view, it is the prime way to
+	 * ensure the service is initialized when the view loads.
+	 */
 	_playbookEditor.init();
 
 	var templatePrefix = 'modules/playbook/editor/';
@@ -31,7 +42,15 @@ function(
 		mode: [
 			templatePrefix,
 			'mode/playbook-editor-mode.tpl.html'
+		].join(''),
+		applicator: [
+			templatePrefix,
+			'applicator/playbook-editor-applicator.tpl.html'
 		].join('')
-	}				
+	}		
+
+	$scope.toBrowser = function() {
+		_playbookEditor.toBrowser();
+	}		
 	
 }]);

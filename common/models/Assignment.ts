@@ -9,19 +9,24 @@ module Common.Models {
         public positionIndex: number;
         public setType: Common.Enums.SetTypes;
         public unitType: Team.Enums.UnitTypes;
+        public layer: Common.Models.Layer;
 
         constructor(unitType: Team.Enums.UnitTypes) {
             super(Common.Enums.ImpaktDataTypes.Assignment);
-            super.setContext(this);
 
             this.unitType = unitType;
             this.routes = new Common.Models.RouteCollection();
             this.routeArray = [];
             this.positionIndex = -1;
             this.setType = Common.Enums.SetTypes.Assignment;
+            this.layer = new Common.Models.Layer(this, Common.Enums.LayerTypes.Assignment);
 
             let self = this;
             this.routes.onModified(function() {
+                self.setModified(true);
+            });
+
+            this.layer.onModified(function() {
                 self.setModified(true);
             });
         }
@@ -59,7 +64,7 @@ module Common.Models {
         }
 
         public remove() {
-            this.routes.removeAll();
+            this.layer.remove();
         }
 
         public setContext(context) {
@@ -74,6 +79,18 @@ module Common.Models {
             });
         }
 
+        public drop(): void {
+            this.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
+                if (Common.Utilities.isNotNullOrUndefined(route)) {
+                    if (route.dragInitialized) {
+                        route.dragInitialized = false;
+                    }
+                    route.drop();
+                    route.draw();
+                }
+            });
+        }
+
         public addRoute(route: Common.Interfaces.IRoute): void {
             if (Common.Utilities.isNullOrUndefined(route))
                 return;
@@ -83,6 +100,8 @@ module Common.Models {
         }
 
         public setRoutes(player: Common.Interfaces.IPlayer, renderType: Common.Enums.RenderTypes) {
+            this.listen(false);
+
             // intiialize the routeArray json for transferrence between
             // different rendering types for editor and preview modes
 
@@ -124,10 +143,10 @@ module Common.Models {
             }
 
             if(routesToAdd.length > 0) {
-                this.routes.listen(false);
-                this.routes.addAll(routesToAdd);       
-                this.routes.listen(true);
+                this.routes.addAll(routesToAdd);
             }
+
+            this.listen(true);
         }
 
         public hasRouteArray(): boolean {
@@ -146,6 +165,21 @@ module Common.Models {
                 });
                 this.flipped = !this.flipped;
             }
+        }
+
+        public moveByDelta(dx: number, dy: number): void {
+            // TODO: implement route switching
+            this.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
+                if (Common.Utilities.isNotNullOrUndefined(route)) {
+                    route.layer.moveByDelta(dx, dy);
+                }
+            });
+        }
+
+        public refresh(): void {
+            this.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
+                route.refresh();
+            });
         }
     }
 }

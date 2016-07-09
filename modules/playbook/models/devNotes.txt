@@ -1,0 +1,3 @@
+* Remove all scenario references from the field initialization, so that a field can be initialized as a blank field with no data.
+
+* Fix control directives so that changes on the field are reflected in those controls, and vice versa.

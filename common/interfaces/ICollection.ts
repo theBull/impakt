@@ -29,9 +29,11 @@ module Common.Interfaces {
 		hasElementWhich(predicate: Function): boolean;
 		filter(predicate: Function): T[];
 		filterFirst(predicate: Function): T;
-		empty(): void;
-		removeAll(): void;
-		removeEach(iterator): void;
+		empty(listen?: boolean): void;
+		remove(key: string | number, listen?: boolean): T;
+		removeAll(listen?: boolean): void;
+		removeEach(iterator: Function, listen?: boolean): void;
+		removeWhere(predicate: Function, listen?: boolean): void;
 		contains(key: string | number): boolean;
 		toArray(): T[];
 		toJson(): any[];

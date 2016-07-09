@@ -119,7 +119,7 @@ function(
 					if(result) {
 						let organizationModel = new User.Models.Organization();
 						organizationModel.fromJson(result);
-						self.organizations.add(organizationModel);
+						self.organizations.add(organizationModel, false);
 					}
 				}
 			}

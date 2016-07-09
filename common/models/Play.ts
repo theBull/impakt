@@ -17,7 +17,7 @@ module Common.Models {
             super(Common.Enums.ImpaktDataTypes.Play);
             
             this.field = null;
-            this.name = 'New play';
+            this.name = '';
             this.unitType = unitType;
             this.assignmentGroup = null;
             this.formation = null;

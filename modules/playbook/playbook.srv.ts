@@ -61,7 +61,7 @@ function(
                             playbookResult.data.model.key = playbookResult.key;
                             playbookModel.fromJson(playbookResult.data.model);
 
-                            collection.add(playbookModel);
+                            collection.add(playbookModel, false);
                         }
                     }
                 }
@@ -142,7 +142,7 @@ function(
                 playbookModel.fromJson(results.data.model);
 
                 // update the context
-                impakt.context.Playbook.playbooks.add(playbookModel);
+                impakt.context.Playbook.playbooks.add(playbookModel, false);
 
             } else {
                 throw new Error('CreatePlaybook did not return a valid playbook model');
@@ -284,7 +284,7 @@ function(
                 formationModel.fromJson(result.data.formation);
                 console.log(formationModel);
 
-                impakt.context.Playbook.formations.add(formationModel);
+                impakt.context.Playbook.formations.add(formationModel, false);
 
                 notification.success(
                     'Successfully created formation "', formationModel.name, '"'
@@ -374,7 +374,7 @@ function(
                         rawFormation.key = result.key;
                         let formationModel = new Common.Models.Formation(Team.Enums.UnitTypes.Other);
                         formationModel.fromJson(rawFormation);
-                        formationCollection.add(formationModel);
+                        formationCollection.add(formationModel, false);
                     } else {
                         throw new Error('An invalid formation was retrieved');
                     }
@@ -455,6 +455,7 @@ function(
             // need to make a copy of the formation here
             let formationCopy = formation.copy();
             primaryPlay.setFormation(formationCopy);
+            primaryPlay.name = formation.name;
 
             // Set association data
 			this.setFormationAssociations(primaryPlay);
@@ -466,7 +467,7 @@ function(
             scenario.name = formation.name;
 
             // add the play onto the editor context
-            impakt.context.Playbook.editor.scenarios.add(scenario);
+            impakt.context.Playbook.editor.scenarios.add(scenario, false);
         }
 
         // navigate to playbook editor
@@ -603,7 +604,7 @@ function(
                         assignmentGroupModel.key = result.key;
                         result.data.assignmentGroup.key = result.key;
                         assignmentGroupModel.fromJson(result.data.assignmentGroup);
-                        assignmentGroupCollection.add(assignmentGroupModel);
+                        assignmentGroupCollection.add(assignmentGroupModel, false);
                     }
                 }
 
@@ -699,7 +700,7 @@ function(
                     rawAssignmentGroup.key = results.key;
                     assignmentGroup.fromJson(rawAssignmentGroup);
 
-                    impakt.context.Playbook.assignmentGroups.add(assignmentGroup);
+                    impakt.context.Playbook.assignmentGroups.add(assignmentGroup, false);
 
                     notification.success(
                         'Successfully created assignment group "', assignmentGroup.name, '"'
@@ -820,7 +821,7 @@ function(
                 playModel = new Common.Models.PlayPrimary(Team.Enums.UnitTypes.Other);
                 results.data.play.key = results.key;
                 playModel.fromJson(results.data.play);
-                impakt.context.Playbook.plays.add(playModel);
+                impakt.context.Playbook.plays.add(playModel, false);
             }
 
             notification.success(
@@ -1056,7 +1057,7 @@ function(
                             let playModel = new Common.Models.PlayPrimary(Team.Enums.UnitTypes.Other);
                             rawPlay.key = result.key;
                             playModel.fromJson(rawPlay);
-                            playCollection.add(playModel);
+                            playCollection.add(playModel, false);
                         }
                     }    
                 }                
@@ -1095,7 +1096,7 @@ function(
         this.setPlayAssociations(scenario.playPrimary);
         
         // add the play onto the editor context
-        impakt.context.Playbook.editor.scenarios.add(scenario);
+        impakt.context.Playbook.editor.scenarios.add(scenario, false);
 
         // navigate to playbook editor
         //if (!$state.is('playbook.editor'))
@@ -1182,7 +1183,7 @@ function(
                 scenarioModel = new Common.Models.Scenario();
                 results.data.scenario.key = results.key;
                 scenarioModel.fromJson(results.data.scenario);
-                impakt.context.Playbook.scenarios.add(scenarioModel);
+                impakt.context.Playbook.scenarios.add(scenarioModel, false);
             }
 
             notification.success(
@@ -1339,7 +1340,7 @@ function(
                             let scenarioModel = new Common.Models.Scenario();
                             rawScenario.key = result.key;
                             scenarioModel.fromJson(rawScenario);
-                            scenarioCollection.add(scenarioModel);
+                            scenarioCollection.add(scenarioModel, false);
                         }
                     }    
                 }                
@@ -1367,7 +1368,7 @@ function(
         let scenarioCopy = scenario.copy();
         scenarioCopy.editorType = Playbook.Enums.EditorTypes.Scenario;
         this.setScenarioAssociations(scenarioCopy);
-        impakt.context.Playbook.editor.scenarios.add(scenarioCopy); // <-- create copy
+        impakt.context.Playbook.editor.scenarios.add(scenarioCopy, false); // <-- create copy
 
         // navigate to playbook editor
         //if (!$state.is('playbook.editor'))
@@ -1478,11 +1479,15 @@ function(
      */
     this.toBrowser = function() {
         this.drilldown.playbook = null;
+        impakt.context.Playbook.playbooks.deselectAll();
+        impakt.context.Actionable.selected.deselectAll();
         $state.transitionTo('playbook.browser');
     }
 
     this.toPlaybookDrilldown = function(playbookModel: Common.Models.PlaybookModel) {
         this.drilldown.playbook = playbookModel;
+        impakt.context.Playbook.playbooks.select(playbookModel);
+        impakt.context.Actionable.selected.only(playbookModel);
         $state.transitionTo('playbook.drilldown.playbook');
     }
 

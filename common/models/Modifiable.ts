@@ -13,6 +13,7 @@ module Common.Models {
 		public lastModified: number;
 		public context: any;
 		public isContextSet: boolean;
+		public listeners: any;
 
 		/**
 		 * NOTE: Allows dynamically setting whether the given Modifiable
@@ -38,6 +39,10 @@ module Common.Models {
 			// to calling a method that will trigger a modification.
 			this.listening = true;
 			this.callbacks = [];
+			this.listeners = {
+				'onready': <Common.Interfaces.IInvokableCallback[]>[],
+				'onload': <Common.Interfaces.IInvokableCallback[]>[]
+			};
 
 			this.isContextSet = false;
 		}
@@ -66,6 +71,28 @@ module Common.Models {
 			this.listening = startListening;
 			return this;
 		}
+
+		/**
+		 * Takes an action id ('onready', 'onclose', etc.) and a callback function to invoke
+		 * when the action occurs. Optionally, you can pass a `persist` flag, which specifies
+		 * whether to keep the callback in the array after it's been invoked (persist = true)
+		 * or to remove the callback after it is called the first time (!persist).
+		 * 
+		 * @param {string}   actionId [description]
+		 * @param {Function} callback [description]
+		 * @param {boolean}  persist    default = false
+		 */
+		public setListener(actionId: string, callback: Function, persist?: boolean): void {
+			 if (!this.listeners.hasOwnProperty(actionId))
+                this.listeners[actionId] = [];
+
+            this.listeners[actionId].push(
+            	<Common.Interfaces.IInvokableCallback>{
+            		callback: callback, 
+            		persist: (persist === true)
+            	}
+            );
+		}
 		public hasListeners(): boolean {
 			return Common.Utilities.isNotNullOrUndefined(this.callbacks) && this.callbacks.length > 0
 		}
@@ -73,6 +100,38 @@ module Common.Models {
 			// empty all callbacks
 			this.callbacks = [];
 		}
+		public invokeListener(actionId: string, data?: any): void {
+            if (!this.listeners[actionId])
+                return;
+
+            let invokables = this.listeners[actionId];
+
+            let i = 0;
+            while(i < invokables.length) {
+            	let invokable = <Common.Interfaces.IInvokableCallback>invokables[i];
+
+            	if(invokable) {
+            		let callback = invokable.callback;
+            		if(callback) {
+
+            			// invoke the callback, passing in optional data param and
+            			// this object's context
+            			callback(data, this.context);
+
+            			if(invokable.persist === false) {
+            				// call and remove; don't increment iterator
+            				// since length will change once we remove
+            				// the element from the array.
+            				invokables.splice(i, 1);
+            			} else {
+            				// increment iterator, skip ahead to next
+            				// callback
+            				i++;
+            			}
+            		}
+            	}
+            }
+        }
 		/**
 		 * Register listeners to be fired when this object is modified.
 		 * NOTE: the modifier will only keep the listener passed in if

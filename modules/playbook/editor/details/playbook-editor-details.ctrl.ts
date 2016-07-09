@@ -13,21 +13,19 @@ function(
 ) {
 	
 	$scope.canvas = _playbookEditorDetails.canvas;
-	$scope.paper;
 	$scope.field;
 	$scope.grid;
 	$scope.scenario;
 	$scope.layers;
-	$scope.selected;
+	$scope.selectedElements;
 	$scope.players;
 
-	$scope.canvas.onready(function() {
-		$scope.paper = $scope.canvas.paper;
-		$scope.field = $scope.paper.field;
-		$scope.grid = $scope.paper.grid;
+	$scope.canvas.setListener('onready', function() {
+		$scope.field = $scope.canvas.field;
+		$scope.grid = $scope.canvas.grid;
 		$scope.scenario = $scope.canvas.scenario;
-		$scope.layers = $scope.field.layers;
-		$scope.selected = $scope.field.selected;
+		$scope.layers = $scope.field.layer.layers;
+		$scope.selectedElements = $scope.field.selectedElements;
 		$scope.players = $scope.field.primaryPlayers;
 
 		// update scope when changes to field occur

@@ -6,12 +6,16 @@ impakt.nav.controller('nav.ctrl', [
 	'$scope',
 	'$location',
 	'__nav',
-	'__notifications',
-	function(
-		$scope: any,
-		$location: any,
-		__nav: any,
-		__notifications: any) {
+    '__notifications',
+    'appConfigurator',
+    function(
+        $scope: any,
+        $location: any,
+        __nav: any,
+        __notifications: any,
+        appConfigurator: any) {
+
+      	$scope.appVer = appConfigurator.appVer;
 
 		// Default menu visiblity
 		$scope.isMenuCollapsed = true;

@@ -87,7 +87,7 @@ function(
 
 	// Navigates to the team module
 	$scope.toTeam = function() {
-		let response = confirm('You are about to navigate to the Team module. Your play will not be created. Continue?');
+		let response = confirm('You are about to navigate to the Team module. Continue?');
 		if (response) {
 			$scope.cancel();
 			_playbook.toTeam();

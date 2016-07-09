@@ -22,7 +22,7 @@ module Playbook.Models {
                 this.player = player;
                 this.grid = this.player.grid;
                 this.field = this.player.field;
-                this.paper = this.player.paper;
+                this.canvas = this.player.canvas;
                 let self = this;
                 this.nodes.forEach(function (
                     node: Common.Interfaces.IRouteNode, index: number) {

@@ -6,7 +6,6 @@ module Common.Models {
 
         public context: Common.Models.Graphics;
         public canvas: Common.Interfaces.ICanvas;
-        public paper: Common.Interfaces.IPaper;
         public grid: Common.Interfaces.IGrid;
         public items: Common.Models.Graphics[];
         public length: number;
@@ -17,11 +16,10 @@ module Common.Models {
             ...args: Common.Models.Graphics[]
         ) {
             this.context = context;
-            this.paper = this.context.paper;
-            this.canvas = this.paper.canvas;
-            this.grid = this.paper.grid;
+            this.canvas = this.context.canvas;
+            this.grid = this.canvas.grid;
             this.items = [];
-            this.raphaelSet = this.paper.drawing.set();
+            this.raphaelSet = this.canvas.drawing.set();
 
             if (args && args.length > 0) {
                 this.push.apply(this, args);
@@ -38,10 +36,19 @@ module Common.Models {
         public push(...args: Common.Models.Graphics[]) {
             for (let i = 0; i < args.length; i++) {
                 let graphics = args[i];
+                if(Common.Utilities.isNullOrUndefined(graphics))
+                    continue;
+                
                 this.length++;
                 this.raphaelSet.exclude(graphics.raphael);
                 this.raphaelSet.push(graphics.raphael);
                 this.items.push(graphics);
+            }
+        }
+
+        public empty(): void {
+            while(this.length > 0) {
+                this.pop();
             }
         }
 

@@ -13,7 +13,6 @@ module Team.Models {
 
         constructor() {
             super(Common.Enums.ImpaktDataTypes.Team);
-            super.setContext(this);
             
             this.name = '';
             this.teamType = Team.Enums.TeamTypes.Mixed;

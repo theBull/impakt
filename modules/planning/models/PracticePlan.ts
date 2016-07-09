@@ -56,7 +56,7 @@ module Planning.Models {
 			this.offensiveData.fromJson(json.offensiveData);
 			this.defensiveData.fromJson(json.defensiveData);
 
-			this.items.empty();
+			this.items.empty(false);
 			this.items.fromJson(json.items);
 
 			super.fromJson(json);
@@ -66,7 +66,7 @@ module Planning.Models {
 			for (let i = 0; i < Planning.Constants.DEFAULT_PRACTICE_PLAN_ITEMS_LENGTH; i++) {
 				let newItem = new Planning.Models.PracticePlanItem();
 				newItem.index = i;
-				this.items.add(newItem);
+				this.items.add(newItem, false);
 			}
 		}
 

@@ -9,9 +9,10 @@
         	<div class='marginBottom2'>
                 <p>Play name</p>
         	    <input type='text' ng-model='newPlay.name' 
-        	        placeholder='Play name?' />
+        	        ng-placeholder='Untitled' autofocus />
             </div>	
 
+            <!-- Unit types -->
             <div class='marginBottom2'>
                 <p>Unit:</p>
                 <div ng-repeat='unitType in unitTypeCollection.toArray()'>
@@ -30,6 +31,7 @@
 
             <div class='marginBottom2'>
 
+                <!-- Playbooks -->
                 <div class='marginBottom1'>
                     Playbook ({{playbooks.size()}})
                     <div ng-show='playbooks.hasElements()'>
@@ -46,6 +48,7 @@
                     </div>
                 </div>
 
+                <!-- Formations -->
                 <div class='marginBottom1'>
                     Formation ({{formations.size()}})
                     <div ng-show='formations.hasElements()'>
@@ -61,6 +64,30 @@
                         <em>There are no saved formations to apply.</em>
                     </div>
                 </div>
+
+                <!-- Personnel -->
+                <div class='marginBottom1'>
+                    Personnel ({{personnelCollection.size()}})
+                    <div ng-show='personnelCollection.hasElements()'>
+                        <select ng-options='personnel as personnel.name for personnel in personnelCollection.toArray() | filter:{unitType: selectedUnitType.unitType}'
+                            ng-model='selectedPersonnel'
+                            ng-change='selectPersonnel(selectedPersonnel)'>
+                        </select>
+                    </div>
+                    <div ng-show='personnelCollection.isEmpty()'>
+                        <span class='marginRight1'>
+                            <span class='glyphicon glyphicon-exclamation-sign'></span>
+                        </span>
+                        <em>
+                            There are no saved personnel groups to apply.
+                        </em>
+                        <span class='actionable' ng-click='toTeam()'>
+                            Set up personnel
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Assignments -->
             	<div class='marginBottom1'>
             		Assignments ({{assignmentGroups.size()}})
                     <div ng-show='assignmentGroups.hasElements()'>
@@ -77,26 +104,7 @@
                         <em>There are no saved assignment groups to apply.</em>
                     </div>
             	</div>
-            	<div class='marginBottom1'>
-            		Personnel ({{personnelCollection.size()}})
-                    <div ng-show='personnelCollection.hasElements()'>
-                		<select ng-options='personnel as personnel.name for personnel in personnelCollection.toArray() | filter:{unitType: selectedUnitType.unitType}'
-                			ng-model='selectedPersonnel'
-                			ng-change='selectPersonnel(selectedPersonnel)'>
-                		</select>
-                    </div>
-                    <div ng-show='personnelCollection.isEmpty()'>
-                        <span class='marginRight1'>
-                            <span class='glyphicon glyphicon-exclamation-sign'></span>
-                        </span>
-                        <em>
-                            There are no saved personnel groups to apply.
-                        </em>
-                        <span class='actionable' ng-click='toTeam()'>
-                            Set up personnel
-                        </span>
-                    </div>
-            	</div>
+            	
             </div>
         </div>
 

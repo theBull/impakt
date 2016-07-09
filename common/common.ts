@@ -244,7 +244,9 @@ module Common {
 			
 			for (let i = 0; i < data.length; i++) {
 				try {
-					data[i].data = JSON.parse(data[i].data);
+					if (typeof(data[i].data) == 'string') {
+						data[i].data = JSON.parse(data[i].data);
+					}
 				} catch (error) {
 					console.log(error);
 				}
@@ -313,6 +315,28 @@ module Common {
 				}
 			}
 			return enums;
+		}
+		public static parseEnumFromString(enumString: string) {
+			if (Common.Utilities.isEmptyString(enumString))
+				return null;
+
+			let namespaceComponents = enumString.split('.');
+
+			// Drill down into namespace -> window['Playbook']['Editor']['EditorTypes']
+			// returns enum object
+			let namespaceRoot = window;
+			for (let i = 0; i < namespaceComponents.length; i++) {
+				if (namespaceComponents[i]) {
+					// Follow the namespace path down to the node object
+					// window['Playbook']...
+					// window['Playbook']['Editor']...
+					// window['Playbook']['Editor']['EditorTypes']
+					// node reached, namespaceRoot will finally point to the node object
+					namespaceRoot = namespaceRoot[namespaceComponents[i]];
+				}
+			}
+
+			return namespaceRoot;
 		}
 
 		public static isArray(obj: any) {

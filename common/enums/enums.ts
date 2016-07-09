@@ -51,6 +51,15 @@ module Common.Enums {
 		Organization = 2021
 	}
 
+	export enum State {
+		Unknown,
+		Ready,
+		Loaded,
+		Initialized,
+		Constructed,
+		Updating
+	}
+
 	export enum AssociationTypes {
 		Any = -1,
 		Unknown = 0,
@@ -65,19 +74,19 @@ module Common.Enums {
 	}
 
 	/**
-	 * Allows the paper to be scaled/sized differently.
-	 * To specify an initial paper size, for example,
-	 * Paper is initialized with MaxCanvasWidth,
-	 * which causes the paper to determine its width based
-	 * on the current maximum width of its parent canvas. On the
-	 * contrary, the paper can be told to set its width based
+	 * Allows the canvas to be scaled/sized differently.
+	 * To specify an initial canvas size, for example,
+	 * Canvas is initialized with MaxContainerWidth,
+	 * which causes the canvas to determine its width based
+	 * on the current maximum width of its parent container. On the
+	 * contrary, the canvas can be told to set its width based
 	 * on a given, target grid cell size. For example, if the target
 	 * grid width is 20px and the grid is 50 cols, the resulting
-	 * paper width will calculate to 1000px.
+	 * canvas width will calculate to 1000px.
 	 */
-	export enum PaperSizingModes {
+	export enum CanvasSizingModes {
 		TargetGridWidth,
-		MaxCanvasWidth,
+		MaxContainerWidth,
 		PreviewWidth
 	}
 
@@ -145,7 +154,8 @@ module Common.Enums {
 		Hashmark,
 		SidelineHashmark,
 		Endzone,
-		LineOfScrimmage
+		LineOfScrimmage,
+		Assignment
 	}
 
 	export enum RouteTypes {

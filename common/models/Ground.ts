@@ -14,8 +14,8 @@ module Common.Models {
             this.selectable = false;
             this.graphics.initializePlacement(
                 new Common.Models.Placement(
-                    this.paper.x, 
-                    this.paper.y,
+                    this.canvas.x, 
+                    this.canvas.y,
                     null
                 )
             );
@@ -47,8 +47,8 @@ module Common.Models {
 
         public getClickAbsolute(offsetX: number, offsetY: number): Common.Models.Coordinates {
             return new Common.Models.Coordinates(
-                offsetX + this.graphics.dimensions.offset.x - Math.abs(this.paper.x),
-                offsetY + Math.abs(this.paper.y) + this.graphics.dimensions.offset.y
+                offsetX + this.graphics.dimensions.offset.x - Math.abs(this.canvas.x),
+                offsetY + Math.abs(this.canvas.y) + this.graphics.dimensions.offset.y
             );
         }
     }

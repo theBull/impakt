@@ -11,10 +11,8 @@
  
 /// <reference path='./EditorField.ts' />
 /// <reference path='./EditorCanvas.ts' />
-/// <reference path='./EditorPaper.ts' />
 /// <reference path='./PreviewField.ts' />
 /// <reference path='./PreviewCanvas.ts' />
-/// <reference path='./PreviewPaper.ts' />
 
 /// <reference path='./PreviewLineOfScrimmage.ts' />
 /// <reference path='./EditorLineOfScrimmage.ts' />

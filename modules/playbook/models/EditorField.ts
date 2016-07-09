@@ -9,80 +9,103 @@ module Playbook.Models {
         public zoom: number;
 
         constructor(
-            paper: Common.Interfaces.IPaper, 
-            scenario: Common.Models.Scenario
+            canvas: Common.Interfaces.ICanvas
         ) {
-            super(paper, scenario);
+            super(canvas);
 
             this.zoom = 1;
-            this.editorType = this.scenario.editorType;
 
             let self = this;
             this.onModified(function() {
                 //console.log('field modified');
             });
+            this.state = Common.Enums.State.Constructed;
         }
 
         public initialize(): void {
-            this.ball = new Playbook.Models.EditorBall();
-            this.ball.initialize(this, null);
 
-            this.ground = new Playbook.Models.EditorGround();
-            this.ground.initialize(this, null);
+            let setBallContainment = false;
+            if(!this.ball) {
+                this.ball = new Playbook.Models.EditorBall();
+                this.ball.initialize(this, null);
+                setBallContainment = true;
+                this.layer.addLayer(this.ball.layer);
+            }
 
-            this.los = new Playbook.Models.EditorLineOfScrimmage();
-            this.los.initialize(this, null);
+            if(!this.ground) {
+                this.ground = new Playbook.Models.EditorGround();
+                this.ground.initialize(this, null);
+                this.layer.addLayer(this.ground.layer);
+            }
+
+            if(!this.los) {
+                this.los = new Playbook.Models.EditorLineOfScrimmage();
+                this.los.initialize(this, null);
+                this.layer.addLayer(this.los.layer);
+            }
             
-            this.endzone_top = new Playbook.Models.EditorEndzone(0);
-            this.endzone_top.initialize(this, null);
+            if(!this.endzone_top) {
+                this.endzone_top = new Playbook.Models.EditorEndzone(0);
+                this.endzone_top.initialize(this, null);
+                this.layer.addLayer(this.endzone_top.layer);
+            }
             
-            this.endzone_bottom = new Playbook.Models.EditorEndzone(110);
-            this.endzone_bottom.initialize(this, null);            
+            if(!this.endzone_bottom) {
+                this.endzone_bottom = new Playbook.Models.EditorEndzone(110);
+                this.endzone_bottom.initialize(this, null);
+                this.layer.addLayer(this.endzone_bottom.layer);            
+            }
 
-            this.sideline_left = new Playbook.Models.EditorSideline(0);
-            this.sideline_left.initialize(this, null);
+            if(!this.sideline_left) {
+                this.sideline_left = new Playbook.Models.EditorSideline(0);
+                this.sideline_left.initialize(this, null);
+                this.layer.addLayer(this.sideline_left.layer);
+            }
 
-            this.sideline_right = new Playbook.Models.EditorSideline(51);
-            this.sideline_right.initialize(this, null);
+            if(!this.sideline_right) {
+                this.sideline_right = new Playbook.Models.EditorSideline(51);
+                this.sideline_right.initialize(this, null);
+                this.layer.addLayer(this.sideline_right.layer);
+            }
 
-            this.hashmark_left = new Playbook.Models.EditorHashmark(22);
-            this.hashmark_left.initialize(this, null);
+            if(!this.hashmark_left) {
+                this.hashmark_left = new Playbook.Models.EditorHashmark(22);
+                this.hashmark_left.initialize(this, null);
+                this.layer.addLayer(this.hashmark_left.layer);
+            }
 
-            this.hashmark_right = new Playbook.Models.EditorHashmark(28);
-            this.hashmark_right.initialize(this, null);
+            if(!this.hashmark_right) {
+                this.hashmark_right = new Playbook.Models.EditorHashmark(28);
+                this.hashmark_right.initialize(this, null);
+                this.layer.addLayer(this.hashmark_right.layer);
+            }
 
-            this.hashmark_sideline_left = new Playbook.Models.EditorHashmark(2);
-            this.hashmark_sideline_left.initialize(this, null);
+            if(!this.hashmark_sideline_left) {
+                this.hashmark_sideline_left = new Playbook.Models.EditorHashmark(2);
+                this.hashmark_sideline_left.initialize(this, null);
+                this.layer.addLayer(this.hashmark_sideline_left.layer);
+            }
 
-            this.hashmark_sideline_right = new Playbook.Models.EditorHashmark(50);
-            this.hashmark_sideline_right.initialize(this, null);
+            if(!this.hashmark_sideline_right) {
+                this.hashmark_sideline_right = new Playbook.Models.EditorHashmark(50);
+                this.hashmark_sideline_right.initialize(this, null);
+                this.layer.addLayer(this.hashmark_sideline_right.layer);
+            }
 
-            // Set containment around the ball to restrict its drag area
-            this.ball.graphics.setContainment(
-                this.hashmark_left.graphics.placement.coordinates.x,
-                this.hashmark_right.graphics.placement.coordinates.x,
-                this.endzone_top.graphics.dimensions.getHeight(),
-                this.endzone_top.graphics.placement.coordinates.y
-            );
-
-            this.layers.add(this.ball.layer);
-            this.layers.add(this.ground.layer);
-            this.layers.add(this.los.layer);
-            this.layers.add(this.endzone_top.layer);
-            this.layers.add(this.endzone_bottom.layer);
-            this.layers.add(this.sideline_left.layer);
-            this.layers.add(this.sideline_right.layer);
-            this.layers.add(this.hashmark_left.layer);
-            this.layers.add(this.hashmark_right.layer);
-            this.layers.add(this.hashmark_sideline_left.layer);
-            this.layers.add(this.hashmark_sideline_right.layer);
-
-            if (!this.scenario.playPrimary.formation) {
-                this.scenario.playPrimary.formation = new Common.Models.Formation(this.scenario.playPrimary.unitType);
-                this.scenario.playPrimary.formation.setDefault(this.ball);
+            if(setBallContainment) {
+                // Set containment around the ball to restrict its drag area
+                this.ball.graphics.setContainment(
+                    this.hashmark_left.graphics.placement.coordinates.x,
+                    this.hashmark_right.graphics.placement.coordinates.x,
+                    this.endzone_top.graphics.dimensions.getHeight(),
+                    this.endzone_top.graphics.placement.coordinates.y
+                );
             }
 
             this.draw();
+
+            this.invokeListener('onready');
+            this.state = Common.Enums.State.Ready;
         }
 
         public draw () {
@@ -98,15 +121,22 @@ module Playbook.Models {
             this.hashmark_sideline_right.draw();
             this.los.draw();
             this.ball.draw();
-            this.drawScenario();
         }
 
         public useAssignmentTool (coords: Common.Models.Coordinates) {
-            if (!this.selected.hasElements()) {
+            if (!this.selectedElements.hasElements()) {
                 console.error('Select a player first'); 
                 return;
             }
-            let selectedPlayers = this.getSelectedByLayerType(Common.Enums.LayerTypes.Player);
+
+            // NOTE:
+            // this method will return PRIMARY PLAYERS only.
+            // This means that drawing routes on opponent players would not be possible
+            // at this point.
+            // 
+            // TODO @theBull - implement checking for opponent players.
+            let selectedPlayers = this.getSelectedByLayerType(Common.Enums.LayerTypes.PrimaryPlayer);
+
             let self = this;
             let relativeCoords = null;
             
@@ -134,12 +164,23 @@ module Playbook.Models {
                 route.flipped = player.flipped;
                 player.assignment.addRoute(route);
             }
+
+            if(player.assignment && 
+                !player.layer.containsLayer(player.assignment.layer)) {
+                player.layer.addLayer(player.assignment.layer);
+            }
+            
             // TODO: this will only get the first route, implement
             // route switching
             let playerRoute = player.assignment.routes.getOne();
+
+            // if the user is dragging while adding assignment, the
+            // assignment route will be dynamically drawn; stop here,
+            // do not place a node yet.
             if (playerRoute.dragInitialized)
                 return;
 
+            // Standard functionality - add a node where the click occurred
             let newNode = new Playbook.Models.EditorRouteNode(
                 relativeCoords,
                 Common.Enums.RouteNodeTypes.Normal
@@ -176,10 +217,10 @@ module Playbook.Models {
                 position, 
                 assignment
             );
-
             player.initialize(this);
-            
             player.draw();
+            player.layer.type = Common.Enums.LayerTypes.PrimaryPlayer;
+
             
             let self = this;
             player.onModified(function() {
@@ -208,10 +249,9 @@ module Playbook.Models {
                 position, 
                 assignment
             );
-
             player.initialize(this);
-            
             player.draw();
+            player.layer.type = Common.Enums.LayerTypes.OpponentPlayer;
             
             let self = this;
             player.onModified(function() {

@@ -10,6 +10,7 @@ module Common.Models {
 		public zIndex: number;
 		public layers: Common.Models.LayerCollection;
 		public visible: boolean;
+		public name: string;
 
 		constructor(actionable: Common.Interfaces.IActionable, layerType: Common.Enums.LayerTypes) {
 			if (Common.Utilities.isNullOrUndefined(actionable)) {
@@ -22,6 +23,7 @@ module Common.Models {
 			this.actionable = actionable;
 			this.type = layerType;
 			this.visible = true;
+			this.name = '';
 
 			// sub layers
 			this.layers = new Common.Models.LayerCollection();
@@ -38,29 +40,57 @@ module Common.Models {
 
 			let self = this;
 
-			let predicate = function(layer: Common.Models.Layer, index: number) {
-				return self.guid == layer.guid;
-			};
-
-			return this.guid == layer.guid || this.layers.hasElementWhich(predicate);
+			return this.guid == layer.guid || 
+				this.layers.hasElementWhich(function(layer: Common.Models.Layer, index: number) {
+					return self.guid == layer.guid;
+				});
 		}
 
-		public addLayer(layer: Common.Models.Layer): void {
-			this.layers.listen(false);
-			if(this.hasLayers())
-				this.layers.add(layer);
+		public containsLayerType(type: Common.Enums.LayerTypes): boolean {
+			if(!this.hasLayers())
+				return false;
 
-			this.actionable.graphics.set.push(layer.actionable.graphics);
+			let self = this;
+			return this.type == type || 
+				this.layers.hasElementWhich(function(layer: Common.Models.Layer, index: number) {
+					return self.type == layer.type;
+				});
+		}
+
+		public addLayer(layer: Common.Models.Layer, unique?: boolean): void {
+			this.layers.listen(false);
+			if(this.hasLayers()) {
+				this.layers.add(layer);
+			}
+
+			if(this.hasGraphics())
+				this.actionable.graphics.set.push(layer.actionable.graphics);
+
 			this.layers.listen(true);
 		}
 
-		public removeLayer(layer: Common.Models.Layer): Common.Models.Layer {
-			if (this.hasGraphics())
-				layer.actionable.graphics.remove();
-
-			this.actionable.graphics.set.exclude(layer.actionable.graphics);
-
-			return this.hasLayers() ? this.layers.remove(layer.guid) : null;
+		public removeLayer(layer: Common.Models.Layer): void {
+			if (layer.guid == this.guid) {
+				this.remove();
+			} else if(this.hasLayers()) {
+				// search sub layers
+				this.layers.forEach(function(subLayer: Common.Models.Layer, index: number) {
+					// layer exists somewhere down the chain...
+					subLayer.removeLayer(layer);					
+				});
+			}
+		}
+		public removeLayerByType(type: Common.Enums.LayerTypes): void {
+			if(type == this.type) {
+				this.remove();
+			} else if(this.hasLayers()) {
+				this.layers.forEach(function(layer: Common.Models.Layer, index: number) {
+					layer.removeLayerByType(type);
+				});
+				this.layers.removeWhere(function(layer: Common.Models.Layer) {
+					return layer.type == type;
+				});
+			}
 		}
 
 		public removeAllLayers(): void {
@@ -93,7 +123,10 @@ module Common.Models {
 
 		public show(): void {
 			this.visible = true;
-			this.actionable.graphics.show();
+			
+			if(this.hasGraphics())
+				this.actionable.graphics.show();
+			
 			this.showLayers();
 		}
 
@@ -107,7 +140,10 @@ module Common.Models {
 
 		public hide(): void {
 			this.visible = false;
-			this.actionable.graphics.hide();
+			
+			if(this.hasGraphics())
+				this.actionable.graphics.hide();
+
 			this.hideLayers();
 		}
 
@@ -124,12 +160,15 @@ module Common.Models {
 		}
 
 		public removeGraphics(): void {
-			if (this.hasGraphics())
+			if(this.hasGraphics()) {
 				this.actionable.graphics.remove();
+			}
 		}
 
 		public moveByDelta(dx: number, dy: number) {
-			this.actionable.graphics.moveByDelta(dx, dy);
+			if(this.hasGraphics())
+				this.actionable.graphics.moveByDelta(dx, dy);
+
 			if(this.hasLayers()) {
 				this.layers.forEach(function(layer: Common.Models.Layer, index: number) {
 					layer.moveByDelta(dx, dy);
@@ -138,7 +177,9 @@ module Common.Models {
 		}
 
 		public drop(): void {
-			this.actionable.graphics.drop();
+			if(this.hasGraphics())
+				this.actionable.graphics.drop();
+			
 			if(this.hasLayers()) {
 				this.layers.forEach(function(layer: Common.Models.Layer, index: number) {
 					layer.drop();
@@ -173,7 +214,8 @@ module Common.Models {
 		}
 
 		public flip(): void {
-			this.actionable.graphics.flip(this.actionable.flippable);
+			if(this.hasGraphics())
+				this.actionable.graphics.flip(this.actionable.flippable);
 
 			if(this.hasLayers()) {
 				this.layers.forEach(function(layer: Common.Models.Layer, index: number) {

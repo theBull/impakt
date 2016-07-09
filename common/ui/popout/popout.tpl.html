@@ -4,12 +4,17 @@
 	<popout-toggle></popout-toggle>
 	
 	<popout-contents 
-		ng-show='!expandable.collapsed' 
-		ng-include='expandable.url'
-		collection='playbooks'
-		class='minWidth20 minHeight3 dropdown heightAuto positionAbsolute black-bg'>
+		ng-show='!expandable.collapsed'
+		class='minWidth20 dropdown heightAuto positionAbsolute gray-bg-3'>
+		<ul>
+			<li ng-repeat='item in filteredCollection.toArray() | filter: {name: query.text}'
+				ng-click='itemSelect(item)'
+				class='pad pointer gray-bg-4-hover'>
+				{{item.name}}
+			</li>
+		</ul>
 	</popout-contents>
 
-	<popout-clickeater></popout-clickeater>
+	<!-- <popout-clickeater></popout-clickeater> -->
 
 </div>

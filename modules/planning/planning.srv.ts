@@ -54,7 +54,7 @@ function(
                             planResult.data.plan.key = planResult.key;
                             planModel.fromJson(planResult.data.plan);
 
-                            collection.add(planModel);
+                            collection.add(planModel, false);
                         }
                     }
                 }
@@ -136,7 +136,7 @@ function(
                     planModel.fromJson(results.data.plan);
 
                     // update the context
-                    impakt.context.Planning.plans.add(planModel);
+                    impakt.context.Planning.plans.add(planModel, false);
 
                 } else {
                     throw new Error('createPlan did not return a valid Plan');
@@ -267,7 +267,7 @@ function(
                             practicePlanResult.data.practicePlan.key = practicePlanResult.key;
                             practicePlanModel.fromJson(practicePlanResult.data.practicePlan);
 
-                            collection.add(practicePlanModel);
+                            collection.add(practicePlanModel, false);
                         }
                     }
                 }
@@ -349,7 +349,7 @@ function(
                     practicePlanModel.fromJson(results.data.practicePlan);
 
                     // update the context
-                    impakt.context.Planning.practicePlans.add(practicePlanModel);
+                    impakt.context.Planning.practicePlans.add(practicePlanModel, false);
 
                 } else {
                     throw new Error('createPracticePlan did not return a valid PracticePlan');
@@ -477,7 +477,7 @@ function(
                             gamePlanResult.data.gamePlan.key = gamePlanResult.key;
                             gamePlanModel.fromJson(gamePlanResult.data.gamePlan);
 
-                            collection.add(gamePlanModel);
+                            collection.add(gamePlanModel, false);
                         }
                     }
                 }
@@ -558,7 +558,7 @@ function(
                     gamePlanModel.fromJson(results.data.gamePlan);
 
                     // update the context
-                    impakt.context.Planning.gamePlans.add(gamePlanModel);
+                    impakt.context.Planning.gamePlans.add(gamePlanModel, false);
 
                 } else {
                     throw new Error('CreateGamePlan did not return a valid game plan');
@@ -687,7 +687,7 @@ function(
                             practiceScheduleResult.data.practiceSchedule.key = practiceScheduleResult.key;
                             practiceScheduleModel.fromJson(practiceScheduleResult.data.practiceSchedule);
 
-                            collection.add(practiceScheduleModel);
+                            collection.add(practiceScheduleModel, false);
                         }
                     }
                 }
@@ -768,7 +768,7 @@ function(
                     practiceScheduleModel.fromJson(results.data.practiceSchedule);
 
                     // update the context
-                    impakt.context.Planning.practiceSchedules.add(practiceScheduleModel);
+                    impakt.context.Planning.practiceSchedules.add(practiceScheduleModel, false);
 
                 } else {
                     throw new Error('CreatePracticeSchedule did not return a valid practiceSchedule');
@@ -897,7 +897,7 @@ function(
                             scoutCardResult.data.scoutCard.key = scoutCardResult.key;
                             scoutCardModel.fromJson(scoutCardResult.data.scoutCard);
 
-                            collection.add(scoutCardModel);
+                            collection.add(scoutCardModel, false);
                         }
                     }
                 }
@@ -978,7 +978,7 @@ function(
                     scoutCardModel.fromJson(results.data.scoutCard);
 
                     // update the context
-                    impakt.context.Planning.scoutCards.add(scoutCardModel);
+                    impakt.context.Planning.scoutCards.add(scoutCardModel, false);
 
                 } else {
                     throw new Error('CreateScoutCard did not return a valid scoutCard');
@@ -1107,7 +1107,7 @@ function(
                             QBWristbandResult.data.QBWristband.key = QBWristbandResult.key;
                             QBWristbandModel.fromJson(QBWristbandResult.data.QBWristband);
 
-                            collection.add(QBWristbandModel);
+                            collection.add(QBWristbandModel, false);
                         }
                     }
                 }
@@ -1188,7 +1188,7 @@ function(
                     QBWristbandModel.fromJson(results.data.QBWristband);
 
                     // update the context
-                    impakt.context.Planning.QBWristbands.add(QBWristbandModel);
+                    impakt.context.Planning.QBWristbands.add(QBWristbandModel, false);
 
                 } else {
                     throw new Error('CreateQBWristband did not return a valid QBWristband');
@@ -1362,27 +1362,27 @@ function(
     }
 
     this.toPracticePlanEditor = function(practicePlan: Planning.Models.PracticePlan): void {
-        impakt.context.Planning.editor.practicePlans.add(practicePlan);
+        impakt.context.Planning.editor.practicePlans.add(practicePlan, false);
         $state.transitionTo('planning.editor.practicePlan');
     }
 
     this.toGamePlanEditor = function(gamePlan: Planning.Models.GamePlan): void {
-        impakt.context.Planning.editor.gamePlans.add(gamePlan);
+        impakt.context.Planning.editor.gamePlans.add(gamePlan, false);
         $state.transitionTo('planning.editor');
     }
 
     this.toPracticeScheduleEditor = function(practiceSchedule: Planning.Models.PracticeSchedule): void {
-        impakt.context.Planning.editor.practiceSchedules.add(practiceSchedule);
+        impakt.context.Planning.editor.practiceSchedules.add(practiceSchedule, false);
         $state.transitionTo('planning.editor');
     }
 
     this.toScoutCardEditor = function(scoutCard: Planning.Models.ScoutCard): void {        
-        impakt.context.Planning.editor.scoutCards.add(scoutCard);
+        impakt.context.Planning.editor.scoutCards.add(scoutCard, false);
         $state.transitionTo('planning.editor');
     }
 
     this.toQBWristbandEditor = function(QBWristband: Planning.Models.QBWristband): void {
-        impakt.context.Planning.editor.QBWristbands.add(QBWristband);
+        impakt.context.Planning.editor.QBWristbands.add(QBWristband, false);
         $state.transitionTo('planning.editor');
     }
 

@@ -10,7 +10,7 @@ module Playbook.Models {
 
         public initialize(field: Common.Interfaces.IField): void {
 			super.initialize(field);
-			this.graphics.opacity = 0.35;
+			this.graphics.opacity = 1;
         }
     }
 }

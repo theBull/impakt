@@ -57,7 +57,7 @@ function(
                             seasonResult.data.model.key = seasonResult.key;
                             seasonModel.fromJson(seasonResult.data.model);
 
-                            collection.add(seasonModel);
+                            collection.add(seasonModel, false);
                         }
                     }
                 }
@@ -138,7 +138,7 @@ function(
                     seasonModel.fromJson(results.data.model);
 
                     // update the context
-                    impakt.context.Season.seasons.add(seasonModel);
+                    impakt.context.Season.seasons.add(seasonModel, false);
 
                 } else {
                     throw new Error('CreateSeason did not return a valid season model');
@@ -269,7 +269,7 @@ function(
                             gameResult.data.game.key = gameResult.key;
                             gameModel.fromJson(gameResult.data.game);
 
-                            collection.add(gameModel);
+                            collection.add(gameModel, false);
                         }
                     }
                 }
@@ -350,7 +350,7 @@ function(
                     gameModel.fromJson(results.data.game);
 
                     // update the context
-                    impakt.context.Season.games.add(gameModel);
+                    impakt.context.Season.games.add(gameModel, false);
 
                 } else {
                     throw new Error('CreateGame did not return a valid game');

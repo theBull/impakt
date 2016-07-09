@@ -25,10 +25,16 @@ module Common.Models {
 			switch (this.player.unitType) {
 				case Team.Enums.UnitTypes.Offense:
 					this.graphics.setOffsetXY(0, 0);
+					this.graphics.initializePlacement(
+						new Common.Models.Placement(0, 0, this.player)
+					);
 					this.graphics.circle();
 					break;
 				case Team.Enums.UnitTypes.Defense:
 					this.graphics.setOffsetXY(0, 0);
+					this.graphics.initializePlacement(
+						new Common.Models.Placement(0, 0, this.player)
+					);
 					this.graphics.triangle();
 					break;
 				case Team.Enums.UnitTypes.SpecialTeams:

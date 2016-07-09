@@ -22,6 +22,7 @@ module Common.Models {
 			this.playOpponentGuid = this.playOpponent.guid;
 			this.unitType = this.playPrimary.unitType;
 			this.editorType = Playbook.Enums.EditorTypes.Play;
+			this.name = '';
 
 			this.associable = [
                 'playbooks',

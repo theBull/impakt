@@ -4,21 +4,31 @@
 module Common.Interfaces {
 
 	export interface ICanvas {
-		paper: Common.Interfaces.IPaper;
-		container: HTMLElement; // HTML parent container
-		$container: any; // jquery
-		exportCanvas: HTMLCanvasElement; // HTML <canvas/> element for rendering
-		$exportCanvas: any; // jquery
+
+		field: Common.Interfaces.IField;
+		grid: Common.Interfaces.IGrid;
+		drawing: Common.Drawing.Utilities;
+		sizingMode: Common.Enums.CanvasSizingModes;
+		$container: any;
+		container: HTMLElement;
+		$exportCanvas: any;
+		exportCanvas: HTMLCanvasElement;
+		tab: Common.Models.Tab;
 		dimensions: Common.Models.Dimensions;
-		toolMode: Playbook.Enums.ToolModes;
-        tab: Common.Models.Tab;
-        scrollable: any;
-        scenario: Common.Models.Scenario;
-        listener: Common.Models.CanvasListener;
+		x: number;
+		y: number;
+		listener: Common.Models.CanvasListener;
+		readyCallbacks: Function[];
+		widthChangeInterval: any;
+		active: boolean;
+		editorType: Playbook.Enums.EditorTypes;
+        toolMode: Playbook.Enums.ToolModes;
+        state: Common.Enums.State;
 
 		exportToPng(): string;
 		setDimensions(): void;
 		clear(): void;
+		getWidth(): number;
+		getHeight(): number;
 	}
 }
-

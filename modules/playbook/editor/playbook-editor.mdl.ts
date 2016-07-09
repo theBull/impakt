@@ -7,7 +7,8 @@ impakt.playbook.editor = angular.module('impakt.playbook.editor',
 		'impakt.playbook.editor.tools',
 		'impakt.playbook.editor.mode',
 		'impakt.playbook.editor.canvas',
-		'impakt.playbook.editor.details'
+		'impakt.playbook.editor.details',
+		'impakt.playbook.editor.applicator'
 	])
 .config([
 	'$stateProvider',

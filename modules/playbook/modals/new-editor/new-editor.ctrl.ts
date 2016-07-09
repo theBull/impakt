@@ -4,12 +4,12 @@ impakt.playbook.modals.controller('playbook.modals.newEditor.ctrl',
 [
 '$scope', 
 '$uibModalInstance',
-'_playbookEditorTabs', 
+'_playbookEditor', 
 'data',
 function(
 	$scope: any, 
 	$uibModalInstance: any, 
-	_playbookEditorTabs: any, 
+	_playbookEditor: any, 
 	data: number
 ) {
 
@@ -50,11 +50,11 @@ function(
 
 	$scope.ok = function () {
 		if ($scope.selectedScenario)
-			_playbookEditorTabs.editScenario($scope.selectedScenario);
+			_playbookEditor.editScenario($scope.selectedScenario);
 		if($scope.selectedPlay)
-			_playbookEditorTabs.editPlay($scope.selectedPlay);
+			_playbookEditor.editPlay($scope.selectedPlay);
 		if ($scope.selectedFormation)
-			_playbookEditorTabs.editFormation($scope.selectedFormation);		
+			_playbookEditor.editFormation($scope.selectedFormation);		
 
 		$uibModalInstance.close();
 	}

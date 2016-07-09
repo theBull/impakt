@@ -47,14 +47,12 @@
 /// <reference path='./TemplateCollection.ts' />
 
 /// <reference path='./Input.ts' />
-/// <reference path='./Listener.ts' />
 
 /// <reference path='./Canvas.ts' />
 /// <reference path='./Drawing.ts' />
 /// <reference path='./Layer.ts' />
 /// <reference path='./LayerCollection.ts' />
 /// <reference path='./CanvasListener.ts' />
-/// <reference path='./Paper.ts' />
 /// <reference path='./Grid.ts' />
 /// <reference path='./Field.ts' />
 /// <reference path='./FieldElement.ts' />

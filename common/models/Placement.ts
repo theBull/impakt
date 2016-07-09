@@ -49,6 +49,14 @@ module Common.Models {
 			this.guid = json.guid;
 		}
 
+		public refresh(): void {
+			let refreshedCoordinates = this.relative.getCoordinates();
+			this.coordinates.update(
+				refreshedCoordinates.x, 
+				refreshedCoordinates.y
+			);
+		}
+
 		public setRelativeElement(relativeElement: Common.Interfaces.IFieldElement): void {
 			if (Common.Utilities.isNotNullOrUndefined(relativeElement)) {
 				this.relative.relativeElement = relativeElement;

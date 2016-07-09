@@ -4,7 +4,7 @@ module Common.Models {
     export abstract class Route 
     extends Common.Models.FieldElement {
 
-        public paper: Common.Interfaces.IPaper;
+        public canvas: Common.Interfaces.ICanvas;
         public grid: Common.Interfaces.IGrid;
         public nodes: Common.Models.LinkedList<Common.Interfaces.IRouteNode>;
         public field: Common.Interfaces.IField;
@@ -24,31 +24,18 @@ module Common.Models {
             this.unitType = Team.Enums.UnitTypes.Other;
         }
 
-        public setPlayer(player: Common.Interfaces.IPlayer): void {
-            this.player = player;
-            this.unitType = this.player.unitType;
-            this.initialize(this.player.field, this.player);
-            this.graphics.initializePlacement(this.player.graphics.placement);
-
-            if (this.player) {
-                this.nodes = new Common.Models.LinkedList<Common.Interfaces.IRouteNode>();
-
-                let self = this;
-                this.nodes.onModified(function() {
-                    self.setModified(true);
-                });
-            }
-
-            /**
-             * Add layer to Player layers
-             * @type {[type]}
-             */
-            this.layer.type = Common.Enums.LayerTypes.PlayerRoute;
-        }
-
         public abstract moveNodesByDelta(dx: number, dy: number);
         public abstract setContext(player: Common.Interfaces.IPlayer); 
         public abstract initializeCurve(coords: Common.Models.Coordinates, flip?: boolean);
+
+        public toJson(): any {
+            return {
+                nodes: this.nodes.toJson(),
+                type: this.type,
+                guid: this.guid,
+                unitType: this.unitType
+            };
+        }
 
         public fromJson(json: any): any {
             if (Common.Utilities.isNullOrUndefined(this.player))
@@ -103,13 +90,43 @@ module Common.Models {
             }
         }
 
-        public toJson(): any {
-            return {
-                nodes: this.nodes.toJson(),
-                type: this.type,
-                guid: this.guid,
-                unitType: this.unitType
-            };
+        public setPlayer(player: Common.Interfaces.IPlayer): void {
+            this.player = player;
+            this.unitType = this.player.unitType;
+            this.initialize(this.player.field, this.player);
+            this.graphics.initializePlacement(this.player.graphics.placement);
+
+            if (this.player) {
+                this.nodes = new Common.Models.LinkedList<Common.Interfaces.IRouteNode>();
+
+                let self = this;
+                this.nodes.onModified(function() {
+                    self.setModified(true);
+                });
+            }
+
+            /**
+             * Add layer to Player layers
+             * @type {[type]}
+             */
+            this.layer.type = Common.Enums.LayerTypes.PlayerRoute;
+
+            if(Common.Utilities.isNotNullOrUndefined(this.player) &&
+                Common.Utilities.isNotNullOrUndefined(this.player.assignment)) {
+                this.player.assignment.layer.addLayer(this.layer);
+            }
+        }
+
+        public setPlacement(placement: Common.Models.Placement): void {
+            this.nodes.forEach(function(node: Common.Interfaces.IRouteNode, index: number) {
+                node.setPlacement(placement);
+            });
+        }
+
+        public refresh(): void {
+            this.nodes.forEach(function(node: Common.Interfaces.IRouteNode, index: number) {
+                node.refresh();
+            });
         }
 
         public remove(): void {

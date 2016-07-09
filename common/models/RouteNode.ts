@@ -43,6 +43,7 @@ module Common.Models {
             this.graphics.dimensions.width = this.graphics.dimensions.radius * 2;
             this.graphics.dimensions.height = this.graphics.dimensions.radius * 2;
             this.layer.type = Common.Enums.LayerTypes.PlayerRouteNode;
+            this.route.layer.addLayer(this.layer);
         }
 
         public draw() {
@@ -73,6 +74,14 @@ module Common.Models {
             return this.type == Common.Enums.RouteNodeTypes.CurveControl ||
                 this.type == Common.Enums.RouteNodeTypes.CurveEnd ||
                 this.type == Common.Enums.RouteNodeTypes.CurveStart;
+        }
+
+        public setPlacement(placement: Common.Models.Placement): void {
+             this.graphics.initializePlacement(placement);   
+        }
+
+        public refresh(): void {
+            this.graphics.updatePlacement();
         }
 
         public setAction(action: Common.Enums.RouteNodeActions) {

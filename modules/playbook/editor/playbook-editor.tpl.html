@@ -5,17 +5,63 @@
 		ng-attr-src='templates.tabs'>
 	</ng-include>
 
-	<!-- canvas -->
-	<ng-include class='col'
-		ng-attr-src='templates.canvas'>
-	</ng-include>
+	<!-- <div class='col  pad'
+		ng-show='!hasOpenTabs'>
+		<div class='center'>
+			<div class='height6 textCenter'>
+				<div class='marginBottom1'>
+					Open a file to begin editing.
+				</div>
+				<h4 class='actionable' ng-click='toBrowser()'>
+					<span class='glyphicon glyphicon-folder-open'></span>
+					Browse files...
+				</h4>
+			</div>
+		</div>
+	</div> -->
+	
+	<div class='col positionRelative'>
+
+		<div class='row gray-bg-4'>
+
+			<!-- tools -->
+			<div class='shrink'>
+				<ng-include class='col shrink'
+					ng-attr-src='templates.tools'>
+				</ng-include>
+			</div>
+
+			<div class='col positionRelative'>
+
+				<!-- Data applicator -->
+				<ng-include 
+					ng-attr-src='templates.applicator' 
+					class='row dark-border gray-bg-1 shadow overflowVisible 	 
+					{{editorModeClass}} playbook-editor-info-container 
+					positionAbsolute zIndexTop shrinkY'>
+				</ng-include>
+
+				<!-- Canvas -->
+				<playbook-editor-canvas 
+					class='row scrollY scrollX playbook-editor-canvas'>
+				</playbook-editor-canvas>
+
+				<!-- Canvas Info -->
+				<ng-include class='height3'
+					ng-attr-src='templates.mode'>
+				</ng-include>
+			</div>			
+
+		</div>
+	
+	</div>
 
 </div>
 
 <!-- Details -->
 <expandable
 	direction='left'
-	collapsed='true'
+	collapsed='false'
 	url='modules/playbook/editor/details/playbook-editor-details.tpl.html'>
 
 </expandable>

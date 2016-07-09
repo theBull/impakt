@@ -19,7 +19,14 @@ function(
 
 	$scope.notifications.onModified(function(collection) {
 		$scope.notification = collection.getLast();
+
+		if(!$scope.$$phase)
+			$scope.$apply();
 	});
+
+	$scope.skip = function() {
+		$scope.visible = false;
+	}
 
 	__context.onInitializing(function() {
 		$scope.visible = true;

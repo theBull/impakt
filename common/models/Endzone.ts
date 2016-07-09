@@ -24,7 +24,7 @@ module Common.Models {
                     null
                 )
             );
-            this.graphics.dimensions.setWidth(this.paper.getWidth() - (2 * this.grid.getSize()));
+            this.graphics.dimensions.setWidth(this.canvas.getWidth() - (2 * this.grid.getSize()));
             this.graphics.dimensions.setHeight(10 * this.grid.getSize());
         }
 

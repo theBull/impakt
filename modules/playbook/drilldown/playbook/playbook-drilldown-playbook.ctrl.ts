@@ -18,6 +18,7 @@ function(
 	$scope.scenarios = impakt.context.Playbook.scenarios;
 	$scope.plays = impakt.context.Playbook.plays;
 	$scope.formations = impakt.context.Playbook.formations;
+	$scope.personnelCollection = impakt.context.Team.personnel;
 	$scope.assignmentGroups = impakt.context.Playbook.assignmentGroups;
 	
 
@@ -71,7 +72,15 @@ function(
 
 	$scope.alertDataRequired = function(dataType: string) {
 		if ($scope.formations.isEmpty()) {
-			alert("Please create a base formation in order to begin creating " + dataType + ".");
+			alert("Please create the required base data in order to begin creating " + dataType + ".");
+		}
+	}
+
+	// Navigates to the team module
+	$scope.toTeam = function() {
+		let response = confirm('You are about to navigate to the Team module. Continue?');
+		if (response) {
+			_playbook.toTeam();
 		}
 	}
 

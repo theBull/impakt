@@ -8,25 +8,17 @@ impakt.playbook.editor.tabs.controller('playbook.editor.tabs.ctrl',
 '$scope', 
 '_base', 
 '_playbookModals',
-'_playbookEditorTabs',
+'_playbookEditor',
 	function(
 		$scope: any,
 		_base: any, 
 		_playbookModals: any,
-		_playbookEditorTabs: any) {
+		_playbookEditor: any) {
 
-	this.component = new Common.Base.Component(
-		'playbook.editor.tabs.ctrl', 
-		Common.Base.ComponentType.Controller
-	);
-	function init(self) {
-		_playbookEditorTabs.component.loadDependency(self.component);
-	}
-
-	$scope.tabs = _playbookEditorTabs.tabs;
+	$scope.tabs = _playbookEditor.tabs;
 
 	$scope.getEditorTypeClass = function(editorType: any) {
-		return _playbookEditorTabs.getEditorTypeClass(parseInt(editorType));
+		return _playbookEditor.getEditorTypeClass(parseInt(editorType));
 	}
 
 	$scope.new = function() {
@@ -37,17 +29,15 @@ impakt.playbook.editor.tabs.controller('playbook.editor.tabs.ctrl',
 		let toClose = confirm('Are you sure you want to close?');
 		
 		if(toClose)
-			_playbookEditorTabs.close(tab);
+			_playbookEditor.closeTab(tab);
 	}
 
 	$scope.activate = function(tab: Common.Models.Tab) {
-		_playbookEditorTabs.activate(tab, true);
+		_playbookEditor.activateTab(tab, true);
 	}
 
 	$scope.toBrowser = function() {
-		_playbookEditorTabs.toBrowser();
+		_playbookEditor.toBrowser();
 	}
-
-	init(this);
 
 }]);

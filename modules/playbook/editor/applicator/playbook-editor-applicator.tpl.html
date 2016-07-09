@@ -1,0 +1,142 @@
+<div class='col overflowVisible gray-bg-4' ng-controller='playbook.editor.applicator.ctrl'>
+	
+	<div class='pad textCenter font-gray' ng-show='!scenario'>
+		<em>
+			No data to display.
+		</em>
+	</div>
+
+	<table class='overflowVisible width100Percent'>
+		<thead>
+			<tr class='fontSize8'>
+				<th ng-if='isNameVisible()'>Play</th>
+				<th ng-if='isUnitTypeVisible()'>Unit</th>
+				<th ng-if='isFormationVisible()'>Formation</th>
+				<th ng-if='isPersonnelVisible()'>Personnel</th>
+				<th ng-if='isAssignmentGroupsVisible()'>Assignments</th>
+			</tr>
+		</thead>
+		<tbody>
+
+			<tr class='playbook-editor-play-info overflowVisible'
+				ng-if='isOpponentBarVisible()'>
+
+				<td ng-if='isNameVisible()'>
+					<div class='pad05 font-gray'>
+						<strong>{{scenario.playOpponent.name}}</strong>
+					</div>
+				</td>
+				<td ng-if='isUnitTypeVisible()'>
+					<div class='pad05 font-gray'>
+						<type-formatter
+							value='scenario.playOpponent.unitType'
+							type='Team.Enums.UnitTypes'>
+						</type-formatter>
+					</div>
+				</td>
+				<td ng-if='isFormationVisible()'>
+					<!-- Formation dropdown -->
+					<popout
+						collapsed='true'
+						direction='down'
+						root='scenario.playOpponent.formation'
+						label='scenario.playOpponent.formation.name'
+						collection='formations'
+						select='applyFormation'
+						type='Playbook.Enums.PlayTypes.Opponent'
+						filter-by='unitType'
+						filter-value='scenario.playOpponent.unitType'>
+					</popout>
+				</td>
+				<td ng-if='isPersonnelVisible()'>
+					<!-- Personnel dropdown -->
+					<popout
+						collapsed='true'
+						direction='down'
+						root='scenario.playOpponent.personnel'
+						label='scenario.playOpponent.personnel.name'
+						collection='personnelCollection'
+						select='applyPersonnel'
+						type='Playbook.Enums.PlayTypes.Opponent'
+						filter-by='unitType'
+						filter-value='scenario.playOpponent.unitType'>
+					</popout>
+				</td>
+				<td ng-if='isAssignmentGroupsVisible()'>
+					<!-- Assignments dropdown -->
+					<popout
+						collapsed='true'
+						direction='down'
+						root='scenario.playOpponent.assignmentGroup'
+						label='scenario.playOpponent.assignmentGroup.name'
+						collection='assignmentGroups'
+						select='applyAssignmentGroup'
+						type='Playbook.Enums.PlayTypes.Opponent'
+						filter-by='unitType'
+						filter-value='scenario.playOpponent.unitType'>
+					</popout>
+				</td>
+			</tr>
+
+			<!-- PRIMARY PLAY -->
+			<tr class='playbook-editor-play-info overflowVisible'>
+				<td ng-if='isNameVisible()'>
+					<div class='pad05 font-gray'>
+						<strong>{{scenario.playPrimary.name}}</strong>
+					</div>
+				</td>
+				<td ng-if='isUnitTypeVisible()'>
+					<div class='pad05 font-gray'>
+						<type-formatter
+							value='scenario.playPrimary.unitType'
+							type='Team.Enums.UnitTypes'>
+						</type-formatter>
+					</div>
+				</td>
+				<td ng-if='isFormationVisible()'>
+					<!-- Formation dropdown -->
+					<popout
+						collapsed='true'
+						direction='down'
+						root='scenario.playPrimary.formation'
+						label='scenario.playPrimary.formation.name'
+						collection='formations'
+						select='applyFormation'
+						type='Playbook.Enums.PlayTypes.Primary'
+						filter-by='unitType'
+						filter-value='scenario.playPrimary.unitType'>
+					</popout>
+				</td>
+				<td ng-if='isPersonnelVisible()'>
+					<!-- Personnel dropdown -->
+					<popout
+						collapsed='true'
+						direction='down'
+						root='scenario.playPrimary.personnel'
+						label='scenario.playPrimary.personnel.name'
+						collection='personnelCollection'
+						select='applyPersonnel'
+						type='Playbook.Enums.PlayTypes.Primary'
+						filter-by='unitType'
+						filter-value='scenario.playPrimary.unitType'>
+					</popout>
+				</td>
+				<td ng-if='isAssignmentGroupsVisible()'>
+					<!-- Assignments dropdown -->
+					<popout
+						collapsed='true'
+						direction='down'
+						root='scenario.playPrimary.assignmentGroup'
+						label='scenario.playPrimary.assignmentGroup.name'
+						collection='assignmentGroups'
+						select='applyAssignmentGroup'
+						type='Playbook.Enums.PlayTypes.Primary'
+						filter-by='unitType'
+						filter-value='scenario.playPrimary.unitType'>
+					</popout>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+
+</div>

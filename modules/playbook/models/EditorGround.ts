@@ -46,7 +46,7 @@ module Playbook.Models {
         public click(e: any): void {
             let coords = this.getClickCoordinates(e.offsetX, e.offsetY);
             console.log('ground clicked', coords);
-            let toolMode = this.paper.canvas.toolMode;
+            let toolMode = this.canvas.toolMode;
             
             switch (toolMode) {
                 case Playbook.Enums.ToolModes.Select:

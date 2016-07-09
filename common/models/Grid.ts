@@ -4,7 +4,7 @@ module Common.Models {
 	export class Grid
 	implements Common.Interfaces.IGrid {
 
-		public paper: Common.Interfaces.IPaper;
+		public canvas: Common.Interfaces.ICanvas;
 		public cols: number;
 		public rows: number;
 		public dimensions: Common.Models.Dimensions;
@@ -19,18 +19,18 @@ module Common.Models {
 		public snapping: boolean;
 
 		constructor(
-			paper: Common.Interfaces.IPaper, 
+			canvas: Common.Interfaces.ICanvas, 
 			cols: number, 
 			rows: number
 		) {
-			this.paper = paper;
+			this.canvas = canvas;
 			this.cols = cols;
 			this.rows = rows;
 			this.dimensions = new Common.Models.Dimensions();
 			this.dimensions.offset.x = 0;
 
 			// sets this.width and this.height
-			this.size = this.resize(this.paper.sizingMode); 
+			this.size = this.resize(this.canvas.sizingMode); 
 			
 			this.base = Playbook.Constants.GRID_BASE;
 			this.divisor = 2; // TODO @theBull document this
@@ -68,7 +68,7 @@ module Common.Models {
 
 			var cols = this.cols;
 			var rows = this.rows;
-			//var font = this.paper.getFont('Arial');
+			//var font = this.canvas.getFont('Arial');
 
 			for(var c = 1; c <= cols; c++) {
 				var colX = c * this.size;
@@ -79,7 +79,7 @@ module Common.Models {
 					rows * this.size
 				]);
 
-				var p = this.paper.drawing.path(pathStr).attr({
+				var p = this.canvas.drawing.path(pathStr).attr({
 					'stroke-dasharray': this.dashArray,
 					'stroke-opacity': this.verticalStrokeOpacity,
 					'stroke-width': this.strokeWidth,
@@ -104,28 +104,28 @@ module Common.Models {
 							value = value - ((value - 50) * 2);
 
 						let str = value.toString();
-						// let lineNumbersLeft = this.paper.print(
+						// let lineNumbersLeft = this.canvas.print(
 						// 	2,
 						// 	r,
 						// 	str,
 						// 	font,
 						// 	30
 						// );.transform('r-90');
-						let lineNumbersLeft = this.paper.drawing.text(
+						let lineNumbersLeft = this.canvas.drawing.text(
 							2,
 							r,
 							str,
 							false
 						).transform('r-90').attr({ 'class': 'no-highlight' });	
 
-						// let lineNumbersRight = this.paper.print(
+						// let lineNumbersRight = this.canvas.print(
 						// 	50, 
 						// 	r, 
 						// 	str, 
 						// 	font, 
 						// 	30
 						// ).transform('r90');
-						let lineNumbersRight = this.paper.drawing.text(
+						let lineNumbersRight = this.canvas.drawing.text(
 							50,
 							r,
 							str,
@@ -134,14 +134,14 @@ module Common.Models {
 					}
 					
 					opacity = 1;
-					this.paper.drawing.path(pathStr).attr({
+					this.canvas.drawing.path(pathStr).attr({
 						'stroke-opacity': this.horizontalStrokeOpacity,
 						'stroke-width': 3,
 						'stroke': '#ffffff',
 						'class': 'pointer-events-none'
 					});
 				} else {
-					this.paper.drawing.path(pathStr).attr({
+					this.canvas.drawing.path(pathStr).attr({
 						'stroke-dasharray': this.dashArray,
 						'stroke-opacity': this.horizontalStrokeOpacity,
 						'stroke-width': this.strokeWidth,
@@ -158,24 +158,24 @@ module Common.Models {
 		 * recalculates the width and height of the grid 
 		 * with the context width and height
 		 */
-		public resize(sizingMode: Common.Enums.PaperSizingModes): number {
+		public resize(sizingMode: Common.Enums.CanvasSizingModes): number {
 			if(this.cols <= 0)
 				throw new Error('Grid cols must be defined and greater than 0');
 
-			let canvasWidth = this.paper.canvas.dimensions.width;
+			let canvasWidth = this.canvas.dimensions.width;
 
 			if (canvasWidth == 0)
 				throw new Error('Grid canvas width must be greater than 0');
 
-			switch(this.paper.sizingMode) {
-				case Common.Enums.PaperSizingModes.TargetGridWidth:					
+			switch(this.canvas.sizingMode) {
+				case Common.Enums.CanvasSizingModes.TargetGridWidth:					
 					this.size = Playbook.Constants.GRID_SIZE;
 					break;
-				case Common.Enums.PaperSizingModes.MaxCanvasWidth:
-					this.size = Math.floor(this.paper.canvas.dimensions.width / this.cols);
+				case Common.Enums.CanvasSizingModes.MaxContainerWidth:
+					this.size = Math.floor(this.canvas.dimensions.width / this.cols);
 					break;
-				case Common.Enums.PaperSizingModes.PreviewWidth:
-					this.size = this.paper.canvas.dimensions.width / this.cols // don't round
+				case Common.Enums.CanvasSizingModes.PreviewWidth:
+					this.size = this.canvas.dimensions.width / this.cols // don't round
 					break;
 			}
 
@@ -224,8 +224,8 @@ module Common.Models {
 
 
 		public getCursorOffset(offsetX: number, offsetY: number): Common.Models.Coordinates {
-			let canvasOffsetX = offsetX + this.paper.x - this.getSize(); // -1 for left sideline offset
-			let canvasOffsetY = offsetY + this.paper.y - (10 * this.getSize()); // -10 to account for endzones
+			let canvasOffsetX = offsetX + this.canvas.x - this.getSize(); // -1 for left sideline offset
+			let canvasOffsetY = offsetY + this.canvas.y - (10 * this.getSize()); // -10 to account for endzones
 			return new Common.Models.Coordinates(canvasOffsetX, canvasOffsetY);
 		}
 		public getCursorPositionAbsolute(offsetX: number, offsetY: number): Common.Models.Coordinates {
@@ -298,7 +298,7 @@ module Common.Models {
 		 * @return {Playbook.Models.Coordinate}		the matching grid pixels as coords
 		 */
 		public getCoordinatesFromAbsolute(x: number, y: number): Common.Models.Coordinates {
-			// TODO: add in paper scroll offset
+			// TODO: add in canvas scroll offset
 			let coordX = Math.round((x / this.size) * this.divisor) / this.divisor;
 			let coordY = Math.round((y / this.size) * this.divisor) / this.divisor;
 

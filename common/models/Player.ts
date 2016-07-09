@@ -57,22 +57,20 @@ module Common.Models {
 			this.graphics.dimensions.setWidth(this.grid.getSize());
 			this.graphics.dimensions.setHeight(this.grid.getSize());
 
+			this.layer.addLayer(this.assignment.layer);
+
 			let self = this;
-			this.onModified(function() {
-				self.field.primaryPlayers.setModified(true);
-			});
 			this.layer.onModified(function() {
 				self.setModified(true);
 			});
+
+			this.field.layer.addLayer(this.layer);
 		}
 
 		public flip(): void {
 			this.layer.flip();
-			if (Common.Utilities.isNotNullOrUndefined(this.assignment) &&
-				Common.Utilities.isNotNullOrUndefined(this.assignment.routes)) {
-				this.assignment.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
-					route.flip();
-				});
+			if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+				this.assignment.flip();
 			}
 			this.flipped = !this.flipped;
 		}
@@ -81,42 +79,10 @@ module Common.Models {
 			this.layer.remove();
 		}
 
-		public drawRoute(): void {
-			// Draw the player's assignment
-			if (Common.Utilities.isNotNullOrUndefined(this.assignment)) {
-				if (this.assignment.routes.hasElements()) {
-					this.assignment.routes.forEach(
-						function(route: Common.Interfaces.IRoute, index: number) {
-							route.draw();
-						});
-				}
-			}
-		}
-
-		public moveAssignmentByDelta(dx: number, dy: number): void {
-			if (this.assignment) {
-				// TODO: implement route switching
-				this.assignment.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
-					if (Common.Utilities.isNotNullOrUndefined(route)) {
-						route.layer.moveByDelta(dx, dy);
-					}
-				});
-			}
-		}
-
-
-		public dropAssignment(): void {
-			if (this.assignment) {
-				// TODO: implement route switching
-				this.assignment.routes.forEach(function(route: Common.Interfaces.IRoute, index: number) {
-					if (Common.Utilities.isNotNullOrUndefined(route)) {
-						if (route.dragInitialized) {
-							route.dragInitialized = false;
-						}
-						route.drop();
-						route.draw();
-					}
-				});
+		public drop(): void {
+			super.drop();
+			if(Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+				this.assignment.drop();
 			}
 		}
 
@@ -141,8 +107,12 @@ module Common.Models {
 			return this.assignment;
 		}
 		public setAssignment(assignment: Common.Models.Assignment): void {
+			if(Common.Utilities.isNotNullOrUndefined(this.assignment)) {
+				this.layer.removeLayer(this.assignment.layer);
+			}
+
 			this.assignment = assignment;
-			this.setModified(true);
+			this.layer.addLayer(this.assignment.layer);
 		}
 
 		/**
@@ -173,8 +143,10 @@ module Common.Models {
 			return this.graphics.placement;
 		}
 		public setPlacement(placement: Common.Models.Placement): void {
-			this.graphics.placement.update(placement);
+			this.graphics.initializePlacement(placement);
+			this.assignment.refresh();
 			this.setModified(true);
 		}
+
 	}
 }

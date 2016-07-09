@@ -83,12 +83,10 @@ module Playbook.Models {
 
             this.field.primaryPlayers.forEach(function(player: Common.Interfaces.IPlayer, index: number) {
                 player.layer.moveByDelta(0, dy);
-                player.moveAssignmentByDelta(0, dy);
             });
 
             this.field.opponentPlayers.forEach(function(player: Common.Interfaces.IPlayer, index: number) {
                 player.layer.moveByDelta(0, dy);
-                player.moveAssignmentByDelta(0, dy);
             });
 
             this.setModified(true);
@@ -106,12 +104,10 @@ module Playbook.Models {
 
                 this.field.primaryPlayers.forEach(function(player: Common.Interfaces.IPlayer, index: number) {
                     player.drop();
-                    player.dropAssignment();
                 });
 
                 this.field.opponentPlayers.forEach(function(player: Common.Interfaces.IPlayer, index: number) {
                     player.drop();
-                    player.dropAssignment();
                 });
 
                 this.dragging = false;

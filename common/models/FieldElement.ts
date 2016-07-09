@@ -10,7 +10,6 @@ module Common.Models {
 		public field: Common.Interfaces.IField;
 		public ball: Common.Interfaces.IBall;
 		public canvas: Common.Interfaces.ICanvas;
-		public paper: Common.Interfaces.IPaper;
 		public grid: Common.Interfaces.IGrid;
 		public layer: Common.Models.Layer;
 		public relativeElement: Common.Interfaces.IFieldElement;
@@ -20,7 +19,6 @@ module Common.Models {
 
 		constructor() { 
 			super(Common.Enums.ImpaktDataTypes.Unknown);
-			super.setContext(this);
 			this.contextmenuTemplateUrl = Common.Constants.DEFAULT_CONTEXTMENU_TEMPLATE_URL;
 		}
 
@@ -31,10 +29,9 @@ module Common.Models {
 			this.field = field;
 			this.ball = this.field.ball;
 			this.relativeElement = relativeElement;
-			this.paper = this.field.paper;
-			this.canvas = this.paper.canvas;
-			this.grid = this.paper.grid;
-			this.graphics = new Common.Models.Graphics(this.paper);
+			this.canvas = this.field.canvas;
+			this.grid = this.canvas.grid;
+			this.graphics = new Common.Models.Graphics(this.canvas);
 			this.layer = new Common.Models.Layer(this, Common.Enums.LayerTypes.FieldElement);
 
 			this._originalScreenPositionX = null;

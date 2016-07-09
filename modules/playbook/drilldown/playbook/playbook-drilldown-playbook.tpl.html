@@ -45,7 +45,7 @@
 	<!-- PLAYS -->
 	<div class='marginBottom1 light-border-bottom'>
 		<h4>Plays ({{plays.size()}})</h4>
-		<div ng-show='formations.hasElements()'>
+		<div ng-show='formations.hasElements() && personnelCollection.hasElements()'>
 			<div class='pad green-bg-hover pointer marginBottom1 width6'
 				 ng-click='createPlay()'>
 				<span class='glyphicon glyphicon-plus'></span>
@@ -63,6 +63,19 @@
 			<div class='pad'>
 				<span class='glyphicon glyphicon-warning-sign'></span>
 				<span>Create a base formation to begin creating plays</span>
+			</div>
+		</div>
+		<div ng-show='personnelCollection.isEmpty()'>
+			<div class='pad gray-bg-3-hover pointer marginBottom1 width6' 
+				ng-click='alertDataRequired("personnel")'>
+				<strike>
+					<span class='glyphicon glyphicon-plus'></span>
+					new
+				</strike>
+			</div>
+			<div class='pad'>
+				<span class='glyphicon glyphicon-warning-sign'></span>
+				<span><a class='actionable' ng-click='toTeam()'>Create a base personnel group</a> to begin creating plays.</span>
 			</div>
 		</div>
 

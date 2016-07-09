@@ -17,8 +17,6 @@ module Common.Interfaces {
 		unitType: Team.Enums.UnitTypes;
 
 		flip(): void;
-		moveAssignmentByDelta(dx: number, dy: number): void;
-		dropAssignment(): void;
 	}
 
 }

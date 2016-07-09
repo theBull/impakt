@@ -34,7 +34,7 @@ module Common.Models {
             let hashmarkWidth = this.grid.getSize() / 2;
 
             for (let i = this.start; i < this.yards; i++) {
-                let hashmark = this.paper.drawing.rect(
+                let hashmark = this.canvas.drawing.rect(
                     this.graphics.placement.coordinates.x,
                     i,
                     hashmarkWidth,

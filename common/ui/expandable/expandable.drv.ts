@@ -57,7 +57,7 @@ impakt.common.ui.controller('expandable.ctrl', [
 				transclude: true,
 				replace: true,
 				require: '^expandable',
-				template: "<div class='width3 pad {{expandable.handle.position}} \
+				template: "<div class='width3 height3 pad {{expandable.handle.position}} \
 			gray-bg-3-hover pointer font- white'\
 			ng-click='expandable.toggle()'>\
 				<div class='glyphicon {{expandable.handle.class}}'></div>\

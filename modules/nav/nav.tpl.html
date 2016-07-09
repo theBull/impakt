@@ -1,8 +1,8 @@
-<div class='col dark-bg '>	
+<div class='col'>	
 	<div class='row'>
 		<nav class='col width6 positionRelative gray-bg-2' 
 			id='impakt-navigator-nav'>
-			<ul>
+			<ul class='col'>
 
 				<!-- Search -->
 				<li class='width6 height5 padTop1 padBottom1 pointer gray-border-bottom'
@@ -53,9 +53,11 @@
 					</div>
 					<!-- {{ menuItem.label }} -->
 				</li>
+
+				<div class='col gray-bg-2'></div>
 			</ul>
 			
-			<div class='bottom0 left0 pad width6 textCenter gray-bg-2-hover pointer'>
+			<div class='pad width6 textCenter gray-bg-2-hover pointer'>
 				<a href='http://impaktathletics.com/' target='_blank'>
 					<div>
 						<img src='images/impakt_logo.png' />
@@ -71,6 +73,7 @@
 		</div>
 
 		<!-- Navigator search container -->
-		<div ng-include='"modules/search/search.tpl.html"'></div>
+        <div ng-include='"modules/search/search.tpl.html"'></div>
 	</div>
+    <div style="font-size: xx-small">{{appVer}}</div>
 </div>

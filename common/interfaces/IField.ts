@@ -2,9 +2,9 @@
 
 module Common.Interfaces {
 	export interface IField
-	extends Common.Interfaces.IModifiable {
+	extends Common.Interfaces.IActionable {
 
-		paper: Common.Interfaces.IPaper;
+		canvas: Common.Interfaces.ICanvas;
 		grid: Common.Interfaces.IGrid;
 		scenario: Common.Models.Scenario;
 		ball: Common.Interfaces.IBall;
@@ -20,14 +20,14 @@ module Common.Interfaces {
         hashmark_right: Common.Interfaces.IHashmark;
         hashmark_sideline_left: Common.Interfaces.IHashmark;
         hashmark_sideline_right: Common.Interfaces.IHashmark;
-        selected: Common.Interfaces.ICollection<Common.Interfaces.IFieldElement>;
+        selectedElements: Common.Interfaces.ICollection<Common.Interfaces.IFieldElement>;
 		cursorCoordinates: Common.Models.Coordinates;
-		editorType: Playbook.Enums.EditorTypes;
+		layer: Common.Models.Layer;
+		state: Common.Enums.State;
 		
 		initialize(): void;
 		draw(): void;
 		drawScenario(): void;
-		registerLayer(layer: Common.Models.Layer);
 		addPrimaryPlayer(
 			placement: Common.Models.Placement,
 			position: Team.Models.Position,

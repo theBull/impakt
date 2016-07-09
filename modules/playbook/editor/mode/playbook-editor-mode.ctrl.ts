@@ -11,10 +11,10 @@ function(
 
 	$scope.canvas = _playbookEditor.canvas;
 
-	$scope.canvas.onready(function() {
-		$scope.cursorCoordinates = $scope.canvas.paper.field.cursorCoordinates;
+	$scope.canvas.setListener('onready', function() {
+		$scope.cursorCoordinates = $scope.canvas.field.cursorCoordinates;
 
-		$scope.canvas.paper.field.onModified(function(field: Common.Interfaces.IField) {
+		$scope.canvas.field.onModified(function(field: Common.Interfaces.IField) {
 			$scope.cursorCoordinates.x = field.cursorCoordinates.x;
 			$scope.cursorCoordinates.y = field.cursorCoordinates.y;
 

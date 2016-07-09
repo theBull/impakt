@@ -24,6 +24,9 @@ module Common.Models {
 		}
 
 		public draw(): void {
+			this.graphics.initializePlacement(
+				new Common.Models.Placement(0, 0, this.player)
+			);
 			this.graphics.text(this.player.position.label);
 			this.graphics.setAttribute('class', 'no-highlight');
 		}

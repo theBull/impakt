@@ -85,7 +85,7 @@ module Playbook.Models {
         }
 
         public contextmenu(e: any) {
-            this.paper.canvas.listener.invoke(
+            this.canvas.listener.invoke(
                 Playbook.Enums.Actions.RouteNodeContextmenu, 
                 new Common.Models.ContextmenuData(this, e.pageX, e.pageY)
             );

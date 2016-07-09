@@ -5,6 +5,7 @@ impakt.common.ui.controller('playPreview.ctrl', [
 
 	$scope.previewCanvas;
 	$scope.play;
+	$scope.scenario;
 	$scope.$element;
 	$scope.isModified = true;
 	$scope.modificationTimer;
@@ -22,11 +23,11 @@ impakt.common.ui.controller('playPreview.ctrl', [
 		}
 		
 		$scope.$element.find('svg').show();
-		$scope.previewCanvas.refresh();
+		$scope.previewCanvas.field.updateScenario($scope.scenario);
 		$scope.play.png = $scope.previewCanvas.exportToPng();
 		$scope.isModified = false;
 
-		let scrollTop = $scope.previewCanvas.paper.field.getLOSAbsolute() - ($scope.$element.height() / 2);
+		let scrollTop = $scope.previewCanvas.field.getLOSAbsolute() - ($scope.$element.height() / 2);
 		$scope.$element.scrollTop(scrollTop);
 
 		if ($scope.modificationTimer)
@@ -64,10 +65,7 @@ function(
 						//let associations = _associations.getAssociated($scope.play);
 						//$scope.play.assignmentGroup = associations.assignmentGroups.first();
 
-						let scenario = new Common.Models.Scenario();
-						scenario.setPlayPrimary($scope.play);
-						scenario.setPlayOpponent(null);
-						$scope.previewCanvas = new Playbook.Models.PreviewCanvas(scenario);
+						$scope.previewCanvas = new Playbook.Models.PreviewCanvas();
 					} else {
 						// if there's no play at this point, there's a problem
 						throw new Error('play-preview link(): Unable to find play');
@@ -93,13 +91,18 @@ function(
 					 */
 					$timeout(function() {
 						if($scope.previewCanvas) {
-							$scope.previewCanvas.onready(function() {
-								let scrollTop = $scope.previewCanvas.paper.field.getLOSAbsolute()
+							$scope.previewCanvas.setListener('onready', function() {
+								let scrollTop = $scope.previewCanvas.field.getLOSAbsolute()
 									- ($scope.$element.height() / 2);
 								$scope.$element.scrollTop(scrollTop);
 							});
 
 							$scope.previewCanvas.initialize($element);
+							$scope.scenario = new Common.Models.Scenario();
+							$scope.scenario.setPlayPrimary($scope.play);
+							$scope.scenario.setPlayOpponent(null);
+							$scope.previewCanvas.field.updateScenario($scope.scenario);
+							
 							$scope.play.png = $scope.previewCanvas.exportToPng();
 						}						
 					}, 0);

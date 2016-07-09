@@ -1,16 +1,43 @@
 ///<reference path='./playbook-editor-canvas.mdl.ts' />
 
-declare var impakt: any;
+impakt.playbook.editor.canvas.controller('playbook.editor.canvas.ctrl', [
+'$scope',
+'$timeout',
+'_playbookEditor',
+function(
+	$scope: any,
+	$timeout: any,
+	_playbookEditor: any
+) {
 
-// TODO - needed?
-impakt.playbook.editor.canvas.directive('playbookEditorCanvas', 
+	$scope.tab = _playbookEditor.getActiveTab();
+	$scope.tabs = _playbookEditor.tabs;
+	$scope.hasOpenTabs = _playbookEditor.hasTabs();
+
+	// check if there are any open tabs; if not, hide the canvas and
+	// clear the canvas data.
+	if(Common.Utilities.isNotNullOrUndefined($scope.tab)) {
+		$scope.tab.onclose(function() {
+			$scope.hasOpenTabs = _playbookEditor.hasTabs();
+		});
+
+	}
+
+	if(Common.Utilities.isNotNullOrUndefined($scope.tabs)) {
+		$scope.tabs.onModified(function(tabs: Common.Models.TabCollection) {
+			$scope.hasOpenTabs = tabs.hasElements();
+		});
+	}
+
+}])
+.directive('playbookEditorCanvas', 
 	['$rootScope', 
 	'$compile', 
 	'$templateCache',
 	'$timeout',
 	'_contextmenu',
 	'_playPreview',
-	'_playbookEditorCanvas', 
+	'_playbookEditor', 
 	'_scrollable',
 	function(
 		$rootScope: any, 
@@ -19,17 +46,23 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas',
 		$timeout: any,
 		_contextmenu: any,
 		_playPreview: any,
-		_playbookEditorCanvas: any,
+		_playbookEditor: any,
 		_scrollable: any
 	) {
 	console.debug('directive: impakt.playbook.editor.canvas - register');
 	
 	return {
 		restrict: 'E',
+		controller: '',
 		link: function($scope: any, $element: any, attrs: any) {
 			console.debug('directive: impakt.playbook.editor.canvas - link');
 
-			$scope.canvas = _playbookEditorCanvas.getCanvas();
+			let component = new Common.Base.Component(
+				'playbookEditorCanvas', 
+				Common.Base.ComponentType.Directive
+			);
+
+			$scope.canvas = _playbookEditor.canvas;
 
 			// $timeout NOTE:
 			// wrapping this step in a timeout due to a DOM rendering race.
@@ -42,20 +75,16 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas',
 			$timeout(function() {
 				if ($scope.canvas) {
 
-					$scope.canvas.onready(function() {
-						let scrollTop = $scope.canvas.paper.field.getLOSAbsolute()
+					$scope.canvas.setListener('onready', function() {
+
+						// Scroll the viewport to be centered over the LOS
+						let scrollTop = $scope.canvas.field.getLOSAbsolute()
 							- ($element.height() / 2);
 						$element.scrollTop(scrollTop);
-					
-						if(Common.Utilities.isNotNullOrUndefined($scope.canvas.paper) &&
-							Common.Utilities.isNotNullOrUndefined($scope.canvas.paper.field) &&
-							Common.Utilities.isNotNullOrUndefined($scope.canvas.paper.field.los)) {
-							$scope.canvas.paper.field.los.onModified(function() {
-								let scrollTop = $scope.canvas.paper.field.getLOSAbsolute()
-									- ($element.height() / 2);
-								$element.scrollTop(scrollTop);			
-							});
-						}
+
+						// Load up the scenario into the canvas
+						_playbookEditor.refreshScenario();
+
 					});
 
 					$scope.canvas.initialize($element);
@@ -68,49 +97,10 @@ impakt.playbook.editor.canvas.directive('playbookEditorCanvas',
 						}
 					);
 
-					/**
-					 *
-					 *	DEPRECATED
-					 * 
-					 */
-					// canvas.setScrollable(_scrollable);
-
-					// _scrollable.onready(function(content) {
-					// 	_scrollable.scrollToPercentY(0.5);
-					// 	_playPreview.setViewBox(
-					// 		canvas.paper.x,
-					// 		canvas.paper.y,
-					// 		canvas.dimensions.width, 
-					// 		canvas.dimensions.height
-					// 	);
-					// });
-
-					// _scrollable.initialize(
-					// 	$element,
-					// 	canvas.paper
-					// );
-					/**
-					 *
-					 *  DEPRECATED
-					 * 
-					 */
 				}
 			}, 0);
 
-			$(document).on('keydown', function(e: any) {
-				//console.log(e.which);
-				if(e.which == 8) { // backspace
-					console.log('backspace pressed - playbook-editor-canvas.drv.ts');
-				}
-				if(e.which == 82) { // R
-					console.log('R pressed - playbook-editor-canvas.drv.ts');
-				}
-				if(e.which == 65) { // A
-					console.log('A pressed - playbook-editor-canvas.drv.ts');
-					// find selected player
-				}
-			});
-
+			_playbookEditor.component.loadDependency(component);
 		}
 	}
 

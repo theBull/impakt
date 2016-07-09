@@ -46,7 +46,7 @@ module Common.Models {
             return $.extend({
                 graphics: this.hasGraphics() ? this.graphics.toJson() : null,
                 disabled: this.disabled,
-                selected: this.selected,
+                selected: false,
                 clickable: this.clickable,
                 hoverable: this.hoverable,
                 hovered: this.hovered,

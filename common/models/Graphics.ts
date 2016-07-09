@@ -5,7 +5,7 @@ module Common.Models {
     extends Common.Models.Modifiable
     implements Common.Interfaces.IDrawable {
 
-        public paper: Common.Interfaces.IPaper;
+        public canvas: Common.Interfaces.ICanvas;
         public grid: Common.Interfaces.IGrid;
         public raphael: any;
         public placement: Common.Models.Placement;
@@ -56,12 +56,12 @@ module Common.Models {
         public hoverOpacity: number;
         public hoverFillOpacity: number;
 
-        constructor(paper: Common.Interfaces.IPaper) {
+        constructor(canvas: Common.Interfaces.ICanvas) {
             super();
             super.setContext(this);
 
-            this.paper = paper;
-            this.grid = paper.grid;
+            this.canvas = canvas;
+            this.grid = canvas.grid;
             this.placement = null; // new Common.Models.Placement(0, 0);
             this.location = new Common.Models.Location(0, 0);
             this.dimensions = new Common.Models.Dimensions();
@@ -97,7 +97,7 @@ module Common.Models {
             this.hoverOpacity = 0.4;
             this.hoverFillOpacity = 0.4;
 
-            this.font = this.paper.drawing.getFont('Arial');
+            this.font = this.canvas.drawing.getFont('Arial');
             this.drawingHandler = new Common.Models.DrawingHandler(this);
             this.set = new Common.Models.GraphicsSet(this);
             this.snapping = true;
@@ -470,6 +470,14 @@ module Common.Models {
             this.refresh();
         }
 
+        public updatePlacement(): void {
+            this.placement.refresh();
+            this.updateFromCoordinates(
+                this.placement.coordinates.x, 
+                this.placement.coordinates.y
+            );
+        }
+
         public updateFromAbsolute(ax: number, ay: number): void {
             this.placement.updateFromAbsolute(ax, ay);
             this.location.updateFromAbsolute(ax, ay);
@@ -497,14 +505,14 @@ module Common.Models {
          */
         public path(path: string): Common.Models.Graphics {
             this.remove();
-            this.raphael = this.paper.drawing.path(path);
+            this.raphael = this.canvas.drawing.path(path);
             this.refresh();
             return this;
         }
 
         public rect(): Common.Models.Graphics {
             this.remove();
-            this.raphael = this.paper.drawing.rect(
+            this.raphael = this.canvas.drawing.rect(
                 this.placement.coordinates.x,
                 this.placement.coordinates.y,
                 this.dimensions.getWidth(),
@@ -526,7 +534,7 @@ module Common.Models {
 
         public ellipse(): Common.Models.Graphics {
             this.remove();
-            this.raphael = this.paper.drawing.ellipse(
+            this.raphael = this.canvas.drawing.ellipse(
                 this.placement.coordinates.x,
                 this.placement.coordinates.y,
                 this.dimensions.getWidth(),
@@ -541,7 +549,7 @@ module Common.Models {
 
         public circle(): Common.Models.Graphics {
             this.remove();
-            this.raphael = this.paper.drawing.circle(
+            this.raphael = this.canvas.drawing.circle(
                 this.placement.coordinates.x,
                 this.placement.coordinates.y,
                 this.dimensions.getRadius(),
@@ -555,7 +563,7 @@ module Common.Models {
 
         public triangle(): Common.Models.Graphics {
             this.remove();
-            this.raphael = this.paper.drawing.triangle(
+            this.raphael = this.canvas.drawing.triangle(
                 this.placement.coordinates.x,
                 this.placement.coordinates.y,
                 this.dimensions.getHeight(),
@@ -569,7 +577,7 @@ module Common.Models {
 
         public text(text: string): Common.Models.Graphics {
             this.remove();
-            this.raphael = this.paper.drawing.text(
+            this.raphael = this.canvas.drawing.text(
                 this.placement.coordinates.x,
                 this.placement.coordinates.y,
                 text,
@@ -678,6 +686,10 @@ module Common.Models {
         public remove() {
             if (!this.hasRaphael())
                 return;
+
+            if(this.hasSet()) {
+                this.set.empty();
+            }
 
             this.raphael && this.raphael[0] && this.raphael[0].remove();
             this.raphael = null;
@@ -917,7 +929,7 @@ module Common.Models {
         // For some reason, transform(0,0) doesn't work the same on a path.
         private cleanTransform(): void {
             if (this.raphael.data('element-type') == 'triangle') {
-                let tempTriangle = this.paper.drawing.triangle(
+                let tempTriangle = this.canvas.drawing.triangle(
                     this.placement.coordinates.x,
                     this.placement.coordinates.y,
                     this.dimensions.getHeight(),
@@ -929,7 +941,7 @@ module Common.Models {
                 this.raphael.attr({ 'path': pathStr });
                 tempTriangle.remove();
             } else if(this.raphael.type == 'ellipse') {
-                let tempEllipse = this.paper.drawing.ellipse(
+                let tempEllipse = this.canvas.drawing.ellipse(
                     this.placement.coordinates.x,
                     this.placement.coordinates.y,
                     this.dimensions.getWidth(),

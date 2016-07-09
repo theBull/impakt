@@ -5,8 +5,10 @@
 	let name = '__auth';
 
 	impakt.common.auth.factory(name, [
-		'AUTH', 'API', '$http', '$q', '__api',
-		function(AUTH: any, API: any, $http: any, $q: any, __api: any) {
+		'AUTH', 'API', '$http', '$q', '__api', 'appConfigurator',
+		function(AUTH: any, API: any, $http: any, $q: any, __api: any, appConfigurator: any) {
+
+			var hostUrl = appConfigurator.hostUrl || API.HOST_URL;
 
 			let self = {
 				getToken: getToken
@@ -23,7 +25,7 @@
 
 				$http({
 					method: 'POST',
-					url: __api.path(API.HOST_URL, AUTH.TOKEN_ENDPOINT),
+					url: __api.path(hostUrl, AUTH.TOKEN_ENDPOINT),
 					data: data,
 					headers: { 
 						'Content-Type': 'application/x-www-form-urlencoded'

@@ -4,25 +4,30 @@
 <div class="modal-body">
 	
 	<div class='marginBottom2'>
+		<p>Location name</p>
 	    <input 
 	    	type='text' 
 	    	ng-model='newLocation.name' 
-	        ng-placeholder='Location name' />
+	        ng-placeholder='Location name' autofocus />
 
+	    <p>Address</p>
 	    <input 
 	    	type='text' 
 	    	ng-model='newLocation.street' 
 	        ng-placeholder='Street address' />
 
+	    <p>City</p>
 	    <input
 	    	type='text'
 	    	ng-model='newLocation.city'
 	    	ng-placeholder='City' />
 
+	   	<p>State</p>
 	    <select ng-model='newLocation.state'>
 	    	<option value=''>State...</option>
 	    </select> <!-- TODO @theBull -->
 
+	    <p>Zip</p>
 	    <input
 	    	type='text'
 	    	ng-model='newLocation.zip'

@@ -20,22 +20,7 @@ impakt.common.ui.controller('typeFormatter.ctrl', [
 '$scope', function($scope: any) {
 
 	$scope.parseValue = function($element) {
-		// i.e. "['Playbook', 'Editor', 'EditorTypes']"
-		let namespaceComponents = $scope.type.split('.');
-
-		// Drill down into namespace -> window['Playbook']['Editor']['EditorTypes']
-		// returns enum object
-		let namespaceRoot = window;
-		for (let i = 0; i < namespaceComponents.length; i++) {
-			if (namespaceComponents[i]) {
-				// Follow the namespace path down to the node object
-				// window['Playbook']...
-				// window['Playbook']['Editor']...
-				// window['Playbook']['Editor']['EditorTypes']
-				// node reached, namespaceRoot will finally point to the node object
-				namespaceRoot = namespaceRoot[namespaceComponents[i]];
-			}
-		}
+		let namespaceRoot = Common.Utilities.parseEnumFromString($scope.type);
 
 		// Get the enumeration list {enum: "Label"} || {number: string}
 		let enumList = Common.Utilities.convertEnumToList(namespaceRoot);
@@ -45,12 +30,7 @@ impakt.common.ui.controller('typeFormatter.ctrl', [
 			let enumLabel = enumList[$scope.value];
 			if (enumLabel) {
 				$element.html(enumLabel);
-			} 
-			// else {
-			// 	throw new Error('type-formatter directive: \
-			// 			Something went wrong when trying to find the label for the given enum \
-			// 			"' + $scope.value + '" => "' + enumLabel + '"');
-			// }
+			}
 		}
 	}
 

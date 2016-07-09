@@ -5,35 +5,32 @@ module Common.Models {
     extends Common.Models.Modifiable
     implements Common.Interfaces.ICanvas {
         
-        public paper: Common.Interfaces.IPaper;
-        public scenario: Common.Models.Scenario;
+        public field: Common.Interfaces.IField;
+        public grid: Common.Interfaces.IGrid;
+        public drawing: Common.Drawing.Utilities;
+        public sizingMode: Common.Enums.CanvasSizingModes;
         public $container: any;
         public container: HTMLElement;
         public $exportCanvas: any;
         public exportCanvas: HTMLCanvasElement;
-        public scrollable: any;
-        public toolMode: Playbook.Enums.ToolModes;
-        public unitType: Team.Enums.UnitTypes;
-        public editorType: Playbook.Enums.EditorTypes;
         public tab: Common.Models.Tab;
         public dimensions: Common.Models.Dimensions;
+        public x: number;
+        public y: number;
         public listener: Common.Models.CanvasListener;
         public readyCallbacks: Function[];
         public widthChangeInterval: any;
         public active: boolean;
+        public editorType: Playbook.Enums.EditorTypes;
+        public toolMode: Playbook.Enums.ToolModes;
+        public state: Common.Enums.State;
 
         constructor(
-            scenario: Common.Models.Scenario,
             width?: number, 
             height?: number
         ) {
             super();   
-            super.setContext(this);
-
-            if (Common.Utilities.isNullOrUndefined(scenario))
-                throw new Error('EditorCanvas constructor(): scenario is null or undefined');
-            
-            this.scenario = scenario;
+            super.setContext(this);            
                      
             /**
              * Note that paper is created during the initialize() method;
@@ -42,7 +39,9 @@ module Common.Models {
              * available; these containers are required by the paper, which
              * implements a Raphael object, that requires a container HTML element.
              */
-            
+            this.sizingMode = this.sizingMode || Common.Enums.CanvasSizingModes.MaxContainerWidth;
+            this.x = 0;
+            this.y = 0;
             this.dimensions = new Common.Models.Dimensions();
             this.dimensions.setMinWidth(500);
             this.dimensions.setMinHeight(400);
@@ -55,10 +54,12 @@ module Common.Models {
             this.listener = new Common.Models.CanvasListener(this);
         }
 
+        public abstract initialize($container: any): void;
+        public abstract setDimensions(): void;
+
         public clear(): void {
-            this.paper.clear();
-            this.scenario.clear();
             this.clearListeners();
+            this.field.clearScenario();
             this.setModified(true);
         }
 
@@ -89,61 +90,43 @@ module Common.Models {
             return svg_blob;
         }
 
-        public updateScenario(
-            scenario: Common.Models.Scenario,
-            redraw?: boolean): void {
-            if (Common.Utilities.isNullOrUndefined(scenario))
-                return;
-
-            this.paper.updateScenario(scenario);
-            this.scenario = scenario;
-
-            this.setModified(true);
-        }
-
-        public refresh() {
-            if (Common.Utilities.isNullOrUndefined(this.paper))
-                return;
-            
-            this.paper.draw();
-        }
-
-        public abstract setDimensions(): void;
-        
-        public onready(callback) {
-            if (this.readyCallbacks && this.readyCallbacks.length > 1000)
-                throw new Error('Canvas onready(): callback not added; max ready callback limit exceeded');
-            this.readyCallbacks.push(callback);
-        }
-        public _ready() {
-            if (Common.Utilities.isNullOrUndefined(this.readyCallbacks))
-                return;
-
-            for (var i = 0; i < this.readyCallbacks.length; i++) {
-                this.readyCallbacks[i]();
-            }
-            this.clearListeners();
-        }
-        
-        public clearListeners(): void {
-            this.readyCallbacks = [];
+        public refresh() {            
+            this.field.draw();
         }
 
         public resize() {
-            var self = this;
             this.dimensions.width = this.$container.width();
             this.dimensions.height = this.$container.height();
-            this.paper.resize();
-            if (this.scrollable) {
-                this.scrollable.initialize(this.$container, this.paper);
-                this.scrollable.onready(function(content) {
-                    self.scrollable.scrollToPercentY(0.5);
-                });
-            }
+            this.grid.resize(this.sizingMode);
+            this.setViewBox();
         }
 
-        public setScrollable(scrollable: any) {
-            this.scrollable = scrollable;
+        public getWidth() {
+            return this.grid.dimensions.width;
+        }
+        public getHeight() {
+            return this.grid.dimensions.height;
+        }
+
+        public getXOffset() {
+            return -Math.round((
+                this.dimensions.width
+                - this.grid.dimensions.width) / 2
+            );
+        }
+
+        public setViewBox(center?: boolean) {
+            center = center === true;
+            this.drawing.setAttribute('width', this.grid.dimensions.width);
+
+            //this.x = this.getXOffset();
+            let setting = this.drawing.setViewBox(
+                this.x,
+                this.y,
+                this.grid.dimensions.width,
+                this.grid.dimensions.height,
+                true
+            );
         }
     }
 }

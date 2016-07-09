@@ -16,7 +16,7 @@ module Common.Models {
             this.unitType = unitType;
             this.parentRK = 1;
             this.editorType = Playbook.Enums.EditorTypes.Formation;
-            this.name = name || 'New formation';
+            this.name = '';
             this.placements = new Common.Models.PlacementCollection();
             this.png = null;
             //this.setDefault();

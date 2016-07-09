@@ -9,7 +9,7 @@ module Common.Models {
         constructor(unitType: Team.Enums.UnitTypes) {
             super(Common.Enums.ImpaktDataTypes.Playbook);
 
-            this.name = 'Untitled';
+            this.name = '';
             this.unitType = unitType;
 
             this.associable = [

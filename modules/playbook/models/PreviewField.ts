@@ -7,71 +7,85 @@ module Playbook.Models {
     implements Common.Interfaces.IField {
 
         constructor(
-            paper: Common.Interfaces.IPaper,
-            scenario: Common.Models.Scenario
+            canvas: Common.Interfaces.ICanvas
         ) {
-            super(paper, scenario);
+            super(canvas);
+
+            this.initialize();
+            this.state = Common.Enums.State.Constructed;
         }
 
         public initialize(): void {
-            this.ball = new Playbook.Models.PreviewBall();
-            this.ball.initialize(this, null);
+            if(!this.ball) {
+                this.ball = new Playbook.Models.PreviewBall();
+                this.ball.initialize(this, null);
+                this.layer.addLayer(this.ball.layer);
+            }
             
-            this.ground = new Playbook.Models.PreviewGround();
-            this.ground.initialize(this, null);
+            if(!this.ground) {
+                this.ground = new Playbook.Models.PreviewGround();
+                this.ground.initialize(this, null);
+                this.layer.addLayer(this.ground.layer);
+            }
 
-            this.los = new Playbook.Models.PreviewLineOfScrimmage();
-            this.los.initialize(this, null);
+            if(!this.los) {
+                this.los = new Playbook.Models.PreviewLineOfScrimmage();
+                this.los.initialize(this, null);
+                this.layer.addLayer(this.los.layer);
+            }
 
-            this.endzone_top = new Playbook.Models.PreviewEndzone(0);
-            this.endzone_top.initialize(this, null);
+            if(!this.endzone_top) {
+                this.endzone_top = new Playbook.Models.PreviewEndzone(0);
+                this.endzone_top.initialize(this, null);
+                this.layer.addLayer(this.endzone_top.layer);
+            }
 
-            this.endzone_bottom = new Playbook.Models.PreviewEndzone(110);
-            this.endzone_bottom.initialize(this, null);
+            if(!this.endzone_bottom) {
+                this.endzone_bottom = new Playbook.Models.PreviewEndzone(110);
+                this.endzone_bottom.initialize(this, null);
+                this.layer.addLayer(this.endzone_bottom.layer);
+            }
 
-            this.sideline_left = new Playbook.Models.PreviewSideline(0);
-            this.sideline_left.initialize(this, null);
+            if(!this.sideline_left) {
+                this.sideline_left = new Playbook.Models.PreviewSideline(0);
+                this.sideline_left.initialize(this, null);
+                this.layer.addLayer(this.sideline_left.layer);
+            }
 
-            this.sideline_right = new Playbook.Models.PreviewSideline(51);
-            this.sideline_right.initialize(this, null);
+            if(!this.sideline_right) {
+                this.sideline_right = new Playbook.Models.PreviewSideline(51);
+                this.sideline_right.initialize(this, null);
+                this.layer.addLayer(this.sideline_right.layer);
+            }
 
-            this.hashmark_left = new Playbook.Models.PreviewHashmark(22);
-            this.hashmark_left.initialize(this, null);
+            if(!this.hashmark_left) {
+                this.hashmark_left = new Playbook.Models.PreviewHashmark(22);
+                this.hashmark_left.initialize(this, null);
+                this.layer.addLayer(this.hashmark_left.layer);
+            }
 
-            this.hashmark_right = new Playbook.Models.PreviewHashmark(28);
-            this.hashmark_right.initialize(this, null);
+            if(!this.hashmark_right) {
+                this.hashmark_right = new Playbook.Models.PreviewHashmark(28);
+                this.hashmark_right.initialize(this, null);
+                this.layer.addLayer(this.hashmark_right.layer);
+            }
 
-            this.hashmark_sideline_left = new Playbook.Models.PreviewHashmark(2);
-            this.hashmark_sideline_left.initialize(this, null);
+            if(!this.hashmark_sideline_left) {
+                this.hashmark_sideline_left = new Playbook.Models.PreviewHashmark(2);
+                this.hashmark_sideline_left.initialize(this, null);
+                this.layer.addLayer(this.hashmark_sideline_left.layer);
+            }
 
-            this.hashmark_sideline_right = new Playbook.Models.PreviewHashmark(50);
-            this.hashmark_sideline_right.initialize(this, null);
-
-            this.layers.add(this.ball.layer);
-            this.layers.add(this.ground.layer);
-            this.layers.add(this.los.layer);
-            this.layers.add(this.endzone_top.layer);
-            this.layers.add(this.endzone_bottom.layer);
-            this.layers.add(this.sideline_left.layer);
-            this.layers.add(this.sideline_right.layer);
-            this.layers.add(this.hashmark_left.layer);
-            this.layers.add(this.hashmark_right.layer);
-            this.layers.add(this.hashmark_sideline_left.layer);
-            this.layers.add(this.hashmark_sideline_right.layer);
-
-            if(Common.Utilities.isNotNullOrUndefined(this.scenario)) {
-                if (Common.Utilities.isNotNullOrUndefined(this.scenario.playPrimary) && Common.Utilities.isNullOrUndefined(this.scenario.playPrimary.formation)) {
-                    this.scenario.playPrimary.formation = new Common.Models.Formation(this.scenario.playPrimary.unitType);
-                    this.scenario.playPrimary.formation.setDefault(this.ball);
-                }
-
-                if (Common.Utilities.isNotNullOrUndefined(this.scenario.playOpponent) && Common.Utilities.isNullOrUndefined(this.scenario.playOpponent.formation)) {
-                    this.scenario.playOpponent.formation = new Common.Models.Formation(this.scenario.playOpponent.unitType);
-                    this.scenario.playOpponent.formation.setDefault(this.ball);
-                }
+            if(!this.hashmark_sideline_right) {
+                this.hashmark_sideline_right = new Playbook.Models.PreviewHashmark(50);
+                this.hashmark_sideline_right.initialize(this, null);
+                this.layer.addLayer(this.hashmark_sideline_right.layer);
             }
 
             this.draw();
+
+            this.invokeListener('onready');
+            this.state = Common.Enums.State.Ready;
         }
 
         public draw(): void {
@@ -84,7 +98,6 @@ module Playbook.Models {
             this.endzone_bottom.draw();
             this.los.draw();
             this.ball.draw();
-            this.drawScenario();
         }
         public addPrimaryPlayer(
             placement: Common.Models.Placement,
@@ -101,9 +114,8 @@ module Playbook.Models {
             );
 
             player.initialize(this);
-
-            // TODO @theBull - add players to new layers
             player.draw();
+            player.layer.type = Common.Enums.LayerTypes.PrimaryPlayer;
             
             this.primaryPlayers.add(player);
             return player;
@@ -123,9 +135,8 @@ module Playbook.Models {
             );
 
             player.initialize(this);
-
-            // TODO @theBull - add players to new layers
             player.draw();
+            player.layer.type = Common.Enums.LayerTypes.OpponentPlayer;
             
             this.opponentPlayers.add(player);
             return player;

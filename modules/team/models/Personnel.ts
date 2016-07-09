@@ -12,7 +12,6 @@ module Team.Models {
 
         constructor(unitType: Team.Enums.UnitTypes) {
             super(Common.Enums.ImpaktDataTypes.PersonnelGroup);
-            super.setContext(this);
             
             this.name = 'Untitled';
             this.unitType = unitType;

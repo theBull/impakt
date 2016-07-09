@@ -5,6 +5,6 @@ impakt.playbook.controller('playbook.ctrl',
 function($scope: any, $state: any, $stateParams: any, _playbook: any) {
 
 	// load up the browser by default
-	$state.go('playbook.browser');
+	// $state.go('playbook.browser');
 
 }]);

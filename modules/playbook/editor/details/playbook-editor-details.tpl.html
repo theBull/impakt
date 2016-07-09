@@ -10,7 +10,7 @@
 	<div>
 		<div class='pad light-border-bottom'>
 			<details>
-				<summary><strong>Primary play:</strong> &quot;{{canvas.scenario.playPrimary.name}}&quot;</summary>
+				<summary><strong>Primary play</strong>: &quot;{{canvas.scenario.playPrimary.name}}&quot;</summary>
 				<div class='pad'>
 					<div class='marginBottom1'>
 						<div><strong>Formation:</strong> {{canvas.scenario.playPrimary.formation.name}}</div>
@@ -23,26 +23,29 @@
 							</type-formatter> 
 						</div>
 					</div>
-					<scenario-preview 
+					<!-- <scenario-preview 
 						scenario='canvas.scenario' 
 						class='height28 width35'>
-					</scenario-preview>				
+					</scenario-preview>	 -->			
 				</div>
 			</details>
 		</div>
 
 		<div class='pad light-border-bottom'>
 			<details>
-				<summary><strong>Selected elements:</strong> ({{selected.size()}})</summary>
-				<div class='pad' ng-repeat='selection in selected.toArray()'>
-					* {{selection.guid}}
+				<summary><strong>Selected elements</strong>: ({{selectedElements.size()}})</summary>
+				<div class='pad' ng-repeat='selection in selectedElements.toArray()'>
+					* <type-formatter 
+						type='Common.Enums.LayerTypes' 
+						value='selection.layer.type'>
+					</type-formatter>
 				</div>
 			</details>
 		</div>
 
 		<div class='pad light-border-bottom'>
 			<details>
-				<summary><strong>Players:</strong> ({{players.size()}})</summary>
+				<summary><strong>Players</strong>: ({{players.size()}})</summary>
 				<div class='pad'>
 					<div ng-repeat='player in players.toArray()'
 						class='marginBottom1'>
@@ -80,11 +83,19 @@
 		</div>
 
 		<div class='pad light-border-bottom marginBottom1'>
-			<details>
-				<summary><strong>Layers</strong></summary>
+			<details open>
+				<summary><strong>Layers</strong>: ({{layers.size() + 1}})</summary>
 				<div>
-					<div ng-repeat='layer in layers.toArray()'>
-						<div class='pad row'>
+
+					<!-- TODO @theBull - implement group by; currently a performance issue in angular-filter.js -->
+					<ul ng-repeat='layer in layers.toArray()'>
+						<!-- <p class='pad'>
+							<type-formatter 
+								type='Common.Enums.LayerTypes' 
+								value='key'>
+							</type-formatter>
+						</p> -->
+						<li class='pad row padLeft2'>
 							<div class='marginRight1'>
 								<input type='checkbox' />
 							</div>
@@ -94,8 +105,8 @@
 									value='layer.type'>
 								</type-formatter>
 							</div>
-						</div>
-					</div>
+						</li>
+					</ul>
 				</div>
 			</details>
 		</div>

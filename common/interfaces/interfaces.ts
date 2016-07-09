@@ -4,6 +4,7 @@
 /// <reference path='./IModifiable.ts' />
 /// <reference path='./IModifiableCollection.ts' />
 /// <reference path='./IStorable.ts' />
+/// <reference path='./IInvokableCallback.ts' />
 /// <reference path='./IActionable.ts' />
 /// <reference path='./IActionableCollection.ts' />
 /// <reference path='./IScrollable.ts' />
@@ -20,7 +21,6 @@
 /// <reference path='./IPlay.ts' />
 /// <reference path='./IScenario.ts' />
 
-/// <reference path='./IPaper.ts' />
 /// <reference path='./IGrid.ts' />
 /// <reference path='./ICanvas.ts' />
 /// <reference path='./IField.ts' />

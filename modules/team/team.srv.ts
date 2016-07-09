@@ -55,7 +55,7 @@ function(
                             teamResult.data.model.key = teamResult.key;
                             teamModel.fromJson(teamResult.data.model);
 
-                            collection.add(teamModel);
+                            collection.add(teamModel, false);
                         }
                     }
                 }
@@ -136,7 +136,7 @@ function(
                     teamModel.fromJson(results.data.model);
 
                     // update the context
-                    impakt.context.Team.teams.add(teamModel);
+                    impakt.context.Team.teams.add(teamModel, false);
 
                 } else {
                     throw new Error('CreateTeam did not return a valid team model');
@@ -258,7 +258,7 @@ function(
                         rawPersonnel.key = results.key;
                         let personnelModel = new Team.Models.Personnel(Team.Enums.UnitTypes.Other);
                         personnelModel.fromJson(rawPersonnel);
-                        personnelCollection.add(personnelModel);
+                        personnelCollection.add(personnelModel, false);
                     }
                 }
 
@@ -334,7 +334,7 @@ function(
 				personnelModel.fromJson(results.data.personnel);
 			}
 
-			impakt.context.Team.personnel.add(personnelModel);
+			impakt.context.Team.personnel.add(personnelModel, false);
 
 			notification.success(
 				'Personnel group "', personnelModel.name, '" successfully created'

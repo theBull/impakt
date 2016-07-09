@@ -7,39 +7,54 @@ module Playbook.Models {
     implements Common.Interfaces.ICanvas {
 
         constructor(
-            scenario: Common.Models.Scenario, 
             width?: number, 
             height?: number
         ) {
-            super(scenario);
+            super(width, height);
 
-            /**
-             * Note that paper is created during the initialize() method;
-             * canvas is dependent on angular directive / dynamic HTML include
-             * of the canvas, before the $container/container properties are
-             * available; these containers are required by the paper, which
-             * implements a Raphael object, that requires a container HTML element.
-             */
-            //this.unitType = this.playPrimary.unitType;
-            //this.editorType = this.playPrimary.editorType;
             this.toolMode = Playbook.Enums.ToolModes.Select;
+            this.editorType = Playbook.Enums.EditorTypes.Any;
 
             // need to set tab explicitly if it's within an editor
             this.tab = null;
 
-            this.listener = new Common.Models.CanvasListener(this);
-            this.readyCallbacks = [function() {
+            this.readyCallbacks.push(function() {
                 console.log('CANVAS READY: default canvas ready callback');
-            }];
+            });
+            this.state = Common.Enums.State.Constructed;
         }
 
-        public initialize($container) {
+        public initialize($container?: any) {
             var self = this;
-            this.container = $container[0]; // jquery lite converted to raw html
-            this.$container = $container; // jquery lite object
+            if(Common.Utilities.isNotNullOrUndefined($container)) {
+                this.container = $container[0]; // jquery lite converted to raw html
+                this.$container = $container; // jquery lite object    
+            } else if(Common.Utilities.isNullOrUndefined(this.$container)) {
+                throw new Error('Canvas intialize: $container arg passed or existing canvas \
+                    $container value is null or undefined. A jQuery HTML container element is \
+                    required in order to intialize the canvas.');
+            }
+            
             this.setDimensions();
-            this.paper = new Playbook.Models.EditorPaper(this);
-            this.paper.draw();
+
+            // Grid will help the paper determine its sizing
+            // and will be the basis for drawing objects' lengths and
+            // dimensions.
+            this.grid = this.grid || new Common.Models.Grid(
+                this,
+                Playbook.Constants.FIELD_COLS_FULL,
+                Playbook.Constants.FIELD_ROWS_FULL
+            );
+
+            this.drawing = new Common.Drawing.Utilities(this, this.grid);
+
+            // Paper methods within field are dependent on 
+            // this.Raphael
+            if(Common.Utilities.isNullOrUndefined(this.field))
+                this.field = new Playbook.Models.EditorField(this);
+
+            this.field.initialize();
+            
 
             // TODO @theBull - stop / pause this timer if the canvas is not
             // visible...
@@ -53,7 +68,8 @@ module Playbook.Models {
             // 	}
             // }, 1);
 
-            this._ready();
+            this.invokeListener('onready');
+            this.state = Common.Enums.State.Ready;
         }
 
         public setDimensions(): void {
@@ -63,14 +79,6 @@ module Playbook.Models {
 
         public resetHeight() {
             //this.height = this.$container.height(this.$container.height());
-        }
-
-        public zoomIn() {
-            throw new Error('canvas zoomIn() not implemented');
-        }
-
-        public zoomOut() {
-            throw new Error('canvas zoomOut() not implemented');
         }
 
         public getToolMode() {

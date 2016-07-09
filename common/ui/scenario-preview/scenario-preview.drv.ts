@@ -18,11 +18,11 @@ impakt.common.ui.controller('scenarioPreview.ctrl', [
 			throw new Error('scenario-preview refresh(): $element is null or undefined');
 		
 		$scope.$element.find('svg').show();
-		$scope.previewCanvas.updateScenario($scope.scenario);
+		$scope.previewCanvas.field.updateScenario($scope.scenario);
 		$scope.scenario.png = $scope.previewCanvas.exportToPng();
 		$scope.isModified = false;
 
-		let scrollTop = $scope.previewCanvas.paper.field.getLOSAbsolute() - ($scope.$element.height() / 2);
+		let scrollTop = $scope.previewCanvas.field.getLOSAbsolute() - ($scope.$element.height() / 2);
 		$scope.$element.scrollTop(scrollTop);
 
 		if ($scope.modificationTimer)
@@ -56,7 +56,7 @@ function(
 					// a previewCanvas will insert a SVG into the <scenario-preview/> element
 					// after the intialization phase.
 					if (Common.Utilities.isNotNullOrUndefined($scope.scenario)) {
-						$scope.previewCanvas = new Playbook.Models.PreviewCanvas($scope.scenario);
+						$scope.previewCanvas = new Playbook.Models.PreviewCanvas();
 					} else {
 						// if there's no scenario at this point, there's a problem
 						throw new Error('scenario-preview link(): Unable to find scenario');
@@ -82,13 +82,14 @@ function(
 					 */
 					$timeout(function() {
 						if($scope.previewCanvas) {
-							$scope.previewCanvas.onready(function() {
-								let scrollTop = $scope.previewCanvas.paper.field.getLOSAbsolute()
+							$scope.previewcanvas.setListener('onready', function() {
+								let scrollTop = $scope.previewCanvas.field.getLOSAbsolute()
 									- ($scope.$element.height() / 2);
 								$scope.$element.scrollTop(scrollTop);
 							});
 
 							$scope.previewCanvas.initialize($element);
+							$scope.previewCanvas.field.updateScenario($scope.scenario);
 							$scope.scenario.png = $scope.previewCanvas.exportToPng();
 						}						
 					}, 0);

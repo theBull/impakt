@@ -58,7 +58,7 @@ function(
                             leagueResult.data.model.key = leagueResult.key;
                             leagueModel.fromJson(leagueResult.data.model);
 
-                            collection.add(leagueModel);
+                            collection.add(leagueModel, false);
                         }
                     }
                 }
@@ -139,7 +139,7 @@ function(
                     leagueModel.fromJson(results.data.model);
 
                     // update the context
-                    impakt.context.League.leagues.add(leagueModel);
+                    impakt.context.League.leagues.add(leagueModel, false);
 
                 } else {
                     throw new Error('CreateLeague did not return a valid league model');
@@ -270,7 +270,7 @@ function(
                             conferenceResult.data.conference.key = conferenceResult.key;
                             conferenceModel.fromJson(conferenceResult.data.conference);
 
-                            collection.add(conferenceModel);
+                            collection.add(conferenceModel, false);
                         }
                     }
                 }
@@ -351,7 +351,7 @@ function(
                     conferenceModel.fromJson(results.data.conference);
 
                     // update the context
-                    impakt.context.League.conferences.add(conferenceModel);
+                    impakt.context.League.conferences.add(conferenceModel, false);
 
                 } else {
                     throw new Error('CreateConference did not return a valid conference');
@@ -479,7 +479,7 @@ function(
                             divisionResult.data.division.key = divisionResult.key;
                             divisionModel.fromJson(divisionResult.data.division);
 
-                            collection.add(divisionModel);
+                            collection.add(divisionModel, false);
                         }
                     }
                 }
@@ -560,7 +560,7 @@ function(
                     divisionModel.fromJson(results.data.division);
 
                     // update the context
-                    impakt.context.League.divisions.add(divisionModel);
+                    impakt.context.League.divisions.add(divisionModel, false);
 
                 } else {
                     throw new Error('CreateDivision did not return a valid division');
@@ -689,7 +689,7 @@ function(
                             locationResult.data.location.key = locationResult.key;
                             locationModel.fromJson(locationResult.data.location);
 
-                            collection.add(locationModel);
+                            collection.add(locationModel, false);
                         }
                     }
                 }
@@ -770,7 +770,7 @@ function(
                     locationModel.fromJson(results.data.location);
 
                     // update the context
-                    impakt.context.League.locations.add(locationModel);
+                    impakt.context.League.locations.add(locationModel, false);
 
                 } else {
                     throw new Error('CreateLocation did not return a valid location');
