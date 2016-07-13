@@ -7,6 +7,7 @@ module Common.Interfaces {
 	Common.Interfaces.IAssociable {
 
 		playType: Playbook.Enums.PlayTypes;
+		category: Playbook.Enums.PlayCategories;
 		unitType: Team.Enums.UnitTypes;
 		assignmentGroup: Common.Models.AssignmentGroup;
 		formation: Common.Models.Formation;

@@ -153,7 +153,7 @@ label {
 select {
 	font-size: $BASE_FONT_SIZE;
 	margin: 1px;
-	border: 1px solid $gray-bg-3;
+	border: 1px solid $black;
 	outline: 0;
 	height: 3em;
 	background-color: $gray-bg-2;
@@ -161,7 +161,7 @@ select {
 	width: 100%;
 }
 select:focus {
-	outline: 1px solid $gray-bg-4;
+	outline: 1px solid $gray-bg-7;
 	padding: 1px;
 	height: 3em;
 	margin: 1px;

@@ -1,11 +1,13 @@
 <div class="modal-header">
     <h3 class="modal-title">
-        Save &quot;{{play.name}}&quot;
+        Save <strong>{{play.name}}</strong>
     </h3>
 </div>
 <div class="modal-body col">
 
     <div class='row'>
+
+        <!-- Preview Image -->
         <div class='marginRight1 width30 center'>
             <play-preview 
                 class='height35 width30' 
@@ -13,114 +15,106 @@
             </play-preview>
         </div>
 
+        <!-- Main contents -->
         <div class='col'>
 
-            <div class='row'>
-                <div class='col'>
-                    <div>
+            <!-- Copy to New Play -->
+            <div class='marginBottom1'>
+                <div ng-show='copyPlay' class='marginBottom1'>
+                    
+                    <p>New play name</p>
 
-                    </div>
-                    <div class='row marginBottom1' ng-show='!play.modified && !copyPlay'>
-                        <div class='marginRight1'>
-                            <span class='glyphicon glyphicon-exclamation-sign'></span>
-                        </div>
-                        <div>
-                            No changes to save
-                        </div>
-                    </div>
-                    <div ng-show='play.modified && !copyPlay'>
+                    <!-- <div ng-show='play.modified && !copyPlay'>
                         Play has been modified.
-                    </div>
-                    <div ng-show='copyPlay' class='marginBottom1'>
-                        
-                        <p>New play name:</p>
-                        
-                        <input type='text' ng-model='play.name' 
-                            placeholder='Play name?' />
-                    </div>
-                    <div class='row'>
-                        <input 
-                            type='checkbox' 
-                            ng-model='copyPlay' 
-                            ng-change='copyPlayChange()' />
-                        <span class='marginLeft1'>Save as a new copy</span>
-                    </div>
+                    </div> -->
+                    
+                    <input type='text' 
+                        ng-model='play.name' 
+                        ng-placeholder='New play name' />
+                </div>
+
+                <div class='row'>
+                    <input 
+                        type='checkbox' 
+                        ng-model='copyPlay' 
+                        ng-change='copyPlayChange()' />
+                    <span class='marginLeft1'>Save as a new copy</span>
                 </div>
             </div>
 
-            <div class='col'>
-                <div class='row minHeight3'>
-                    <div class='pad shrink minWidth10'>
-                        <strong>Name:</strong>
-                    </div>
-                    <div class='pad'>
-                        {{play.name}}
-                    </div>
+            <!-- Unit type -->
+            <div class='marginBottom1'>
+                <h4>
+                    <type-formatter
+                        value='play.unitType'
+                        type='Team.Enums.UnitTypes'>                        
+                    </type-formatter>
+                </h4>
+            </div>
+
+            <!-- Playbook -->
+            <div class='marginBottom1'>
+                <p>Save to playbook...</p>
+                <select ng-options='playbook as playbook.name for playbook in playbooks.toArray()'
+                    ng-model='selectedPlaybook'
+                    ng-change='selectPlaybook()'>
+                </select>
+            </div>
+
+                <!-- Play type -->
+                <div class='marginBottom1'>
+                    <p>Play category</p>
+                    <select ng-model='play.category'
+                        ng-change='selectCategory()'>
+                        <option value='{{categoryValue}}' 
+                            ng-repeat='(categoryName, categoryValue) in categories'>
+                            {{categoryName}}
+                        </option>
+                    </select>
                 </div>
-                <div class='row minHeight3'>
-                    <div class='pad shrink minWidth10'>
-                        <strong>Unit:</strong>
-                    </div>
-                    <div class='pad'>
-                        <type-formatter
-                            value='play.unitType'
-                            type='Team.Enums.UnitTypes'>                        
-                        </type-formatter>
-                    </div>
-                </div>
-                <div class='row minHeight3'>
-                    <div class='pad shrink minWidth10'>
-                        <strong>Play type:</strong>
-                    </div>
-                    <div class='pad'>
-                        <type-formatter
-                            value='play.playType'
-                            type='Playbook.Enums.PlayTypes'>                        
-                        </type-formatter>
-                    </div>
-                </div>
-                <div class='row minHeight3'>
-                    <div class='pad shrink minWidth10'>
-                        <strong>Key:</strong>
-                    </div>
-                    <div class='pad'>
-                        {{play.key}}
-                    </div>
-                </div>
-                <div class='row minHeight3'>
-                    <div class='pad shrink minWidth10'>
-                        <strong>Modified:</strong>
-                    </div>
-                    <div class='pad'>
-                        {{play.modified === true ? 'yes': 'no'}}
-                    </div>
-                </div>
-                <div class='row minHeight3'>
-                    <div class='pad shrink minWidth10'>
-                        <strong>Formation:</strong>
-                    </div>
+
+                <div class='marginBottom1'>
+                    <p>
+                        <strong>Formation</strong>
+                    </p>
                     <div>
-                        <input type='text' ng-model='play.formation.name' disabled />
+                        <input 
+                            type='text' 
+                            ng-model='play.formation.name' 
+                            disabled />
                     </div>
                 </div>
-                <div class='row minHeight3'>
-                    <div class='pad shrink minWidth10'>
-                        <strong>Assignments ({{play.assignmentGroup.assignments.size()}}):</strong>
-                    </div>
+
+                <div class='marginBottom1'>
+                    <p>
+                        <strong>Personnel</strong>
+                    </p>
                     <div>
-                        <input type='text' ng-model='play.assignmentGroup.name'
+                        <input 
+                            type='text' 
+                            ng-model='play.personnel.name' 
+                            disabled />
+                    </div>
+                </div>
+
+                <div class='marginBottom1'>
+                    <p>
+                        <strong>Assignment Group</strong>
+                        &nbsp;&mdash;&nbsp;
+                        <span class='font-gray'>({{play.assignmentGroup.assignments.size()}} assignments)</span>
+                    </p>
+                    <div ng-show='hasAssignments()'>
+                        <input 
+                            type='text' 
+                            ng-model='play.assignmentGroup.name'
                             ng-disabled='play.assignmentGroup.assignments.isEmpty()' />
                     </div>
-                </div>
-                <div class='row minHeight3'>
-                    <div class='pad shrink minWidth10'>
-                        <strong>Personnel:</strong>
-                    </div>
-                    <div>
-                        <input type='text' ng-model='play.personnel.name' disabled />
+                    <div ng-show='!hasAssignments()' class='marginTop1'>
+                        <span class='glyphicon glyphicon-exclamation-sign'></span>
+                        <span>There are no assignments to save.</span>
                     </div>
                 </div>
-            </div>
+
 
         </div>
 

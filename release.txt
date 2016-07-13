@@ -1,4 +1,20 @@
+IMPAKT v0.1.16 (BETA)
+
+* Attempts to improve performance of thumbnail loading in playbook drilldown view; more work needs to be done around this.
+* Adds support for selecting a “save to playbook”, which associates the play, its formation and assignment group, to the selected playbook
+* Extends associable support to APIOptions objects
+* Added play category
+* Fixes a bug where when dragging the Line of Scrimmage (LOS) the ball position reverts back to its old position.
+    * https://github.com/theBull/impakt/issues/277
+* Fixes a bug where the modifiable listener was getting triggered every time an element was getting added to the associations.
+* Fixes a bug where each association gets removed and calls modifiable listener during association-input directive updates.
+* Fixes a bug where the user is able to create teams from within the Team module. Hides the button.
+
+
+
+
 IMPAKT BETA v0.1.15 RELEASE
+
 * fixes a syntax bug in update scenario
 * Hides Unit type designation from playbook
 * Added ‘update’ methods and dialogs for Playbook, Scenario, Play,

@@ -9,6 +9,7 @@ module Common.Interfaces {
 		impaktDataType: Common.Enums.ImpaktDataTypes;
 		guid: string;
 		associationKey: string;
+		associable: string[];
 		name: string;
 		
 	}

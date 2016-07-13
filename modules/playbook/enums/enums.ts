@@ -43,6 +43,15 @@ module Playbook.Enums {
 		Unknown
 	}
 
+	export enum PlayCategories {
+		Unknown,
+		None,
+		Run,
+		Pass,
+		Blitz,
+		Zone
+	}
+
     export enum PlayerIconTypes {
         CircleEditor,
         SquareEditor,        

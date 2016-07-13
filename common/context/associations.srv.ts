@@ -313,115 +313,115 @@ function(
 				case Common.Enums.ImpaktDataTypes.Playbook:
 					let playbook = impakt.context.Playbook.playbooks.get(guid);
 					if (playbook)
-						results.playbooks.add(playbook);
+						results.playbooks.add(playbook, false);
 					break;
 
 				case Common.Enums.ImpaktDataTypes.Scenario:
 					let scenario = impakt.context.Playbook.scenarios.get(guid);
 					if (scenario)
-						results.scenarios.add(scenario);
+						results.scenarios.add(scenario, false);
 					break;
 
 				case Common.Enums.ImpaktDataTypes.Play:
 					let play = impakt.context.Playbook.plays.get(guid);
 					if (play)
-						results.plays.add(play);
+						results.plays.add(play, false);
 					break;
 
 				case Common.Enums.ImpaktDataTypes.Formation:
 					let formation = impakt.context.Playbook.formations.get(guid);
 					if (formation)
-						results.formations.add(formation);
+						results.formations.add(formation, false);
 					break;
 
 				case Common.Enums.ImpaktDataTypes.PersonnelGroup:
 					let personnel = impakt.context.Team.personnel.get(guid);
 					if (personnel)
-						results.personnel.add(personnel);
+						results.personnel.add(personnel, false);
 					break;
 
 				case Common.Enums.ImpaktDataTypes.AssignmentGroup:
 					let assignmentGroup = impakt.context.Playbook.assignmentGroups.get(guid);
 					if (assignmentGroup)
-						results.assignmentGroups.add(assignmentGroup);
+						results.assignmentGroups.add(assignmentGroup, false);
 					break;
 
 				case Common.Enums.ImpaktDataTypes.League:
 					let league = impakt.context.League.leagues.get(guid);
 					if (league)
-						results.leagues.add(league);
+						results.leagues.add(league, false);
 					break;
 
 				case Common.Enums.ImpaktDataTypes.Conference:
 					let conference = impakt.context.League.conferences.get(guid);
 					if (conference)
-						results.conferences.add(conference);
+						results.conferences.add(conference, false);
 					break;
 
 				case Common.Enums.ImpaktDataTypes.Division:
 					let division = impakt.context.League.divisions.get(guid);
 					if (division)
-						results.divisions.add(division);
+						results.divisions.add(division, false);
 					break;
 
 				case Common.Enums.ImpaktDataTypes.Team:
 					let team = impakt.context.Team.teams.get(guid);
 					if (team)
-						results.teams.add(team);
+						results.teams.add(team, false);
 					break;
 
 				case Common.Enums.ImpaktDataTypes.Location:
 					let location = impakt.context.League.locations.get(guid);
 					if (location)
-						results.locations.add(location);
+						results.locations.add(location, false);
 					break;
 
 				case Common.Enums.ImpaktDataTypes.Season:
 					let season = impakt.context.Season.seasons.get(guid);
 					if (season)
-						results.seasons.add(season);
+						results.seasons.add(season, false);
 					break;
 
 				case Common.Enums.ImpaktDataTypes.Game:
 					let game = impakt.context.Season.games.get(guid);
 					if (game)
-						results.games.add(game);
+						results.games.add(game, false);
 					break;
 
 				case Common.Enums.ImpaktDataTypes.Plan:
 					let plan = impakt.context.Planning.plans.get(guid);
 					if (plan)
-						results.plans.add(plan);
+						results.plans.add(plan, false);
 					break;
 
 				case Common.Enums.ImpaktDataTypes.PracticePlan:
 					let practicePlan = impakt.context.Planning.practicePlans.get(guid);
 					if (practicePlan)
-						results.practicePlans.add(practicePlan);
+						results.practicePlans.add(practicePlan, false);
 					break;
 
 				case Common.Enums.ImpaktDataTypes.PracticeSchedule:
 					let practiceSchedule = impakt.context.Planning.practiceSchedules.get(guid);
 					if (practiceSchedule)
-						results.practiceSchedules.add(practiceSchedule);
+						results.practiceSchedules.add(practiceSchedule, false);
 					break;
 
 				case Common.Enums.ImpaktDataTypes.GamePlan:
 					let gamePlan = impakt.context.Planning.gamePlans.get(guid);
 					if (gamePlan)
-						results.gamePlans.add(gamePlan);
+						results.gamePlans.add(gamePlan, false);
 					break;
 
 				case Common.Enums.ImpaktDataTypes.ScoutCard:
 					let scoutCard = impakt.context.Planning.scoutCards.get(guid);
 					if (scoutCard)
-						results.scoutCards.add(scoutCard);
+						results.scoutCards.add(scoutCard, false);
 					break;
 
 				case Common.Enums.ImpaktDataTypes.QBWristband:
 					let QBWristband = impakt.context.Planning.QBWristbands.get(guid);
 					if (QBWristband)
-						results.QBWristbands.add(QBWristband);
+						results.QBWristbands.add(QBWristband, false);
 					break;
 			}		
 		}

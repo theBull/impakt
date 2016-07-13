@@ -922,11 +922,18 @@ module Common.Models {
             this.cleanTransform();
         }
 
+        // TRIANGLE NOTE:
         // Special case for triangle. Since the triangle is actually a `path` element,
         // the transform functionality doesn't work the same. We have to create a new
         // temporary triangle where the updated triangle's positon should be and then
         // reset the actual raphael path with the temp triangle's new coordinates.
         // For some reason, transform(0,0) doesn't work the same on a path.
+        // 
+        // ELLIPSE NOTE:
+        // A similar issue appears to occur with an ellipse; the ellipse does not
+        // respond correctly when resetting the transform to 0,0. Instead,
+        // simply calling the ellipse function should just re-create a new ellipse
+        // in place of the old.
         private cleanTransform(): void {
             if (this.raphael.data('element-type') == 'triangle') {
                 let tempTriangle = this.canvas.drawing.triangle(
@@ -941,17 +948,8 @@ module Common.Models {
                 this.raphael.attr({ 'path': pathStr });
                 tempTriangle.remove();
             } else if(this.raphael.type == 'ellipse') {
-                let tempEllipse = this.canvas.drawing.ellipse(
-                    this.placement.coordinates.x,
-                    this.placement.coordinates.y,
-                    this.dimensions.getWidth(),
-                    this.dimensions.getHeight(),
-                    false,
-                    this.dimensions.getOffsetX(),
-                    this.dimensions.getOffsetY()
-                );
-
-                tempEllipse.remove();
+                // re-draw the ellipse with the updated coordinates
+                this.ellipse();
             }
         }
 	}

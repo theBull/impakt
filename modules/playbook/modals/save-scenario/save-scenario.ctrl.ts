@@ -14,8 +14,8 @@ function(
 ) {
 
 	$scope.scenario = scenario.copy();
-	var playPrimaryAPIOptions = new Playbook.Models.PlaybookAPIOptions();
-	var playOpponentAPIOptions = new Playbook.Models.PlaybookAPIOptions();
+	var playPrimaryAPIOptions = new Playbook.Models.PlaybookAPIOptions($scope.scenario.playPrimary);
+	var playOpponentAPIOptions = new Playbook.Models.PlaybookAPIOptions($scope.scenario.playOpponent);
 
 	$scope.ok = function () {
 		

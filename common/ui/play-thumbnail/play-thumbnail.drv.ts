@@ -13,27 +13,29 @@ function() {
 		scope: {
 			play: '='
 		},
-		compile: function compile(tElement, tAttrs, transclude) {
-			return {
-				pre: function preLink($scope, $element, attrs, controller) { },
-				post: function postLink($scope, $element, attrs, controller) {
-					$scope.$element = $element;
+		link: function($scope, $element, attrs) {
+			$scope.$element = $element;
 
-					// get height of $element
-					let elementHeight = $element.height();
+			// get height of $element
+			let elementHeight = $element.height();
+			let eventName = 'load.' + $scope.play.guid;
+			
+			let $img = $(new Image()).on(eventName, function(e) {
+				
+				let imgHeight = $(this).height();
+				let imgOffsetTop = (-(imgHeight * 0.5) + (elementHeight / 2)) + 'px';
+				$img.attr('style', 'top: ' + imgOffsetTop);
 
-					let img = document.createElement('img');
-					img.src = $scope.play.png;
-					let $img = $(img);
-					$scope.$element.append($img);
+				// Clean up the event handler
+				$img.off(eventName);
 
-					img.addEventListener('load', function() { 
-						let imgHeight = $img.height();
-						let imgOffsetTop = (-(imgHeight * 0.5) + (elementHeight / 2)) + 'px';
-						$img.css({ 'top': imgOffsetTop });
-					}, false);
-				}
-			}
+			}).error(function(e) {
+
+				console.error('play-thumbnail: failed to load image.');
+
+			}).prop('src', $scope.play.png);
+
+			$element.append($img);
 		}
 	}
 }]);

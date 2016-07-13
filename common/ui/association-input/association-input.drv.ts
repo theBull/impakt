@@ -49,7 +49,7 @@ function(
 			$scope.associatedEntities = $scope.associations[$scope.key];
 			if (Common.Utilities.isNotNullOrUndefined($scope.associatedEntities)) {
 				$scope.associatedEntities.forEach(function(associated: Common.Interfaces.IAssociable, index: number) {
-					$scope.possibleAssociations.remove(associated.guid);
+					$scope.possibleAssociations.remove(associated.guid, false);
 				});
 			}
 		}

@@ -222,12 +222,14 @@ declare module Common.Interfaces {
         impaktDataType: Common.Enums.ImpaktDataTypes;
         guid: string;
         associationKey: string;
+        associable: string[];
         name: string;
     }
 }
 declare module Common.Interfaces {
     interface IPlay extends Common.Interfaces.IActionable, Common.Interfaces.IAssociable {
         playType: Playbook.Enums.PlayTypes;
+        category: Playbook.Enums.PlayCategories;
         unitType: Team.Enums.UnitTypes;
         assignmentGroup: Common.Models.AssignmentGroup;
         formation: Common.Models.Formation;
@@ -784,6 +786,24 @@ declare module Common.Models {
 }
 declare module Common.Models {
     abstract class APIOptions {
+        entity: Common.Interfaces.IAssociable;
+        associated: any;
+        constructor(entity: Common.Interfaces.IAssociable);
+        /**
+         * Takes the given entity's associable array (types of Associable Entities that
+         * entity is able to associate with), and returns an object literal, where
+         * each given associable TYPE (i.e. 'playbooks', 'formations', 'teams', etc.)
+         * are the keys and an array of IAssociable[] entities of the given type are
+         * their values, respectively.
+         *
+         * Creates a populated associations object:
+         * <associatedEntityType(string)>: <IAssociable>}
+         * {'playbooks': <PlaybookModel>[], 'formations': <FormationModel>[], etc...}
+         *
+         * @return {any} [description]
+         */
+        private _populateAssociated();
+        associatedToArray(): Common.Interfaces.IAssociable[];
     }
 }
 declare module Common.Models {
@@ -1276,6 +1296,7 @@ declare module Common.Models {
         personnel: Team.Models.Personnel;
         unitType: Team.Enums.UnitTypes;
         playType: Playbook.Enums.PlayTypes;
+        category: Playbook.Enums.PlayCategories;
         png: string;
         constructor(unitType: Team.Enums.UnitTypes);
         copy(newPlay: Common.Interfaces.IPlay): Common.Interfaces.IPlay;
@@ -2982,7 +3003,7 @@ declare module Playbook.Models {
         play: Common.API.Actions;
         formation: Common.API.Actions;
         assignmentGroup: Common.API.Actions;
-        constructor();
+        constructor(entity: Common.Interfaces.IAssociable);
     }
 }
 declare module Playbook.Models {
@@ -3348,6 +3369,14 @@ declare module Playbook.Enums {
         Primary = 1,
         Opponent = 2,
         Unknown = 3,
+    }
+    enum PlayCategories {
+        Unknown = 0,
+        None = 1,
+        Run = 2,
+        Pass = 3,
+        Blitz = 4,
+        Zone = 5,
     }
     enum PlayerIconTypes {
         CircleEditor = 0,

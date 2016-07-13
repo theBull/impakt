@@ -26,12 +26,22 @@
 			</div>
 		</div>					
 
-		<play-thumbnail play='play' class='height18 dark-border'></play-thumbnail>			
+		<play-thumbnail 
+			play='play' 
+			class='height18 dark-border'>
+			
+		</play-thumbnail>			
 
-		<div class='pad gray-bg-2 opacity09 bottom0 left0 fontSize8'>
+		<div class='gray-bg-2 opacity09 bottom0 left0 fontSize8 row'>
 			<type-formatter
+				class='pad dark-border-right'
 				value='play.unitType'
 				type='Team.Enums.UnitTypes'>
+			</type-formatter>
+			<type-formatter
+				class='pad'
+				value='play.category'
+				type='Playbook.Enums.PlayCategories'>
 			</type-formatter>
 		</div>
 	</div>

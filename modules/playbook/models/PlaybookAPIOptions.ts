@@ -10,14 +10,13 @@ module Playbook.Models {
 		public formation: Common.API.Actions;
 		public assignmentGroup: Common.API.Actions;
 
-		constructor() {
-			super();
+		constructor(entity: Common.Interfaces.IAssociable) {
+			super(entity);
 			this.scenario = Common.API.Actions.Nothing;
 			this.play = Common.API.Actions.Nothing;
 			this.formation = Common.API.Actions.Nothing;
 			this.assignmentGroup = Common.API.Actions.Nothing;
 		}
-
 	}
 
 }

@@ -11,6 +11,7 @@ module Common.Models {
         public personnel: Team.Models.Personnel;
         public unitType: Team.Enums.UnitTypes;
         public playType: Playbook.Enums.PlayTypes;
+        public category: Playbook.Enums.PlayCategories;
         public png: string;
 
         constructor(unitType: Team.Enums.UnitTypes) {
@@ -25,6 +26,7 @@ module Common.Models {
             this.png = null;
             this.contextmenuTemplateUrl = Common.Constants.PLAY_CONTEXTMENU_TEMPLATE_URL;
             this.playType = Playbook.Enums.PlayTypes.Unknown;
+            this.category = Playbook.Enums.PlayCategories.None;
             this.flipped = false;
             this.associable = [
                 'playbooks',
@@ -41,6 +43,8 @@ module Common.Models {
             newPlay.formation = this.formation && this.formation.copy();
             newPlay.personnel = this.personnel && this.personnel.copy();
             newPlay.assignmentGroup = this.assignmentGroup && this.assignmentGroup.copy();
+            newPlay.playType = this.playType;
+            newPlay.category = this.category;
             return <Common.Interfaces.IPlay>super.copy(newPlay, this);
         }
 
@@ -49,7 +53,8 @@ module Common.Models {
                 name: this.name,
                 unitType: this.unitType,
                 png: this.png,
-                playType: this.playType
+                playType: this.playType,
+                category: this.category
             }, super.toJson());
         }
         public fromJson(json: any): any {
@@ -58,6 +63,7 @@ module Common.Models {
             this.unitType = json.unitType;
             this.png = json.png;
             this.playType = json.playType || this.playType;
+            this.category = json.category;
 
             super.fromJson(json);
         }

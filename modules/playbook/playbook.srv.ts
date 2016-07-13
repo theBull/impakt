@@ -861,11 +861,12 @@ function(
 
         let notification = __notifications.pending('Saving play "', play.name, '"...');
 
-        async.parallel([
-            // 
-            // Save formation
-            // 
-            function(callback) {
+        async.parallel({
+            /**
+             * Save formation
+             * @param {Function} callback [description]
+             */
+            formation: function(callback) {
                 // create, copy, or overwrite?
                 if(options.formation == Common.API.Actions.Create || 
                     options.formation == Common.API.Actions.Copy) {
@@ -875,7 +876,7 @@ function(
                         self.createFormation(play.formation)
                         .then(function(createdFormation: Common.Models.Formation) {
                             play.formation = createdFormation;
-                            callback(null, play);
+                            callback(null, createdFormation);
                         }, function(err) {
                             callback(err);
                         });
@@ -883,23 +884,30 @@ function(
                 } else if(options.formation == Common.API.Actions.Overwrite) {
                     self.updateFormation(play.formation)
                     .then(function(updatedFormation: Common.Models.Formation) {
-                        callback(null, play);
+                        callback(null, updatedFormation);
                     }, function(err) {
                         callback(err);
                     });
                 } else {
-                    callback(null, play);
+                    callback(null, play.formation);
                 }
             },
-            // save personnel
+            
+            /**
+             * Save personnel
+             */
             // function(callback) {
             //     console.warn('Save Play > Personnel not implemented, skipping...');
             //     callback(null, play);
             // },
-            // save assignments
-            function(callback) {
+            
+            /**
+             * Save assignmentGroup
+             * @param {Function} callback [description]
+             */
+            assignmentGroup: function(callback) {
                 if (Common.Utilities.isNullOrUndefined(play.assignmentGroup))
-                    callback(null, play);
+                    callback(null, null);
 
                 if (options.assignmentGroup == Common.API.Actions.Create ||
                     options.assignmentGroup == Common.API.Actions.Copy) {
@@ -908,21 +916,7 @@ function(
                     play.assignmentGroup.key = -1;
                     self.createAssignmentGroup(play.assignmentGroup)
                         .then(function(createdAssignmentGroup: Common.Models.AssignmentGroup) {
-
-                            if(!_associations.associationExists(
-                                play.associationKey, 
-                                createdAssignmentGroup.associationKey
-                            )) {
-                                _associations.createAssociation(
-                                    play,
-                                    createdAssignmentGroup
-                                ).then(function() {
-                                    callback(null, play);
-                                }, function(err: any) {
-                                    callback(err);
-                                });
-                            }
-
+                            callback(null, createdAssignmentGroup);                        
                         }, function(err) {
                             callback(err);
                         });
@@ -937,11 +931,15 @@ function(
                         });
 
                 } else {
-                    callback(null, play);
+                    callback(null, play.assignmentGroup);
                 }
             },
-            // save play
-            function(callback) {
+            
+            /**
+             * Save play
+             * @param {Function} callback [description]
+             */
+            play: function(callback) {
            
                 if(options.play == Common.API.Actions.Create || 
                     options.play == Common.API.Actions.Copy) {
@@ -968,15 +966,123 @@ function(
                     callback(null, play);
                 }
             }
-        ], function(err, results) {
+        }, function(err, results) {
             if(err) {
                 notification.error('Failed to save play "', play.name, '"');
                 d.reject(err);
             } else {
                 notification.success('Successfully saved play "', play.name, '"');
+
+                if(Common.Utilities.isNullOrUndefined(options)) {
+                    d.resolve(results);
+                } else {
+                    if(Common.Utilities.isNotNullOrUndefined(results) &&
+                        Common.Utilities.isNotNullOrUndefined(results.play)) {
+                        
+                        // Update the play associations before resolving all associations;
+                        // this Step is necessary, since we are either creating, updating
+                        // or doing nothing to the entity; this will ensure that the results
+                        // of each async call returns the most up-to-date entity.
+                        // 
+                        // NOTE:
+                        // the -1 check: at this point, we are expecting fully-created
+                        // entities (they are stored in the database); if the entity
+                        // has a key < 0, they have not been added to the database,
+                        // so prevent them from being added as an association.
+                        if(Common.Utilities.isNotNullOrUndefined(results.formation) &&
+                            options.associated && options.associated.formations &&
+                            results.formation.key > -1) {
+                            options.associated.formations[0] = results.formation;
+                        } else {
+                            options.associated.formations = [];
+                        }
+                        if(Common.Utilities.isNotNullOrUndefined(results.assignmentGroup) &&
+                            options.associated && options.associated.assignmentGroups &&
+                            results.assignmentGroup.key > -1) {
+                            options.associated.assignmentGroups[0] = results.assignmentGroup;
+                        } else {
+                            options.associated.assignmentGroups = [];
+                        }
+                        
+                        _updatePlayAssociations(results.play, options).then(function(results) {
+                            d.resolve(results);
+                        }, function(err) {
+                            d.reject(err);
+                        });
+                    } else {
+                        d.resolve(results);
+                    }
+                }
+            }
+        });
+
+        return d.promise;
+    }
+
+    // Pre-condition: options.associated is not null or undefined
+    function _updatePlayAssociations(play: Common.Interfaces.IPlay, options: Playbook.Models.PlaybookAPIOptions) {
+        let d = $q.defer();
+
+        let associatedEmpty = false;
+        let associatedEntityArray = options.associatedToArray();
+                    
+        if(Common.Utilities.isNullOrUndefined(options) ||
+            !options.associated || options.associated.length <= 0) {
+            associatedEmpty = true;
+        }
+
+        let notification = __notifications.pending('Saving associations for play "', play.name, '"...');
+        async.parallel({
+            play: function(callback) {
+                if(associatedEmpty) {
+                    callback(null, null);
+                } else {
+                    // Create associations:
+                    // Play -> [Playbook, AssignmentGroup, Formation]
+                    _associations.createAssociations(play, associatedEntityArray).then(function() {
+                        callback(null, associatedEntityArray);
+                    }, function(err) {
+                        callback(err, null);
+                    });
+                }
+            },
+            playbook: function(callback) {
+                let associatedPlaybook = options.associated.playbooks[0];
+                if(associatedEmpty || Common.Utilities.isNullOrUndefined(associatedPlaybook)) {
+                    callback(null, null);
+                } else {
+                    // Create Associations:
+                    // Playbook -> [AssignmentGroup, Formation]
+                    let playbookAssociations = [];
+                    if(Common.Utilities.isNotNullOrUndefined(options.associated.formations) &&
+                        Common.Utilities.isNotNullOrUndefined(options.associated.formations[0])) {
+                        playbookAssociations.push(options.associated.formations[0]);
+                    }
+                    if(Common.Utilities.isNotNullOrUndefined(options.associated.assignmentGroups) &&
+                        Common.Utilities.isNotNullOrUndefined(options.associated.assignmentGroups[0])) {
+                        playbookAssociations.push(options.associated.assignmentGroups[0]);
+                    }
+                    if(playbookAssociations.length > 0) {
+                        _associations.createAssociations(associatedPlaybook, playbookAssociations).then(function() {
+                            callback(null, playbookAssociations);
+                        }, function(err) {
+                            callback(err, null);
+                        });
+                    } else {
+                        callback(null, null);
+                    }
+                }                    
+            }
+        }, function(err, results) {
+            if(err) {
+                notification.error('Failed to save play "', play.name, '"; update associations failed.');
+                d.reject(err);
+            } else {
+                notification.success('Successfully saved associations for play "', play.name, '"');
                 d.resolve(results);
             }
         });
+       
 
         return d.promise;
     }

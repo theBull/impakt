@@ -16,7 +16,7 @@ function(
 	$scope.playbooks = impakt.context.Playbook.playbooks;
 	$scope.formations = impakt.context.Playbook.formations;
 	$scope.assignmentGroups = impakt.context.Playbook.assignmentGroups;
-
+	$scope.categories = Common.Utilities.getEnumerationsOnly(Playbook.Enums.PlayCategories);
 	$scope.selectedPlaybook = $scope.playbooks.first();
 	$scope.selectedFormation = $scope.formations.first();
 	$scope.selectedAssignmentGroup = null;
@@ -38,6 +38,10 @@ function(
 
 	$scope.selectUnitType = function() {
 		$scope.newPlay.unitType = $scope.selectedUnitType.unitType;
+	}
+
+	$scope.selectCategory = function() {
+		
 	}
 
 	$scope.selectPlaybook = function(playbook: Common.Models.PlaybookModel) {
